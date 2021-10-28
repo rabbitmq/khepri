@@ -1,0 +1,59 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - 'main'
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  Test:
+    name: Test on Erlang/OTP ${{ matrix.otp_version }} and ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        otp_version: [23, 24]
+        os: [ubuntu-latest, windows-latest]
+
+    env:
+      LATEST_OTP_RELEASE: 24
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{matrix.otp_version}}
+          rebar3-version: '3.16.1'
+
+      - name: Compile
+        run: rebar3 compile
+
+      - name: Xref
+        run: rebar3 xref
+      - name: EUnit
+        run: rebar3 eunit --verbose --cover
+      - name: Coveralls
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_FLAG_NAME: ${{ matrix.otp_version }}
+        run: rebar3 as test coveralls send
+
+      - name: Dialyzer
+        if: ${{ matrix.otp_version == env.LATEST_OTP_RELEASE && matrix.os == 'ubuntu-latest' }}
+        run: rebar3 clean -a && rebar3 dialyzer
+
+  Finish:
+    name: Finishing
+    needs: [Test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coveralls finished
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -v -k https://coveralls.io/webhook \
+            --header "Content-Type: application/json" \
+            --data "{\"repo_name\":\"$GITHUB_REPOSITORY\",\"repo_token\":\"$GITHUB_TOKEN\",\"payload\":{\"build_num\":$GITHUB_RUN_NUMBER,\"status\":\"done\"}}"

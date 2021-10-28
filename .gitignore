@@ -1,0 +1,12 @@
+erl_crash.dump
+.sw?
+.*.sw?
+/_build
+/doc/*
+!/doc/overview.edoc
+!/doc/README.md
+!/doc/github-markdown.css
+!/doc/prism.css
+!/doc/prism.js
+/mix.lock
+/nonode@nohost/

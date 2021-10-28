@@ -1,0 +1,15 @@
+{"1.2.0",
+[{<<"aten">>,{pkg,<<"aten">>,<<"0.5.6">>},1},
+ {<<"gen_batch_server">>,{pkg,<<"gen_batch_server">>,<<"0.8.4">>},1},
+ {<<"ra">>,
+  {git,"https://github.com/rabbitmq/ra.git",
+       {ref,"bb10aa2265953d634bf75bda3ecbc46795480c2f"}},
+  0}]}.
+[
+{pkg_hash,[
+ {<<"aten">>, <<"A6DC5BB81073B11F6A77CDB1475A054B778A0FDCEE04BBC78A70F99197DCC66C">>},
+ {<<"gen_batch_server">>, <<"20535E9DBD4DC234E63B3DF79BA65D8A770396B2CAD6B4068A1E37E3AE010900">>}]},
+{pkg_hash_ext,[
+ {<<"aten">>, <<"30721679DA07CCB55BB0F407CB0E40C7DC6D1E258F3EBFB789C55982878E4427">>},
+ {<<"gen_batch_server">>, <<"FF6B0ED0F7BE945F38B94DDD4784D128F35FF029C34DAD6CA0C6CB17AB7BC9C4">>}]}
+].
