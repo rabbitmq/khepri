@@ -491,15 +491,21 @@ lookup_function1(
   Name, Arity) ->
     lookup_function1(Rest, Name, Arity).
 
-erl_eval_fun_to_asm(Module, Name, Arity, Env) ->
+-spec erl_eval_fun_to_asm(Module, Name, Arity, Env) -> BeamFileRecord when
+      Module :: module(),
+      Name :: atom(),
+      Arity :: arity(),
+      Env :: any(),
+      BeamFileRecord :: #beam_file{}.
+%% @private
+
+erl_eval_fun_to_asm(Module, Name, Arity, [{[], _, _, Clauses}]) ->
     %% We construct an abstract form based on the `env' of the lambda loaded
     %% by `erl_eval'.
-    [{[], _, _, Clauses}] = Env,
-    Anno = 1,
+    Anno = erl_anno:from_term(1),
     Forms = [{attribute, Anno, module, Module},
              {attribute, Anno, export, [{Name, Arity}]},
-             {function, Anno, Name, Arity, Clauses},
-             {eof, Anno}],
+             {function, Anno, Name, Arity, Clauses}],
 
     %% The abstract form is now compiled to binary code. Then, the assembly
     %% code is extracted from the compiled beam.
