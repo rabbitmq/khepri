@@ -1,0 +1,41 @@
+@author The RabbitMQ team <info@rabbitmq.com>
+@author Jean-Sébastien Pédron <jean-sebastien@rabbitmq.com>
+@copyright 2021 VMware, Inc. or its affiliates.  All rights reserved.
+@title The Khepri Database
+@version 0.1.0
+
+@doc
+Khepri is a tree-like replicated on-disk database library for Erlang and
+Elixir.
+
+<blockquote>Khepri is still in development and should be considered
+<em>Alpha</em> at this stage.</blockquote>
+
+Data are stored in a <strong>tree structure</strong>. Each node in the tree is
+referenced by its path from the root node. A path is a list of Erlang atoms
+and/or binaries. For ease of use, Unix-like path strings are accepted as well.
+
+For <strong>consistency and replication</strong> and to manage data on disk,
+Khepri relies on the <a href="https://github.com/rabbitmq/ra">Ra library</a>.
+The Ra library implements the <a href="https://raft.github.io/">Raft consensus
+algorithm</a>. In Ra parlance, Khepri is a state machine in a Ra cluster.
+
+== Getting started ==
+
+See the `README.md' at the root of the project.
+
+== The tree structure ==
+
+=== What is a path? ===
+
+=== How to perform queries and updates ===
+
+=== Transactions ===
+
+== Distribution of the data ==
+
+=== Quick start, using the default database ===
+
+=== Configuring a Ra system and a dedicated store ===
+
+=== Adding and removing cluster members ===

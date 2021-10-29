@@ -1,0 +1,233 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Module khepri_path</title>
+<link rel="stylesheet" type="text/css" href="github-markdown.css" title="EDoc">
+<link href="prism.css" rel="stylesheet" /><style>
+    body {
+      box-sizing: border-box;
+      min-width: 200px;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 45px;
+    }
+
+    @media (max-width: 767px) {
+      body {
+        padding: 15px;
+      }
+    }
+
+    /* Don't apply the table style to the top-level navigation bar. */
+    .navbar table {
+      display: table;
+      width: 100%;
+    }
+    .navbar table tr,
+    .navbar table th,
+    .navbar table td {
+      border: 0;
+    }
+
+    /* Keep the same font side inside code blocks than everywhere else. */
+    .markdown-body pre code,
+    code[class*="language-"] {
+      font-size: 85%;
+    }
+
+    /* Force the color for link on code blocks used for @see tags.  */
+    .markdown-body a code,
+    .markdown-body a code span.token {
+      color: var(--color-accent-fg);
+    }
+
+    /* Copy the style of code blocks. */
+    .markdown-body .spec {
+      background: #f5f2f0;
+      padding: 1em;
+      margin: .5em 0;
+      overflow: auto;
+      border-radius: 6px;
+    }
+
+    /* Improve margins inside function spec blocks so that:
+        - empty paragraphs don't add useless margins
+        - the final top and bottom margins are equal */
+    .markdown-body .spec p,
+    .markdown-body .spec ul {
+      margin-top: 16px;
+      margin-bottom: 0;
+    }
+    .markdown-body .spec p:first-child,
+    .markdown-body .spec p:empty {
+      margin-top: 0;
+    }
+
+    /* Put the function prototype in bold characters. */
+    .markdown-body .spec > p > code:first-child {
+      font-weight: bold;
+    }
+
+    /* Add some margin below the module short description between the table
+       of contents in the Description section. This text isn't in a
+       <p></p>. */
+    .index + p {
+      margin-top: 16px;
+    }
+    </style></head>
+<body class="markdown-body language-erlang"><script src="prism.js"></script>
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module khepri_path</h1>
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Khepri path API.
+
+
+<h2><a name="description">Description</a></h2><p>Khepri path API.</p>
+ 
+  <p>A path is the type used by Khepri to reference nodes in the tree structure.  
+A path describes how to reach a node from the root node.</p>
+ 
+  <p>A path, or <em>native path</em>, is a list of components. Components can be  
+Erlang atoms and binaries. Example:</p>
+ 
+  <pre><code>%% Native path.
+Path = [stock, wood, oak].</code></pre>
+ 
+  <p>A path may contain conditions to tune how a node is matched or to match
+  multiple nodes at once. This is called a <em>path pattern</em>. A path
+  pattern may contain conditions in addition to regular components (Erlang
+  atoms and binaries). See <a docgen-rel="seeerl" docgen-href="khepri_condition" href="khepri_condition.html"><code>khepri_condition</code></a> to learn more about  
+conditions. Example:</p>
+ 
+  <pre><code>%% Path pattern with a condition on `wood'.
+PathPattern = [stock,
+               #if_all{conditions = [wood,
+                                     #if_node_exists{exists = true}]},
+               oak].</code></pre>
+ 
+  <p>To be user-friendly, Unix-like string-based paths are accepted by most
+  functions. These <em>Unix paths</em> have the <code>"/path/to/node"</code> and is the
+  equivalent of the <code>[path, to, node]</code> native path.</p>
+ 
+  <pre><code>%% Unix path, equivalent of the first native path example.
+UnixPath = "/stock/wood/oak".</code></pre>
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-component">component()</a></h3>
+<p><code>component() = <a href="#type-node_id">node_id()</a> | 47 | 46 | 94</code></p>
+<p>  Component name in a path to a node.</p>
+
+<h3 class="typedecl"><a name="type-node_id">node_id()</a></h3>
+<p><code>node_id() = atom() | binary()</code></p>
+<p>  A node name.</p>
+
+<h3 class="typedecl"><a name="type-path">path()</a></h3>
+<p><code>path() = [<a href="#type-component">component()</a>]</code></p>
+<p>  Path to a node.</p>
+
+<h3 class="typedecl"><a name="type-pattern">pattern()</a></h3>
+<p><code>pattern() = [<a href="#type-pattern_component">pattern_component()</a>]</code></p>
+<p>  Path pattern which may match zero, one or more nodes.</p>
+
+<h3 class="typedecl"><a name="type-pattern_component">pattern_component()</a></h3>
+<p><code>pattern_component() = <a href="#type-component">component()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-condition">khepri_condition:condition()</a></code></p>
+
+
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#from_string-1">from_string/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#component_from_string-1">component_from_string/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#maybe_from_string-1">maybe_from_string/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#to_string-1">to_string/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#component_to_string-1">component_to_string/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#combine_with_conditions-2">combine_with_conditions/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#targets_specific_node-1">targets_specific_node/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#is_valid-1">is_valid/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#ensure_is_valid-1">ensure_is_valid/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#abspath-2">abspath/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#realpath-1">realpath/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#pattern_includes_root_node-1">pattern_includes_root_node/1</a></td><td></td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="from_string-1">from_string/1</a></h3>
+<div class="spec">
+<p><code>from_string(PathString::string()) -&gt; <a href="#type-path">path()</a></code><br></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="component_from_string-1">component_from_string/1</a></h3>
+<div class="spec">
+<p><code>component_from_string(Component::string()) -&gt; <a href="#type-component">component()</a></code><br></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="maybe_from_string-1">maybe_from_string/1</a></h3>
+<div class="spec">
+<p><code>maybe_from_string(Path::<a href="#type-pattern">pattern()</a> | string()) -&gt; <a href="#type-pattern">pattern()</a></code><br></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="to_string-1">to_string/1</a></h3>
+<div class="spec">
+<p><code>to_string(Path::<a href="#type-path">path()</a>) -&gt; string()</code><br></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="component_to_string-1">component_to_string/1</a></h3>
+<div class="spec">
+<p><code>component_to_string(Component::<a href="#type-component">component()</a>) -&gt; string()</code><br></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="combine_with_conditions-2">combine_with_conditions/2</a></h3>
+<div class="spec">
+<p><code>combine_with_conditions(Path::<a href="#type-pattern">pattern()</a>, Conditions::[<a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-condition">khepri_condition:condition()</a>]) -&gt; <a href="#type-pattern">pattern()</a></code><br></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="targets_specific_node-1">targets_specific_node/1</a></h3>
+<div class="spec">
+<p><code>targets_specific_node(PathPattern::<a href="#type-pattern">pattern()</a>) -&gt; {true, <a href="#type-path">path()</a>} | false</code><br></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="is_valid-1">is_valid/1</a></h3>
+<div class="spec">
+<p><code>is_valid(PathPattern) -&gt; IsValid</code>
+<ul class="definitions"><li><code>PathPattern = <a href="#type-pattern">pattern()</a></code></li><li><code>IsValid = true | {false, <a href="#type-pattern_component">pattern_component()</a>}</code></li></ul></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="ensure_is_valid-1">ensure_is_valid/1</a></h3>
+<div class="spec">
+<p><code>ensure_is_valid(PathPattern) -&gt; ok | no_return()</code>
+<ul class="definitions"><li><code>PathPattern = <a href="#type-pattern">pattern()</a></code></li></ul></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="abspath-2">abspath/2</a></h3>
+<div class="spec">
+<p><code>abspath(AbsolutePath::<a href="#type-pattern">pattern()</a>, BasePath::<a href="#type-pattern">pattern()</a>) -&gt; <a href="#type-pattern">pattern()</a></code><br></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="realpath-1">realpath/1</a></h3>
+<div class="spec">
+<p><code>realpath(Path::<a href="#type-pattern">pattern()</a>) -&gt; <a href="#type-pattern">pattern()</a></code><br></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="pattern_includes_root_node-1">pattern_includes_root_node/1</a></h3>
+<div class="spec">
+<p><code>pattern_includes_root_node(X1) -&gt; any()</code></p>
+<p></p>
+</div>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc</i></p>
+</body>
+</html>

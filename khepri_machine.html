@@ -1,0 +1,427 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Module khepri_machine</title>
+<link rel="stylesheet" type="text/css" href="github-markdown.css" title="EDoc">
+<link href="prism.css" rel="stylesheet" /><style>
+    body {
+      box-sizing: border-box;
+      min-width: 200px;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 45px;
+    }
+
+    @media (max-width: 767px) {
+      body {
+        padding: 15px;
+      }
+    }
+
+    /* Don't apply the table style to the top-level navigation bar. */
+    .navbar table {
+      display: table;
+      width: 100%;
+    }
+    .navbar table tr,
+    .navbar table th,
+    .navbar table td {
+      border: 0;
+    }
+
+    /* Keep the same font side inside code blocks than everywhere else. */
+    .markdown-body pre code,
+    code[class*="language-"] {
+      font-size: 85%;
+    }
+
+    /* Force the color for link on code blocks used for @see tags.  */
+    .markdown-body a code,
+    .markdown-body a code span.token {
+      color: var(--color-accent-fg);
+    }
+
+    /* Copy the style of code blocks. */
+    .markdown-body .spec {
+      background: #f5f2f0;
+      padding: 1em;
+      margin: .5em 0;
+      overflow: auto;
+      border-radius: 6px;
+    }
+
+    /* Improve margins inside function spec blocks so that:
+        - empty paragraphs don't add useless margins
+        - the final top and bottom margins are equal */
+    .markdown-body .spec p,
+    .markdown-body .spec ul {
+      margin-top: 16px;
+      margin-bottom: 0;
+    }
+    .markdown-body .spec p:first-child,
+    .markdown-body .spec p:empty {
+      margin-top: 0;
+    }
+
+    /* Put the function prototype in bold characters. */
+    .markdown-body .spec > p > code:first-child {
+      font-weight: bold;
+    }
+
+    /* Add some margin below the module short description between the table
+       of contents in the Description section. This text isn't in a
+       <p></p>. */
+    .index + p {
+      margin-top: 16px;
+    }
+    </style></head>
+<body class="markdown-body language-erlang"><script src="prism.js"></script>
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module khepri_machine</h1>
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>  
+Khepri low-level API.
+
+<p><b>Behaviours:</b> <a href="ra_machine.html"><code>ra_machine</code></a>.</p>
+
+<h2><a name="description">Description</a></h2><p>  
+Khepri low-level API.</p>
+ 
+  <p>This module exposes the "low-level" API to the Khepri database and state
+  machine. All functions in <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> are built on top of this module.</p>
+ 
+  The API is divided into two parts:
+  <ol>
+  <li>Functions to manipulate a simple set of nodes directly.</li>
+  <li>Functions to perform transactional queries and updates.</li>
+  </ol>
+ 
+  <h3><a name="The_store_ID">The store ID</a></h3>
+ 
+  <p>All functions require a store ID (<a docgen-rel="seemfa" docgen-href="#store_id/0" href="#store_id-0"><code>store_id/0</code></a>). The store ID  
+corresponds to the name of the Ra cluster Khepri was started with.</p>
+ 
+  <p>See <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> for more details about Ra systems and clusters.</p>
+ 
+  <h3><a name="Direct_manipulation_of_nodes">Direct manipulation of nodes</a></h3>
+ 
+  The API provides the following three functions:
+  <ul>
+  <li><a docgen-rel="seemfa" docgen-href="#get/2" href="#get-2"><code>get/2</code></a> and <a docgen-rel="seemfa" docgen-href="#get/3" href="#get-3"><code>get/3</code></a>: returns all nodes matching the given
+  path pattern.</li>
+  <li><a docgen-rel="seemfa" docgen-href="#put/3" href="#put-3"><code>put/3</code></a> and <a docgen-rel="seemfa" docgen-href="#put/4" href="#put-4"><code>put/4</code></a>: updates a single specific node.</li>
+  <li><a docgen-rel="seemfa" docgen-href="#delete/2" href="#delete-2"><code>delete/2</code></a>: removes all nodes matching the given path
+  pattern.</li>
+  </ul>
+ 
+  <p>All functions take a native path pattern. They do not accept Unix-like  
+paths.</p>
+ 
+  All functions return one of these tuples:
+  <ul>
+  <li><code>{ok, NodePropsMap}</code> where <code>NodePropsMap</code> is a <a docgen-rel="seemfa" docgen-href="#node_props_map/0" href="#node_props_map-0"><code>node_props_map/0</code></a>:
+  <ul>
+  <li>The map returned by <a docgen-rel="seemfa" docgen-href="#get/2" href="#get-2"><code>get/2</code></a>, <a docgen-rel="seemfa" docgen-href="#get/3" href="#get-3"><code>get/3</code></a> and <a docgen-rel="seemfa" docgen-href="#delete/2" href="#delete-2"><code>delete/2</code></a>
+  contains one entry per node matching the path pattern.</li>
+  <li>The map returned by <a docgen-rel="seemfa" docgen-href="#put/3" href="#put-3"><code>put/3</code></a> and <a docgen-rel="seemfa" docgen-href="#put/4" href="#put-4"><code>put/4</code></a> contains a single
+  entry if the modified node existed before the update, or no entry if it
+  didn't.</li>
+  </ul></li>
+  <li><code>{error, Reason}</code> if an error occured. In the case, no modifications to
+  the tree was performed.</li>
+  </ul>
+ 
+  <h3><a name="Transactional_queries_and_updates">Transactional queries and updates</a></h3>
+ 
+  <p>Transactions are handled by <a docgen-rel="seemfa" docgen-href="#query/2" href="#query-2"><code>query/2</code></a> and <a docgen-rel="seemfa" docgen-href="#transaction/2" href="#transaction-2"><code>transaction/2</code></a>.</p>
+ 
+  <p>Both functions take an anonymous function. See <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> for more  
+details about those functions and in particular their restrictions.</p>
+ 
+  The return value is whatever the anonymous function if it succeeded or the
+  reason why it aborted, similar to what <a docgen-rel="seemfa" docgen-href="mnesia#transaction/1" href="mnesia.html#transaction-1"><code>mnesia:transaction/1</code></a>
+  returns.
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-child_list_version">child_list_version()</a></h3>
+<p><code>child_list_version() = pos_integer()</code></p>
+<p><p>  Number of changes made to the list of child nodes of a node (child nodes  
+added or removed).</p>
+ 
+  The child list version starts at 1 when a node is created. It is increased
+  by 1 each time a child is added or removed. Changes made to existing nodes
+  are not reflected in this version.</p>
+
+<h3 class="typedecl"><a name="type-data">data()</a></h3>
+<p><code>data() = any()</code></p>
+<p>  Data stored in a node's payload.</p>
+
+<h3 class="typedecl"><a name="type-keep_untils_map">keep_untils_map()</a></h3>
+<p><code>keep_untils_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_until">khepri_condition:keep_until()</a>}</code></p>
+<p>  Internal index of the per-node keep_until conditions.</p>
+
+<h3 class="typedecl"><a name="type-keep_untils_revidx">keep_untils_revidx()</a></h3>
+<p><code>keep_untils_revidx() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; ok}}</code></p>
+<p>  Internal reverse index of the keep_until conditions. If node A depends on a
+  condition on node B, then this reverse index will have a "node B =&gt; node A"
+  entry.</p>
+
+<h3 class="typedecl"><a name="type-machine_config">machine_config()</a></h3>
+<p><code>machine_config() = #config{snapshot_interval = non_neg_integer()}</code></p>
+<p>  Configuration record, holding read-only or rarely changing fields.</p>
+
+<h3 class="typedecl"><a name="type-node_props">node_props()</a></h3>
+<p><code>node_props() = #{data =&gt; <a href="#type-data">data()</a>, payload_version := <a href="#type-payload_version">payload_version()</a>, child_list_version := <a href="#type-child_list_version">child_list_version()</a>, child_list_count := non_neg_integer(), child_nodes =&gt; #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-node_id">khepri_path:node_id()</a> =&gt; <a href="#type-node_props">node_props()</a>}}</code></p>
+<p><p>  Structure used to return properties, payload and child nodes for a specific  
+node.</p>
+ 
+  <ul>
+  <li>Payload version, child list version, and child list count are always
+  included in the structure.</li>
+  <li>Data is only included if there is data in the node's payload. Absence of
+  data is represented as no <code>data</code> entry in this structure.</li>
+  <li>Child nodes are only included if requested.</li>
+  </ul></p>
+
+<h3 class="typedecl"><a name="type-node_props_map">node_props_map()</a></h3>
+<p><code>node_props_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; <a href="#type-node_props">node_props()</a>}</code></p>
+<p><p>  Structure used to return a map of nodes and their associated properties,  
+payload and child nodes.</p>
+ 
+  This structure is used in the return value of all commands and queries.</p>
+
+<h3 class="typedecl"><a name="type-operation_options">operation_options()</a></h3>
+<p><code>operation_options() = #{expect_specific_node =&gt; boolean(), include_child_names =&gt; boolean()}</code></p>
+<p>  Options used in <a docgen-rel="seemfa" docgen-href="#find_matching_nodes/3" href="#find_matching_nodes-3"><code>find_matching_nodes/3</code></a>.</p>
+
+<h3 class="typedecl"><a name="type-payload">payload()</a></h3>
+<p><code>payload() = none | {data, <a href="#type-data">data()</a>}</code></p>
+<p><p>  All types of payload stored in the nodes of the tree structure.</p>
+ 
+  Beside the absence of payload, the only type of payload supported is data.</p>
+
+<h3 class="typedecl"><a name="type-payload_version">payload_version()</a></h3>
+<p><code>payload_version() = pos_integer()</code></p>
+<p><p>  Number of changes made to the payload of a node.</p>
+ 
+  The payload version starts at 1 when a node is created. It is increased by 1
+  each time the payload is added, modified or removed.</p>
+
+<h3 class="typedecl"><a name="type-result">result()</a></h3>
+<p><code>result() = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(<a href="#type-node_props_map">node_props_map()</a>) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></p>
+<p>  Return value of a command or query.</p>
+
+<h3 class="typedecl"><a name="type-stat">stat()</a></h3>
+<p><code>stat() = #{payload_version := <a href="#type-payload_version">payload_version()</a>, child_list_version := <a href="#type-child_list_version">child_list_version()</a>}</code></p>
+<p>  Stats attached to each node in the tree structure.</p>
+
+<h3 class="typedecl"><a name="type-state">state()</a></h3>
+<p><code>state() = #khepri_machine{config = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-machine_config">khepri_machine:machine_config()</a>, root = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tree_node">khepri_machine:tree_node()</a>, keep_untils = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_untils_map">khepri_machine:keep_untils_map()</a>, keep_untils_revidx = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_untils_revidx">khepri_machine:keep_untils_revidx()</a>, metrics = any()}</code></p>
+<p>  State of this Ra state machine.</p>
+
+<h3 class="typedecl"><a name="type-tree_node">tree_node()</a></h3>
+<p><code>tree_node() = #node{stat = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-stat">khepri_machine:stat()</a>, payload = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-payload">khepri_machine:payload()</a>, child_nodes = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-component">khepri_path:component()</a> := #node{stat = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-stat">khepri_machine:stat()</a>, payload = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-payload">khepri_machine:payload()</a>, child_nodes = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-component">khepri_path:component()</a> := #node{}}}}}</code></p>
+<p>  A node in the tree structure.</p>
+
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#put-3">put/3</a></td><td>Creates or modifies a specific node in the tree structure.</td></tr>
+<tr><td valign="top"><a href="#put-4">put/4</a></td><td>Creates or modifies a specific node in the tree structure.</td></tr>
+<tr><td valign="top"><a href="#get-2">get/2</a></td><td>Returns all nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#get-3">get/3</a></td><td>Returns all nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Deletes all nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#query-2">query/2</a></td><td>Runs a read-only transaction and returns the result.</td></tr>
+<tr><td valign="top"><a href="#transaction-2">transaction/2</a></td><td>Runs a transaction and returns the result.</td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="put-3">put/3</a></h3>
+<div class="spec">
+<p><code>put(StoreId, PathPattern, Payload) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Payload = <a href="#type-payload">payload()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Creates or modifies a specific node in the tree structure.</p>
+ 
+  Calling this function is the same as calling
+  <code>put(StoreId, PathPattern, Payload, #{})</code>.
+ </p>
+<p><b>See also:</b> <a href="#put-4">put/4</a>.</p>
+
+<h3 class="function"><a name="put-4">put/4</a></h3>
+<div class="spec">
+<p><code>put(StoreId, PathPattern, Payload, Extra) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Payload = <a href="#type-payload">payload()</a></code></li><li><code>Extra = #{keep_until =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_until">khepri_condition:keep_until()</a>}</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<code>PathPattern</code>: the path (or path pattern) to the node to create or
+         modify.<br>
+<code>Payload</code>: the payload to put in the specified node.<br>
+<code>Extra</code>: extra options such as <code>keep_until</code> conditions.
+ <br>
+</p>
+<p>returns: an "ok" tuple with a map with one entry, or an "error" tuple.</p>
+</div><p><p>Creates or modifies a specific node in the tree structure.</p>
+ 
+  <p>The path or path pattern must target a specific node.</p>
+ 
+  <p>When using a simple path, if the target node does not exists, it is created  
+using the given payload. If the target node exists, it is updated with the  
+given payload and its payload version is increased by one. Missing parent  
+nodes are created on the way.</p>
+ 
+  <p>When using a path pattern, the behavior is the same. However if a condition  
+in the path pattern is not met, an error is returned and the tree structure  
+is not modified.</p>
+ 
+  <p>If the target node is modified, the returned structure in the "ok" tuple  
+will have a single key corresponding to the path of the target node. That  
+key will point to a map containing the properties and payload (if any) of  
+the node before the modification.</p>
+ 
+  <p>If the target node is created , the returned structure in the "ok" tuple  
+will have a single key corresponding to the path of the target node. That  
+key will point to empty map, indicating there was no existing node (i.e.  
+there was no properties or payload to return).</p>
+ 
+  The payload must be one of the following form:
+  <ul>
+  <li><code>?NO_PAYLOAD</code>, meaning there will be no payload attached to the
+  node</li>
+  <li><code>?DATA_PAYLOAD(Term)</code> to store any type of term in the node</li>
+  </ul>
+ 
+  Example:
+  <pre><code>%% Insert a node at `/foo/bar', overwriting the previous value.
+Result = khepri_machine:put(
+           ra_cluster_name, [foo, bar], ?DATA_PAYLOAD(new_value)),
+ 
+%% Here is the content of `Result'.
+{ok, #{[foo, bar] =&gt; #{data =&gt; old_value,
+                       payload_version =&gt; 1,
+                       child_list_version =&gt; 1,
+                       child_list_count =&gt; 0}}} = Result.</code></pre>
+ </p>
+
+<h3 class="function"><a name="get-2">get/2</a></h3>
+<div class="spec">
+<p><code>get(StoreId, PathPattern) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Returns all nodes matching the path pattern.</p>
+ 
+  Calling this function is the same as calling
+  <code>get(StoreId, PathPattern, #{})</code>.
+ </p>
+<p><b>See also:</b> <a href="#get-3">get/3</a>.</p>
+
+<h3 class="function"><a name="get-3">get/3</a></h3>
+<div class="spec">
+<p><code>get(StoreId, PathPattern, Options) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-operation_options">operation_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<code>PathPattern</code>: the path (or path pattern) to match against the nodes to
+         retrieve.<br>
+<code>Options</code>: options to tune the tree traversal or the returned structure
+         content.
+ <br>
+</p>
+<p>returns: an "ok" tuple with a map with zero, one or more entries, or an
+  "error" tuple.</p>
+</div><p><p>Returns all nodes matching the path pattern.</p>
+ 
+  <p>The returned structure in the "ok" tuple will have a key corresponding to  
+the path per node which matched the pattern. Each key will point to a map  
+containing the properties and payload of that matching node.</p>
+ 
+  Example:
+  <pre><code>%% Query the node at `/foo/bar'.
+Result = khepri_machine:get(ra_cluster_name, [foo, bar]),
+ 
+%% Here is the content of `Result'.
+{ok, #{[foo, bar] =&gt; #{data =&gt; new_value,
+                       payload_version =&gt; 2,
+                       child_list_version =&gt; 1,
+                       child_list_count =&gt; 0}}} = Result.</code></pre>
+ </p>
+
+<h3 class="function"><a name="delete-2">delete/2</a></h3>
+<div class="spec">
+<p><code>delete(StoreId, PathPattern) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<code>PathPattern</code>: the path (or path pattern) to match against the nodes to
+         delete.
+ <br>
+</p>
+<p>returns: an "ok" tuple with a map with zero, one or more entries, or an
+  "error" tuple.</p>
+</div><p><p>Deletes all nodes matching the path pattern.</p>
+ 
+  <p>The returned structure in the "ok" tuple will have a key corresponding to  
+the path per node which was deleted. Each key will point to a map containing  
+the properties and payload of that deleted node.</p>
+ 
+  Example:
+  <pre><code>%% Delete the node at `/foo/bar'.
+Result = khepri_machine:delete(ra_cluster_name, [foo, bar]),
+ 
+%% Here is the content of `Result'.
+{ok, #{[foo, bar] =&gt; #{data =&gt; new_value,
+                       payload_version =&gt; 2,
+                       child_list_version =&gt; 1,
+                       child_list_count =&gt; 0}}} = Result.</code></pre>
+ </p>
+
+<h3 class="function"><a name="query-2">query/2</a></h3>
+<div class="spec">
+<p><code>query(StoreId, Fun) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<code>Fun</code>: an arbitrary anonymous function.
+ <br>
+</p>
+<p>returns: <code>{atomic, Result}</code> with the return value of <code>Fun</code>, or <code>{aborted,
+  Reason}</code> if the anonymous function was aborted.</p>
+</div><p><p>Runs a read-only transaction and returns the result.</p>
+ 
+  <p><code>Fun</code> is an arbitrary anonymous function. It is executed from a process on  
+the leader Ra member.</p>
+ 
+  <p><code>Fun</code> can do whatever it wants, except modify the content of the store. In
+  other words, uses of <a docgen-rel="seemfa" docgen-href="khepri_tx#put/2" href="khepri_tx.html#put-2"><code>khepri_tx:put/2</code></a> or <a docgen-rel="seemfa" docgen-href="khepri_tx#delete/1" href="khepri_tx.html#delete-1"><code>khepri_tx:delete/1</code></a>  
+are forbidden and will abort the function.</p>
+ 
+  The result of <code>Fun</code> can be any term. That result is returned in an
+  <code>{atomic, Result}</code> tuple.
+ </p>
+
+<h3 class="function"><a name="transaction-2">transaction/2</a></h3>
+<div class="spec">
+<p><code>transaction(StoreId, Fun) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<code>Fun</code>: an arbitrary anonymous function.
+ <br>
+</p>
+<p>returns: <code>{atomic, Result}</code> with the return value of <code>Fun</code>, or <code>{aborted,
+  Reason}</code> if the anonymous function was aborted.</p>
+</div><p><p>Runs a transaction and returns the result.</p>
+ 
+  <p><code>Fun</code> is an arbitrary anonymous function. It is executed in the context of  
+the state machine process on each Ra members.</p>
+ 
+  <p><code>Fun</code> can use the <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> transaction API as well as any calls to
+  other modules as long as those functions or what they do are permitted. See
+  <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> for more details. If <code>Fun</code> does or calls something  
+forbidden, the transaction will be aborted.</p>
+ 
+  The result of <code>Fun</code> can be any term. That result is returned in an
+  <code>{atomic, Result}</code> tuple.
+ </p>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc</i></p>
+</body>
+</html>
