@@ -316,6 +316,9 @@ ensure_bif_is_valid(Bif, Arity) ->
             throw({call_denied, {Bif, Arity}})
     end.
 
+is_remote_call_valid(khepri, no_payload, 0) -> true;
+is_remote_call_valid(khepri, data_payload, 1) -> true;
+
 is_remote_call_valid(khepri_tx, put, _) -> true;
 is_remote_call_valid(khepri_tx, get, _) -> true;
 is_remote_call_valid(khepri_tx, exists, _) -> true;

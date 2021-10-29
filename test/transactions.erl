@@ -646,3 +646,84 @@ use_an_invalid_payload_in_tx_test_() ->
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun)
          end)]}.
+
+tx_from_the_shell_test_() ->
+    %% We simuate the use of a transaction from the Erlang shell by using
+    %% `erl_parse' and `erl_eval'. The transaction is the same as
+    %% `put_tx_test_()'.
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {atomic,
+          {ok, #{[foo] => #{data => value1,
+                            payload_version => 1,
+                            child_list_version => 1,
+                            child_list_count => 0}}}},
+         begin
+             khepri_machine:put(
+               ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
+
+             Code = "
+             Fun = fun() ->
+                           Path = [foo],
+                           case khepri_tx:get(Path) of
+                               {ok, #{Path := #{data := value1}}} ->
+                                   khepri_tx:put(
+                                     Path,
+                                     khepri:data_payload(value2));
+                               Other ->
+                                   Other
+                           end
+                   end,
+             khepri_machine:transaction(
+               " ++ atom_to_list(?FUNCTION_NAME) ++ ",
+               Fun).
+             ",
+
+             Bindings = erl_eval:new_bindings(),
+             {ok, Tokens, _EndLocation} = erl_scan:string(Code),
+             {ok, Exprs} = erl_parse:parse_exprs(Tokens),
+             {value, Value, _NewBindings} = erl_eval:exprs(Exprs, Bindings),
+             Value
+         end)]}.
+
+local_fun_using_erl_eval() ->
+    Code = "
+    Fun = fun() ->
+                  Path = [foo],
+                  case khepri_tx:get(Path) of
+                      {ok, #{Path := #{data := value1}}} ->
+                          khepri_tx:put(
+                            Path,
+                            khepri:data_payload(value2));
+                      Other ->
+                          Other
+                  end
+          end,
+    Fun().
+    ",
+
+    Bindings = erl_eval:new_bindings(),
+    {ok, Tokens, _EndLocation} = erl_scan:string(Code),
+    {ok, Exprs} = erl_parse:parse_exprs(Tokens),
+    {value, Value, _NewBindings} = erl_eval:exprs(Exprs, Bindings),
+    Value.
+
+tx_using_erl_eval_test_() ->
+    %% We simuate the use of a transaction from the Erlang shell by using
+    %% `erl_parse' and `erl_eval'. The transaction is the same as
+    %% `put_tx_test_()'.
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertThrow(
+         {invalid_tx_fun, {call_denied, _}},
+         begin
+             khepri_machine:put(
+               ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
+
+             khepri_machine:transaction(
+               ?FUNCTION_NAME,
+             fun local_fun_using_erl_eval/0)
+         end)]}.

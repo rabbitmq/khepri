@@ -39,6 +39,17 @@
 %% version N, it will probably not compile or run on older versions of Erlang.
 %% The reason is that a newer compiler may use instructions which are unknown
 %% to older runtimes.
+%%
+%% There is a special treatment for anonymous functions evaluated by
+%% `erl_eval' (e.g. in the Erlang shell). "erl_eval functions" are lambdas
+%% parsed from text and are evaluated using `erl_eval'.
+%%
+%% This kind of lambdas becomes a local function in the `erl_eval' module.
+%%
+%% Their assembly code isn't available in the `erl_eval' module. However, the
+%% abstract code (i.e. after parsing but before compilation) is available in
+%% the `env'. We compile that abstract code and extract the assembly from that
+%% compiled beam.
 
 -module(khepri_fun).
 
@@ -120,16 +131,17 @@ fun((module(), atom(), arity(), module()) -> boolean()).
       StandaloneFun :: standalone_fun().
 
 to_standalone_fun(Fun, Options) ->
-    Info = erlang:fun_info(Fun),
+    Info = maps:from_list(erlang:fun_info(Fun)),
+    #{module := Module,
+      name := Name,
+      arity := Arity,
+      type := Type} = Info,
     State0 = #state{fun_info = Info,
                     options = Options},
 
     %% Don't copy functions like "fun dict:new/0" which are not meant to be
     %% copied.
-    Module = proplists:get_value(module, Info),
-    Name = proplists:get_value(name, Info),
-    Arity = proplists:get_value(arity, Info),
-    ShouldProcess = case proplists:get_value(type, Info) of
+    ShouldProcess = case Type of
                         local ->
                             should_process_function(
                               Module, Name, Arity, Module, State0);
@@ -143,10 +155,22 @@ to_standalone_fun(Fun, Options) ->
             Asm = pass2(State1),
             {GeneratedModuleName, Beam} = compile(Asm),
 
-            Arity = proplists:get_value(arity, Info),
-
             %% Fun environment to standalone term.
-            Env = to_standalone_env(State1),
+            %%
+            %% For "regular" lambdas, variables declared outside of the
+            %% function body are put in this `env'. We need to process them in
+            %% case they reference other lambdas for instance. We keep the end
+            %% result to store it alongside the generated module, but not
+            %% inside the module to avoid an increase in the number of
+            %% identical modules with different environment.
+            %%
+            %% However for `erl_eval' functions created from lambdas, the env
+            %% contains the parsed source code of the function. We don't need
+            %% to interpret it.
+            Env = case Module =:= erl_eval andalso Type =:= local of
+                      false -> to_standalone_env(State1);
+                      true  -> []
+                  end,
 
             #standalone_fun{module = GeneratedModuleName,
                             beam = Beam,
@@ -205,21 +229,35 @@ exec(Fun, Args) ->
       State :: #state{}.
 
 pass1(
+  #state{fun_info = #{module := erl_eval, type := local} = Info,
+         checksums = Checksums} = State) ->
+    #{module := Module,
+      name := Name,
+      arity := Arity} = Info,
+
+    Checksum = maps:get(new_uniq, Info),
+    ?assert(is_binary(Checksum)),
+    Checksums1 = Checksums#{Module => Checksum},
+    State1 = State#state{checksums = Checksums1,
+                         entrypoint = {Module, Name, Arity}},
+
+    pass1_process_function(Module, Name, Arity, State1);
+pass1(
   #state{fun_info = Info,
          checksums = Checksums} = State) ->
-    Module = proplists:get_value(module, Info),
-    Name = proplists:get_value(name, Info),
-    Arity = proplists:get_value(arity, Info),
-    Env = proplists:get_value(env, Info),
+    #{module := Module,
+      name := Name,
+      arity := Arity,
+      env := Env} = Info,
 
     %% Internally, a lambda which takes arguments and values from its
     %% environment (i.e. variables declared in the function which defined that
     %% lambda).
     InternalArity = Arity + length(Env),
 
-    State1 = case proplists:get_value(type, Info) of
+    State1 = case maps:get(type, Info) of
                  local ->
-                     Checksum = proplists:get_value(new_uniq, Info),
+                     Checksum = maps:get(new_uniq, Info),
                      ?assert(is_binary(Checksum)),
                      Checksums1 = Checksums#{Module => Checksum},
                      State#state{checksums = Checksums1};
@@ -409,6 +447,25 @@ pass1_process_call(
       State :: #state{},
       Function :: #function{}.
 
+lookup_function(
+  erl_eval = Module, Name, _Arity,
+  #state{fun_info = #{module := Module,
+                      name := Name,
+                      arity := Arity,
+                      env := Env}} = State) ->
+    %% There is a special case for `erl_eval' local functions: they are
+    %% lambdas dynamically parsed, compiled and loaded by `erl_eval' and
+    %% appear as local functions inside `erl_eval' directly.
+    %%
+    %% However `erl_eval' module doesn't contain the assembly for those
+    %% functions. Instead, the abstract form of the source code is available
+    %% in the lambda's env.
+    %%
+    %% There here, we compile the abstract form and extract the assembly from
+    %% the compiled beam. This allows to use the rest of `khepri_fun'
+    %% unmodified.
+    #beam_file{code = Code} = erl_eval_fun_to_asm(Module, Name, Arity, Env),
+    {lookup_function1(Code, Name, Arity), State};
 lookup_function(Module, Name, Arity, State) ->
     {#beam_file{code = Code}, State1} = disassemble_module(Module, State),
     {lookup_function1(Code, Name, Arity), State1}.
@@ -425,6 +482,32 @@ lookup_function1(
   [_ | Rest],
   Name, Arity) ->
     lookup_function1(Rest, Name, Arity).
+
+erl_eval_fun_to_asm(Module, Name, Arity, Env) ->
+    %% We construct an abstract form based on the `env' of the lambda loaded
+    %% by `erl_eval'.
+    [{[], _, _, Clauses}] = Env,
+    Anno = 1,
+    Forms = [{attribute, Anno, module, Module},
+             {attribute, Anno, export, [{Name, Arity}]},
+             {function, Anno, Name, Arity, Clauses},
+             {eof, Anno}],
+
+    %% The abstract form is now compiled to binary code. Then, the assembly
+    %% code is extracted from the compiled beam.
+    CompilerOptions = [from_abstr,
+                       binary,
+                       return_errors,
+                       return_warnings,
+                       deterministic],
+    case compile:forms(Forms, CompilerOptions) of
+        {ok, Module, Beam, _Warnings} ->
+            %% We can ignore warnings because the lambda was already parsed
+            %% and compiled before by `erl_eval' previously.
+            do_disassemble(Beam);
+        Error ->
+            throw({erl_eval_fun_compilation_failure, Error})
+    end.
 
 -spec disassemble_module(Module, State) -> {BeamFileRecord, State} when
       Module :: module(),
@@ -476,9 +559,12 @@ disassemble_module1(Module, undefined) ->
 
 do_disassemble_and_cache(Module, Checksum, Beam) ->
     Key = ?ASM_CACHE_KEY(Module, Checksum),
-    BeamFileRecord = beam_disasm:file(Beam),
+    BeamFileRecord = do_disassemble(Beam),
     persistent_term:put(Key, BeamFileRecord),
     BeamFileRecord.
+
+do_disassemble(Beam) ->
+    beam_disasm:file(Beam).
 
 -spec ensure_instruction_is_permitted(Instruction, State) ->
     ok | no_return() when
@@ -503,12 +589,29 @@ ensure_instruction_is_permitted(_Instruction, _State) ->
       ShouldProcess :: boolean().
 
 should_process_function(
+  erl_eval, Name, Arity, _FromModule,
+  #state{fun_info = #{module := erl_eval,
+                      name := Name,
+                      arity := Arity,
+                      type := local}}) ->
+    %% We want to process lambas loaded by `erl_eval'
+    %% even though we wouldn't do that with the
+    %% regular `erl_eval' API.
+    true;
+should_process_function(
   Module, Name, Arity, FromModule,
   #state{options = #{should_process_function := Callback}})
   when is_function(Callback) ->
     Callback(Module, Name, Arity, FromModule);
-should_process_function(_Module, _Name, _Arity, _FromModule, _State) ->
-    false.
+should_process_function(Module, Name, Arity, FromModule, State) ->
+    default_should_process_function(Module, Name, Arity, FromModule, State).
+
+default_should_process_function(
+  erlang, _Name, _Arity, _FromModule, _State) ->
+    false;
+default_should_process_function(
+  _Module, _Name, _Arity, _FromModule, _State) ->
+    true.
 
 %% -------------------------------------------------------------------
 %% Code processing [Pass 2]
@@ -690,8 +793,8 @@ pass2_process_instruction(
       Module :: module().
 
 gen_module_name(Functions, #state{fun_info = Info}) ->
-    Module = proplists:get_value(module, Info),
-    Name = proplists:get_value(name, Info),
+    #{module := Module,
+      name := Name} = Info,
     Checksum = erlang:phash2(Functions),
     InternalName = lists:flatten(
                      io_lib:format(
@@ -724,8 +827,7 @@ gen_function_name(
       State :: #state{},
       StandaloneEnv :: list().
 
-to_standalone_env(#state{fun_info = Info} = State) ->
-    Env = proplists:get_value(env, Info),
+to_standalone_env(#state{fun_info = #{env := Env}} = State) ->
     to_standalone_arg(Env, State).
 
 to_standalone_arg(List, State) when is_list(List) ->
