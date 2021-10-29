@@ -18,6 +18,43 @@
 -export([really_do_get_root_path/0,
          really_do_get_node_name/0]).
 
+fun_extraction_test() ->
+    Parent = self(),
+
+    %% We load the `mod_used_for_transactions' and do the function extraction
+    %% from a separate process. This is required so that we can unload the
+    %% module.
+    %%
+    %% If we were to do that from the test process, it would have a reference
+    %% to the module's code and it would be impossible to unload and purge it.
+    Child = spawn(
+              fun() ->
+                      Fun = mod_used_for_transactions:get_lambda(),
+                      ExpectedRet = Fun(Parent),
+                      StandaloneFun = khepri_fun:to_standalone_fun(Fun, #{}),
+                      Parent ! {standalone_fun,
+                                StandaloneFun,
+                                [Parent],
+                                ExpectedRet}
+              end),
+    MRef = erlang:monitor(process, Child),
+    receive
+        {'DOWN', MRef, process, Child, _Reason} ->
+            %% At this point, we are sure the child process is gone. We can
+            %% unload the code.
+            true = code:delete(mod_used_for_transactions),
+            false = code:purge(mod_used_for_transactions),
+            ?assertEqual(false, code:is_loaded(mod_used_for_transactions)),
+
+            receive
+                {standalone_fun, StandaloneFun, Args, ExpectedRet} ->
+                    ?assertMatch({ok, _, _}, ExpectedRet),
+                    ?assertEqual(
+                       ExpectedRet,
+                       khepri_fun:exec(StandaloneFun, Args))
+            end
+    end.
+
 noop_query_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,

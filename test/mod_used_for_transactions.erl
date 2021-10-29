@@ -7,7 +7,18 @@
 
 -module(mod_used_for_transactions).
 
--export([exported/0]).
+-export([exported/0,
+         get_lambda/0,
+         %% We export this one just to try to prevent inlining.
+         hash_term/1]).
 
 exported() -> unexported().
 unexported() -> ok.
+
+get_lambda() ->
+    fun(Arg) ->
+            {ok, Arg, hash_term(Arg)}
+    end.
+
+hash_term(Term) ->
+    erlang:phash2(Term).
