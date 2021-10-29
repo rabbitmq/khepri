@@ -121,6 +121,9 @@
 
          clear_store/0, clear_store/1,
 
+         no_payload/0,
+         data_payload/1,
+
          info/0,
          info/1]).
 
@@ -963,6 +966,25 @@ clear_store() ->
 
 clear_store(StoreId) ->
     delete(StoreId, [?STAR]).
+
+-spec no_payload() -> none.
+%% @doc Returns `?NO_PAYLOAD'.
+%%
+%% This is a helper for cases where using macros is inconvenient, like in an
+%% Erlang shell.
+
+no_payload() ->
+    ?NO_PAYLOAD.
+
+-spec data_payload(Term) -> {data, Term} when
+      Term :: khepri_machine:data().
+%% @doc Returns `?DATA_PAYLOAD(Term)'.
+%%
+%% This is a helper for cases where using macros is inconvenient, like in an
+%% Erlang shell.
+
+data_payload(Term) ->
+    ?DATA_PAYLOAD(Term).
 
 %% -------------------------------------------------------------------
 %% Public helpers.
