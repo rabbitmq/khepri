@@ -224,6 +224,8 @@ exists.</td></tr>
 <tr><td valign="top"><a href="#transaction-2">transaction/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#clear_store-0">clear_store/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#clear_store-1">clear_store/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#no_payload-0">no_payload/0</a></td><td>Returns <code>?NO_PAYLOAD</code>.</td></tr>
+<tr><td valign="top"><a href="#data_payload-1">data_payload/1</a></td><td>Returns <code>?DATA_PAYLOAD(Term)</code>.</td></tr>
 <tr><td valign="top"><a href="#info-0">info/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#info-1">info/1</a></td><td></td></tr>
 </table>
@@ -712,6 +714,25 @@ Result = khepri:find(
 <p><code>clear_store(StoreId::<a href="#type-store_id">store_id()</a>) -&gt; ok | <a href="#type-error">error()</a></code><br></p>
 <p></p>
 </div>
+
+<h3 class="function"><a name="no_payload-0">no_payload/0</a></h3>
+<div class="spec">
+<p><code>no_payload() -&gt; none</code><br></p>
+<p></p>
+</div><p><p>Returns <code>?NO_PAYLOAD</code>.</p>
+ 
+  This is a helper for cases where using macros is inconvenient, like in an
+  Erlang shell.</p>
+
+<h3 class="function"><a name="data_payload-1">data_payload/1</a></h3>
+<div class="spec">
+<p><code>data_payload(Term) -&gt; {data, Term}</code>
+<ul class="definitions"><li><code>Term = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-data">khepri_machine:data()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Returns <code>?DATA_PAYLOAD(Term)</code>.</p>
+ 
+  This is a helper for cases where using macros is inconvenient, like in an
+  Erlang shell.</p>
 
 <h3 class="function"><a name="info-0">info/0</a></h3>
 <div class="spec">

@@ -113,11 +113,22 @@ case, calls to functions in those modules are left unmodified.</p>
   generated module has a single <code>run/N</code> function. This function contains the  
 code of the extracted anonymous function.</p>
  
-  Because this process works on the assembly code, it means that if the
-  initial module hosting the anonymous function was compiled with Erlang
-  version N, it will probably not compile or run on older versions of Erlang.
-  The reason is that a newer compiler may use instructions which are unknown
-  to older runtimes.
+  <p>Because this process works on the assembly code, it means that if the  
+initial module hosting the anonymous function was compiled with Erlang  
+version N, it will probably not compile or run on older versions of Erlang.  
+The reason is that a newer compiler may use instructions which are unknown  
+to older runtimes.</p>
+ 
+  <p>There is a special treatment for anonymous functions evaluated by
+  <code>erl_eval</code> (e.g. in the Erlang shell). "erl_eval functions" are lambdas
+  parsed from text and are evaluated using <code>erl_eval</code>.</p>
+ 
+  <p>This kind of lambdas becomes a local function in the <code>erl_eval</code> module.</p>
+ 
+  Their assembly code isn't available in the <code>erl_eval</code> module. However, the
+  abstract code (i.e. after parsing but before compilation) is available in
+  the <code>env</code>. We compile that abstract code and extract the assembly from that
+  compiled beam.
 <h2><a name="types">Data Types</a></h2>
 
 <h3 class="typedecl"><a name="type-beam_instr">beam_instr()</a></h3>
