@@ -70,8 +70,16 @@
                              to_standalone_env/1,
                              to_standalone_arg/2]}).
 
--type fun_info() :: [{arity | env | index | name | module | new_index |
-                      new_uniq | pid | type | uniq, any()}].
+-type fun_info() :: #{arity => arity(),
+                      env => any(),
+                      index => any(),
+                      name => atom(),
+                      module => module(),
+                      new_index => any(),
+                      new_uniq => any(),
+                      pid => any(),
+                      type => local | external,
+                      uniq => any()}.
 -type beam_instr() :: atom() | tuple().
 -type label() :: pos_integer().
 
