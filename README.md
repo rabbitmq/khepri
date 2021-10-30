@@ -1,141 +1,163 @@
-# The Khepri Database
+# The Khepri database library
 
 [![Test](https://github.com/rabbitmq/khepri/actions/workflows/test.yaml/badge.svg)](https://github.com/rabbitmq/khepri/actions/workflows/test.yaml)
 [![Coverage Status](https://coveralls.io/repos/github/rabbitmq/khepri/badge.svg?branch=wip)](https://coveralls.io/github/rabbitmq/khepri?branch=wip)
 
-Khepri is a tree-like replicated on-disk database library for Erlang and Elixir.
+Khepri is a tree-like replicated on-disk database library for Erlang and
+Elixir.
 
-> Khepri is still in development and should be considered *Alpha* at this stage.
+## The Basics
 
 Data are stored in a **tree structure**. Each node in the tree is referenced by
 its path from the root node. A path is a list of Erlang atoms and/or binaries.
 For ease of use, Unix-like path strings are accepted as well.
 
 For **consistency and replication** and to manage data on disk, Khepri relies
-on the [Ra library](https://github.com/rabbitmq/ra). The Ra library implements
-the [Raft consensus algorithm](https://raft.github.io/). In Ra parlance,
-Khepri is a state machine in a Ra cluster.
+on [Ra](https://github.com/rabbitmq/ra), an Erlang implementation of the [Raft
+consensus algorithm](https://raft.github.io/).  In Ra parlance, Khepri is a
+state machine in a Ra cluster.
+
+## Project maturity
+
+Khepri is still under active development and should be considered *Alpha* at
+this stage.
 
 ## Getting started
 
-1.  Add Khepri as a dependency of your project:
+### Add as a dependency
 
-    Using Rebar:
-    ```erlang
-    %% In rebar.config
-    {deps, [{ra,
-             {git, "https://github.com/rabbitmq/khepri.git",
-             {ref, "master"}}}]}.
-    ```
+Add Khepri as a dependency of your project:
 
-    Using Erlang.mk:
-    ```make
-    # In your Makefile
-    DEPS += khepri
-    dep_khepri = git https://github.com/rabbitmq/khepri.git master
-    ```
+Using Rebar:
 
-    Using mix:
-    ```elixir
-    # In mix.exs
-    defp deps do
-      [
-        {:khepri,
-          git: "https://github.com/rabbitmq/khepri.git",
-          branch: "master"}
-      ]
-    end
-    ```
+```erlang
+%% In rebar.config
+{deps, [{ra,
+         {git, "https://github.com/rabbitmq/khepri.git",
+         {ref, "main"}}}]}.
+```
 
-2.  Start the default store:
+Using Erlang.mk:
 
-    ```erlang
-    khepri:start().
-    ```
+```make
+# In your Makefile
+DEPS += khepri
+dep_khepri = git https://github.com/rabbitmq/khepri.git main
+```
 
-    The default Khepri store uses the default "Ra system". Data are written in
-    the configured Ra data dir which defaults to the current working directory.
+Using Mix:
 
-    It is fine to get started and play with Khepri. However, it is recommended
-    to configure your own Ra system and Ra cluster to select the directory
-    where data is written and to be able to have multiple database instances
-    running in parallel.
+```elixir
+# In mix.exs
+defp deps do
+  [
+    {:khepri,
+      git: "https://github.com/rabbitmq/khepri.git",
+      branch: "main"}
+  ]
+end
+```
 
-3.  **Insert** Alice's email address:
+### Start default Khepri store
 
-    ```erlang
-    %% Using a native path:
-    khepri:insert([emails, alice], "alice@example.org").
+To start the default store, use `khepri:start/0`:
 
-    %% USing a Unix-like path string:
-    khepri:insert("/emails/alice", "alice@example.org").
-    ```
+```erlang
+khepri:start().
+```
 
-    The `khepri` module provides the "simple API". It has several functions to
-    cover the most common uses. For advanced uses, using the `khepri_mcachine`
-    module directly is preferred.
+The default Khepri store uses the default Ra system. Data is stored in the
+configured default Ra system data directory, which defaults to the current
+working directory.
 
-4.  To get Alice's email address back, **query** the same path:
+It is fine to get started and play with Khepri. However, it is recommended to
+configure your own Ra system and Ra cluster to select the directory where data
+is stored and to be able to have multiple Khepri database instances running on
+the same Erlang node.
 
-    ```erlang
-    Ret = khepri:get("/emails/alice"),
+### Insert data
 
-    %% Here is the value of `Ret':
-    {ok, #{[emails, alice] =>
-           #{child_list_count => 0,
-             child_list_version => 1,
-             data => "alice@example.org",
-             payload_version => 1}}} = Ret.
-    ```
+Here's how to **insert** a piece of data, say, an email address of Alice:
 
-    The `khepri:get()` function and many other ones accept a "path pattern".
-    Therefore it is possible to get several nodes in a single call. The result
-    is a map where keys are the path to each node which matched the path
-    pattern, and the values are a map of properties. The data payload of the
-    node is one of them.
+```erlang
+%% Using a native path:
+khepri:insert([emails, alice], "alice@example.org").
 
-5.  To **delete** Alice's email address:
+%% USing a Unix-like path string:
+khepri:insert("/emails/alice", "alice@example.org").
+```
 
-    ```erlang
-    khepri:delete("/emails/alice").
-    ```
+The `khepri` module provides the "simple API". It has several functions to
+cover the most common uses. For advanced uses, using the `khepri_machine`
+module directly is preferred.
 
-    The `emails` parent node was automatically created when the `alice` node
-    was inserted earlier. It has no data attached to it. However, after the
-    `alice` node is deleted, the `emails` node will stay around. It is possible
-    to tell Khepri to automatically remove `emails` as soon as its last child
-    node is deleted. Khepri supports many more conditions by the way.
+### Read data back
 
-6.  It is also possible to perform **transactional queries and updates** using
-    anonymous functions, similar to Mnesia:
+To get Alice's email address back, **query** the same path:
 
-    ```erlang
-    %% This transaction checks the left quantity of wood and returns `true` or
-    %% `false` if we need to process a new order.
-    khepri:transaction(
-        fun() ->
-            case khepri_tx:get([stock, wood]) of
-                {ok, #{[stock, wood] := #{data := Quantity}}}
-                  when Quantity < 100 ->
-                    %% There is enough wood left.
-                    false;
-                _ ->
-                    %% There is less than 100 pieces of wood, or there is none
-                    %% at all (the node does not exist in Khepri). We need to
-                    %% request a new order.
-                    {ok, _} = khepri_tx:put([order, wood], ?DATA_PAYLOAD(1000)),
-                    true
-            end
-        end).
-    ```
+```erlang
+Ret = khepri:get("/emails/alice"),
 
-    In this example, the transaction returns a boolean indicating if orders are
-    ready to be processed. It does not send a message to a process or write
-    something on disk for instance.
+%% Here is the value of `Ret':
+{ok, #{[emails, alice] =>
+       #{child_list_count => 0,
+         child_list_version => 1,
+         data => "alice@example.org",
+         payload_version => 1}}} = Ret.
+```
 
-    Because of the nature of the Raft consensus algorithm, transactions are not
-    allowed to have side effects or take non-deterministic inputs such as the
-    node name or the current date & time.
+The `khepri:get/0` function and many other ones accept a "path pattern".
+Therefore it is possible to get several nodes in a single call. The result is a
+map where keys are the path to each node which matched the path pattern, and
+the values are a map of properties. The data payload of the node is one of
+them.
+
+### Delete data
+
+To **delete** Alice's email address:
+
+```erlang
+khepri:delete("/emails/alice").
+```
+
+The `emails` parent node was automatically created when the `alice` node was
+inserted earlier. It has no data attached to it. However, after the `alice`
+node is deleted, the `emails` node will stay around. It is possible to tell
+Khepri to automatically remove `emails` as soon as its last child node is
+deleted. Khepri supports many more conditions by the way.
+
+### Transactional Operations
+
+It is also possible to perform **transactional queries and updates** using
+anonymous functions, similar to Mnesia:
+
+```erlang
+%% This transaction checks the left quantity of wood and returns `true` or
+%% `false` if we need to process a new order.
+khepri:transaction(
+    fun() ->
+        case khepri_tx:get([stock, wood]) of
+            {ok, #{[stock, wood] := #{data := Quantity}}}
+              when Quantity < 100 ->
+                %% There is enough wood left.
+                false;
+            _ ->
+                %% There is less than 100 pieces of wood, or there is none
+                %% at all (the node does not exist in Khepri). We need to
+                %% request a new order.
+                {ok, _} = khepri_tx:put([order, wood], ?DATA_PAYLOAD(1000)),
+                true
+        end
+    end).
+```
+
+In this example, the transaction returns a boolean indicating if orders are
+ready to be processed. It does not send a message to a process or write
+something on disk for instance.
+
+Because of the nature of the Raft consensus algorithm, transactions are not
+allowed to have side effects or take non-deterministic inputs such as the node
+name or the current date & time.
 
 ## How to build
 
@@ -152,5 +174,3 @@ rebar3 xref
 rebar3 eunit
 rebar3 dialyzer
 ```
-
-## How to contribute
