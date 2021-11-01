@@ -111,7 +111,7 @@ corresponds to the name of the Ra cluster Khepri was started with.</p>
   <ul>
   <li><a docgen-rel="seemfa" docgen-href="#get/2" href="#get-2"><code>get/2</code></a> and <a docgen-rel="seemfa" docgen-href="#get/3" href="#get-3"><code>get/3</code></a>: returns all tree node matching the given
   path pattern.</li>
-  <li><a docgen-rel="seemfa" docgen-href="#put/3" href="#put-3"><code>put/3</code></a> and <a docgen-rel="seemfa" docgen-href="#put/4" href="#put-4"><code>put/4</code></a>: updates a single specific node.</li>
+  <li><a docgen-rel="seemfa" docgen-href="#put/3" href="#put-3"><code>put/3</code></a> and <a docgen-rel="seemfa" docgen-href="#put/4" href="#put-4"><code>put/4</code></a>: updates a single specific tree node.</li>
   <li><a docgen-rel="seemfa" docgen-href="#delete/2" href="#delete-2"><code>delete/2</code></a>: removes all tree node matching the given path
   pattern.</li>
   </ul>
@@ -226,8 +226,8 @@ payload and child nodes.</p>
 <p>  A node in the tree structure.</p>
 
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#put-3">put/3</a></td><td>Creates or modifies a specific node in the tree structure.</td></tr>
-<tr><td valign="top"><a href="#put-4">put/4</a></td><td>Creates or modifies a specific node in the tree structure.</td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#put-3">put/3</a></td><td>Creates or modifies a specific tree node in the tree structure.</td></tr>
+<tr><td valign="top"><a href="#put-4">put/4</a></td><td>Creates or modifies a specific tree node in the tree structure.</td></tr>
 <tr><td valign="top"><a href="#get-2">get/2</a></td><td>Returns all tree node matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#get-3">get/3</a></td><td>Returns all tree node matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Deletes all tree node matching the path pattern.</td></tr>
@@ -242,7 +242,7 @@ payload and child nodes.</p>
 <p><code>put(StoreId, PathPattern, Payload) -&gt; Result</code>
 <ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Payload = <a href="#type-payload">payload()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
-</div><p><p>Creates or modifies a specific node in the tree structure.</p>
+</div><p><p>Creates or modifies a specific tree node in the tree structure.</p>
  
   Calling this function is the same as calling
   <code>put(StoreId, PathPattern, Payload, #{})</code>.
@@ -261,9 +261,9 @@ payload and child nodes.</p>
  <br>
 </p>
 <p>returns: an "ok" tuple with a map with one entry, or an "error" tuple.</p>
-</div><p><p>Creates or modifies a specific node in the tree structure.</p>
+</div><p><p>Creates or modifies a specific tree node in the tree structure.</p>
  
-  <p>The path or path pattern must target a specific node.</p>
+  <p>The path or path pattern must target a specific tree node.</p>
  
   <p>When using a simple path, if the target node does not exists, it is created  
 using the given payload. If the target node exists, it is updated with the  
