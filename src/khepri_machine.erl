@@ -13,7 +13,7 @@
 %%
 %% The API is divided into two parts:
 %% <ol>
-%% <li>Functions to manipulate a simple set of nodes directly.</li>
+%% <li>Functions to manipulate a simple set of tree nodes directly.</li>
 %% <li>Functions to perform transactional queries and updates.</li>
 %% </ol>
 %%
@@ -24,14 +24,14 @@
 %%
 %% See {@link khepri} for more details about Ra systems and clusters.
 %%
-%% == Direct manipulation of nodes ==
+%% == Direct manipulation on tree nodes ==
 %%
 %% The API provides the following three functions:
 %% <ul>
-%% <li>{@link get/2} and {@link get/3}: returns all nodes matching the given
+%% <li>{@link get/2} and {@link get/3}: returns all tree node matching the given
 %% path pattern.</li>
-%% <li>{@link put/3} and {@link put/4}: updates a single specific node.</li>
-%% <li>{@link delete/2}: removes all nodes matching the given path
+%% <li>{@link put/3} and {@link put/4}: updates a single specific tree node.</li>
+%% <li>{@link delete/2}: removes all tree node matching the given path
 %% pattern.</li>
 %% </ul>
 %%
@@ -233,7 +233,7 @@
       PathPattern :: khepri_path:pattern(),
       Payload :: payload(),
       Result :: result().
-%% @doc Creates or modifies a specific node in the tree structure.
+%% @doc Creates or modifies a specific tree node in the tree structure.
 %%
 %% Calling this function is the same as calling
 %% `put(StoreId, PathPattern, Payload, #{})'.
@@ -249,9 +249,9 @@ put(StoreId, PathPattern, Payload) ->
       Payload :: payload(),
       Extra :: #{keep_until => khepri_condition:keep_until()},
       Result :: result().
-%% @doc Creates or modifies a specific node in the tree structure.
+%% @doc Creates or modifies a specific tree node in the tree structure.
 %%
-%% The path or path pattern must target a specific node.
+%% The path or path pattern must target a specific tree node.
 %%
 %% When using a simple path, if the target node does not exists, it is created
 %% using the given payload. If the target node exists, it is updated with the
@@ -313,7 +313,7 @@ put(_StoreId, PathPattern, Payload, _Extra) ->
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Result :: result().
-%% @doc Returns all nodes matching the path pattern.
+%% @doc Returns all tree nodes matching the path pattern.
 %%
 %% Calling this function is the same as calling
 %% `get(StoreId, PathPattern, #{})'.
@@ -328,7 +328,7 @@ get(StoreId, PathPattern) ->
       PathPattern :: khepri_path:pattern(),
       Options :: operation_options(),
       Result :: result().
-%% @doc Returns all nodes matching the path pattern.
+%% @doc Returns all tree nodes matching the path pattern.
 %%
 %% The returned structure in the "ok" tuple will have a key corresponding to
 %% the path per node which matched the pattern. Each key will point to a map
@@ -366,7 +366,7 @@ get(StoreId, PathPattern, Options) ->
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Result :: result().
-%% @doc Deletes all nodes matching the path pattern.
+%% @doc Deletes all tree nodes matching the path pattern.
 %%
 %% The returned structure in the "ok" tuple will have a key corresponding to
 %% the path per node which was deleted. Each key will point to a map containing

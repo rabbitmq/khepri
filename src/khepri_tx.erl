@@ -78,7 +78,7 @@
       PathPattern :: khepri_path:pattern(),
       Payload :: khepri_machine:payload(),
       Result :: khepri_machine:result().
-%% @doc Creates or modifies a specific node in the tree structure.
+%% @doc Creates or modifies a specific tree node in the tree structure.
 
 put(PathPattern, Payload) ->
     put(PathPattern, Payload, #{}).
@@ -88,7 +88,7 @@ put(PathPattern, Payload) ->
       Payload :: khepri_machine:payload(),
       Extra :: #{keep_until => khepri_condition:keep_until()},
       Result :: khepri_machine:result().
-%% @doc Creates or modifies a specific node in the tree structure.
+%% @doc Creates or modifies a specific tree node in the tree structure.
 
 put(PathPattern, Payload, Extra) when ?IS_PAYLOAD(Payload) ->
     ensure_path_pattern_is_valid(PathPattern),

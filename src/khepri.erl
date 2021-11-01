@@ -464,7 +464,7 @@ get_store_ids() ->
 -spec create(Path, Data) -> ok | error() when
       Path :: khepri_path:pattern() | string(),
       Data :: khepri_machine:data().
-%% @doc Creates a specific node in the tree structure only if it does not
+%% @doc Creates a specific tree node in the tree structure only if it does not
 %% exist.
 %%
 %% Calling this function is the same as calling
@@ -479,7 +479,7 @@ create(Path, Data) ->
     StoreId :: store_id(),
     Path :: khepri_path:pattern() | string(),
     Data :: khepri_machine:data().
-%% @doc Creates a specific node in the tree structure only if it does not
+%% @doc Creates a specific tree node in the tree structure only if it does not
 %% exist.
 %%
 %% The `Path' can be provided as a list of node names and conditions or as a
@@ -505,7 +505,7 @@ create(StoreId, Path, Data) ->
 -spec insert(Path, Data) -> ok | error() when
       Path :: khepri_path:pattern() | string(),
       Data :: khepri_machine:data().
-%% @doc Creates or modifies a specific node in the tree structure.
+%% @doc Creates or modifies a specific tree node in the tree structure.
 %%
 %% Calling this function is the same as calling
 %% `insert(StoreId, Path, Data)' with the default store ID.
@@ -519,13 +519,13 @@ insert(Path, Data) ->
       StoreId :: store_id(),
       Path :: khepri_path:pattern() | string(),
       Data :: khepri_machine:data().
-%% @doc Creates or modifies a specific node in the tree structure.
+%% @doc Creates or modifies a specific tree node in the tree structure.
 %%
 %% The `Path' can be provided as a list of node names and conditions or as a
 %% string. See {@link khepri_path:from_string/1}.
 %%
-%% Once the path is possibly converted to a list of node names and conditions
-%% and udpated, it calls {@link khepri_machine:put/3}.
+%% Once the path is normalized to a list of tree node names and conditions and
+%% updated, it calls {@link khepri_machine:put/3}.
 %%
 %% @returns a single "ok" atom or an "error" tuple, unlike
 %% {@link khepri_machine:put/3}.
@@ -539,7 +539,7 @@ insert(StoreId, Path, Data) ->
 -spec update(Path, Data) -> ok | error() when
       Path :: khepri_path:pattern() | string(),
       Data :: khepri_machine:data().
-%% @doc Updates a specific node in the tree structure only if it already
+%% @doc Updates a specific tree node in the tree structure only if it already
 %% exists.
 %%
 %% Calling this function is the same as calling
@@ -554,7 +554,7 @@ update(Path, Data) ->
       StoreId :: store_id(),
       Path :: khepri_path:pattern() | string(),
       Data :: khepri_machine:data().
-%% @doc Updates a specific node in the tree structure only if it already
+%% @doc Updates a specific tree node in the tree structure only if it already
 %% exists.
 %%
 %% The `Path' can be provided as a list of node names and conditions or as a
@@ -581,7 +581,7 @@ update(StoreId, Path, Data) ->
       Path :: khepri_path:pattern() | string(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_machine:data().
-%% @doc Updates a specific node in the tree structure only if it already
+%% @doc Updates a specific tree node in the tree structure only if it already
 %% exists and its data matches the given `DataPattern'.
 %%
 %% Calling this function is the same as calling
@@ -598,7 +598,7 @@ compare_and_swap(Path, DataPattern, Data) ->
       Path :: khepri_path:pattern() | string(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_machine:data().
-%% @doc Updates a specific node in the tree structure only if it already
+%% @doc Updates a specific tree node in the tree structure only if it already
 %% exists and its data matches the given `DataPattern'.
 %%
 %% The `Path' can be provided as a list of node names and conditions or as a
@@ -641,7 +641,7 @@ do_put(StoreId, Path, Data) ->
 
 -spec clear_payload(Path) -> ok | error() when
       Path :: khepri_path:pattern() | string().
-%% @doc Clears the payload of an existing specific node in the tree structure.
+%% @doc Clears the payload of an existing specific tree node in the tree structure.
 %%
 %% Calling this function is the same as calling
 %% `clear_payload(StoreId, Path)' with the default store ID.
@@ -654,7 +654,7 @@ clear_payload(Path) ->
 -spec clear_payload(StoreId, Path) -> ok | error() when
       StoreId :: store_id(),
       Path :: khepri_path:pattern() | string().
-%% @doc Clears the payload of an existing specific node in the tree structure.
+%% @doc Clears the payload of an existing specific tree node in the tree structure.
 %%
 %% In other words, the payload is set to `?NO_PAYLOAD'.
 %%
@@ -678,7 +678,7 @@ clear_payload(StoreId, Path) ->
 
 -spec delete(PathPattern) -> ok | error() when
       PathPattern :: khepri_path:pattern() | string().
-%% @doc Deletes all nodes matching the path pattern.
+%% @doc Deletes all tree nodes matching the path pattern.
 %%
 %% Calling this function is the same as calling
 %% `delete(StoreId, PathPattern)' with
@@ -692,7 +692,7 @@ delete(Path) ->
 -spec delete(StoreId, PathPattern) -> ok | error() when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern() | string().
-%% @doc Deletes all nodes matching the path pattern.
+%% @doc Deletes all tree nodes matching the path pattern.
 %%
 %% The `Path' can be provided as a list of node names and conditions or as a
 %% string. See {@link khepri_path:from_string/1}.
@@ -715,7 +715,7 @@ delete(StoreId, Path) ->
 -spec get(PathPattern) -> Result when
       PathPattern :: khepri_path:pattern() | string(),
       Result :: khepri_machine:result().
-%% @doc Returns all nodes matching the path pattern.
+%% @doc Returns all tree nodes matching the path pattern.
 %%
 %% Calling this function is the same as calling
 %% `get(StoreId, PathPattern)' with the default store ID.
@@ -734,7 +734,7 @@ get(Path) ->
       PathPattern :: khepri_path:pattern() | string(),
       Options :: khepri_machine:operation_options(),
       Result :: khepri_machine:result().
-%% @doc Returns all nodes matching the path pattern.
+%% @doc Returns all tree nodes matching the path pattern.
 %%
 %% This function accepts the following two forms:
 %% <ul>
@@ -756,7 +756,7 @@ get(Path, Options) when is_map(Options) ->
       PathPattern :: khepri_path:pattern() | string(),
       Options :: khepri_machine:operation_options(),
       Result :: khepri_machine:result().
-%% @doc Returns all nodes matching the path pattern.
+%% @doc Returns all tree nodes matching the path pattern.
 %%
 %% The `Path' can be provided as a list of node names and conditions or as a
 %% string. See {@link khepri_path:from_string/1}.
@@ -773,7 +773,7 @@ get(StoreId, Path, Options) ->
 -spec exists(Path) -> Exists when
       Path :: khepri_path:pattern() | string(),
       Exists :: boolean().
-%% @doc Returns `true' if the node pointed to by the given path exists,
+%% @doc Returns `true' if the tree node pointed to by the given path exists,
 %% otherwise `false'.
 %%
 %% Calling this function is the same as calling
@@ -788,13 +788,13 @@ exists(Path) ->
       StoreId :: store_id(),
       Path :: khepri_path:pattern() | string(),
       Exists :: boolean().
-%% @doc Returns `true' if the node pointed to by the given path exists,
+%% @doc Returns `true' if the tree node pointed to by the given path exists,
 %% otherwise `false'.
 %%
 %% The `Path' can be provided as a list of node names and conditions or as a
 %% string. See {@link khepri_path:from_string/1}.
 %%
-%% The `Path' must point to a specific node and can't match multiple nodes.
+%% The `Path' must point to a specific tree node and can't match multiple nodes.
 %%
 %% This function calls {@link get/3} and interpret its result.
 %%
@@ -809,7 +809,7 @@ exists(StoreId, Path) ->
 -spec has_data(Path) -> HasData when
       Path :: khepri_path:pattern() | string(),
       HasData :: boolean().
-%% @doc Returns `true' if the node pointed to by the given path has a data
+%% @doc Returns `true' if the tree node pointed to by the given path has a data
 %% payload, otherwise `false'.
 %%
 %% Calling this function is the same as calling
@@ -824,13 +824,13 @@ has_data(Path) ->
       StoreId :: store_id(),
       Path :: khepri_path:pattern() | string(),
       HasData :: boolean().
-%% @doc Returns `true' if the node pointed to by the given path has a data
+%% @doc Returns `true' if the tree node pointed to by the given path has a data
 %% payload, otherwise `false'.
 %%
 %% The `Path' can be provided as a list of node names and conditions or as a
 %% string. See {@link khepri_path:from_string/1}.
 %%
-%% The `Path' must point to a specific node and can't match multiple nodes.
+%% The `Path' must point to a specific tree node and can't match multiple nodes.
 %%
 %% This function calls {@link get/3} and interpret its result.
 %%
@@ -864,7 +864,7 @@ list(StoreId, Path) ->
       Path :: khepri_path:pattern() | string(),
       Condition :: khepri_path:pattern_component(),
       Result :: khepri_machine:result().
-%% @doc Finds nodes below `Path' which match the given `Condition'.
+%% @doc Finds tree nodes below `Path' which match the given `Condition'.
 %%
 %% This function operates on the default store.
 %%
@@ -879,7 +879,7 @@ find(Path, Condition) ->
       Path :: khepri_path:pattern() | string(),
       Condition :: khepri_path:pattern_component(),
       Result :: khepri_machine:result().
-%% @doc Finds nodes below `Path' which match the given `Condition'.
+%% @doc Finds tree nodes under `Path' which match the given `Condition'.
 %%
 %% The `Path' can be provided as a list of node names and conditions or as a
 %% string. See {@link khepri_path:from_string/1}.

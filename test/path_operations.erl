@@ -244,7 +244,7 @@ combine_path_with_conditions_test() ->
           #if_child_list_version{version = 3}])).
 
 %% -------------------------------------------------------------------
-%% Does path targets a specific node?
+%% Does the path target a specific tree node?
 %% -------------------------------------------------------------------
 
 simple_component_targets_specific_node_test() ->
