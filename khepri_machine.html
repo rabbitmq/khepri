@@ -228,9 +228,9 @@ payload and child nodes.</p>
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#put-3">put/3</a></td><td>Creates or modifies a specific tree node in the tree structure.</td></tr>
 <tr><td valign="top"><a href="#put-4">put/4</a></td><td>Creates or modifies a specific tree node in the tree structure.</td></tr>
-<tr><td valign="top"><a href="#get-2">get/2</a></td><td>Returns all tree node matching the path pattern.</td></tr>
-<tr><td valign="top"><a href="#get-3">get/3</a></td><td>Returns all tree node matching the path pattern.</td></tr>
-<tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Deletes all tree node matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#get-2">get/2</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#get-3">get/3</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#query-2">query/2</a></td><td>Runs a read-only transaction and returns the result.</td></tr>
 <tr><td valign="top"><a href="#transaction-2">transaction/2</a></td><td>Runs a transaction and returns the result.</td></tr>
 </table>
@@ -308,7 +308,7 @@ Result = khepri_machine:put(
 <p><code>get(StoreId, PathPattern) -&gt; Result</code>
 <ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
-</div><p><p>Returns all tree node matching the path pattern.</p>
+</div><p><p>Returns all tree nodes matching the path pattern.</p>
  
   Calling this function is the same as calling
   <code>get(StoreId, PathPattern, #{})</code>.
@@ -328,7 +328,7 @@ Result = khepri_machine:put(
 </p>
 <p>returns: an "ok" tuple with a map with zero, one or more entries, or an
   "error" tuple.</p>
-</div><p><p>Returns all tree node matching the path pattern.</p>
+</div><p><p>Returns all tree nodes matching the path pattern.</p>
  
   <p>The returned structure in the "ok" tuple will have a key corresponding to  
 the path per node which matched the pattern. Each key will point to a map  
@@ -356,7 +356,7 @@ Result = khepri_machine:get(ra_cluster_name, [foo, bar]),
 </p>
 <p>returns: an "ok" tuple with a map with zero, one or more entries, or an
   "error" tuple.</p>
-</div><p><p>Deletes all tree node matching the path pattern.</p>
+</div><p><p>Deletes all tree nodes matching the path pattern.</p>
  
   <p>The returned structure in the "ok" tuple will have a key corresponding to  
 the path per node which was deleted. Each key will point to a map containing  

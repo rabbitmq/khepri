@@ -201,22 +201,22 @@ exists.</td></tr>
   exists and its data matches the given <code>DataPattern</code>.</td></tr>
 <tr><td valign="top"><a href="#clear_payload-1">clear_payload/1</a></td><td>Clears the payload of an existing specific tree node in the tree structure.</td></tr>
 <tr><td valign="top"><a href="#clear_payload-2">clear_payload/2</a></td><td>Clears the payload of an existing specific tree node in the tree structure.</td></tr>
-<tr><td valign="top"><a href="#delete-1">delete/1</a></td><td>Deletes all tree node matching the path pattern.</td></tr>
-<tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Deletes all tree node matching the path pattern.</td></tr>
-<tr><td valign="top"><a href="#get-1">get/1</a></td><td>Returns all tree node matching the path pattern.</td></tr>
-<tr><td valign="top"><a href="#get-2">get/2</a></td><td>Returns all tree node matching the path pattern.</td></tr>
-<tr><td valign="top"><a href="#get-3">get/3</a></td><td>Returns all tree node matching the path pattern.</td></tr>
-<tr><td valign="top"><a href="#exists-1">exists/1</a></td><td>Returns <code>true</code> if the node pointed to by the given path exists,
+<tr><td valign="top"><a href="#delete-1">delete/1</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#get-1">get/1</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#get-2">get/2</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#get-3">get/3</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#exists-1">exists/1</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path exists,
   otherwise <code>false</code>.</td></tr>
-<tr><td valign="top"><a href="#exists-2">exists/2</a></td><td>Returns <code>true</code> if the node pointed to by the given path exists,
+<tr><td valign="top"><a href="#exists-2">exists/2</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path exists,
   otherwise <code>false</code>.</td></tr>
-<tr><td valign="top"><a href="#has_data-1">has_data/1</a></td><td>Returns <code>true</code> if the node pointed to by the given path has a data
+<tr><td valign="top"><a href="#has_data-1">has_data/1</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path has a data
   payload, otherwise <code>false</code>.</td></tr>
-<tr><td valign="top"><a href="#has_data-2">has_data/2</a></td><td>Returns <code>true</code> if the node pointed to by the given path has a data
+<tr><td valign="top"><a href="#has_data-2">has_data/2</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path has a data
   payload, otherwise <code>false</code>.</td></tr>
 <tr><td valign="top"><a href="#list-1">list/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#list-2">list/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#find-2">find/2</a></td><td>Finds nodes below <code>Path</code> which match the given <code>Condition</code>.</td></tr>
+<tr><td valign="top"><a href="#find-2">find/2</a></td><td>Finds tree nodes below <code>Path</code> which match the given <code>Condition</code>.</td></tr>
 <tr><td valign="top"><a href="#find-3">find/3</a></td><td>Finds tree nodes under <code>Path</code> which match the given <code>Condition</code>.</td></tr>
 <tr><td valign="top"><a href="#query-1">query/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#query-2">query/2</a></td><td></td></tr>
@@ -370,8 +370,8 @@ condition on its last component.</p>
   <p>The <code>Path</code> can be provided as a list of node names and conditions or as a
   string. See <a docgen-rel="seemfa" docgen-href="khepri_path#from_string/1" href="khepri_path.html#from_string-1"><code>khepri_path:from_string/1</code></a>.</p>
  
-  Once the path is normalized to a list of tree node names and conditions
-  and updated, it calls <a docgen-rel="seemfa" docgen-href="khepri_machine#put/3" href="khepri_machine.html#put-3"><code>khepri_machine:put/3</code></a>.
+  Once the path is normalized to a list of tree node names and conditions and
+  updated, it calls <a docgen-rel="seemfa" docgen-href="khepri_machine#put/3" href="khepri_machine.html#put-3"><code>khepri_machine:put/3</code></a>.
  </p>
 <p><b>See also:</b> <a href="khepri_machine.html#put-3">khepri_machine:put/3</a>.</p>
 
@@ -483,7 +483,7 @@ condition on its last component.</p>
 <p><code>delete(PathPattern) -&gt; ok | <a href="#type-error">error()</a></code>
 <ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li></ul></p>
 <p></p>
-</div><p><p>Deletes all tree node matching the path pattern.</p>
+</div><p><p>Deletes all tree nodes matching the path pattern.</p>
  
   Calling this function is the same as calling
   <code>delete(StoreId, PathPattern)</code> with
@@ -499,7 +499,7 @@ condition on its last component.</p>
 <p>returns: a single "ok" atom or an "error" tuple, unlike
   <a docgen-rel="seemfa" docgen-href="khepri_machine#delete/2" href="khepri_machine.html#delete-2"><code>khepri_machine:delete/2</code></a>.
  </p>
-</div><p><p>Deletes all tree node matching the path pattern.</p>
+</div><p><p>Deletes all tree nodes matching the path pattern.</p>
  
   <p>The <code>Path</code> can be provided as a list of node names and conditions or as a
   string. See <a docgen-rel="seemfa" docgen-href="khepri_path#from_string/1" href="khepri_path.html#from_string-1"><code>khepri_path:from_string/1</code></a>.</p>
@@ -514,7 +514,7 @@ condition on its last component.</p>
 <p><code>get(PathPattern) -&gt; Result</code>
 <ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-result">khepri_machine:result()</a></code></li></ul></p>
 <p></p>
-</div><p><p>Returns all tree node matching the path pattern.</p>
+</div><p><p>Returns all tree nodes matching the path pattern.</p>
  
   Calling this function is the same as calling
   <code>get(StoreId, PathPattern)</code> with the default store ID.
@@ -528,7 +528,7 @@ condition on its last component.</p>
 <ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-operation_options">khepri_machine:operation_options()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-result">khepri_machine:result()</a></code></li></ul></p>
 <p></p>
 <p></p>
-</div><p><p>Returns all tree node matching the path pattern.</p>
+</div><p><p>Returns all tree nodes matching the path pattern.</p>
  
   This function accepts the following two forms:
   <ul>
@@ -545,7 +545,7 @@ condition on its last component.</p>
 <p><code>get(StoreId, PathPattern, Options) -&gt; Result</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-operation_options">khepri_machine:operation_options()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-result">khepri_machine:result()</a></code></li></ul></p>
 <p></p>
-</div><p><p>Returns all tree node matching the path pattern.</p>
+</div><p><p>Returns all tree nodes matching the path pattern.</p>
  
   <p>The <code>Path</code> can be provided as a list of node names and conditions or as a
   string. See <a docgen-rel="seemfa" docgen-href="khepri_path#from_string/1" href="khepri_path.html#from_string-1"><code>khepri_path:from_string/1</code></a>.</p>
@@ -560,7 +560,7 @@ condition on its last component.</p>
 <p><code>exists(Path) -&gt; Exists</code>
 <ul class="definitions"><li><code>Path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Exists = boolean()</code></li></ul></p>
 <p></p>
-</div><p><p>Returns <code>true</code> if the node pointed to by the given path exists,
+</div><p><p>Returns <code>true</code> if the tree node pointed to by the given path exists,
   otherwise <code>false</code>.</p>
  
   Calling this function is the same as calling
@@ -573,7 +573,7 @@ condition on its last component.</p>
 <p><code>exists(StoreId, Path) -&gt; Exists</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>Path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Exists = boolean()</code></li></ul></p>
 <p></p>
-</div><p><p>Returns <code>true</code> if the node pointed to by the given path exists,
+</div><p><p>Returns <code>true</code> if the tree node pointed to by the given path exists,
   otherwise <code>false</code>.</p>
  
   <p>The <code>Path</code> can be provided as a list of node names and conditions or as a
@@ -590,7 +590,7 @@ condition on its last component.</p>
 <p><code>has_data(Path) -&gt; HasData</code>
 <ul class="definitions"><li><code>Path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>HasData = boolean()</code></li></ul></p>
 <p></p>
-</div><p><p>Returns <code>true</code> if the node pointed to by the given path has a data
+</div><p><p>Returns <code>true</code> if the tree node pointed to by the given path has a data
   payload, otherwise <code>false</code>.</p>
  
   Calling this function is the same as calling
@@ -603,7 +603,7 @@ condition on its last component.</p>
 <p><code>has_data(StoreId, Path) -&gt; HasData</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>Path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>HasData = boolean()</code></li></ul></p>
 <p></p>
-</div><p><p>Returns <code>true</code> if the node pointed to by the given path has a data
+</div><p><p>Returns <code>true</code> if the tree node pointed to by the given path has a data
   payload, otherwise <code>false</code>.</p>
  
   <p>The <code>Path</code> can be provided as a list of node names and conditions or as a
@@ -632,7 +632,7 @@ condition on its last component.</p>
 <p><code>find(Path, Condition) -&gt; Result</code>
 <ul class="definitions"><li><code>Path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Condition = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-result">khepri_machine:result()</a></code></li></ul></p>
 <p></p>
-</div><p><p>Finds nodes below <code>Path</code> which match the given <code>Condition</code>.</p>
+</div><p><p>Finds tree nodes below <code>Path</code> which match the given <code>Condition</code>.</p>
  
   This function operates on the default store.
  </p>
