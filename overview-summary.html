@@ -104,6 +104,36 @@ reader to the modules' documentation for more details.</p>
 
 <hr>
 
+<h3><a name="Why_Khepri?">Why Khepri?</a></h3>
+
+<p>This started as an experiment to replace how data other than message bodies are
+stored in the <a href="https://www.rabbitmq.com/">RabbitMQ messaging
+broker</a>. Before Khepri, those data were stored and replicated to cluster
+members using Mnesia.</p>
+
+Mnesia is very handy and powerful:
+<ul>
+<li>It comes out-of-the-box with the Erlang runtime and standard library.</li>
+<li>It does all the heavy lifting and RabbitMQ just uses it as a key/value
+store without thinking too much about replication.</li>
+</ul>
+
+<p>However, recovering from any network partitions is quite difficult. This was
+the primary reason why the RabbitMQ team started to explore other options.</p>
+
+<p>Because RabbitMQ already uses an implementation of the Raft consensus algorithm
+for its quorum queues, it was decided to leverage that library for all
+metadata. That's how Khepri was borned.</p>
+
+<p>Thanks to Ra and Raft, it is <strong>clear how Khepri will behave during and
+recover from a network partition</strong>. This makes it more comfortable for
+the RabbitMQ team and users, thanks to the absence of unknowns.</p>
+
+<blockquote>
+At the time of this writing, RabbitMQ does not use Khepri because this library
+and its integration into RabbitMQ are still a work in progress.
+</blockquote>
+
 <h3><a name="The_tree_structure">The tree structure</a></h3>
 
 <h4><a name="Tree_nodes">Tree nodes</a></h4>
