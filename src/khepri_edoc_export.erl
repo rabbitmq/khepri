@@ -51,11 +51,21 @@
                            value = ?BODY_CLASSES}],
     xmerl_html:'#element#'(Tag, Data1, Attrs, Parents, E);
 '#element#'(pre = Tag, Data, Attrs, Parents, E) ->
-    Data1 = re:replace(Data, "^  ", "", [global, multiline]),
-    Data2 = ["<code>",
-             Data1,
-             "</code>"],
-    xmerl_html:'#element#'(Tag, Data2, Attrs, Parents, E);
+    ReOpts = [{capture, all_but_first, list}, dotall],
+    case re:run(Data, "^ +(" ?LANG_REGEX ")(?:\n)(.*)", ReOpts) of
+        {match, [Lang, Data0]} ->
+            Data1 = re:replace(Data0, "^  ", "", [global, multiline]),
+            Data2 = ["<code class=\"language-" ++ Lang ++ "\">",
+                     Data1,
+                     "</code>"],
+            xmerl_html:'#element#'(Tag, Data2, Attrs, Parents, E);
+        nomatch ->
+            Data1 = re:replace(Data, "^  ", "", [global, multiline]),
+            Data2 = ["<code>",
+                     Data1,
+                     "</code>"],
+            xmerl_html:'#element#'(Tag, Data2, Attrs, Parents, E)
+    end;
 '#element#'(tt, Data, Attrs, Parents, E) ->
     xmerl_html:'#element#'(code, Data, Attrs, Parents, E);
 '#element#'(Tag, Data, Attrs, Parents, E) ->

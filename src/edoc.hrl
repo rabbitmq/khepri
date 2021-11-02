@@ -88,3 +88,5 @@
 -define(
    SYNTAX_HIGHLIGHTING_JS,
    "<script src=\"prism.js\"></script>").
+
+-define(LANG_REGEX, "none|elixir|erlang").
