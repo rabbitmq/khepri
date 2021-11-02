@@ -145,6 +145,10 @@ details about those functions and in particular their restrictions.</p>
   returns.
 <h2><a name="types">Data Types</a></h2>
 
+<h3 class="typedecl"><a name="type-child_list_count">child_list_count()</a></h3>
+<p><code>child_list_count() = non_neg_integer()</code></p>
+<p>  Number of direct child nodes under a tree node.</p>
+
 <h3 class="typedecl"><a name="type-child_list_version">child_list_version()</a></h3>
 <p><code>child_list_version() = pos_integer()</code></p>
 <p><p>  Number of changes made to the list of child nodes of a node (child nodes  
@@ -173,7 +177,7 @@ added or removed).</p>
 <p>  Configuration record, holding read-only or rarely changing fields.</p>
 
 <h3 class="typedecl"><a name="type-node_props">node_props()</a></h3>
-<p><code>node_props() = #{data =&gt; <a href="#type-data">data()</a>, payload_version := <a href="#type-payload_version">payload_version()</a>, child_list_version := <a href="#type-child_list_version">child_list_version()</a>, child_list_count := non_neg_integer(), child_nodes =&gt; #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-node_id">khepri_path:node_id()</a> =&gt; <a href="#type-node_props">node_props()</a>}}</code></p>
+<p><code>node_props() = #{data =&gt; <a href="#type-data">data()</a>, payload_version := <a href="#type-payload_version">payload_version()</a>, child_list_version := <a href="#type-child_list_version">child_list_version()</a>, child_list_count := <a href="#type-child_list_count">child_list_count()</a>, child_nodes =&gt; #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-node_id">khepri_path:node_id()</a> =&gt; <a href="#type-node_props">node_props()</a>}}</code></p>
 <p><p>  Structure used to return properties, payload and child nodes for a specific  
 node.</p>
  

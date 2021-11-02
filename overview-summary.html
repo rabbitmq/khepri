@@ -85,42 +85,284 @@
 <p>Copyright © 2021 VMware, Inc. or its affiliates.  All rights reserved.</p>
 <p><b>Version:</b> 0.1.0
 </p>
-<p><b>Authors:</b> The RabbitMQ team (<a href="mailto:info@rabbitmq.com"><tt>info@rabbitmq.com</tt></a>), Karl Nilsson (<a href="mailto:nkarl@vmware.com"><tt>nkarl@vmware.com</tt></a>), Jean-Sébastien Pédron (<a href="mailto:jean-sebastien@rabbitmq.com"><tt>jean-sebastien@rabbitmq.com</tt></a>).</p>
+<p><b>Authors:</b> Jean-Sébastien Pédron (<a href="mailto:jean-sebastien@rabbitmq.com"><tt>jean-sebastien@rabbitmq.com</tt></a>), Karl Nilsson (<a href="mailto:nkarl@vmware.com"><tt>nkarl@vmware.com</tt></a>), The RabbitMQ team (<a href="mailto:info@rabbitmq.com"><tt>info@rabbitmq.com</tt></a>).</p>
 <p>
 Khepri is a tree-like replicated on-disk database library for Erlang and
 Elixir.</p>
-
-<blockquote>Khepri is still in development and should be considered
-<em>Alpha</em> at this stage.</blockquote>
 
 <p>Data are stored in a <strong>tree structure</strong>. Each node in the tree is
 referenced by its path from the root node. A path is a list of Erlang atoms
 and/or binaries. For ease of use, Unix-like path strings are accepted as well.</p>
 
 <p>For <strong>consistency and replication</strong> and to manage data on disk,
-Khepri relies on the <a href="https://github.com/rabbitmq/ra">Ra library</a>.
-The Ra library implements the <a href="https://raft.github.io/">Raft consensus
+Khepri relies on <a href="https://github.com/rabbitmq/ra">Ra</a>, an Erlang
+implementation of the <a href="https://raft.github.io/">Raft consensus
 algorithm</a>. In Ra parlance, Khepri is a state machine in a Ra cluster.</p>
 
-<h3><a name="Getting_started">Getting started</a></h3>
+<p>This page <strong>describes all the concepts in Khepri</strong> and points the
+reader to the modules' documentation for more details.</p>
 
-<p>See the <code>README.md</code> at the root of the project.</p>
+<hr>
 
 <h3><a name="The_tree_structure">The tree structure</a></h3>
 
-<h4><a name="What_is_a_path?">What is a path?</a></h4>
+<h4><a name="Tree_nodes">Tree nodes</a></h4>
 
-<h4><a name="How_to_perform_queries_and_updates">How to perform queries and updates</a></h4>
+Data in Khepri are organized as <em>tree nodes</em> (<a docgen-rel="seetype" docgen-href="khepri_machine#tree_node/0" href="khepri_machine.html#type-tree_node"><code>khepri_machine:tree_node()</code></a>) in a tree structure. Every tree nodes have:
+<ul>
+<li>a <a href="#Node_ID">node ID</a></li>
+<li>a <a href="#Payload">payload</a> (optional)</li>
+<li><a href="#Properties">properties</a></li>
+</ul>
 
-<h4><a name="Transactions">Transactions</a></h4>
+<pre><code class="language-none">o
+|
++-- orders
+|
+`-- stock
+    |
+    `-- wood
+        |-- &lt;&lt;"mapple"&gt;&gt; = 12
+        `-- &lt;&lt;"oak"&gt;&gt; = 41</code></pre>
 
-<h3><a name="Distribution_of_the_data">Distribution of the data</a></h3>
+<h4><a name="Node_ID">Node ID</a></h4>
 
-<h4><a name="Quick_start,_using_the_default_database">Quick start, using the default database</a></h4>
+<p>A tree node name is either an Erlang atom or an Erlang binary (<a docgen-rel="seetype" docgen-href="khepri_path#node_id/0" href="khepri_path.html#type-node_id"><code>khepri_path:node_id()</code></a>).</p>
 
-<h4><a name="Configuring_a_Ra_system_and_a_dedicated_store">Configuring a Ra system and a dedicated store</a></h4>
+<h4><a name="Payload">Payload</a></h4>
 
-<h4><a name="Adding_and_removing_cluster_members">Adding and removing cluster members</a></h4>
+<p>A tree node may or may not have a payload. Khepri currently supports a single
+type of payload, the <em>data payload</em>. More payload types may be added in
+the future.</p>
+
+Payloads are represented using macros or helper functions:
+<ul>
+<li><code>?NO_PAYLOAD</code> and <a docgen-rel="seemfa" docgen-href="khepri#no_payload/0" href="khepri.html#no_payload-0"><code>khepri:no_payload/0</code></a></li>
+<li><code>?DATA_PAYLOAD(Term)</code> and <a docgen-rel="seemfa" docgen-href="khepri#data_payload/1" href="khepri.html#data_payload-1"><code>khepri:data_payload/1</code></a></li>
+</ul>
+
+<p>Functions in <a docgen-rel="seeerl" docgen-href="khepri_machine" href="khepri_machine.html"><code>khepri_machine</code></a> have no assumption on the type of the
+payload because they are a low-level API. Therefore, it must be specified
+explicitly using the macros or helper functions mentionned above.</p>
+
+<p>Most functions in <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a>, being a higher-level API, target more
+specific use cases and assume a particular type of payload.</p>
+
+<h4><a name="Properties">Properties</a></h4>
+
+Properties are:
+<ul>
+<li>The version of the payload, tracking the number of times it was modified
+(<a docgen-rel="seetype" docgen-href="khepri_machine#payload_version/0" href="khepri_machine.html#type-payload_version"><code>khepri_machine:payload_version()</code></a>).</li>
+<li>The version of the list of child nodes, tracking the number of times child
+nodes were added or removed (<a docgen-rel="seetype" docgen-href="khepri_machine#child_list_version/0" href="khepri_machine.html#type-child_list_version"><code>khepri_machine:child_list_version()</code></a>).</li>
+<li>The number of child nodes (<a docgen-rel="seetype" docgen-href="khepri_machine#child_list_count/0" href="khepri_machine.html#type-child_list_count"><code>khepri_machine:child_list_count()</code></a>).</li>
+</ul>
+
+<h4><a name="Addressing_a_tree_node">Addressing a tree node</a></h4>
+
+<p>The equivalent of a <em>key</em> in a key/value store is a <em>path</em>
+(<a docgen-rel="seetype" docgen-href="khepri_path#path/0" href="khepri_path.html#type-path"><code>khepri_path:path()</code></a>) in Khepri.</p>
+
+A path is a list of node IDs, from the root (unnamed) tree node to the target
+(<a docgen-rel="seetype" docgen-href="khepri_path#path/0" href="khepri_path.html#type-path"><code>khepri_path:path()</code></a>). For instance:
+<pre><code>%% Points to "/stock/wood/oak" in the tree showed above:
+Path = [stock, wood, &lt;&lt;"oak"&gt;&gt;].</code></pre>
+
+It is possible to target multiple tree nodes at once by using a <em>path
+pattern</em> (<a docgen-rel="seetype" docgen-href="khepri_path#pattern/0" href="khepri_path.html#type-pattern"><code>khepri_path:pattern()</code></a>). In addition to node IDs, path
+patterns have conditions (<a docgen-rel="seetype" docgen-href="khepri_condition#condition/0" href="khepri_condition.html#type-condition"><code>khepri_condition:condition()</code></a>). Conditions allow things like:
+<ul>
+<li>checking the existence of a tree node</li>
+<li>targetting all child nodes of a tree node</li>
+<li>matching on node IDs using a regex</li>
+<li>matching on the data payload</li>
+</ul>
+
+For instance:
+<pre><code>%% Matches all varieties of wood in the stock:
+PathPattern = [stock, wood, #if_node_matches{regex = any}].
+
+%% Matches the supplied of oak if there is an active order:
+PathPattern = [order,
+               wood,
+               #if_all{conditions = [
+                 &lt;&lt;"oak"&gt;&gt;,
+                 #if_data_matches{pattern = {active, true}}]},
+               supplier].</code></pre>
+
+Finally, a path can use some special path component names, handy when using
+relative paths:
+<ul>
+<li><code>?THIS_NODE</code> to point to self</li>
+<li><code>?PARENT_NODE</code> to point to the parent tree node</li>
+<li><code>?ROOT_NODE</code> to explicitly point to the root unnamed node</li>
+</ul>
+
+<p>Relative paths are useful when putting conditions on
+<a href="#Tree_node_lifetime">tree node lifetimes</a>.</p>
+
+<h4><a name="Tree_node_lifetime">Tree node lifetime</a></h4>
+
+<p>A tree node's lifetime starts when it is inserted the first time, until it is
+removed from the tree. However, intermediary tree nodes created on the way
+remain in the tree long after the leaf node was removed.</p>
+
+<p>For instance, when <code>[stock, wood, &lt;&lt;"walnut"&gt;&gt;]</code> was inserted, the intermediary
+tree nodes <code>stock</code> and <code>wood</code> were created if they were missing. After
+<code>&lt;&lt;"walnut"&gt;&gt;</code> is removed, they will stay in the tree with possibly neither
+payload nor child nodes.</p>
+
+<p>Khepri has the concept of <em><code>keep_until</code> conditions</em>. A <code>keep_until</code>
+condition is like the conditions which can be used inside path pattern. When a
+node is inserted or updated, it is possible to set <code>keep_until</code> conditions:
+when these conditions evaluate to false, the tree node is removed from the
+tree.</p>
+
+For instance, it is possible to set the following condition on <code>[stock, wood]</code>
+to make sure it is removed after its last child node is removed:
+<pre><code>%% We keep [stock, wood] as long as its child nodes count is strictly greater
+%% then zero.
+KeepUntilCondition = #{[stock, wood] =&gt; #if_child_list_count{count = {gt, 0}}}.</code></pre>
+
+<p><code>keep_until</code> conditions on self (like the example above) are not evaluated on
+the first insert though.</p>
+
+<h3><a name="Khepri_API">Khepri API</a></h3>
+
+<h4><a name="High-level_API">High-level API</a></h4>
+
+<p>A high-level API is provided by the <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> module. It covers most
+common use cases and should be straightforward to use.</p>
+
+<pre><code>khepri:insert([stock, wood, &lt;&lt;"line tree"&gt;&gt;], 150),
+
+Ret = khepri:get([stock, wood, &lt;&lt;"line tree"&gt;&gt;]),
+{ok, #{[stock, wood, &lt;&lt;"line tree"&gt;&gt;] =&gt;
+       #{child_list_count =&gt; 0,
+         child_list_version =&gt; 1,
+         data =&gt; 150,
+         payload_version =&gt; 1}}} = Ret,
+
+true = khepri:delete([stock, wood, &lt;&lt;"line tree"&gt;&gt;]),
+
+khepri:delete([stock, wood, &lt;&lt;"line tree"&gt;&gt;]).</code></pre>
+
+<h4><a name="Low-level_API">Low-level API</a></h4>
+
+<p>The high-level API is built on top of a low-level API. The low-level API is
+provided by the <a docgen-rel="seeerl" docgen-href="khepri_machine" href="khepri_machine.html"><code>khepri_machine</code></a> module.</p>
+
+<p>The low-level API provides just a handful of primitives. More advanced or
+specific use cases may need to rely on that low-level API.</p>
+
+<pre><code>%% Unlike the high-level API's `khepri:insert/2' function, this low-level %
+%% insert returns whatever it replaced (if anything). In this case, there was
+%% nothing before, so the returned value is pretty empty.
+Ret1 = khepri_machine:put([stock, wood, &lt;&lt;"line tree"&gt;&gt;], ?DATA_PAYLOAD(150)),
+{ok, #{}} = Ret1,
+
+Ret2 = khepri_machine:get([stock, wood, &lt;&lt;"line tree"&gt;&gt;]),
+{ok, #{[stock, wood, &lt;&lt;"line tree"&gt;&gt;] =&gt;
+       #{child_list_count =&gt; 0,
+         child_list_version =&gt; 1,
+         data =&gt; 150,
+         payload_version =&gt; 1}}} = Ret2,
+
+%% Unlike the high-level API's `khepri:delete/2' function, this low-level
+%% delete returns whatever it deleted.
+Ret3 = khepri_machine:delete([stock, wood, &lt;&lt;"line tree"&gt;&gt;]),
+{ok, #{[stock, wood, &lt;&lt;"line tree"&gt;&gt;] =&gt;
+       #{child_list_count =&gt; 0,
+         child_list_version =&gt; 1,
+         data =&gt; 150,
+         payload_version =&gt; 1}}} = Ret3.</code></pre>
+
+<h4><a name="Stores">Stores</a></h4>
+
+<p>It is possible to have multiple database instances running on the same node or
+cluster.</p>
+
+<p>By default, Khepri starts a default store, based on Ra's default system.</p>
+
+<h3><a name="Transactions">Transactions</a></h3>
+
+<h4><a name="Restrictions">Restrictions</a></h4>
+
+<p>On the surface, Khepri transactions look like Mnesia ones: they are anonymous
+functions which can do any arbitrary operations on the data and return any
+result. If something goes wrong or the anonymous function aborts, nothing is
+committed and the database is left untouched as if the transaction code was
+never called.</p>
+
+Under the hood, there are several restrictions and caveats that need to be
+understood in order to use transactions in Khepri:
+<ul>
+<li>If the anonymous function only <strong>reads data</strong> from the tree,
+then <a docgen-rel="seemfa" docgen-href="khepri#query/2" href="khepri.html#query-2"><code>khepri:query/2</code></a> or <a docgen-rel="seemfa" docgen-href="khepri_machine#query/2" href="khepri_machine.html#query-2"><code>khepri_machine:query/2</code></a> should be used.
+There is no specific restrictions on them.</li>
+<li>If however the anonymous function needs to <strong>modify or
+delete</strong> data from the database, <a docgen-rel="seemfa" docgen-href="khepri#transaction/2" href="khepri.html#transaction-2"><code>khepri:transaction/2</code></a> or <a docgen-rel="seemfa" docgen-href="khepri_machine#transaction/2" href="khepri_machine.html#transaction-2"><code>khepri_machine:transaction/2</code></a> are to be used. This time, the following
+constraints need to be taken into account.</li>
+</ul>
+
+<h4><a name="The_constraints_imposed_by_Raft">The constraints imposed by Raft</a></h4>
+
+<p>The Raft algorithm is used to achieve consensus among Khepri members
+participating in the database. Khepri is a state machine executed on each Ra
+node and all instances of that Khepri state machine start with the same state
+and modify it identically. The goal is that, after the same list of Ra
+commands, all instances have the same state.</p>
+
+<p>When a new Ra node joins the cluster and therefore participates to the Khepri
+database, it starts a new Khepri state machine instance. This instance needs to
+apply all Ra commands from an initial state to be on the same page as other
+existing instances.</p>
+
+<p>Likewise, if for any reason, one of the Khepri state machine instance looses
+the connection to other members and can't apply Ra commands, then the link
+comes back, it has to catch up.</p>
+
+<p>All this means that the code to modify the state of the state machines (i.e.
+the tree) needs to run on all instances, possibly not a the same time, and give
+the exact same result everywhere.</p>
+
+<h4><a name="The_problem_with_anonymous_functions">The problem with anonymous functions</a></h4>
+
+This is fine for inserts and deletes because the code is part of Khepri and is
+deterministic. This poses a problem when transactions are anonymous functions
+outside of Khepri's control:
+<ol>
+<li>Khepri must be able to store the anonymous function as a Ra command in Ra's
+log. This is the basis for replication and is mandatory to add a new cluster
+member or for a lagging member to catch up.</li>
+<li>The anonymous function must produce exactly the same result in all state
+machine instances, regardless of the time it runs, the availability of other
+Erlang modules, the state of Erlang processes, files on disk or network
+connections, and so on.</li>
+</ol>
+
+<p>To achieve that, <a docgen-rel="seeerl" docgen-href="khepri_fun" href="khepri_fun.html"><code>khepri_fun</code></a> and <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> extract the assembly
+code of the anonymous function and create a standalone Erlang module based on
+it. This module can be stored in Ra's log and executed anywhere without the
+presence of the initial anonymous function's module.</p>
+
+Here is what they do in more details:
+<ol>
+<li>The assembly code of the module hosting the anonymous function is extracted</li>
+<li>The anynmous function code is located inside that assembly code</li>
+<li>The code is analyzed to determine:
+<ul>
+<li>that it does not perform any forbidden operations (sending or receving
+inter-process messages, use date and time, access files or network connections,
+etc.)</li>
+<li>what other functions it calls</li>
+</ul></li>
+<li>Based on the listed function calls, the same steps are repeated for all of
+them (extract, verify, list calls)</li>
+<li>Once all the assembly code to have a standalone anonymous function is
+collected, an Erlang module is generated based</li>
+</ol>
 
 <hr>
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
