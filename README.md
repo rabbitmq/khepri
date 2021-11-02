@@ -6,7 +6,7 @@
 Khepri is a tree-like replicated on-disk database library for Erlang and
 Elixir.
 
-## The Basics
+## The basics
 
 Data are stored in a **tree structure**. Each node in the tree is referenced by
 its path from the root node. A path is a list of Erlang atoms and/or binaries.
@@ -14,7 +14,7 @@ For ease of use, Unix-like path strings are accepted as well.
 
 For **consistency and replication** and to manage data on disk, Khepri relies
 on [Ra](https://github.com/rabbitmq/ra), an Erlang implementation of the [Raft
-consensus algorithm](https://raft.github.io/).  In Ra parlance, Khepri is a
+consensus algorithm](https://raft.github.io/). In Ra parlance, Khepri is a
 state machine in a Ra cluster.
 
 ## Project maturity
