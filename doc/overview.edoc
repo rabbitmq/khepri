@@ -1,6 +1,6 @@
-@author The RabbitMQ team <info@rabbitmq.com>
-@author Karl Nilsson <nkarl@vmware.com>
 @author Jean-Sébastien Pédron <jean-sebastien@rabbitmq.com>
+@author Karl Nilsson <nkarl@vmware.com>
+@author The RabbitMQ team <info@rabbitmq.com>
 @copyright 2021 VMware, Inc. or its affiliates.  All rights reserved.
 @title The Khepri Database
 @version 0.1.0
@@ -9,34 +9,291 @@
 Khepri is a tree-like replicated on-disk database library for Erlang and
 Elixir.
 
-<blockquote>Khepri is still in development and should be considered
-<em>Alpha</em> at this stage.</blockquote>
-
 Data are stored in a <strong>tree structure</strong>. Each node in the tree is
 referenced by its path from the root node. A path is a list of Erlang atoms
 and/or binaries. For ease of use, Unix-like path strings are accepted as well.
 
 For <strong>consistency and replication</strong> and to manage data on disk,
-Khepri relies on the <a href="https://github.com/rabbitmq/ra">Ra library</a>.
-The Ra library implements the <a href="https://raft.github.io/">Raft consensus
+Khepri relies on <a href="https://github.com/rabbitmq/ra">Ra</a>, an Erlang
+implementation of the <a href="https://raft.github.io/">Raft consensus
 algorithm</a>. In Ra parlance, Khepri is a state machine in a Ra cluster.
 
-== Getting started ==
+This page <strong>describes all the concepts in Khepri</strong> and points the
+reader to the modules' documentation for more details.
 
-See the `README.md' at the root of the project.
+<hr/>
 
 == The tree structure ==
 
-=== What is a path? ===
+=== Tree nodes ===
 
-=== How to perform queries and updates ===
+Data in Khepri are organized as <em>tree nodes</em> ({@link
+khepri_machine:tree_node()}) in a tree structure. Every tree nodes have:
+<ul>
+<li>a <a href="#Node_ID">node ID</a></li>
+<li>a <a href="#Payload">payload</a> (optional)</li>
+<li><a href="#Properties">properties</a></li>
+</ul>
 
-=== Transactions ===
+```none
+o
+|
++-- orders
+|
+`-- stock
+    |
+    `-- wood
+        |-- <<"mapple">> = 12
+        `-- <<"oak">> = 41
+'''
 
-== Distribution of the data ==
+=== Node ID ===
 
-=== Quick start, using the default database ===
+A tree node name is either an Erlang atom or an Erlang binary ({@link
+khepri_path:node_id()}).
 
-=== Configuring a Ra system and a dedicated store ===
+=== Payload ===
 
-=== Adding and removing cluster members ===
+A tree node may or may not have a payload. Khepri currently supports a single
+type of payload, the <em>data payload</em>. More payload types may be added in
+the future.
+
+Payloads are represented using macros or helper functions:
+<ul>
+<li>`?NO_PAYLOAD' and {@link khepri:no_payload/0}</li>
+<li>`?DATA_PAYLOAD(Term)' and {@link khepri:data_payload/1}</li>
+</ul>
+
+Functions in {@link khepri_machine} have no assumption on the type of the
+payload because they are a low-level API. Therefore, it must be specified
+explicitly using the macros or helper functions mentionned above.
+
+Most functions in {@link khepri}, being a higher-level API, target more
+specific use cases and assume a particular type of payload.
+
+=== Properties ===
+
+Properties are:
+<ul>
+<li>The version of the payload, tracking the number of times it was modified
+({@link khepri_machine:payload_version()}).</li>
+<li>The version of the list of child nodes, tracking the number of times child
+nodes were added or removed ({@link khepri_machine:child_list_version()}).</li>
+<li>The number of child nodes ({@link khepri_machine:child_list_count()}).</li>
+</ul>
+
+=== Addressing a tree node ===
+
+The equivalent of a <em>key</em> in a key/value store is a <em>path</em>
+({@link khepri_path:path()}) in Khepri.
+
+A path is a list of node IDs, from the root (unnamed) tree node to the target
+({@link khepri_path:path()}). For instance:
+```
+%% Points to "/stock/wood/oak" in the tree showed above:
+Path = [stock, wood, <<"oak">>].
+'''
+
+It is possible to target multiple tree nodes at once by using a <em>path
+pattern</em> ({@link khepri_path:pattern()}). In addition to node IDs, path
+patterns have conditions ({@link khepri_condition:condition()}). Conditions allow things like:
+<ul>
+<li>checking the existence of a tree node</li>
+<li>targetting all child nodes of a tree node</li>
+<li>matching on node IDs using a regex</li>
+<li>matching on the data payload</li>
+</ul>
+
+For instance:
+```
+%% Matches all varieties of wood in the stock:
+PathPattern = [stock, wood, #if_node_matches{regex = any}].
+
+%% Matches the supplied of oak if there is an active order:
+PathPattern = [order,
+               wood,
+               #if_all{conditions = [
+                 <<"oak">>,
+                 #if_data_matches{pattern = {active, true}}]},
+               supplier].
+'''
+
+Finally, a path can use some special path component names, handy when using
+relative paths:
+<ul>
+<li>`?THIS_NODE' to point to self</li>
+<li>`?PARENT_NODE' to point to the parent tree node</li>
+<li>`?ROOT_NODE' to explicitly point to the root unnamed node</li>
+</ul>
+
+Relative paths are useful when putting conditions on
+<a href="#Tree_node_lifetime">tree node lifetimes</a>.
+
+=== Tree node lifetime ===
+
+A tree node's lifetime starts when it is inserted the first time, until it is
+removed from the tree. However, intermediary tree nodes created on the way
+remain in the tree long after the leaf node was removed.
+
+For instance, when `[stock, wood, <<"walnut">>]' was inserted, the intermediary
+tree nodes `stock' and `wood' were created if they were missing. After
+`<<"walnut">>' is removed, they will stay in the tree with possibly neither
+payload nor child nodes.
+
+Khepri has the concept of <em>`keep_until' conditions</em>. A `keep_until'
+condition is like the conditions which can be used inside path pattern. When a
+node is inserted or updated, it is possible to set `keep_until' conditions:
+when these conditions evaluate to false, the tree node is removed from the
+tree.
+
+For instance, it is possible to set the following condition on `[stock, wood]'
+to make sure it is removed after its last child node is removed:
+```
+%% We keep [stock, wood] as long as its child nodes count is strictly greater
+%% then zero.
+KeepUntilCondition = #{[stock, wood] => #if_child_list_count{count = {gt, 0}}}.
+'''
+
+`keep_until' conditions on self (like the example above) are not evaluated on
+the first insert though.
+
+== Khepri API ==
+
+=== High-level API ===
+
+A high-level API is provided by the {@link khepri} module. It covers most
+common use cases and should be straightforward to use.
+
+```
+khepri:insert([stock, wood, <<"line tree">>], 150),
+
+Ret = khepri:get([stock, wood, <<"line tree">>]),
+{ok, #{[stock, wood, <<"line tree">>] =>
+       #{child_list_count => 0,
+         child_list_version => 1,
+         data => 150,
+         payload_version => 1}}} = Ret,
+
+true = khepri:delete([stock, wood, <<"line tree">>]),
+
+khepri:delete([stock, wood, <<"line tree">>]).
+'''
+
+=== Low-level API ===
+
+The high-level API is built on top of a low-level API. The low-level API is
+provided by the {@link khepri_machine} module.
+
+The low-level API provides just a handful of primitives. More advanced or
+specific use cases may need to rely on that low-level API.
+
+```
+%% Unlike the high-level API's `khepri:insert/2' function, this low-level %
+%% insert returns whatever it replaced (if anything). In this case, there was
+%% nothing before, so the returned value is pretty empty.
+Ret1 = khepri_machine:put([stock, wood, <<"line tree">>], ?DATA_PAYLOAD(150)),
+{ok, #{}} = Ret1,
+
+Ret2 = khepri_machine:get([stock, wood, <<"line tree">>]),
+{ok, #{[stock, wood, <<"line tree">>] =>
+       #{child_list_count => 0,
+         child_list_version => 1,
+         data => 150,
+         payload_version => 1}}} = Ret2,
+
+%% Unlike the high-level API's `khepri:delete/2' function, this low-level
+%% delete returns whatever it deleted.
+Ret3 = khepri_machine:delete([stock, wood, <<"line tree">>]),
+{ok, #{[stock, wood, <<"line tree">>] =>
+       #{child_list_count => 0,
+         child_list_version => 1,
+         data => 150,
+         payload_version => 1}}} = Ret3.
+'''
+
+=== Stores ===
+
+It is possible to have multiple database instances running on the same node or
+cluster.
+
+By default, Khepri starts a default store, based on Ra's default system.
+
+== Transactions ==
+
+=== Restrictions ===
+
+On the surface, Khepri transactions look like Mnesia ones: they are anonymous
+functions which can do any arbitrary operations on the data and return any
+result. If something goes wrong or the anonymous function aborts, nothing is
+committed and the database is left untouched as if the transaction code was
+never called.
+
+Under the hood, there are several restrictions and caveats that need to be
+understood in order to use transactions in Khepri:
+<ul>
+<li>If the anonymous function only <strong>reads data</strong> from the tree,
+then {@link khepri:query/2} or {@link khepri_machine:query/2} should be used.
+There is no specific restrictions on them.</li>
+<li>If however the anonymous function needs to <strong>modify or
+delete</strong> data from the database, {@link khepri:transaction/2} or {@link
+khepri_machine:transaction/2} are to be used. This time, the following
+constraints need to be taken into account.</li>
+</ul>
+
+=== The constraints imposed by Raft ===
+
+The Raft algorithm is used to achieve consensus among Khepri members
+participating in the database. Khepri is a state machine executed on each Ra
+node and all instances of that Khepri state machine start with the same state
+and modify it identically. The goal is that, after the same list of Ra
+commands, all instances have the same state.
+
+When a new Ra node joins the cluster and therefore participates to the Khepri
+database, it starts a new Khepri state machine instance. This instance needs to
+apply all Ra commands from an initial state to be on the same page as other
+existing instances.
+
+Likewise, if for any reason, one of the Khepri state machine instance looses
+the connection to other members and can't apply Ra commands, then the link
+comes back, it has to catch up.
+
+All this means that the code to modify the state of the state machines (i.e.
+the tree) needs to run on all instances, possibly not a the same time, and give
+the exact same result everywhere.
+
+=== The problem with anonymous functions ===
+
+This is fine for inserts and deletes because the code is part of Khepri and is
+deterministic. This poses a problem when transactions are anonymous functions
+outside of Khepri's control:
+<ol>
+<li>Khepri must be able to store the anonymous function as a Ra command in Ra's
+log. This is the basis for replication and is mandatory to add a new cluster
+member or for a lagging member to catch up.</li>
+<li>The anonymous function must produce exactly the same result in all state
+machine instances, regardless of the time it runs, the availability of other
+Erlang modules, the state of Erlang processes, files on disk or network
+connections, and so on.</li>
+</ol>
+
+To achieve that, {@link khepri_fun} and {@link khepri_tx} extract the assembly
+code of the anonymous function and create a standalone Erlang module based on
+it. This module can be stored in Ra's log and executed anywhere without the
+presence of the initial anonymous function's module.
+
+Here is what they do in more details:
+<ol>
+<li>The assembly code of the module hosting the anonymous function is extracted</li>
+<li>The anynmous function code is located inside that assembly code</li>
+<li>The code is analyzed to determine:
+<ul>
+<li>that it does not perform any forbidden operations (sending or receving
+inter-process messages, use date and time, access files or network connections,
+etc.)</li>
+<li>what other functions it calls</li>
+</ul></li>
+<li>Based on the listed function calls, the same steps are repeated for all of
+them (extract, verify, list calls)</li>
+<li>Once all the assembly code to have a standalone anonymous function is
+collected, an Erlang module is generated based</li>
+</ol>
