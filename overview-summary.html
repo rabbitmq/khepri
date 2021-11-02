@@ -265,18 +265,18 @@ the first insert though.</p>
 <p>A high-level API is provided by the <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> module. It covers most
 common use cases and should be straightforward to use.</p>
 
-<pre><code>khepri:insert([stock, wood, &lt;&lt;"line tree"&gt;&gt;], 150),
+<pre><code>khepri:insert([stock, wood, &lt;&lt;"lime tree"&gt;&gt;], 150),
 
-Ret = khepri:get([stock, wood, &lt;&lt;"line tree"&gt;&gt;]),
-{ok, #{[stock, wood, &lt;&lt;"line tree"&gt;&gt;] =&gt;
+Ret = khepri:get([stock, wood, &lt;&lt;"lime tree"&gt;&gt;]),
+{ok, #{[stock, wood, &lt;&lt;"lime tree"&gt;&gt;] =&gt;
        #{child_list_count =&gt; 0,
          child_list_version =&gt; 1,
          data =&gt; 150,
          payload_version =&gt; 1}}} = Ret,
 
-true = khepri:delete([stock, wood, &lt;&lt;"line tree"&gt;&gt;]),
+true = khepri:exists([stock, wood, &lt;&lt;"lime tree"&gt;&gt;]),
 
-khepri:delete([stock, wood, &lt;&lt;"line tree"&gt;&gt;]).</code></pre>
+khepri:delete([stock, wood, &lt;&lt;"lime tree"&gt;&gt;]).</code></pre>
 
 <h4><a name="Low-level_API">Low-level API</a></h4>
 
@@ -289,11 +289,11 @@ specific use cases may need to rely on that low-level API.</p>
 <pre><code>%% Unlike the high-level API's `khepri:insert/2' function, this low-level %
 %% insert returns whatever it replaced (if anything). In this case, there was
 %% nothing before, so the returned value is pretty empty.
-Ret1 = khepri_machine:put([stock, wood, &lt;&lt;"line tree"&gt;&gt;], ?DATA_PAYLOAD(150)),
+Ret1 = khepri_machine:put(StoreId, [stock, wood, &lt;&lt;"lime tree"&gt;&gt;], ?DATA_PAYLOAD(150)),
 {ok, #{}} = Ret1,
 
-Ret2 = khepri_machine:get([stock, wood, &lt;&lt;"line tree"&gt;&gt;]),
-{ok, #{[stock, wood, &lt;&lt;"line tree"&gt;&gt;] =&gt;
+Ret2 = khepri_machine:get(StoreId, [stock, wood, &lt;&lt;"lime tree"&gt;&gt;]),
+{ok, #{[stock, wood, &lt;&lt;"lime tree"&gt;&gt;] =&gt;
        #{child_list_count =&gt; 0,
          child_list_version =&gt; 1,
          data =&gt; 150,
@@ -301,8 +301,8 @@ Ret2 = khepri_machine:get([stock, wood, &lt;&lt;"line tree"&gt;&gt;]),
 
 %% Unlike the high-level API's `khepri:delete/2' function, this low-level
 %% delete returns whatever it deleted.
-Ret3 = khepri_machine:delete([stock, wood, &lt;&lt;"line tree"&gt;&gt;]),
-{ok, #{[stock, wood, &lt;&lt;"line tree"&gt;&gt;] =&gt;
+Ret3 = khepri_machine:delete(StoreId, [stock, wood, &lt;&lt;"lime tree"&gt;&gt;]),
+{ok, #{[stock, wood, &lt;&lt;"lime tree"&gt;&gt;] =&gt;
        #{child_list_count =&gt; 0,
          child_list_version =&gt; 1,
          data =&gt; 150,

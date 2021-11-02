@@ -195,18 +195,18 @@ A high-level API is provided by the {@link khepri} module. It covers most
 common use cases and should be straightforward to use.
 
 ```
-khepri:insert([stock, wood, <<"line tree">>], 150),
+khepri:insert([stock, wood, <<"lime tree">>], 150),
 
-Ret = khepri:get([stock, wood, <<"line tree">>]),
-{ok, #{[stock, wood, <<"line tree">>] =>
+Ret = khepri:get([stock, wood, <<"lime tree">>]),
+{ok, #{[stock, wood, <<"lime tree">>] =>
        #{child_list_count => 0,
          child_list_version => 1,
          data => 150,
          payload_version => 1}}} = Ret,
 
-true = khepri:delete([stock, wood, <<"line tree">>]),
+true = khepri:exists([stock, wood, <<"lime tree">>]),
 
-khepri:delete([stock, wood, <<"line tree">>]).
+khepri:delete([stock, wood, <<"lime tree">>]).
 '''
 
 === Low-level API ===
@@ -221,11 +221,11 @@ specific use cases may need to rely on that low-level API.
 %% Unlike the high-level API's `khepri:insert/2' function, this low-level %
 %% insert returns whatever it replaced (if anything). In this case, there was
 %% nothing before, so the returned value is pretty empty.
-Ret1 = khepri_machine:put([stock, wood, <<"line tree">>], ?DATA_PAYLOAD(150)),
+Ret1 = khepri_machine:put(StoreId, [stock, wood, <<"lime tree">>], ?DATA_PAYLOAD(150)),
 {ok, #{}} = Ret1,
 
-Ret2 = khepri_machine:get([stock, wood, <<"line tree">>]),
-{ok, #{[stock, wood, <<"line tree">>] =>
+Ret2 = khepri_machine:get(StoreId, [stock, wood, <<"lime tree">>]),
+{ok, #{[stock, wood, <<"lime tree">>] =>
        #{child_list_count => 0,
          child_list_version => 1,
          data => 150,
@@ -233,8 +233,8 @@ Ret2 = khepri_machine:get([stock, wood, <<"line tree">>]),
 
 %% Unlike the high-level API's `khepri:delete/2' function, this low-level
 %% delete returns whatever it deleted.
-Ret3 = khepri_machine:delete([stock, wood, <<"line tree">>]),
-{ok, #{[stock, wood, <<"line tree">>] =>
+Ret3 = khepri_machine:delete(StoreId, [stock, wood, <<"lime tree">>]),
+{ok, #{[stock, wood, <<"lime tree">>] =>
        #{child_list_count => 0,
          child_list_version => 1,
          data => 150,
