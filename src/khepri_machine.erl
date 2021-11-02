@@ -115,11 +115,15 @@
 %% by 1 each time a child is added or removed. Changes made to existing nodes
 %% are not reflected in this version.
 
+%% TODO: Rename to _length or _size?
+-type child_list_count() :: non_neg_integer().
+%% Number of direct child nodes under a tree node.
+
 -type node_props() ::
     #{data => data(),
       payload_version := payload_version(),
       child_list_version := child_list_version(),
-      child_list_count := non_neg_integer(),
+      child_list_count := child_list_count(),
       child_nodes => #{khepri_path:node_id() => node_props()}}.
 %% Structure used to return properties, payload and child nodes for a specific
 %% node.
@@ -212,6 +216,7 @@
               tree_node/0,
               payload_version/0,
               child_list_version/0,
+              child_list_count/0,
               node_props/0,
               node_props_map/0,
               result/0,

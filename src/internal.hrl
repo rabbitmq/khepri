@@ -14,6 +14,7 @@
 -define(TX_PROPS, khepri_tx_properties).
 
 %% Structure representing each node in the tree, including the root node.
+%% TODO: Rename stat to something more correct?
 -record(node, {stat = ?INIT_NODE_STAT :: khepri_machine:stat(),
                payload = none :: khepri_machine:payload(),
                child_nodes = #{} :: #{khepri_path:component() := #node{}}}).
