@@ -49,8 +49,9 @@ recover from a network partition</strong>. This makes it more comfortable for
 the RabbitMQ team and users, thanks to the absence of unknowns.
 
 <blockquote>
-At the time of this writing, RabbitMQ does not use Khepri because this library
-and its integration into RabbitMQ are still a work in progress.
+At the time of this writing, RabbitMQ does not use Khepri in a production
+release yet because this library and its integration into RabbitMQ are still a
+work in progress.
 </blockquote>
 
 == The tree structure ==
