@@ -34,7 +34,7 @@ Using Rebar:
 %% In rebar.config
 {deps, [{ra,
          {git, "https://github.com/rabbitmq/khepri.git",
-         {ref, "main"}}}]}.
+         {branch, "main"}}}]}.
 ```
 
 Using Erlang.mk:
