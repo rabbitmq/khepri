@@ -50,7 +50,7 @@ delete_existing_node_with_data_test() ->
     ?assertEqual({ok, #{[foo] => #{data => foo_value,
                                    payload_version => 1,
                                    child_list_version => 1,
-                                   child_list_count => 0}}}, Ret).
+                                   child_list_length => 0}}}, Ret).
 
 delete_existing_node_with_data_using_dot_test() ->
     Commands = [#put{path = [foo],
@@ -70,7 +70,7 @@ delete_existing_node_with_data_using_dot_test() ->
     ?assertEqual({ok, #{[foo] => #{data => foo_value,
                                    payload_version => 1,
                                    child_list_version => 1,
-                                   child_list_count => 0}}}, Ret).
+                                   child_list_length => 0}}}, Ret).
 
 delete_existing_node_with_child_nodes_test() ->
     Commands = [#put{path = [foo, bar],
@@ -89,7 +89,7 @@ delete_existing_node_with_child_nodes_test() ->
        Root),
     ?assertEqual({ok, #{[foo] => #{payload_version => 1,
                                    child_list_version => 1,
-                                   child_list_count => 1}}}, Ret).
+                                   child_list_length => 1}}}, Ret).
 
 delete_a_node_deep_into_the_tree_test() ->
     Commands = [#put{path = [foo, bar, baz, qux],
@@ -117,7 +117,7 @@ delete_a_node_deep_into_the_tree_test() ->
        Root),
     ?assertEqual({ok, #{[foo, bar, baz] => #{payload_version => 1,
                                              child_list_version => 1,
-                                             child_list_count => 1}}}, Ret).
+                                             child_list_length => 1}}}, Ret).
 
 delete_existing_node_with_condition_true_test() ->
     Commands = [#put{path = [foo],
@@ -142,7 +142,7 @@ delete_existing_node_with_condition_true_test() ->
     ?assertEqual({ok, #{[bar] => #{data => bar_value,
                                    payload_version => 1,
                                    child_list_version => 1,
-                                   child_list_count => 0}}}, Ret).
+                                   child_list_length => 0}}}, Ret).
 
 delete_existing_node_with_condition_false_test() ->
     Commands = [#put{path = [foo],
@@ -196,7 +196,7 @@ delete_existing_node_with_condition_true_using_dot_test() ->
     ?assertEqual({ok, #{[bar] => #{data => bar_value,
                                    payload_version => 1,
                                    child_list_version => 1,
-                                   child_list_count => 0}}}, Ret).
+                                   child_list_length => 0}}}, Ret).
 
 delete_existing_node_with_condition_false_using_dot_test() ->
     Commands = [#put{path = [foo],
@@ -252,11 +252,11 @@ delete_many_nodes_at_once_test() ->
     ?assertEqual({ok, #{[bar] => #{data => bar_value,
                                    payload_version => 1,
                                    child_list_version => 1,
-                                   child_list_count => 0},
+                                   child_list_length => 0},
                         [baz] => #{data => baz_value,
                                    payload_version => 1,
                                    child_list_version => 1,
-                                   child_list_count => 0}}}, Ret).
+                                   child_list_length => 0}}}, Ret).
 
 delete_command_bumps_applied_command_count_test() ->
     Commands = [#delete{path = [foo]}],

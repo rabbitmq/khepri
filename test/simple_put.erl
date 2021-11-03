@@ -24,7 +24,7 @@ create_non_existing_node_test_() ->
          {ok, #{[foo] => #{data => foo_value,
                            payload_version => 1,
                            child_list_version => 1,
-                           child_list_count => 0}}},
+                           child_list_length => 0}}},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 create_existing_node_test_() ->
@@ -44,7 +44,7 @@ create_existing_node_test_() ->
              node_props => #{data => foo_value1,
                                  payload_version => 1,
                                  child_list_version => 1,
-                                 child_list_count => 0}}}},
+                                 child_list_length => 0}}}},
          khepri:create(?FUNCTION_NAME, [foo], foo_value2))]}.
 
 insert_non_existing_node_test_() ->
@@ -58,7 +58,7 @@ insert_non_existing_node_test_() ->
          {ok, #{[foo] => #{data => foo_value,
                            payload_version => 1,
                            child_list_version => 1,
-                           child_list_count => 0}}},
+                           child_list_length => 0}}},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 insert_existing_node_test_() ->
@@ -75,7 +75,7 @@ insert_existing_node_test_() ->
          {ok, #{[foo] => #{data => foo_value2,
                            payload_version => 2,
                            child_list_version => 1,
-                           child_list_count => 0}}},
+                           child_list_length => 0}}},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 update_non_existing_node_test_() ->
@@ -107,7 +107,7 @@ update_existing_node_test_() ->
          {ok, #{[foo] => #{data => foo_value2,
                            payload_version => 2,
                            child_list_version => 1,
-                           child_list_count => 0}}},
+                           child_list_length => 0}}},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 compare_and_swap_non_existing_node_test_() ->
@@ -141,7 +141,7 @@ compare_and_swap_matching_node_test_() ->
          {ok, #{[foo] => #{data => foo_value2,
                            payload_version => 2,
                            child_list_version => 1,
-                           child_list_count => 0}}},
+                           child_list_length => 0}}},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 compare_and_swap_mismatching_node_test_() ->
@@ -161,7 +161,7 @@ compare_and_swap_mismatching_node_test_() ->
              node_props := #{data := foo_value1,
                                  payload_version := 1,
                                  child_list_version := 1,
-                                 child_list_count := 0}}}},
+                                 child_list_length := 0}}}},
          khepri:compare_and_swap(
            ?FUNCTION_NAME, [foo], foo_value2, foo_value3))]}.
 
@@ -175,7 +175,7 @@ clear_payload_from_non_existing_node_test_() ->
       ?_assertEqual(
          {ok, #{[foo] => #{payload_version => 1,
                            child_list_version => 1,
-                           child_list_count => 0}}},
+                           child_list_length => 0}}},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 clear_payload_from_existing_node_test_() ->
@@ -191,5 +191,5 @@ clear_payload_from_existing_node_test_() ->
       ?_assertEqual(
          {ok, #{[foo] => #{payload_version => 2,
                            child_list_version => 1,
-                           child_list_count => 0}}},
+                           child_list_length => 0}}},
          khepri:get(?FUNCTION_NAME, [foo]))]}.

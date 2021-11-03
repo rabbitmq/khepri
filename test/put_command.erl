@@ -113,7 +113,7 @@ overwrite_an_existing_node_data_test() ->
     ?assertEqual({ok, #{[foo] => #{data => value1,
                                    payload_version => 1,
                                    child_list_version => 1,
-                                   child_list_count => 0}}}, Ret).
+                                   child_list_length => 0}}}, Ret).
 
 insert_a_node_with_path_containing_dot_and_dot_dot_test() ->
     S0 = khepri_machine:init(#{}),
@@ -197,7 +197,7 @@ insert_a_node_with_condition_true_on_self_test() ->
     ?assertEqual({ok, #{[foo] => #{data => value1,
                                    payload_version => 1,
                                    child_list_version => 1,
-                                   child_list_count => 0}}}, Ret).
+                                   child_list_length => 0}}}, Ret).
 
 insert_a_node_with_condition_false_on_self_test() ->
     Commands = [#put{path = [foo],
@@ -221,7 +221,7 @@ insert_a_node_with_condition_false_on_self_test() ->
                      node_props => #{data => value1,
                                          payload_version => 1,
                                          child_list_version => 1,
-                                         child_list_count => 0},
+                                         child_list_length => 0},
                      condition => Compiled}}}, Ret).
 
 insert_a_node_with_condition_true_on_self_using_dot_test() ->
@@ -251,7 +251,7 @@ insert_a_node_with_condition_true_on_self_using_dot_test() ->
     ?assertEqual({ok, #{[foo] => #{data => value1,
                                    payload_version => 1,
                                    child_list_version => 1,
-                                   child_list_count => 0}}}, Ret).
+                                   child_list_length => 0}}}, Ret).
 
 insert_a_node_with_condition_false_on_self_using_dot_test() ->
     Commands = [#put{path = [foo],
@@ -276,7 +276,7 @@ insert_a_node_with_condition_false_on_self_using_dot_test() ->
                      node_props => #{data => value1,
                                          payload_version => 1,
                                          child_list_version => 1,
-                                         child_list_count => 0},
+                                         child_list_length => 0},
                      condition => Compiled}}}, Ret).
 
 insert_a_node_with_condition_true_on_parent_test() ->
@@ -333,7 +333,7 @@ insert_a_node_with_condition_false_on_parent_test() ->
                      node_props => #{data => value1,
                                          payload_version => 1,
                                          child_list_version => 1,
-                                         child_list_count => 0},
+                                         child_list_length => 0},
                      condition => Compiled}}}, Ret).
 
 %% The #if_node_exists{} is tested explicitely in addition to the testcases
@@ -367,7 +367,7 @@ insert_a_node_with_if_node_exists_true_on_self_test() ->
     ?assertEqual({ok, #{[foo] => #{data => value1,
                                    payload_version => 1,
                                    child_list_version => 1,
-                                   child_list_count => 0}}}, Ret1),
+                                   child_list_length => 0}}}, Ret1),
 
     Compiled = khepri_condition:compile(
                  #if_all{conditions =
@@ -407,7 +407,7 @@ insert_a_node_with_if_node_exists_false_on_self_test() ->
                      node_props => #{data => value1,
                                          payload_version => 1,
                                          child_list_version => 1,
-                                         child_list_count => 0},
+                                         child_list_length => 0},
                      condition => #if_node_exists{exists = false}}}}, Ret1),
 
     Command2 = #put{path = [#if_all{conditions =
@@ -505,7 +505,7 @@ insert_a_node_with_if_node_exists_false_on_parent_test() ->
                      node_props => #{data => value1,
                                          payload_version => 1,
                                          child_list_version => 1,
-                                         child_list_count => 0},
+                                         child_list_length => 0},
                      condition => #if_node_exists{exists = false}}}}, Ret1),
 
     Command2 = #put{path = [#if_all{conditions =
@@ -577,7 +577,7 @@ clear_payload_in_an_existing_node_test() ->
     ?assertEqual({ok, #{[foo] => #{data => value,
                                    payload_version => 1,
                                    child_list_version => 1,
-                                   child_list_count => 0}}}, Ret).
+                                   child_list_length => 0}}}, Ret).
 
 put_command_bumps_applied_command_count_test() ->
     Commands = [#put{path = [foo],

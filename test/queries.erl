@@ -32,7 +32,7 @@ query_an_existing_node_with_no_value_test() ->
     ?assertEqual(
        {ok, #{[foo] => #{payload_version => 1,
                          child_list_version => 1,
-                         child_list_count => 1}}},
+                         child_list_length => 1}}},
        Ret).
 
 query_an_existing_node_with_value_test() ->
@@ -46,7 +46,7 @@ query_an_existing_node_with_value_test() ->
        {ok, #{[foo, bar] => #{data => value,
                               payload_version => 1,
                               child_list_version => 1,
-                              child_list_count => 0}}},
+                              child_list_length => 0}}},
        Ret).
 
 query_a_node_with_matching_condition_test() ->
@@ -64,7 +64,7 @@ query_a_node_with_matching_condition_test() ->
        {ok, #{[foo] => #{data => value,
                          payload_version => 1,
                          child_list_version => 1,
-                         child_list_count => 0}}},
+                         child_list_length => 0}}},
        Ret).
 
 query_a_node_with_non_matching_condition_test() ->
@@ -97,14 +97,14 @@ query_child_nodes_of_a_specific_node_test() ->
     ?assertEqual(
        {ok, #{[] => #{payload_version => 1,
                       child_list_version => 3,
-                      child_list_count => 2},
+                      child_list_length => 2},
               [foo] => #{payload_version => 1,
                          child_list_version => 1,
-                         child_list_count => 1},
+                         child_list_length => 1},
               [baz] => #{data => baz_value,
                          payload_version => 1,
                          child_list_version => 1,
-                         child_list_count => 0}}},
+                         child_list_length => 0}}},
        Ret).
 
 query_child_nodes_of_a_specific_node_with_condition_on_leaf_test() ->
@@ -117,13 +117,13 @@ query_child_nodes_of_a_specific_node_with_condition_on_leaf_test() ->
     Ret = khepri_machine:find_matching_nodes(
             Root,
             [#if_all{conditions = [#if_name_matches{regex = any},
-                                   #if_child_list_count{count = {ge, 1}}]}],
+                                   #if_child_list_length{count = {ge, 1}}]}],
             #{}),
 
     ?assertEqual(
        {ok, #{[foo] => #{payload_version => 1,
                          child_list_version => 1,
-                         child_list_count => 1}}},
+                         child_list_length => 1}}},
        Ret).
 
 query_many_nodes_with_condition_on_parent_test() ->
@@ -139,7 +139,7 @@ query_many_nodes_with_condition_on_parent_test() ->
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
             Root,
-            [#if_child_list_count{count = {gt, 1}},
+            [#if_child_list_length{count = {gt, 1}},
              #if_name_matches{regex = any}],
             #{}),
 
@@ -147,11 +147,11 @@ query_many_nodes_with_condition_on_parent_test() ->
        {ok, #{[foo, bar] => #{data => bar_value,
                               payload_version => 1,
                               child_list_version => 1,
-                              child_list_count => 0},
+                              child_list_length => 0},
               [foo, youpi] => #{data => youpi_value,
                                 payload_version => 1,
                                 child_list_version => 1,
-                                child_list_count => 0}}},
+                                child_list_length => 0}}},
        Ret).
 
 query_many_nodes_recursively_test() ->
@@ -173,26 +173,26 @@ query_many_nodes_recursively_test() ->
     ?assertEqual(
        {ok, #{[] => #{payload_version => 1,
                       child_list_version => 3,
-                      child_list_count => 2},
+                      child_list_length => 2},
               [foo] => #{payload_version => 1,
                          child_list_version => 2,
-                         child_list_count => 2},
+                         child_list_length => 2},
               [foo, bar] => #{data => bar_value,
                               payload_version => 1,
                               child_list_version => 1,
-                              child_list_count => 0},
+                              child_list_length => 0},
               [foo, youpi] => #{data => youpi_value,
                                 payload_version => 1,
                                 child_list_version => 1,
-                                child_list_count => 0},
+                                child_list_length => 0},
               [baz] => #{data => baz_value,
                          payload_version => 1,
                          child_list_version => 2,
-                         child_list_count => 1},
+                         child_list_length => 1},
               [baz, pouet] => #{data => pouet_value,
                                 payload_version => 1,
                                 child_list_version => 1,
-                                child_list_count => 0}}},
+                                child_list_length => 0}}},
        Ret).
 
 query_many_nodes_recursively_using_regex_test() ->
@@ -214,15 +214,15 @@ query_many_nodes_recursively_using_regex_test() ->
     ?assertEqual(
        {ok, #{[foo] => #{payload_version => 1,
                          child_list_version => 2,
-                         child_list_count => 2},
+                         child_list_length => 2},
               [foo, youpi] => #{data => youpi_value,
                                 payload_version => 1,
                                 child_list_version => 1,
-                                child_list_count => 0},
+                                child_list_length => 0},
               [baz, pouet] => #{data => pouet_value,
                                 payload_version => 1,
                                 child_list_version => 1,
-                                child_list_count => 0}}},
+                                child_list_length => 0}}},
        Ret).
 
 query_many_nodes_recursively_with_condition_on_leaf_test() ->
@@ -245,11 +245,11 @@ query_many_nodes_recursively_with_condition_on_leaf_test() ->
        {ok, #{[foo, youpi] => #{data => youpi_value,
                                 payload_version => 1,
                                 child_list_version => 1,
-                                child_list_count => 0},
+                                child_list_length => 0},
               [baz, pouet] => #{data => pouet_value,
                                 payload_version => 1,
                                 child_list_version => 1,
-                                child_list_count => 0}}},
+                                child_list_length => 0}}},
        Ret).
 
 query_many_nodes_recursively_with_condition_on_self_test() ->
@@ -273,19 +273,19 @@ query_many_nodes_recursively_with_condition_on_self_test() ->
        {ok, #{[foo, bar] => #{data => bar_value,
                               payload_version => 1,
                               child_list_version => 1,
-                              child_list_count => 0},
+                              child_list_length => 0},
               [foo, youpi] => #{data => youpi_value,
                                 payload_version => 1,
                                 child_list_version => 1,
-                                child_list_count => 0},
+                                child_list_length => 0},
               [baz] => #{data => baz_value,
                          payload_version => 1,
                          child_list_version => 2,
-                         child_list_count => 1},
+                         child_list_length => 1},
               [baz, pouet] => #{data => pouet_value,
                                 payload_version => 1,
                                 child_list_version => 1,
-                                child_list_count => 0}}},
+                                child_list_length => 0}}},
        Ret).
 
 query_many_nodes_recursively_with_several_star_star_test() ->
@@ -310,7 +310,7 @@ query_many_nodes_recursively_with_several_star_star_test() ->
        {ok, #{[foo, bar, baz, qux] => #{data => qux_value,
                                         payload_version => 1,
                                         child_list_version => 1,
-                                        child_list_count => 0}}},
+                                        child_list_length => 0}}},
        Ret).
 
 query_a_node_using_relative_path_components_test() ->
@@ -325,7 +325,7 @@ query_a_node_using_relative_path_components_test() ->
        {ok, #{[foo, bar] => #{data => value,
                               payload_version => 1,
                               child_list_version => 1,
-                              child_list_count => 0}}},
+                              child_list_length => 0}}},
        Ret).
 
 include_child_names_in_query_response_test() ->
@@ -343,6 +343,6 @@ include_child_names_in_query_response_test() ->
     ?assertEqual(
        {ok, #{[foo] => #{payload_version => 1,
                          child_list_version => 2,
-                         child_list_count => 2,
+                         child_list_length => 2,
                          child_names => [bar, quux]}}},
        Ret).

@@ -30,7 +30,7 @@ query_a_node_test_() ->
          {ok, #{[foo] => #{data => foo_value,
                            payload_version => 1,
                            child_list_version => 1,
-                           child_list_count => 0}}},
+                           child_list_length => 0}}},
          begin
              khepri_machine:put(
                ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(foo_value)),
@@ -47,7 +47,7 @@ delete_a_node_test_() ->
             {ok, #{[foo] => #{data => foo_value,
                               payload_version => 1,
                               child_list_version => 1,
-                              child_list_count => 0}}},
+                              child_list_length => 0}}},
             begin
                 khepri_machine:put(
                   ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(foo_value)),
@@ -60,13 +60,13 @@ delete_a_node_test_() ->
      ]}.
 
 query_keep_untils_state_test_() ->
-    KeepUntil = #{[?THIS_NODE] => #if_child_list_count{count = {gt, 0}}},
+    KeepUntil = #{[?THIS_NODE] => #if_child_list_length{count = {gt, 0}}},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
          {ok, #{[foo] =>
-                #{[foo] => #if_child_list_count{count = {gt, 0}}}}},
+                #{[foo] => #if_child_list_length{count = {gt, 0}}}}},
          begin
              khepri_machine:put(
                ?FUNCTION_NAME,

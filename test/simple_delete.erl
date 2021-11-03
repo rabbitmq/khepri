@@ -77,7 +77,7 @@ delete_existing_node_with_condition_false_test_() ->
          {ok, #{[foo] => #{data => foo_value,
                            payload_version => 1,
                            child_list_version => 1,
-                           child_list_count => 0}}},
+                           child_list_length => 0}}},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 clear_store_test_() ->
@@ -93,18 +93,18 @@ clear_store_test_() ->
       ?_assertEqual(
          {ok, #{[] => #{payload_version => 1,
                         child_list_version => 3,
-                        child_list_count => 2},
+                        child_list_length => 2},
                 [foo] => #{payload_version => 1,
                            child_list_version => 1,
-                           child_list_count => 1},
+                           child_list_length => 1},
                 [foo, bar] => #{data => bar_value,
                                 payload_version => 1,
                                 child_list_version => 1,
-                                child_list_count => 0},
+                                child_list_length => 0},
                 [baz] => #{data => baz_value,
                            payload_version => 1,
                            child_list_version => 1,
-                           child_list_count => 0}}},
+                           child_list_length => 0}}},
          khepri:get(?FUNCTION_NAME, [?STAR_STAR])),
       ?_assertEqual(
          ok,
@@ -112,5 +112,5 @@ clear_store_test_() ->
       ?_assertEqual(
          {ok, #{[] => #{payload_version => 1,
                         child_list_version => 4,
-                        child_list_count => 0}}},
+                        child_list_length => 0}}},
          khepri:get(?FUNCTION_NAME, [?STAR_STAR]))]}.

@@ -78,7 +78,7 @@
                         khepri_condition:comparison_op(
                           khepri_machine:child_list_version())}).
 
--record(if_child_list_count,
+-record(if_child_list_length,
         {count = 0 :: non_neg_integer() |
                       khepri_condition:comparison_op(non_neg_integer())}).
 

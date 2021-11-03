@@ -90,7 +90,7 @@ get_query_test_() ->
           {ok, #{[foo] => #{data => value1,
                             payload_version => 1,
                             child_list_version => 1,
-                            child_list_count => 0}}}},
+                            child_list_length => 0}}}},
          begin
              khepri_machine:put(
                ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
@@ -110,7 +110,7 @@ get_tx_test_() ->
           {ok, #{[foo] => #{data => value1,
                             payload_version => 1,
                             child_list_version => 1,
-                            child_list_count => 0}}}},
+                            child_list_length => 0}}}},
          begin
              khepri_machine:put(
                ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
@@ -152,7 +152,7 @@ put_tx_test_() ->
           {ok, #{[foo] => #{data => value1,
                             payload_version => 1,
                             child_list_version => 1,
-                            child_list_count => 0}}}},
+                            child_list_length => 0}}}},
          begin
              khepri_machine:put(
                ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
@@ -200,7 +200,7 @@ delete_tx_test_() ->
           {ok, #{[foo] => #{data => value1,
                             payload_version => 1,
                             child_list_version => 1,
-                            child_list_count => 0}}}},
+                            child_list_length => 0}}}},
          begin
              khepri_machine:put(
                ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
@@ -263,7 +263,7 @@ find_api_test_() ->
           {ok, #{[foo] => #{data => foo_value,
                             payload_version => 1,
                             child_list_version => 1,
-                            child_list_count => 0}}}},
+                            child_list_length => 0}}}},
          begin
              khepri_machine:put(
                ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(foo_value)),
@@ -286,7 +286,7 @@ simple_api_test_() ->
           {ok, #{[foo] => #{data => value1,
                             payload_version => 1,
                             child_list_version => 1,
-                            child_list_count => 0}}}},
+                            child_list_length => 0}}}},
          begin
              khepri_machine:put(
                ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
@@ -388,7 +388,7 @@ exception_in_query_test_() ->
      [?_assertError(
          {badmatch, {ok, #{[] := #{payload_version := 1,
                                    child_list_version := 1,
-                                   child_list_count := 0}}}},
+                                   child_list_length := 0}}}},
          begin
              Fun = fun() ->
                            bad_return_value = khepri_tx:list([])
@@ -403,7 +403,7 @@ exception_in_transaction_test_() ->
      [?_assertError(
          {badmatch, {ok, #{[] := #{payload_version := 1,
                                    child_list_version := 1,
-                                   child_list_count := 0}}}},
+                                   child_list_length := 0}}}},
          begin
              Fun = fun() ->
                            bad_return_value = khepri_tx:list([])
@@ -418,7 +418,7 @@ external_variable_test_() ->
      [?_assertEqual(
          {atomic, {ok, #{[] => #{payload_version => 1,
                                  child_list_version => 1,
-                                 child_list_count => 0}}}},
+                                 child_list_length => 0}}}},
          begin
              Path = [],
              Fun = fun() ->
@@ -439,7 +439,7 @@ calling_valid_local_function_test_() ->
      [?_assertEqual(
          {atomic, {ok, #{[] => #{payload_version => 1,
                                  child_list_version => 1,
-                                 child_list_count => 0}}}},
+                                 child_list_length => 0}}}},
          begin
              Fun = fun() ->
                            Path = get_root_path(),
@@ -696,7 +696,7 @@ tx_from_the_shell_test_() ->
           {ok, #{[foo] => #{data => value1,
                             payload_version => 1,
                             child_list_version => 1,
-                            child_list_count => 0}}}},
+                            child_list_length => 0}}}},
          begin
              khepri_machine:put(
                ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),

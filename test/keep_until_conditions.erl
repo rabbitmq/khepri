@@ -41,12 +41,12 @@ are_keep_until_conditions_met_test() ->
     ?assert(
        khepri_machine:are_keep_until_conditions_met(
          Root,
-         #{[foo, bar] => #if_child_list_count{count = 0}})),
+         #{[foo, bar] => #if_child_list_length{count = 0}})),
     ?assertEqual(
-       {false, #if_child_list_count{count = 1}},
+       {false, #if_child_list_length{count = 1}},
        khepri_machine:are_keep_until_conditions_met(
          Root,
-         #{[foo, bar] => #if_child_list_count{count = 1}})).
+         #{[foo, bar] => #if_child_list_length{count = 1}})).
 
 %% TODO: Add checks for the internal structures, `keep_untils` and
 %% `keep_untils_revidx`.
@@ -111,7 +111,7 @@ insert_when_keep_until_false_test() ->
                  Ret1),
 
     %% The targeted keep_until node exists but the condition is not verified.
-    KeepUntil2 = #{[foo] => #if_child_list_count{count = 10}},
+    KeepUntil2 = #{[foo] => #if_child_list_length{count = 10}},
     Command2 = #put{path = [baz],
                     payload = ?DATA_PAYLOAD(baz_value),
                     extra =
@@ -125,12 +125,12 @@ insert_when_keep_until_false_test() ->
                    #{node_name => baz,
                      node_path => [baz],
                      keep_until_reason =>
-                     #if_child_list_count{count = 10}}}},
+                     #if_child_list_length{count = 10}}}},
                  Ret2).
 
 insert_when_keep_until_true_on_self_test() ->
     S0 = khepri_machine:init(#{}),
-    KeepUntil = #{[?THIS_NODE] => #if_child_list_count{count = 0}},
+    KeepUntil = #{[?THIS_NODE] => #if_child_list_length{count = 0}},
     Command = #put{path = [foo],
                    payload = ?DATA_PAYLOAD(foo_value),
                    extra = #{keep_until => KeepUntil}},
@@ -152,7 +152,7 @@ insert_when_keep_until_true_on_self_test() ->
 
 insert_when_keep_until_false_on_self_test() ->
     S0 = khepri_machine:init(#{}),
-    KeepUntil = #{[?THIS_NODE] => #if_child_list_count{count = 1}},
+    KeepUntil = #{[?THIS_NODE] => #if_child_list_length{count = 1}},
     Command = #put{path = [foo],
                    payload = ?DATA_PAYLOAD(foo_value),
                    extra = #{keep_until => KeepUntil}},
@@ -173,7 +173,7 @@ insert_when_keep_until_false_on_self_test() ->
     ?assertEqual({ok, #{[foo] => #{}}}, Ret).
 
 keep_until_still_true_after_command_test() ->
-    KeepUntil = #{[foo] => #if_child_list_count{count = 0}},
+    KeepUntil = #{[foo] => #if_child_list_length{count = 0}},
     Commands = [#put{path = [foo],
                      payload = ?DATA_PAYLOAD(foo_value)},
                 #put{path = [baz],
@@ -205,10 +205,10 @@ keep_until_still_true_after_command_test() ->
     ?assertEqual({ok, #{[foo] => #{data => foo_value,
                                    payload_version => 1,
                                    child_list_version => 1,
-                                   child_list_count => 0}}}, Ret).
+                                   child_list_length => 0}}}, Ret).
 
 keep_until_now_false_after_command_test() ->
-    KeepUntil = #{[foo] => #if_child_list_count{count = 0}},
+    KeepUntil = #{[foo] => #if_child_list_length{count = 0}},
     Commands = [#put{path = [foo],
                      payload = ?DATA_PAYLOAD(foo_value)},
                 #put{path = [baz],
@@ -240,7 +240,7 @@ keep_until_now_false_after_command_test() ->
     ?assertEqual({ok, #{[foo, bar] => #{}}}, Ret).
 
 recursive_automatic_cleanup_test() ->
-    KeepUntil = #{[?THIS_NODE] => #if_child_list_count{count = {gt, 0}}},
+    KeepUntil = #{[?THIS_NODE] => #if_child_list_length{count = {gt, 0}}},
     Commands = [#put{path = [foo],
                      payload = ?DATA_PAYLOAD(foo_value),
                      extra = #{keep_until => KeepUntil}},
@@ -265,4 +265,4 @@ recursive_automatic_cleanup_test() ->
     ?assertEqual({ok, #{[foo, bar, baz] => #{data => baz_value,
                                              payload_version => 1,
                                              child_list_version => 1,
-                                             child_list_count => 0}}}, Ret).
+                                             child_list_length => 0}}}, Ret).

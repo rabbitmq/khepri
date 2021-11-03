@@ -899,11 +899,11 @@ find(Path, Condition) ->
 %% {ok, #{[foo, bar, baz] => #{data => baz_value,
 %%                             payload_version => 2,
 %%                             child_list_version => 1,
-%%                             child_list_count => 0},
+%%                             child_list_length => 0},
 %%        [foo, bar, deep, under, qux] => #{data => qux_value,
 %%                                          payload_version => 1,
 %%                                          child_list_version => 1,
-%%                                          child_list_count => 0}}} = Result.
+%%                                          child_list_length => 0}}} = Result.
 %% '''
 %%
 %% @param StoreId the name of the Ra cluster.

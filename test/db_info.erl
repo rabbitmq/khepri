@@ -105,7 +105,7 @@ get_store_info_on_running_store_test_() ->
          end)]}.
 
 get_store_info_with_keep_untils_test_() ->
-    KeepUntil = #{[?THIS_NODE] => #if_child_list_count{count = {gt, 0}}},
+    KeepUntil = #{[?THIS_NODE] => #if_child_list_length{count = {gt, 0}}},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -124,7 +124,7 @@ get_store_info_with_keep_untils_test_() ->
          "\n"
          "\033[1m[foo] depends on:\033[0m\n"
          "    [foo]:\n"
-         "        {if_child_list_count,{gt,0}}\n"
+         "        {if_child_list_length,{gt,0}}\n"
          "\n"
          "\033[1;32m== TREE ==\033[0m\n"
          "\n"

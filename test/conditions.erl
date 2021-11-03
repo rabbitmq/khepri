@@ -273,39 +273,39 @@ if_child_list_version_matching_test() ->
          khepri_condition:compile(#if_child_list_version{version = {ge, 2}}),
          foo, #node{stat = #{child_list_version => 1}})).
 
-if_child_list_count_matching_test() ->
+if_child_list_length_matching_test() ->
     ?assert(
        khepri_condition:is_met(
-         khepri_condition:compile(#if_child_list_count{count = 2}),
-         foo, #{child_list_count => 2})),
+         khepri_condition:compile(#if_child_list_length{count = 2}),
+         foo, #{child_list_length => 2})),
 
     ?assert(
        khepri_condition:is_met(
-         khepri_condition:compile(#if_child_list_count{count = 2}),
+         khepri_condition:compile(#if_child_list_length{count = 2}),
          foo, #node{child_nodes = #{a => #node{}, b => #node{}}})),
     ?assertEqual(
-       {false, #if_child_list_count{count = 3}},
+       {false, #if_child_list_length{count = 3}},
        khepri_condition:is_met(
-         khepri_condition:compile(#if_child_list_count{count = 3}),
+         khepri_condition:compile(#if_child_list_length{count = 3}),
          foo, #node{child_nodes = #{a => #node{}, b => #node{}}})),
     ?assert(
        khepri_condition:is_met(
-         khepri_condition:compile(#if_child_list_count{count = {ge, 1}}),
+         khepri_condition:compile(#if_child_list_length{count = {ge, 1}}),
          foo, #node{child_nodes = #{a => #node{}, b => #node{}}})),
     ?assertEqual(
-       {false, #if_child_list_count{count = {eq, 1}}},
+       {false, #if_child_list_length{count = {eq, 1}}},
        khepri_condition:is_met(
-         khepri_condition:compile(#if_child_list_count{count = {eq, 1}}),
+         khepri_condition:compile(#if_child_list_length{count = {eq, 1}}),
          foo, #node{child_nodes = #{a => #node{}, b => #node{}}})).
 
 if_not_matching_test() ->
     ?assertEqual(
        {false, #if_not{condition =
-                       #if_child_list_count{count = 2}}},
+                       #if_child_list_length{count = 2}}},
        khepri_condition:is_met(
          khepri_condition:compile(#if_not{condition =
-                                          #if_child_list_count{count = 2}}),
-         foo, #{child_list_count => 2})),
+                                          #if_child_list_length{count = 2}}),
+         foo, #{child_list_length => 2})),
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(
@@ -401,7 +401,7 @@ complex_matching_test() ->
            #if_any{conditions =
                    [#if_all{conditions =
                             [foo,
-                             #if_child_list_count{count = {lt, 10}}]},
+                             #if_child_list_length{count = {lt, 10}}]},
                     #if_payload_version{version = 1000}]}),
          foo, #node{stat = #{payload_version => 1}})),
     ?assert(
@@ -410,21 +410,21 @@ complex_matching_test() ->
            #if_any{conditions =
                    [#if_all{conditions =
                             [bar,
-                             #if_child_list_count{count = {lt, 10}}]},
+                             #if_child_list_length{count = {lt, 10}}]},
                     #if_payload_version{version = 1000}]}),
          foo, #node{stat = #{payload_version => 1000}})),
     ?assertEqual(
        {false, #if_any{conditions =
                        [#if_all{conditions =
                                 [bar,
-                                 #if_child_list_count{count = {lt, 10}}]},
+                                 #if_child_list_length{count = {lt, 10}}]},
                         #if_payload_version{version = 1}]}},
        khepri_condition:is_met(
          khepri_condition:compile(
            #if_any{conditions =
                    [#if_all{conditions =
                             [bar,
-                             #if_child_list_count{count = {lt, 10}}]},
+                             #if_child_list_length{count = {lt, 10}}]},
                     #if_payload_version{version = 1}]}),
          foo, #node{stat = #{payload_version => 1000}})).
 
@@ -432,7 +432,7 @@ complex_matching_test() ->
 path_matching_test() ->
     ?assert(
        khepri_condition:is_met(
-         khepri_condition:compile(#if_child_list_count{count = 0}),
+         khepri_condition:compile(#if_child_list_length{count = 0}),
          [], #node{})),
     ?assert(
        khepri_condition:is_met(
@@ -465,7 +465,7 @@ applies_to_grandchildren_test() ->
          #if_child_list_version{version = 1})),
     ?assertNot(
        khepri_condition:applies_to_grandchildren(
-         #if_child_list_count{count = 1})),
+         #if_child_list_length{count = 1})),
     ?assertNot(
        khepri_condition:applies_to_grandchildren(
          #if_all{conditions = []})),
@@ -490,7 +490,7 @@ applies_to_grandchildren_test() ->
                                #if_data_matches{pattern = '_'}]})),
     ?assertNot(
        khepri_condition:applies_to_grandchildren(
-         #if_not{condition = #if_child_list_count{count = 1}})),
+         #if_not{condition = #if_child_list_length{count = 1}})),
     ?assertNot(
        khepri_condition:applies_to_grandchildren(
          #if_not{condition =

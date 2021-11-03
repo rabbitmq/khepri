@@ -32,51 +32,51 @@ complex_flat_struct_to_tree_test() ->
     ?assertEqual(
        #{payload_version => 1,
          child_list_version => 3,
-         child_list_count => 2,
+         child_list_length => 2,
          child_nodes =>
 
          #{foo =>
            #{payload_version => 1,
              child_list_version => 2,
-             child_list_count => 2,
+             child_list_length => 2,
              child_nodes =>
 
              #{bar =>
                #{payload_version => 1,
                  child_list_version => 1,
-                 child_list_count => 1,
+                 child_list_length => 1,
                  child_nodes =>
 
                  #{baz =>
                    #{payload_version => 1,
                      child_list_version => 1,
-                     child_list_count => 1,
+                     child_list_length => 1,
                      child_nodes =>
 
                      #{qux =>
                        #{payload_version => 1,
                          child_list_version => 1,
-                         child_list_count => 0,
+                         child_list_length => 0,
                          data => qux_value}}}}},
 
                youpi =>
                #{data => youpi_value,
                  payload_version => 1,
                  child_list_version => 1,
-                 child_list_count => 0}}},
+                 child_list_length => 0}}},
 
            baz =>
            #{data => baz_value,
              payload_version => 1,
              child_list_version => 2,
-             child_list_count => 1,
+             child_list_length => 1,
              child_nodes =>
 
              #{pouet =>
                #{data => pouet_value,
                  payload_version => 1,
                  child_list_version => 1,
-                 child_list_count => 0}}}}},
+                 child_list_length => 0}}}}},
        khepri_utils:flat_struct_to_tree(FlatStruct)).
 
 unordered_flat_struct_to_tree_test() ->

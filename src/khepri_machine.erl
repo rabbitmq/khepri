@@ -115,15 +115,14 @@
 %% by 1 each time a child is added or removed. Changes made to existing nodes
 %% are not reflected in this version.
 
-%% TODO: Rename to _length or _size?
--type child_list_count() :: non_neg_integer().
+-type child_list_length() :: non_neg_integer().
 %% Number of direct child nodes under a tree node.
 
 -type node_props() ::
     #{data => data(),
       payload_version := payload_version(),
       child_list_version := child_list_version(),
-      child_list_count := child_list_count(),
+      child_list_length := child_list_length(),
       child_nodes => #{khepri_path:node_id() => node_props()}}.
 %% Structure used to return properties, payload and child nodes for a specific
 %% node.
@@ -216,7 +215,7 @@
               tree_node/0,
               payload_version/0,
               child_list_version/0,
-              child_list_count/0,
+              child_list_length/0,
               node_props/0,
               node_props_map/0,
               result/0,
@@ -294,7 +293,7 @@ put(StoreId, PathPattern, Payload) ->
 %% {ok, #{[foo, bar] => #{data => old_value,
 %%                        payload_version => 1,
 %%                        child_list_version => 1,
-%%                        child_list_count => 0}}} = Result.
+%%                        child_list_length => 0}}} = Result.
 %% '''
 %%
 %% @param StoreId the name of the Ra cluster.
@@ -348,7 +347,7 @@ get(StoreId, PathPattern) ->
 %% {ok, #{[foo, bar] => #{data => new_value,
 %%                        payload_version => 2,
 %%                        child_list_version => 1,
-%%                        child_list_count => 0}}} = Result.
+%%                        child_list_length => 0}}} = Result.
 %% '''
 %%
 %% @param StoreId the name of the Ra cluster.
@@ -386,7 +385,7 @@ get(StoreId, PathPattern, Options) ->
 %% {ok, #{[foo, bar] => #{data => new_value,
 %%                        payload_version => 2,
 %%                        child_list_version => 1,
-%%                        child_list_count => 0}}} = Result.
+%%                        child_list_length => 0}}} = Result.
 %% '''
 %%
 %% @param StoreId the name of the Ra cluster.
@@ -701,10 +700,6 @@ create_node_record(Payload) ->
     tree_node().
 %% @private
 
-%% TODO: Supprimer les informations d'un nœud dans lifetime_deps quand il est
-%% supprimé.
-%% TODO: Appliquer les lifetime_deps.
-
 set_node_payload(#node{payload = Payload} = Node, Payload) ->
     Node;
 set_node_payload(#node{stat = #{payload_version := DVersion} = Stat} = Node,
@@ -769,7 +764,7 @@ gather_node_props(#node{stat = #{payload_version := DVersion,
                       Options) ->
     Result0 = #{payload_version => DVersion,
                 child_list_version => CVersion,
-                child_list_count => maps:size(Children)},
+                child_list_length => maps:size(Children)},
     Result1 = case Options of
                   #{include_child_names := true} ->
                       Result0#{child_names => maps:keys(Children)};

@@ -146,7 +146,7 @@
 %% #if_child_list_version{version = {gt, 10}}.
 %% '''
 
--type if_child_list_count() :: #if_child_list_count{}.
+-type if_child_list_length() :: #if_child_list_length{}.
 %% Condition. Evaluates to true if the tested node's child list size
 %% corresponds to the expected value.
 %%
@@ -158,8 +158,8 @@
 %%
 %% Example:
 %% ```
-%% #if_child_list_count{count = 1}.
-%% #if_child_list_count{count = {gt, 10}}.
+%% #if_child_list_length{count = 1}.
+%% #if_child_list_length{count = {gt, 10}}.
 %% '''
 
 -type if_not() :: #if_not{}.
@@ -211,7 +211,7 @@
                      if_node_exists() |
                      if_payload_version() |
                      if_child_list_version() |
-                     if_child_list_count() |
+                     if_child_list_length() |
                      if_not() |
                      if_all() |
                      if_any().
@@ -220,7 +220,7 @@
                                  if_path_matches().
 -type condition_using_comparison_op() :: if_payload_version() |
                                          if_child_list_version() |
-                                         if_child_list_count().
+                                         if_child_list_length().
 
 -type keep_until() :: #{khepri_path:path() => condition()}.
 
@@ -375,12 +375,12 @@ is_met(#if_child_list_version{version = CVersionB} = Cond, _ChildName,
 is_met(#if_child_list_version{version = CVersionB} = Cond, _ChildName,
        #{child_list_version := CVersionA}) ->
     compare_numerical_values(Cond, CVersionA, CVersionB);
-is_met(#if_child_list_count{count = ExpectedCount} = Cond, _ChildName,
+is_met(#if_child_list_length{count = ExpectedCount} = Cond, _ChildName,
        #node{child_nodes = Children}) ->
     Count = maps:size(Children),
     compare_numerical_values(Cond, Count, ExpectedCount);
-is_met(#if_child_list_count{count = ExpectedCount} = Cond, _ChildName,
-       #{child_list_count := Count}) ->
+is_met(#if_child_list_length{count = ExpectedCount} = Cond, _ChildName,
+       #{child_list_length := Count}) ->
     compare_numerical_values(Cond, Count, ExpectedCount);
 is_met(#if_not{condition = InnerCond} = Cond, ChildName, Child) ->
     case is_met(InnerCond, ChildName, Child) of
@@ -498,7 +498,7 @@ is_valid(#if_payload_version{}) ->
     true;
 is_valid(#if_child_list_version{}) ->
     true;
-is_valid(#if_child_list_count{}) ->
+is_valid(#if_child_list_length{}) ->
     true;
 is_valid(#if_not{condition = InnerCond}) ->
     is_valid(InnerCond);

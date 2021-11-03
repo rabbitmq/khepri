@@ -38,7 +38,7 @@ get_existing_node_test_() ->
          {ok, #{[foo] => #{data => foo_value,
                            payload_version => 1,
                            child_list_version => 1,
-                           child_list_count => 0}}},
+                           child_list_length => 0}}},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 get_many_nodes_test_() ->
@@ -54,11 +54,11 @@ get_many_nodes_test_() ->
       ?_assertEqual(
          {ok, #{[foo] => #{payload_version => 1,
                            child_list_version => 1,
-                           child_list_count => 1},
+                           child_list_length => 1},
                 [baz] => #{data => baz_value,
                            payload_version => 1,
                            child_list_version => 1,
-                           child_list_count => 0}}},
+                           child_list_length => 0}}},
          khepri:get(
            ?FUNCTION_NAME, [?THIS_NODE, #if_name_matches{regex = any}])),
       ?_assertEqual(
@@ -112,11 +112,11 @@ list_existing_node_test_() ->
       ?_assertEqual(
          {ok, #{[foo] => #{payload_version => 1,
                            child_list_version => 1,
-                           child_list_count => 1},
+                           child_list_length => 1},
                 [baz] => #{data => baz_value,
                            payload_version => 1,
                            child_list_version => 1,
-                           child_list_count => 0}}},
+                           child_list_length => 0}}},
          khepri:list(?FUNCTION_NAME, []))]}.
 
 find_node_by_name_in_empty_db_test_() ->
@@ -140,7 +140,7 @@ find_node_by_name_in_filled_db_test_() ->
       ?_assertEqual(
          {ok, #{[foo] => #{payload_version => 1,
                            child_list_version => 1,
-                           child_list_count => 1}}},
+                           child_list_length => 1}}},
          khepri:find(?FUNCTION_NAME, [], foo))]}.
 
 find_node_by_condition_in_filled_db_test_() ->
@@ -157,11 +157,11 @@ find_node_by_condition_in_filled_db_test_() ->
          {ok, #{[foo, bar] => #{data => bar_value,
                                 payload_version => 1,
                                 child_list_version => 1,
-                                child_list_count => 0},
+                                child_list_length => 0},
                 [baz] => #{data => baz_value,
                            payload_version => 1,
                            child_list_version => 1,
-                           child_list_count => 0}}},
+                           child_list_length => 0}}},
          khepri:find(?FUNCTION_NAME, [], #if_name_matches{regex = "b"}))]}.
 
 find_node_starting_from_subnode_test_() ->
@@ -184,6 +184,6 @@ find_node_starting_from_subnode_test_() ->
          {ok, #{[foo, bar, baz] => #{data => baz_value,
                                      payload_version => 1,
                                      child_list_version => 1,
-                                     child_list_count => 0}}},
+                                     child_list_length => 0}}},
          khepri:find(
            ?FUNCTION_NAME, [foo, bar], #if_name_matches{regex = "b"}))]}.
