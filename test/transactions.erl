@@ -65,7 +65,7 @@ noop_query_test_() ->
              Fun = fun() ->
                            ok
                    end,
-             khepri_machine:query(?FUNCTION_NAME, Fun)
+             khepri_machine:transaction(?FUNCTION_NAME, Fun, false)
          end)]}.
 
 noop_tx_test_() ->
@@ -78,7 +78,7 @@ noop_tx_test_() ->
              Fun = fun() ->
                            ok
                    end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun)
+             khepri_machine:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 get_query_test_() ->
@@ -98,7 +98,7 @@ get_query_test_() ->
              Fun = fun() ->
                            khepri_tx:get([foo])
                    end,
-             khepri_machine:query(?FUNCTION_NAME, Fun)
+             khepri_machine:transaction(?FUNCTION_NAME, Fun, false)
          end)]}.
 
 get_tx_test_() ->
@@ -140,7 +140,7 @@ put_query_test_() ->
                                    Other
                            end
                    end,
-             khepri_machine:query(?FUNCTION_NAME, Fun)
+             khepri_machine:transaction(?FUNCTION_NAME, Fun, false)
          end)]}.
 
 put_tx_test_() ->
@@ -188,7 +188,7 @@ delete_query_test_() ->
                                    Other
                            end
                    end,
-             khepri_machine:query(?FUNCTION_NAME, Fun)
+             khepri_machine:transaction(?FUNCTION_NAME, Fun, false)
          end)]}.
 
 delete_tx_test_() ->
@@ -347,7 +347,7 @@ fun_taking_args_in_query_test_() ->
              Fun = fun(Arg) ->
                            Arg
                    end,
-             khepri:query(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, false)
          end)]}.
 
 fun_taking_args_in_transaction_test_() ->
@@ -370,7 +370,7 @@ not_a_function_as_query_test_() ->
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertThrow(
          {invalid_tx_fun, Term},
-         khepri:query(?FUNCTION_NAME, Term))]}.
+         khepri:transaction(?FUNCTION_NAME, Term, false))]}.
 
 not_a_function_as_transaction_test_() ->
     Term = an_atom,
@@ -379,7 +379,7 @@ not_a_function_as_transaction_test_() ->
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertThrow(
          {invalid_tx_fun, Term},
-         khepri:transaction(?FUNCTION_NAME, Term))]}.
+         khepri:transaction(?FUNCTION_NAME, Term, true))]}.
 
 exception_in_query_test_() ->
     {setup,
@@ -393,7 +393,7 @@ exception_in_query_test_() ->
              Fun = fun() ->
                            bad_return_value = khepri_tx:list([])
                    end,
-             khepri:query(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, false)
          end)]}.
 
 exception_in_transaction_test_() ->

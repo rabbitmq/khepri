@@ -116,8 +116,7 @@
          list/1, list/2,
          find/2, find/3,
 
-         query/1, query/2,
-         transaction/1, transaction/2,
+         transaction/1, transaction/2, transaction/3,
 
          clear_store/0, clear_store/1,
 
@@ -746,7 +745,7 @@ get(Path) ->
 %%
 %% @see get/3.
 
-get(StoreId, Path) when is_list(Path) ->
+get(StoreId, Path) when is_atom(StoreId) ->
     get(StoreId, Path, #{});
 get(Path, Options) when is_map(Options) ->
     get(?DEFAULT_RA_CLUSTER_NAME, Path, Options).
@@ -919,25 +918,6 @@ find(StoreId, Path, Condition) ->
     Path2 = [?ROOT_NODE | Path1] ++ [Condition1],
     khepri_machine:get(StoreId, Path2).
 
--spec query(Fun) -> Ret when
-      Fun :: khepri_tx:tx_fun(),
-      Ret :: Atomic | Aborted,
-      Atomic :: {atomic, khepri_tx:tx_fun_result()},
-      Aborted :: khepri_tx:tx_abort().
-
-query(Fun) ->
-    query(?DEFAULT_RA_CLUSTER_NAME, Fun).
-
--spec query(StoreId, Fun) -> Ret when
-      StoreId :: store_id(),
-      Fun :: khepri_tx:tx_fun(),
-      Ret :: Atomic | Aborted,
-      Atomic :: {atomic, khepri_tx:tx_fun_result()},
-      Aborted :: khepri_tx:tx_abort().
-
-query(StoreId, Fun) ->
-    khepri_machine:query(StoreId, Fun).
-
 -spec transaction(Fun) -> Ret when
       Fun :: khepri_tx:tx_fun(),
       Ret :: Atomic | Aborted,
@@ -947,15 +927,35 @@ query(StoreId, Fun) ->
 transaction(Fun) ->
     transaction(?DEFAULT_RA_CLUSTER_NAME, Fun).
 
--spec transaction(StoreId, Fun) -> Ret when
+-spec transaction
+(StoreId, Fun) -> Ret when
       StoreId :: store_id(),
       Fun :: khepri_tx:tx_fun(),
       Ret :: Atomic | Aborted,
       Atomic :: {atomic, khepri_tx:tx_fun_result()},
+      Aborted :: khepri_tx:tx_abort();
+(Fun, ReadWrite) -> Ret when
+      Fun :: khepri_tx:tx_fun(),
+      ReadWrite :: true | false,
+      Ret :: Atomic | Aborted,
+      Atomic :: {atomic, khepri_tx:tx_fun_result()},
       Aborted :: khepri_tx:tx_abort().
 
-transaction(StoreId, Fun) ->
-    khepri_machine:transaction(StoreId, Fun).
+transaction(StoreId, Fun) when is_function(Fun) ->
+    transaction(StoreId, Fun, true);
+transaction(Fun, ReadWrite) when is_function(Fun) ->
+    transaction(?DEFAULT_RA_CLUSTER_NAME, Fun, ReadWrite).
+
+-spec transaction(StoreId, Fun, ReadWrite) -> Ret when
+      StoreId :: store_id(),
+      Fun :: khepri_tx:tx_fun(),
+      ReadWrite :: true | false,
+      Ret :: Atomic | Aborted,
+      Atomic :: {atomic, khepri_tx:tx_fun_result()},
+      Aborted :: khepri_tx:tx_abort().
+
+transaction(StoreId, Fun, ReadWrite) ->
+    khepri_machine:transaction(StoreId, Fun, ReadWrite).
 
 -spec clear_store() -> ok | error().
 

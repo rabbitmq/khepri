@@ -55,13 +55,14 @@
 %%
 %% == Transactional queries and updates ==
 %%
-%% Transactions are handled by {@link query/2} and {@link transaction/2}.
+%% Transactions are handled by {@link transaction/2} and {@link
+%% transaction/3}.
 %%
 %% Both functions take an anonymous function. See {@link khepri_tx} for more
 %% details about those functions and in particular their restrictions.
 %%
-%% The return value is whatever the anonymous function if it succeeded or the
-%% reason why it aborted, similar to what {@link mnesia:transaction/1}
+%% The return value is whatever the anonymous function returns if it succeeded
+%% or the reason why it aborted, similar to what {@link mnesia:transaction/1}
 %% returns.
 
 -module(khepri_machine).
@@ -77,8 +78,8 @@
 -export([put/3, put/4,
          get/2, get/3,
          delete/2,
-         query/2,
-         transaction/2]).
+         transaction/2,
+         transaction/3]).
 -export([get_keep_untils_state/1]).
 -export([init/1,
          apply/3,
@@ -400,20 +401,48 @@ delete(StoreId, PathPattern) ->
     Command = #delete{path = PathPattern},
     process_command(StoreId, Command).
 
--spec query(StoreId, Fun) -> Ret when
+-spec transaction(StoreId, Fun) -> Ret when
       StoreId :: khepri:store_id(),
       Fun :: khepri_tx:tx_fun(),
       Ret :: Atomic | Aborted,
       Atomic :: {atomic, khepri_tx:tx_fun_result()},
       Aborted :: khepri_tx:tx_abort().
-%% @doc Runs a read-only transaction and returns the result.
+%% @doc Runs a transaction and returns the result.
 %%
-%% `Fun' is an arbitrary anonymous function. It is executed from a process on
-%% the leader Ra member.
+%% Calling this function is the same as calling
+%% `transaction(StoreId, Fun, true)'.
 %%
-%% `Fun' can do whatever it wants, except modify the content of the store. In
-%% other words, uses of {@link khepri_tx:put/2} or {@link khepri_tx:delete/1}
-%% are forbidden and will abort the function.
+%% @see transaction/3.
+
+transaction(StoreId, Fun) ->
+    transaction(StoreId, Fun, true).
+
+-spec transaction(StoreId, Fun, ReadWrite) -> Ret when
+      StoreId :: khepri:store_id(),
+      Fun :: khepri_tx:tx_fun(),
+      ReadWrite :: true | false,
+      Ret :: Atomic | Aborted,
+      Atomic :: {atomic, khepri_tx:tx_fun_result()},
+      Aborted :: khepri_tx:tx_abort().
+%% @doc Runs a transaction and returns the result.
+%%
+%% `Fun' is an arbitrary anonymous function which takes no arguments.
+%%
+%% The `ReadWrite' flag determines what the anonymous function is allowed to
+%% do and in which context it runs:
+%%
+%% <ul>
+%% <li>If `ReadWrite' is true, `Fun' can use the {@link khepri_tx} transaction
+%% API as well as any calls to other modules as long as those functions or what
+%% they do is permitted. See {@link khepri_tx} for more details. If `Fun' does
+%% or calls something forbidden, the transaction will be aborted. `Fun' is
+%% executed in the context of the state machine process on each Ra
+%% members.</li>
+%% <li>If `ReadWrite' is false, `Fun' can do whatever it wants, except modify
+%% the content of the store. In other words, uses of {@link khepri_tx:put/2}
+%% or {@link khepri_tx:delete/1} are forbidden and will abort the function.
+%% `Fun' is executed from a process on the leader Ra member.</li>
+%% </ul>
 %%
 %% The result of `Fun' can be any term. That result is returned in an
 %% `{atomic, Result}' tuple.
@@ -424,7 +453,18 @@ delete(StoreId, PathPattern) ->
 %% @returns `{atomic, Result}' with the return value of `Fun', or `{aborted,
 %% Reason}' if the anonymous function was aborted.
 
-query(StoreId, Fun) when is_function(Fun, 0) ->
+transaction(StoreId, Fun, true) when is_function(Fun, 0) ->
+    StandaloneFun = khepri_tx:to_standalone_fun(Fun),
+    Command = #tx{'fun' = StandaloneFun},
+    case process_command(StoreId, Command) of
+        {exception, _, {aborted, _} = Aborted, _} ->
+            Aborted;
+        {exception, Class, Reason, Stacktrace} ->
+            erlang:raise(Class, Reason, Stacktrace);
+        Ret ->
+            {atomic, Ret}
+    end;
+transaction(StoreId, Fun, false) when is_function(Fun, 0) ->
     Query = fun(State) ->
                     {_State, Ret} = khepri_tx:run(State, Fun, false),
                     Ret
@@ -437,52 +477,10 @@ query(StoreId, Fun) when is_function(Fun, 0) ->
         Ret ->
             {atomic, Ret}
     end;
-query(_StoreId, Fun) when is_function(Fun) ->
+transaction(_StoreId, Fun, _ReadWrite) when is_function(Fun) ->
     {arity, Arity} = erlang:fun_info(Fun, arity),
     throw({invalid_tx_fun, {requires_args, Arity}});
-query(_StoreId, Term) ->
-    throw({invalid_tx_fun, Term}).
-
--spec transaction(StoreId, Fun) -> Ret when
-      StoreId :: khepri:store_id(),
-      Fun :: khepri_tx:tx_fun(),
-      Ret :: Atomic | Aborted,
-      Atomic :: {atomic, khepri_tx:tx_fun_result()},
-      Aborted :: khepri_tx:tx_abort().
-%% @doc Runs a transaction and returns the result.
-%%
-%% `Fun' is an arbitrary anonymous function. It is executed in the context of
-%% the state machine process on each Ra members.
-%%
-%% `Fun' can use the {@link khepri_tx} transaction API as well as any calls to
-%% other modules as long as those functions or what they do are permitted. See
-%% {@link khepri_tx} for more details. If `Fun' does or calls something
-%% forbidden, the transaction will be aborted.
-%%
-%% The result of `Fun' can be any term. That result is returned in an
-%% `{atomic, Result}' tuple.
-%%
-%% @param StoreId the name of the Ra cluster.
-%% @param Fun an arbitrary anonymous function.
-%%
-%% @returns `{atomic, Result}' with the return value of `Fun', or `{aborted,
-%% Reason}' if the anonymous function was aborted.
-
-transaction(StoreId, Fun) when is_function(Fun, 0) ->
-    StandaloneFun = khepri_tx:to_standalone_fun(Fun),
-    Command = #tx{'fun' = StandaloneFun},
-    case process_command(StoreId, Command) of
-        {exception, _, {aborted, _} = Aborted, _} ->
-            Aborted;
-        {exception, Class, Reason, Stacktrace} ->
-            erlang:raise(Class, Reason, Stacktrace);
-        Ret ->
-            {atomic, Ret}
-    end;
-transaction(_StoreId, Fun) when is_function(Fun) ->
-    {arity, Arity} = erlang:fun_info(Fun, arity),
-    throw({invalid_tx_fun, {requires_args, Arity}});
-transaction(_StoreId, Term) ->
+transaction(_StoreId, Term, _ReadWrite) ->
     throw({invalid_tx_fun, Term}).
 
 -spec get_keep_untils_state(StoreId) -> Ret when
