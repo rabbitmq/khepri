@@ -936,20 +936,20 @@ transaction(Fun) ->
       Aborted :: khepri_tx:tx_abort();
 (Fun, ReadWrite) -> Ret when
       Fun :: khepri_tx:tx_fun(),
-      ReadWrite :: true | false,
+      ReadWrite :: auto | boolean(),
       Ret :: Atomic | Aborted,
       Atomic :: {atomic, khepri_tx:tx_fun_result()},
       Aborted :: khepri_tx:tx_abort().
 
 transaction(StoreId, Fun) when is_function(Fun) ->
-    transaction(StoreId, Fun, true);
+    transaction(StoreId, Fun, auto);
 transaction(Fun, ReadWrite) when is_function(Fun) ->
     transaction(?DEFAULT_RA_CLUSTER_NAME, Fun, ReadWrite).
 
 -spec transaction(StoreId, Fun, ReadWrite) -> Ret when
       StoreId :: store_id(),
       Fun :: khepri_tx:tx_fun(),
-      ReadWrite :: true | false,
+      ReadWrite :: auto | boolean(),
       Ret :: Atomic | Aborted,
       Atomic :: {atomic, khepri_tx:tx_fun_result()},
       Aborted :: khepri_tx:tx_abort().

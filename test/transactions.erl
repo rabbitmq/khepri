@@ -55,7 +55,7 @@ fun_extraction_test() ->
             end
     end.
 
-noop_query_test_() ->
+noop_in_ro_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -68,7 +68,7 @@ noop_query_test_() ->
              khepri_machine:transaction(?FUNCTION_NAME, Fun, false)
          end)]}.
 
-noop_tx_test_() ->
+noop_in_rw_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -81,7 +81,7 @@ noop_tx_test_() ->
              khepri_machine:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
-get_query_test_() ->
+get_in_ro_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -101,7 +101,7 @@ get_query_test_() ->
              khepri_machine:transaction(?FUNCTION_NAME, Fun, false)
          end)]}.
 
-get_tx_test_() ->
+get_in_rw_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -118,10 +118,10 @@ get_tx_test_() ->
              Fun = fun() ->
                            khepri_tx:get([foo])
                    end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun)
+             khepri_machine:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
-put_query_test_() ->
+put_in_ro_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -143,7 +143,7 @@ put_query_test_() ->
              khepri_machine:transaction(?FUNCTION_NAME, Fun, false)
          end)]}.
 
-put_tx_test_() ->
+put_in_rw_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -166,10 +166,10 @@ put_tx_test_() ->
                                    Other
                            end
                    end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun)
+             khepri_machine:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
-delete_query_test_() ->
+delete_in_ro_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -191,7 +191,7 @@ delete_query_test_() ->
              khepri_machine:transaction(?FUNCTION_NAME, Fun, false)
          end)]}.
 
-delete_tx_test_() ->
+delete_in_rw_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -214,7 +214,7 @@ delete_tx_test_() ->
                                    Other
                            end
                    end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun)
+             khepri_machine:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 exists_api_test_() ->
@@ -233,7 +233,7 @@ exists_api_test_() ->
                             khepri_tx:has_data([foo, bar]),
                             khepri_tx:has_data([foo, bar, baz])}
                    end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun)
+             khepri_machine:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 has_data_api_test_() ->
@@ -251,7 +251,7 @@ has_data_api_test_() ->
                            {khepri_tx:exists([foo]),
                             khepri_tx:exists([bar])}
                    end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun)
+             khepri_machine:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 find_api_test_() ->
@@ -271,7 +271,7 @@ find_api_test_() ->
              Fun = fun() ->
                            khepri_tx:find([], #if_data_matches{pattern = '_'})
                    end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun)
+             khepri_machine:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 simple_api_test_() ->
@@ -300,6 +300,7 @@ simple_api_test_() ->
                                    Other
                            end
                    end,
+             %% Let Khepri detect if the transaction is R/W or R/O.
              khepri:transaction(?FUNCTION_NAME, Fun)
          end)]}.
 
@@ -321,7 +322,7 @@ list_comprehension_test_() ->
                             Path <- lists:sort(maps:keys(Nodes)),
                             #{data := Data} <- [maps:get(Path, Nodes)]]
                    end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 aborted_transaction_test_() ->
@@ -334,7 +335,7 @@ aborted_transaction_test_() ->
              Fun = fun() ->
                            khepri_tx:abort(abort_transaction)
                    end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 fun_taking_args_in_query_test_() ->
@@ -360,10 +361,10 @@ fun_taking_args_in_transaction_test_() ->
              Fun = fun(Arg) ->
                            Arg
                    end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
-not_a_function_as_query_test_() ->
+not_a_function_as_ro_transaction_test_() ->
     Term = an_atom,
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
@@ -372,7 +373,7 @@ not_a_function_as_query_test_() ->
          {invalid_tx_fun, Term},
          khepri:transaction(?FUNCTION_NAME, Term, false))]}.
 
-not_a_function_as_transaction_test_() ->
+not_a_function_as_rw_transaction_test_() ->
     Term = an_atom,
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
@@ -381,7 +382,7 @@ not_a_function_as_transaction_test_() ->
          {invalid_tx_fun, Term},
          khepri:transaction(?FUNCTION_NAME, Term, true))]}.
 
-exception_in_query_test_() ->
+exception_in_ro_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -396,7 +397,7 @@ exception_in_query_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, false)
          end)]}.
 
-exception_in_transaction_test_() ->
+exception_in_rw_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -408,7 +409,7 @@ exception_in_transaction_test_() ->
              Fun = fun() ->
                            bad_return_value = khepri_tx:list([])
                    end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 external_variable_test_() ->
@@ -424,7 +425,7 @@ external_variable_test_() ->
              Fun = fun() ->
                            khepri_tx:get(Path)
                    end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 get_root_path() -> do_get_root_path().
@@ -445,7 +446,7 @@ calling_valid_local_function_test_() ->
                            Path = get_root_path(),
                            khepri_tx:get(Path)
                    end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 get_node_name() -> do_get_node_name().
@@ -463,7 +464,7 @@ calling_invalid_local_function_test_() ->
                            Path = [node, get_node_name()],
                            khepri_tx:get(Path)
                    end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 noop() -> ok.
@@ -476,7 +477,7 @@ calling_local_function_as_fun_term_test_() ->
          {atomic, ok},
          begin
              Fun = fun noop/0,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 calling_stdlib_function_as_fun_term_test_() ->
@@ -487,7 +488,7 @@ calling_stdlib_function_as_fun_term_test_() ->
          {atomic, dict:new()},
          begin
              Fun = fun dict:new/0,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 calling_remote_function_as_fun_term_test_() ->
@@ -498,7 +499,7 @@ calling_remote_function_as_fun_term_test_() ->
          {atomic, mod_used_for_transactions:exported()},
          begin
              Fun = fun mod_used_for_transactions:exported/0,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 calling_unexported_remote_function_as_fun_term_test_() ->
@@ -511,7 +512,7 @@ calling_unexported_remote_function_as_fun_term_test_() ->
            {mod_used_for_transactions, unexported, 0}}},
          begin
              Fun = fun mod_used_for_transactions:unexported/0,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 fun_requiring_args_test_() ->
@@ -524,7 +525,7 @@ fun_requiring_args_test_() ->
              Fun = fun(SomeArg) ->
                            {ok, SomeArg}
                    end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 with(Arg, Fun) ->
@@ -540,7 +541,7 @@ nested_funs_test_() ->
              Fun = fun(Arg) ->
                            erlang:list_to_tuple([nested, Arg])
                    end,
-             khepri:transaction(?FUNCTION_NAME, with(arg1, Fun))
+             khepri:transaction(?FUNCTION_NAME, with(arg1, Fun), true)
          end)]}.
 
 trying_to_send_msg_test_() ->
@@ -554,7 +555,7 @@ trying_to_send_msg_test_() ->
              Fun = fun() ->
                            Pid ! msg
                    end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 trying_to_receive_msg_test_() ->
@@ -572,7 +573,7 @@ trying_to_receive_msg_test_() ->
                                      ok
                            end
                    end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 trying_to_use_process_dict_test_() ->
@@ -585,7 +586,7 @@ trying_to_use_process_dict_test_() ->
              Fun = fun() ->
                            get()
                    end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 trying_to_use_persistent_term_test_() ->
@@ -598,7 +599,7 @@ trying_to_use_persistent_term_test_() ->
              Fun = fun() ->
                            persistent_term:put(key, value)
                    end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 trying_to_use_mnesia_test_() ->
@@ -611,7 +612,7 @@ trying_to_use_mnesia_test_() ->
              Fun = fun() ->
                            mnesia:read(table, key)
                    end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 trying_to_run_http_request_test_() ->
@@ -626,7 +627,7 @@ trying_to_run_http_request_test_() ->
              Fun = fun() ->
                            httpc:request("url://")
                    end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 trying_to_use_ssl_test_() ->
@@ -639,7 +640,7 @@ trying_to_use_ssl_test_() ->
              Fun = fun() ->
                            ssl:connect("localhost", 1234, [], infinity)
                    end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
+             khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
 use_an_invalid_path_in_tx_test_() ->
@@ -684,6 +685,22 @@ use_an_invalid_payload_in_tx_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun)
          end)]}.
 
+-define(TX_CODE, "Fun = fun() ->
+                          Path = [foo],
+                          case khepri_tx:get(Path) of
+                              {ok, #{Path := #{data := value1}}} ->
+                                  khepri_tx:put(
+                                    Path,
+                                    khepri:data_payload(value2));
+                              Other ->
+                                  Other
+                          end
+                  end,
+                  khepri_machine:transaction(
+                    " ++ atom_to_list(?FUNCTION_NAME) ++ ",
+                    Fun).
+                  ").
+
 tx_from_the_shell_test_() ->
     %% We simuate the use of a transaction from the Erlang shell by using
     %% `erl_parse' and `erl_eval'. The transaction is the same as
@@ -701,56 +718,24 @@ tx_from_the_shell_test_() ->
              khepri_machine:put(
                ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
 
-             Code = "
-             Fun = fun() ->
-                           Path = [foo],
-                           case khepri_tx:get(Path) of
-                               {ok, #{Path := #{data := value1}}} ->
-                                   khepri_tx:put(
-                                     Path,
-                                     khepri:data_payload(value2));
-                               Other ->
-                                   Other
-                           end
-                   end,
-             khepri_machine:transaction(
-               " ++ atom_to_list(?FUNCTION_NAME) ++ ",
-               Fun).
-             ",
-
              Bindings = erl_eval:new_bindings(),
-             {ok, Tokens, _EndLocation} = erl_scan:string(Code),
+             {ok, Tokens, _EndLocation} = erl_scan:string(?TX_CODE),
              {ok, Exprs} = erl_parse:parse_exprs(Tokens),
              {value, Value, _NewBindings} = erl_eval:exprs(Exprs, Bindings),
              Value
          end)]}.
 
 local_fun_using_erl_eval() ->
-    Code = "
-    Fun = fun() ->
-                  Path = [foo],
-                  case khepri_tx:get(Path) of
-                      {ok, #{Path := #{data := value1}}} ->
-                          khepri_tx:put(
-                            Path,
-                            khepri:data_payload(value2));
-                      Other ->
-                          Other
-                  end
-          end,
-    Fun().
-    ",
-
     Bindings = erl_eval:new_bindings(),
-    {ok, Tokens, _EndLocation} = erl_scan:string(Code),
+    {ok, Tokens, _EndLocation} = erl_scan:string(?TX_CODE),
     {ok, Exprs} = erl_parse:parse_exprs(Tokens),
     {value, Value, _NewBindings} = erl_eval:exprs(Exprs, Bindings),
     Value.
 
 tx_using_erl_eval_test_() ->
-    %% We simuate the use of a transaction from the Erlang shell by using
-    %% `erl_parse' and `erl_eval'. The transaction is the same as
-    %% `put_tx_test_()'.
+    %% Unlike the previous testcase, the transaction calls a function using
+    %% `erl_eval'. This situation shouldn't happen in an Erlang shell. It is
+    %% unsupported and rejected.
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -762,5 +747,6 @@ tx_using_erl_eval_test_() ->
 
              khepri_machine:transaction(
                ?FUNCTION_NAME,
-             fun local_fun_using_erl_eval/0)
+               fun local_fun_using_erl_eval/0,
+               true)
          end)]}.

@@ -410,17 +410,17 @@ delete(StoreId, PathPattern) ->
 %% @doc Runs a transaction and returns the result.
 %%
 %% Calling this function is the same as calling
-%% `transaction(StoreId, Fun, true)'.
+%% `transaction(StoreId, Fun, auto)'.
 %%
 %% @see transaction/3.
 
 transaction(StoreId, Fun) ->
-    transaction(StoreId, Fun, true).
+    transaction(StoreId, Fun, auto).
 
 -spec transaction(StoreId, Fun, ReadWrite) -> Ret when
       StoreId :: khepri:store_id(),
       Fun :: khepri_tx:tx_fun(),
-      ReadWrite :: true | false,
+      ReadWrite :: auto | boolean(),
       Ret :: Atomic | Aborted,
       Atomic :: {atomic, khepri_tx:tx_fun_result()},
       Aborted :: khepri_tx:tx_abort().
@@ -442,6 +442,11 @@ transaction(StoreId, Fun) ->
 %% the content of the store. In other words, uses of {@link khepri_tx:put/2}
 %% or {@link khepri_tx:delete/1} are forbidden and will abort the function.
 %% `Fun' is executed from a process on the leader Ra member.</li>
+%% <li>If `ReadWrite' is `auto', `Fun' is analyzed to determine if it calls
+%% {@link khepri_tx:put/2} or {@link khepri_tx:delete/1}, or uses any denied
+%% operations for a read/write transaction. If it does, this is the same as
+%% setting `ReadWrite' to true. Otherwise, this is the equivalent of setting
+%% `ReadWrite' to false.</li>
 %% </ul>
 %%
 %% The result of `Fun' can be any term. That result is returned in an
@@ -453,18 +458,25 @@ transaction(StoreId, Fun) ->
 %% @returns `{atomic, Result}' with the return value of `Fun', or `{aborted,
 %% Reason}' if the anonymous function was aborted.
 
-transaction(StoreId, Fun, true) when is_function(Fun, 0) ->
-    StandaloneFun = khepri_tx:to_standalone_fun(Fun),
-    Command = #tx{'fun' = StandaloneFun},
-    case process_command(StoreId, Command) of
-        {exception, _, {aborted, _} = Aborted, _} ->
-            Aborted;
-        {exception, Class, Reason, Stacktrace} ->
-            erlang:raise(Class, Reason, Stacktrace);
-        Ret ->
-            {atomic, Ret}
+transaction(StoreId, Fun, auto = ReadWrite) when is_function(Fun, 0) ->
+    case khepri_tx:to_standalone_fun(Fun, auto = ReadWrite) of
+        #standalone_fun{} = StandaloneFun ->
+            readwrite_transaction(StoreId, StandaloneFun);
+        _ ->
+            readonly_transaction(StoreId, Fun)
     end;
+transaction(StoreId, Fun, true = ReadWrite) when is_function(Fun, 0) ->
+    StandaloneFun = khepri_tx:to_standalone_fun(Fun, ReadWrite),
+    readwrite_transaction(StoreId, StandaloneFun);
 transaction(StoreId, Fun, false) when is_function(Fun, 0) ->
+    readonly_transaction(StoreId, Fun);
+transaction(_StoreId, Fun, _ReadWrite) when is_function(Fun) ->
+    {arity, Arity} = erlang:fun_info(Fun, arity),
+    throw({invalid_tx_fun, {requires_args, Arity}});
+transaction(_StoreId, Term, _ReadWrite) ->
+    throw({invalid_tx_fun, Term}).
+
+readonly_transaction(StoreId, Fun) when is_function(Fun, 0) ->
     Query = fun(State) ->
                     {_State, Ret} = khepri_tx:run(State, Fun, false),
                     Ret
@@ -476,12 +488,18 @@ transaction(StoreId, Fun, false) when is_function(Fun, 0) ->
             erlang:raise(Class, Reason, Stacktrace);
         Ret ->
             {atomic, Ret}
-    end;
-transaction(_StoreId, Fun, _ReadWrite) when is_function(Fun) ->
-    {arity, Arity} = erlang:fun_info(Fun, arity),
-    throw({invalid_tx_fun, {requires_args, Arity}});
-transaction(_StoreId, Term, _ReadWrite) ->
-    throw({invalid_tx_fun, Term}).
+    end.
+
+readwrite_transaction(StoreId, StandaloneFun) ->
+    Command = #tx{'fun' = StandaloneFun},
+    case process_command(StoreId, Command) of
+        {exception, _, {aborted, _} = Aborted, _} ->
+            Aborted;
+        {exception, Class, Reason, Stacktrace} ->
+            erlang:raise(Class, Reason, Stacktrace);
+        Ret ->
+            {atomic, Ret}
+    end.
 
 -spec get_keep_untils_state(StoreId) -> Ret when
       StoreId :: khepri:store_id(),

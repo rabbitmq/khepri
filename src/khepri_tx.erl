@@ -45,8 +45,11 @@
 -include("src/khepri_machine.hrl").
 
 %% IMPORTANT: When adding a new khepri_tx function to be used inside a
-%% transaction function, the function must be added to the whitelist in
-%% `is_remote_call_valid()` in this file.
+%% transaction function:
+%%   1. The function must be added to the whitelist in
+%%      `is_remote_call_valid()' in this file.
+%%   2. If the function modifies the tree, it must be handled in
+%%      `validate()' is this file too.
 -export([put/2, put/3,
          get/1, get/2,
          exists/1,
@@ -57,7 +60,7 @@
          abort/1]).
 
 %% For internal user only.
--export([to_standalone_fun/1,
+-export([to_standalone_fun/2,
          run/3]).
 
 -compile({no_auto_import, [get/1, put/2, erase/1]}).
@@ -156,16 +159,28 @@ delete(PathPattern) ->
 abort(Reason) ->
     throw({aborted, Reason}).
 
-to_standalone_fun(Fun) ->
+-spec to_standalone_fun(Fun, ReadWrite) -> StandaloneFun | no_return() when
+      Fun :: fun(),
+      ReadWrite :: auto | boolean(),
+      StandaloneFun :: khepri_fun:standalone_fun().
+
+to_standalone_fun(Fun, ReadWrite)
+  when is_function(Fun, 0) andalso
+       (ReadWrite =:= auto orelse ReadWrite =:= true) ->
     Options =
     #{ensure_instruction_is_permitted => fun ensure_instruction_is_permitted/1,
-      should_process_function => fun should_process_function/4},
+      should_process_function => fun should_process_function/4,
+      validate => fun(Params) -> validate(Params, ReadWrite) end},
     try
         khepri_fun:to_standalone_fun(Fun, Options)
     catch
+        throw:readonly_tx_fun_detected ->
+            Fun;
         throw:Error ->
             throw({invalid_tx_fun, Error})
-    end.
+    end;
+to_standalone_fun(Fun, false) ->
+    Fun.
 
 ensure_instruction_is_permitted({allocate, _, _}) ->
     ok;
@@ -430,6 +445,25 @@ is_remote_call_valid(string, _, _) -> true;
 is_remote_call_valid(unicode, _, _) -> true;
 
 is_remote_call_valid(_, _, _) -> false.
+
+validate(#{errors := Errors}, true) ->
+    process_errors(Errors);
+validate(#{calls := Calls, errors := Errors}, auto) ->
+    ReadWrite = case Calls of
+                    #{{khepri_tx, put, 2} := _}    -> true;
+                    #{{khepri_tx, put, 3} := _}    -> true;
+                    #{{khepri_tx, delete, 1} := _} -> true;
+                    _                              -> false
+                end,
+    case ReadWrite of
+        true when Errors =:= [] -> ok;
+        true                    -> process_errors(Errors);
+        false                   -> throw(readonly_tx_fun_detected)
+    end.
+
+%% TODO: Return all errors?
+process_errors([])          -> ok;
+process_errors([Error | _]) -> throw(Error).
 
 -spec run(State, Fun, AllowUpdates) -> Ret when
       State :: khepri_machine:state(),

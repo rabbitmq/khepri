@@ -16,7 +16,7 @@
 -define(make_standalone_fun(Expression),
         begin
             __Fun = fun() -> Expression end,
-            khepri_tx:to_standalone_fun(__Fun)
+            khepri_tx:to_standalone_fun(__Fun, true)
         end).
 
 -define(assertStandaloneFun(Expression),
@@ -448,3 +448,133 @@ allowed_unicode_api_test() ->
        begin
            _ = unicode:characters_to_binary("")
        end).
+
+when_readwrite_mode_is_true_test() ->
+    ?assert(
+       is_record(khepri_tx:to_standalone_fun(
+                   fun() ->
+                           khepri_tx:get([foo])
+                   end,
+                   true),
+                 standalone_fun)),
+    ?assert(
+       is_record(khepri_tx:to_standalone_fun(
+                   fun() ->
+                           khepri_tx:put([foo], ?DATA_PAYLOAD(value))
+                   end,
+                   true),
+                 standalone_fun)),
+    ?assertThrow(
+       {invalid_tx_fun, {call_denied, {self, 0}}},
+       khepri_tx:to_standalone_fun(
+         fun() ->
+                 khepri_tx:get([foo]),
+                 self() ! message
+         end,
+         true)),
+    ?assertThrow(
+       {invalid_tx_fun, {call_denied, {self, 0}}},
+       khepri_tx:to_standalone_fun(
+         fun() ->
+                 khepri_tx:put([foo], ?DATA_PAYLOAD(value)),
+                 self() ! message
+         end,
+         true)),
+    ?assert(
+       is_record(khepri_tx:to_standalone_fun(
+                   fun mod_used_for_transactions:exported/0,
+                   true),
+                 standalone_fun)),
+    ?assert(
+       is_function(khepri_tx:to_standalone_fun(
+                     fun dict:new/0,
+                     true),
+                   0)).
+
+when_readwrite_mode_is_false_test() ->
+    ?assert(
+       is_function(khepri_tx:to_standalone_fun(
+                     fun() ->
+                             khepri_tx:get([foo])
+                     end,
+                     false),
+                   0)),
+    %% In the following case, `to_standalone()' works, but the transaction
+    %% will abort once executed.
+    ?assert(
+       is_function(khepri_tx:to_standalone_fun(
+                     fun() ->
+                             khepri_tx:put([foo], ?DATA_PAYLOAD(value))
+                     end,
+                     false),
+                   0)),
+    ?assert(
+       is_function(khepri_tx:to_standalone_fun(
+                     fun() ->
+                             khepri_tx:get([foo]),
+                             self() ! message
+                     end,
+                     false),
+                   0)),
+    %% In the following case, `to_standalone()' works, but the transaction
+    %% will abort once executed.
+    ?assert(
+       is_function(khepri_tx:to_standalone_fun(
+                     fun() ->
+                             khepri_tx:put([foo], ?DATA_PAYLOAD(value)),
+                             self() ! message
+                     end,
+                     false),
+                   0)),
+    ?assert(
+       is_function(khepri_tx:to_standalone_fun(
+                     fun mod_used_for_transactions:exported/0,
+                     false),
+                   0)),
+    ?assert(
+       is_function(khepri_tx:to_standalone_fun(
+                     fun dict:new/0,
+                     false),
+                   0)).
+
+when_readwrite_mode_is_auto_test() ->
+    ?assert(
+       is_function(khepri_tx:to_standalone_fun(
+                     fun() ->
+                             khepri_tx:get([foo])
+                     end,
+                     auto),
+                   0)),
+    ?assert(
+       is_record(khepri_tx:to_standalone_fun(
+                   fun() ->
+                           khepri_tx:put([foo], ?DATA_PAYLOAD(value))
+                   end,
+                   auto),
+                 standalone_fun)),
+    ?assert(
+       is_function(khepri_tx:to_standalone_fun(
+                     fun() ->
+                             khepri_tx:get([foo]),
+                             self() ! message
+                     end,
+                     auto),
+                   0)),
+    ?assertThrow(
+       {invalid_tx_fun, {call_denied, {self, 0}}},
+       khepri_tx:to_standalone_fun(
+         fun() ->
+                 khepri_tx:put([foo], ?DATA_PAYLOAD(value)),
+                 self() ! message
+         end,
+         auto)),
+    ?assert(
+       is_function(khepri_tx:to_standalone_fun(
+                     fun mod_used_for_transactions:exported/0,
+                     auto),
+                   0)),
+    ?assert(
+       is_function(khepri_tx:to_standalone_fun(
+                     fun dict:new/0,
+                     auto),
+                   0)).
