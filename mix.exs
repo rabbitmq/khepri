@@ -13,9 +13,8 @@ defmodule Khepri.MixProject do
 
   defp deps() do
     [
-      {:ra,
-        git: "https://github.com/rabbitmq/ra.git",
-        ref: "1411b269e167e48aeb882911956291318806b3c3"}
+      # Dependency pinning must be updated in rebar.config too.
+      {:ra, "2.0.1"}
     ]
   end
 end
