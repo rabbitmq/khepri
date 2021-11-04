@@ -32,9 +32,7 @@ Using Rebar:
 
 ```erlang
 %% In rebar.config
-{deps, [{ra,
-         {git, "https://github.com/rabbitmq/khepri.git",
-         {branch, "main"}}}]}.
+{deps, [{khepri, "0.1.0"}]}.
 ```
 
 Using Erlang.mk:
@@ -42,7 +40,7 @@ Using Erlang.mk:
 ```make
 # In your Makefile
 DEPS += khepri
-dep_khepri = git https://github.com/rabbitmq/khepri.git main
+dep_khepri = hex 0.1.0
 ```
 
 Using Mix:
@@ -51,9 +49,7 @@ Using Mix:
 # In mix.exs
 defp deps do
   [
-    {:khepri,
-      git: "https://github.com/rabbitmq/khepri.git",
-      branch: "main"}
+    {:khepri, "0.1.0"}
   ]
 end
 ```
