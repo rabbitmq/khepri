@@ -135,18 +135,18 @@ paths.</p>
  
   <h3><a name="Transactional_queries_and_updates">Transactional queries and updates</a></h3>
  
-  <p>Transactions are handled by <a docgen-rel="seemfa" docgen-href="#query/2" href="#query-2"><code>query/2</code></a> and <a docgen-rel="seemfa" docgen-href="#transaction/2" href="#transaction-2"><code>transaction/2</code></a>.</p>
+  <p>Transactions are handled by <a docgen-rel="seemfa" docgen-href="#transaction/2" href="#transaction-2"><code>transaction/2</code></a> and <a docgen-rel="seemfa" docgen-href="#transaction/3" href="#transaction-3"><code>transaction/3</code></a>.</p>
  
   <p>Both functions take an anonymous function. See <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> for more  
 details about those functions and in particular their restrictions.</p>
  
-  The return value is whatever the anonymous function if it succeeded or the
-  reason why it aborted, similar to what <a docgen-rel="seemfa" docgen-href="mnesia#transaction/1" href="mnesia.html#transaction-1"><code>mnesia:transaction/1</code></a>
+  The return value is whatever the anonymous function returns if it succeeded
+  or the reason why it aborted, similar to what <a docgen-rel="seemfa" docgen-href="mnesia#transaction/1" href="mnesia.html#transaction-1"><code>mnesia:transaction/1</code></a>
   returns.
 <h2><a name="types">Data Types</a></h2>
 
-<h3 class="typedecl"><a name="type-child_list_count">child_list_count()</a></h3>
-<p><code>child_list_count() = non_neg_integer()</code></p>
+<h3 class="typedecl"><a name="type-child_list_length">child_list_length()</a></h3>
+<p><code>child_list_length() = non_neg_integer()</code></p>
 <p>  Number of direct child nodes under a tree node.</p>
 
 <h3 class="typedecl"><a name="type-child_list_version">child_list_version()</a></h3>
@@ -177,7 +177,7 @@ added or removed).</p>
 <p>  Configuration record, holding read-only or rarely changing fields.</p>
 
 <h3 class="typedecl"><a name="type-node_props">node_props()</a></h3>
-<p><code>node_props() = #{data =&gt; <a href="#type-data">data()</a>, payload_version := <a href="#type-payload_version">payload_version()</a>, child_list_version := <a href="#type-child_list_version">child_list_version()</a>, child_list_count := <a href="#type-child_list_count">child_list_count()</a>, child_nodes =&gt; #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-node_id">khepri_path:node_id()</a> =&gt; <a href="#type-node_props">node_props()</a>}}</code></p>
+<p><code>node_props() = #{data =&gt; <a href="#type-data">data()</a>, payload_version := <a href="#type-payload_version">payload_version()</a>, child_list_version := <a href="#type-child_list_version">child_list_version()</a>, child_list_length := <a href="#type-child_list_length">child_list_length()</a>, child_nodes =&gt; #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-node_id">khepri_path:node_id()</a> =&gt; <a href="#type-node_props">node_props()</a>}}</code></p>
 <p><p>  Structure used to return properties, payload and child nodes for a specific  
 node.</p>
  
@@ -235,8 +235,8 @@ payload and child nodes.</p>
 <tr><td valign="top"><a href="#get-2">get/2</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#get-3">get/3</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
-<tr><td valign="top"><a href="#query-2">query/2</a></td><td>Runs a read-only transaction and returns the result.</td></tr>
 <tr><td valign="top"><a href="#transaction-2">transaction/2</a></td><td>Runs a transaction and returns the result.</td></tr>
+<tr><td valign="top"><a href="#transaction-3">transaction/3</a></td><td>Runs a transaction and returns the result.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -304,7 +304,7 @@ Result = khepri_machine:put(
 {ok, #{[foo, bar] =&gt; #{data =&gt; old_value,
                        payload_version =&gt; 1,
                        child_list_version =&gt; 1,
-                       child_list_count =&gt; 0}}} = Result.</code></pre>
+                       child_list_length =&gt; 0}}} = Result.</code></pre>
  </p>
 
 <h3 class="function"><a name="get-2">get/2</a></h3>
@@ -346,7 +346,7 @@ Result = khepri_machine:get(ra_cluster_name, [foo, bar]),
 {ok, #{[foo, bar] =&gt; #{data =&gt; new_value,
                        payload_version =&gt; 2,
                        child_list_version =&gt; 1,
-                       child_list_count =&gt; 0}}} = Result.</code></pre>
+                       child_list_length =&gt; 0}}} = Result.</code></pre>
  </p>
 
 <h3 class="function"><a name="delete-2">delete/2</a></h3>
@@ -374,36 +374,25 @@ Result = khepri_machine:delete(ra_cluster_name, [foo, bar]),
 {ok, #{[foo, bar] =&gt; #{data =&gt; new_value,
                        payload_version =&gt; 2,
                        child_list_version =&gt; 1,
-                       child_list_count =&gt; 0}}} = Result.</code></pre>
- </p>
-
-<h3 class="function"><a name="query-2">query/2</a></h3>
-<div class="spec">
-<p><code>query(StoreId, Fun) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
-<code>Fun</code>: an arbitrary anonymous function.
- <br>
-</p>
-<p>returns: <code>{atomic, Result}</code> with the return value of <code>Fun</code>, or <code>{aborted,
-  Reason}</code> if the anonymous function was aborted.</p>
-</div><p><p>Runs a read-only transaction and returns the result.</p>
- 
-  <p><code>Fun</code> is an arbitrary anonymous function. It is executed from a process on  
-the leader Ra member.</p>
- 
-  <p><code>Fun</code> can do whatever it wants, except modify the content of the store. In
-  other words, uses of <a docgen-rel="seemfa" docgen-href="khepri_tx#put/2" href="khepri_tx.html#put-2"><code>khepri_tx:put/2</code></a> or <a docgen-rel="seemfa" docgen-href="khepri_tx#delete/1" href="khepri_tx.html#delete-1"><code>khepri_tx:delete/1</code></a>  
-are forbidden and will abort the function.</p>
- 
-  The result of <code>Fun</code> can be any term. That result is returned in an
-  <code>{atomic, Result}</code> tuple.
+                       child_list_length =&gt; 0}}} = Result.</code></pre>
  </p>
 
 <h3 class="function"><a name="transaction-2">transaction/2</a></h3>
 <div class="spec">
 <p><code>transaction(StoreId, Fun) -&gt; Ret</code>
 <ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Runs a transaction and returns the result.</p>
+ 
+  Calling this function is the same as calling
+  <code>transaction(StoreId, Fun, auto)</code>.
+ </p>
+<p><b>See also:</b> <a href="#transaction-3">transaction/3</a>.</p>
+
+<h3 class="function"><a name="transaction-3">transaction/3</a></h3>
+<div class="spec">
+<p><code>transaction(StoreId, Fun, ReadWrite) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = auto | boolean()</code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>Fun</code>: an arbitrary anonymous function.
  <br>
@@ -412,13 +401,28 @@ are forbidden and will abort the function.</p>
   Reason}</code> if the anonymous function was aborted.</p>
 </div><p><p>Runs a transaction and returns the result.</p>
  
-  <p><code>Fun</code> is an arbitrary anonymous function. It is executed in the context of  
-the state machine process on each Ra members.</p>
+  <p><code>Fun</code> is an arbitrary anonymous function which takes no arguments.</p>
  
-  <p><code>Fun</code> can use the <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> transaction API as well as any calls to
-  other modules as long as those functions or what they do are permitted. See
-  <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> for more details. If <code>Fun</code> does or calls something  
-forbidden, the transaction will be aborted.</p>
+  <p>The <code>ReadWrite</code> flag determines what the anonymous function is allowed to  
+do and in which context it runs:</p>
+ 
+  <ul>
+  <li>If <code>ReadWrite</code> is true, <code>Fun</code> can use the <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> transaction
+  API as well as any calls to other modules as long as those functions or what
+  they do is permitted. See <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> for more details. If <code>Fun</code> does
+  or calls something forbidden, the transaction will be aborted. <code>Fun</code> is
+  executed in the context of the state machine process on each Ra
+  members.</li>
+  <li>If <code>ReadWrite</code> is false, <code>Fun</code> can do whatever it wants, except modify
+  the content of the store. In other words, uses of <a docgen-rel="seemfa" docgen-href="khepri_tx#put/2" href="khepri_tx.html#put-2"><code>khepri_tx:put/2</code></a>
+  or <a docgen-rel="seemfa" docgen-href="khepri_tx#delete/1" href="khepri_tx.html#delete-1"><code>khepri_tx:delete/1</code></a> are forbidden and will abort the function.
+  <code>Fun</code> is executed from a process on the leader Ra member.</li>
+  <li>If <code>ReadWrite</code> is <code>auto</code>, <code>Fun</code> is analyzed to determine if it calls
+  <a docgen-rel="seemfa" docgen-href="khepri_tx#put/2" href="khepri_tx.html#put-2"><code>khepri_tx:put/2</code></a> or <a docgen-rel="seemfa" docgen-href="khepri_tx#delete/1" href="khepri_tx.html#delete-1"><code>khepri_tx:delete/1</code></a>, or uses any denied
+  operations for a read/write transaction. If it does, this is the same as
+  setting <code>ReadWrite</code> to true. Otherwise, this is the equivalent of setting
+  <code>ReadWrite</code> to false.</li>
+  </ul>
  
   The result of <code>Fun</code> can be any term. That result is returned in an
   <code>{atomic, Result}</code> tuple.

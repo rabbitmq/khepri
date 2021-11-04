@@ -130,8 +130,9 @@ recover from a network partition</strong>. This makes it more comfortable for
 the RabbitMQ team and users, thanks to the absence of unknowns.</p>
 
 <blockquote>
-At the time of this writing, RabbitMQ does not use Khepri because this library
-and its integration into RabbitMQ are still a work in progress.
+At the time of this writing, RabbitMQ does not use Khepri in a production
+release yet because this library and its integration into RabbitMQ are still a
+work in progress.
 </blockquote>
 
 <h3><a name="The_tree_structure">The tree structure</a></h3>
@@ -329,12 +330,15 @@ Under the hood, there are several restrictions and caveats that need to be
 understood in order to use transactions in Khepri:
 <ul>
 <li>If the anonymous function only <strong>reads data</strong> from the tree,
-then <a docgen-rel="seemfa" docgen-href="khepri#query/2" href="khepri.html#query-2"><code>khepri:query/2</code></a> or <a docgen-rel="seemfa" docgen-href="khepri_machine#query/2" href="khepri_machine.html#query-2"><code>khepri_machine:query/2</code></a> should be used.
-There is no specific restrictions on them.</li>
+there is no specific restrictions on them.</li>
 <li>If however the anonymous function needs to <strong>modify or
-delete</strong> data from the database, <a docgen-rel="seemfa" docgen-href="khepri#transaction/2" href="khepri.html#transaction-2"><code>khepri:transaction/2</code></a> or <a docgen-rel="seemfa" docgen-href="khepri_machine#transaction/2" href="khepri_machine.html#transaction-2"><code>khepri_machine:transaction/2</code></a> are to be used. This time, the following
-constraints need to be taken into account.</li>
+delete</strong> data from the database, then the constraints described in the
+next section need to be taken into account.</li>
 </ul>
+
+<p>The nature of the anonymous function is passed as the <code>ReadWrite</code> argument to
+<a docgen-rel="seemfa" docgen-href="khepri#transaction/3" href="khepri.html#transaction-3"><code>khepri:transaction/3</code></a> or <a docgen-rel="seemfa" docgen-href="khepri_machine#transaction/3" href="khepri_machine.html#transaction-3"><code>khepri_machine:transaction/3</code></a>
+functions.</p>
 
 <h4><a name="The_constraints_imposed_by_Raft">The constraints imposed by Raft</a></h4>
 

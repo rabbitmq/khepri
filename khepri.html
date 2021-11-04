@@ -218,10 +218,9 @@ exists.</td></tr>
 <tr><td valign="top"><a href="#list-2">list/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#find-2">find/2</a></td><td>Finds tree nodes below <code>Path</code> which match the given <code>Condition</code>.</td></tr>
 <tr><td valign="top"><a href="#find-3">find/3</a></td><td>Finds tree nodes under <code>Path</code> which match the given <code>Condition</code>.</td></tr>
-<tr><td valign="top"><a href="#query-1">query/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#query-2">query/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#transaction-1">transaction/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#transaction-2">transaction/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#transaction-3">transaction/3</a></td><td></td></tr>
 <tr><td valign="top"><a href="#clear_store-0">clear_store/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#clear_store-1">clear_store/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#no_payload-0">no_payload/0</a></td><td>Returns <code>?NO_PAYLOAD</code>.</td></tr>
@@ -668,26 +667,12 @@ Result = khepri:find(
 {ok, #{[foo, bar, baz] =&gt; #{data =&gt; baz_value,
                             payload_version =&gt; 2,
                             child_list_version =&gt; 1,
-                            child_list_count =&gt; 0},
+                            child_list_length =&gt; 0},
        [foo, bar, deep, under, qux] =&gt; #{data =&gt; qux_value,
                                          payload_version =&gt; 1,
                                          child_list_version =&gt; 1,
-                                         child_list_count =&gt; 0}}} = Result.</code></pre>
+                                         child_list_length =&gt; 0}}} = Result.</code></pre>
  </p>
-
-<h3 class="function"><a name="query-1">query/1</a></h3>
-<div class="spec">
-<p><code>query(Fun) -&gt; Ret</code>
-<ul class="definitions"><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
-<p></p>
-</div>
-
-<h3 class="function"><a name="query-2">query/2</a></h3>
-<div class="spec">
-<p><code>query(StoreId, Fun) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
-<p></p>
-</div>
 
 <h3 class="function"><a name="transaction-1">transaction/1</a></h3>
 <div class="spec">
@@ -699,7 +684,16 @@ Result = khepri:find(
 <h3 class="function"><a name="transaction-2">transaction/2</a></h3>
 <div class="spec">
 <p><code>transaction(StoreId, Fun) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p><p><code>transaction(Fun, ReadWrite) -&gt; Ret</code>
+<ul class="definitions"><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = auto | boolean()</code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
+<p></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="transaction-3">transaction/3</a></h3>
+<div class="spec">
+<p><code>transaction(StoreId, Fun, ReadWrite) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = auto | boolean()</code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
 <p></p>
 </div>
 

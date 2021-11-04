@@ -49,8 +49,9 @@ recover from a network partition</strong>. This makes it more comfortable for
 the RabbitMQ team and users, thanks to the absence of unknowns.
 
 <blockquote>
-At the time of this writing, RabbitMQ does not use Khepri because this library
-and its integration into RabbitMQ are still a work in progress.
+At the time of this writing, RabbitMQ does not use Khepri in a production
+release yet because this library and its integration into RabbitMQ are still a
+work in progress.
 </blockquote>
 
 == The tree structure ==
@@ -262,13 +263,15 @@ Under the hood, there are several restrictions and caveats that need to be
 understood in order to use transactions in Khepri:
 <ul>
 <li>If the anonymous function only <strong>reads data</strong> from the tree,
-then {@link khepri:query/2} or {@link khepri_machine:query/2} should be used.
-There is no specific restrictions on them.</li>
+there is no specific restrictions on them.</li>
 <li>If however the anonymous function needs to <strong>modify or
-delete</strong> data from the database, {@link khepri:transaction/2} or {@link
-khepri_machine:transaction/2} are to be used. This time, the following
-constraints need to be taken into account.</li>
+delete</strong> data from the database, then the constraints described in the
+next section need to be taken into account.</li>
 </ul>
+
+The nature of the anonymous function is passed as the `ReadWrite' argument to
+{@link khepri:transaction/3} or {@link khepri_machine:transaction/3}
+functions.
 
 === The constraints imposed by Raft ===
 
