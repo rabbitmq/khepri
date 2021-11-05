@@ -54,7 +54,7 @@
 -module(khepri_fun).
 
 -include_lib("kernel/include/logger.hrl").
--include_lib("eunit/include/eunit.hrl").
+-include_lib("stdlib/include/assert.hrl").
 
 -include("src/internal.hrl").
 

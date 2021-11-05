@@ -7,7 +7,7 @@
 
 -module(khepri_utils).
 
--include_lib("eunit/include/eunit.hrl").
+-include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
 

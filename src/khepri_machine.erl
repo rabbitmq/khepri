@@ -69,7 +69,7 @@
 -behaviour(ra_machine).
 
 -include_lib("kernel/include/logger.hrl").
--include_lib("eunit/include/eunit.hrl").
+-include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
@@ -1797,15 +1797,12 @@ remove_expired_nodes([PathToRemove | Rest], Root, Extra, FunAcc) ->
     end.
 
 -ifdef(TEST).
-%% @private
 get_root(#?MODULE{root = Root}) ->
     Root.
 
-%% @private
 get_keep_untils(#?MODULE{keep_untils = KeepUntils}) ->
     KeepUntils.
 
-%% @private
 get_keep_untils_revidx(#?MODULE{keep_untils_revidx = KeepUntilsRevIdx}) ->
     KeepUntilsRevIdx.
 -endif.

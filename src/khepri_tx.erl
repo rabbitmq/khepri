@@ -38,7 +38,7 @@
 
 -module(khepri_tx).
 
--include_lib("eunit/include/eunit.hrl").
+-include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
