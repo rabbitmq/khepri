@@ -128,13 +128,13 @@ It is also possible to perform **transactional queries and updates** using
 anonymous functions, similar to Mnesia:
 
 ```erlang
-%% This transaction checks the left quantity of wood and returns `true` or
+%% This transaction checks the quantity of wood left and returns `true` or
 %% `false` if we need to process a new order.
 khepri:transaction(
     fun() ->
         case khepri_tx:get([stock, wood]) of
             {ok, #{[stock, wood] := #{data := Quantity}}}
-              when Quantity < 100 ->
+              when Quantity >= 100 ->
                 %% There is enough wood left.
                 false;
             _ ->
