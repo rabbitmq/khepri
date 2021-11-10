@@ -89,14 +89,14 @@ compile(PathPattern) ->
 
 -spec from_string(string()) -> path().
 
-%% TODO: Add binary support?
-
 from_string("") ->
     [];
 from_string("/" ++ PathString) ->
     from_string(PathString, []);
 from_string("./" ++ PathString) ->
     from_string(PathString, [?THIS_NODE]);
+from_string(".") ->
+    [?THIS_NODE];
 from_string("../" ++ PathString) ->
     from_string(PathString, [?PARENT_NODE]);
 from_string("..") ->
@@ -105,8 +105,8 @@ from_string(PathString) ->
     from_string(PathString, [?THIS_NODE]).
 
 from_string(PathString, ParentPath) ->
-    ReOpts = [{capture, all_but_first, list}],
-    case re:run(PathString, "^(<<.*>>)(?:/(.*)|$)", ReOpts) of
+    ReOpts = [{capture, all_but_first, list}, dotall],
+    case re:run(PathString, "^((?U)<<.*>>)(?:/(.*)|$)", ReOpts) of
         {match, [ComponentString, Rest]} ->
             Component = component_from_string(ComponentString),
             from_string(Rest, [Component | ParentPath]);
@@ -141,7 +141,7 @@ component_from_string("*") ->
 component_from_string("**") ->
     ?STAR_STAR;
 component_from_string(Component) ->
-    ReOpts1 = [{capture, all_but_first, list}],
+    ReOpts1 = [{capture, all_but_first, list}, dotall],
     Component1 = case re:run(Component, "^<<(.*)>>$", ReOpts1) of
                      {match, [C]} -> C;
                      nomatch      -> Component
@@ -190,6 +190,8 @@ to_string([?ROOT_NODE | Path]) ->
     string:join(
       lists:map(fun component_to_string/1, Path),
       "/");
+to_string([?THIS_NODE = Component]) ->
+    component_to_string(Component);
 to_string([?THIS_NODE | Path]) ->
     string:join(
       lists:map(fun component_to_string/1, Path),
@@ -326,6 +328,8 @@ abspath([] = PathToRoot, _) ->
 realpath(Path) ->
     realpath(Path, []).
 
+realpath([?ROOT_NODE | Rest], _Result) ->
+    realpath(Rest, []);
 realpath([?THIS_NODE | Rest], Result) ->
     realpath(Rest, Result);
 realpath([?PARENT_NODE | Rest], [_ | Result]) ->
