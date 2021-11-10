@@ -177,13 +177,15 @@ added or removed).</p>
 <p>  Configuration record, holding read-only or rarely changing fields.</p>
 
 <h3 class="typedecl"><a name="type-node_props">node_props()</a></h3>
-<p><code>node_props() = #{data =&gt; <a href="#type-data">data()</a>, payload_version := <a href="#type-payload_version">payload_version()</a>, child_list_version := <a href="#type-child_list_version">child_list_version()</a>, child_list_length := <a href="#type-child_list_length">child_list_length()</a>, child_nodes =&gt; #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-node_id">khepri_path:node_id()</a> =&gt; <a href="#type-node_props">node_props()</a>}}</code></p>
+<p><code>node_props() = #{data =&gt; <a href="#type-data">data()</a>, payload_version =&gt; <a href="#type-payload_version">payload_version()</a>, child_list_version =&gt; <a href="#type-child_list_version">child_list_version()</a>, child_list_length =&gt; <a href="#type-child_list_length">child_list_length()</a>, child_nodes =&gt; #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-node_id">khepri_path:node_id()</a> =&gt; <a href="#type-node_props">node_props()</a>}}</code></p>
 <p><p>  Structure used to return properties, payload and child nodes for a specific  
 node.</p>
  
   <ul>
   <li>Payload version, child list version, and child list count are always
-  included in the structure.</li>
+  included in the structure. The reason the type spec does not make them
+  mandatory is for <a docgen-rel="seemfa" docgen-href="khepri_utils#flat_struct_to_tree/1" href="khepri_utils.html#flat_struct_to_tree-1"><code>khepri_utils:flat_struct_to_tree/1</code></a> which may
+  construct fake node props without them.</li>
   <li>Data is only included if there is data in the node's payload. Absence of
   data is represented as no <code>data</code> entry in this structure.</li>
   <li>Child nodes are only included if requested.</li>
@@ -256,7 +258,7 @@ payload and child nodes.</p>
 <h3 class="function"><a name="put-4">put/4</a></h3>
 <div class="spec">
 <p><code>put(StoreId, PathPattern, Payload, Extra) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Payload = <a href="#type-payload">payload()</a></code></li><li><code>Extra = #{keep_until =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_until">khepri_condition:keep_until()</a>}</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Payload = <a href="#type-payload">payload()</a></code></li><li><code>Extra = #{keep_until =&gt; <a href="#type-keep_untils_map">keep_untils_map()</a>}</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
