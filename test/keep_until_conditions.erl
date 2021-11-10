@@ -14,6 +14,13 @@
 -include("src/khepri_machine.hrl").
 -include("test/helpers.hrl").
 
+%% khepri:get_root/1 is unexported when compiled without `-DTEST'. Likewise
+%% for:
+%%   - `khepri_machine:get_keep_untils/1'
+%%   - `khepri_machine:get_keep_untils_revidx/1'
+%%   - `khepri_machine:are_keep_until_conditions_met/2'
+-dialyzer(no_missing_calls).
+
 are_keep_until_conditions_met_test() ->
     Commands = [#put{path = [foo, bar],
                      payload = ?DATA_PAYLOAD(bar_value)}],

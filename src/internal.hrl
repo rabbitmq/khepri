@@ -23,7 +23,8 @@
 
 -record(put, {path :: khepri_path:pattern(),
               payload = none :: khepri_machine:payload(),
-              extra = #{} :: #{keep_until => [khepri_path:pattern()]}}).
+              extra = #{} :: #{keep_until =>
+                               khepri_machine:keep_untils_map()}}).
 
 -record(delete, {path :: khepri_path:pattern()}).
 

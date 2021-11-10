@@ -121,16 +121,18 @@
 
 -type node_props() ::
     #{data => data(),
-      payload_version := payload_version(),
-      child_list_version := child_list_version(),
-      child_list_length := child_list_length(),
+      payload_version => payload_version(),
+      child_list_version => child_list_version(),
+      child_list_length => child_list_length(),
       child_nodes => #{khepri_path:node_id() => node_props()}}.
 %% Structure used to return properties, payload and child nodes for a specific
 %% node.
 %%
 %% <ul>
 %% <li>Payload version, child list version, and child list count are always
-%% included in the structure.</li>
+%% included in the structure. The reason the type spec does not make them
+%% mandatory is for {@link khepri_utils:flat_struct_to_tree/1} which may
+%% construct fake node props without them.</li>
 %% <li>Data is only included if there is data in the node's payload. Absence of
 %% data is represented as no `data' entry in this structure.</li>
 %% <li>Child nodes are only included if requested.</li>
@@ -252,7 +254,7 @@ put(StoreId, PathPattern, Payload) ->
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Payload :: payload(),
-      Extra :: #{keep_until => khepri_condition:keep_until()},
+      Extra :: #{keep_until => keep_untils_map()},
       Result :: result().
 %% @doc Creates or modifies a specific tree node in the tree structure.
 %%

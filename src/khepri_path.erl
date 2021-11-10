@@ -87,7 +87,7 @@
 compile(PathPattern) ->
     lists:map(fun khepri_condition:compile/1, PathPattern).
 
--spec from_string(string()) -> path().
+-spec from_string(string()) -> pattern().
 
 from_string("") ->
     [];
@@ -128,7 +128,7 @@ from_string(PathString, ParentPath) ->
             end
     end.
 
--spec component_from_string(string()) -> component().
+-spec component_from_string(string()) -> pattern_component().
 
 component_from_string("/") ->
     ?ROOT_NODE;

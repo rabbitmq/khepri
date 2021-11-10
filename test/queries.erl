@@ -13,6 +13,9 @@
 -include("src/internal.hrl").
 -include("test/helpers.hrl").
 
+%% khepri:get_root/1 is unexported when compiled without `-DTEST'.
+-dialyzer(no_missing_calls).
+
 query_a_non_existing_node_test() ->
     S0 = khepri_machine:init(#{}),
     Root = khepri_machine:get_root(S0),

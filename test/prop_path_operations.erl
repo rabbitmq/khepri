@@ -11,6 +11,9 @@
 
 -include("include/khepri.hrl").
 
+-dialyzer([{no_improper_lists,
+            [path/0]}]).
+
 -export([prop_a_path_can_be_converted_back_and_forth_to_string/0]).
 
 prop_a_path_can_be_converted_back_and_forth_to_string() ->

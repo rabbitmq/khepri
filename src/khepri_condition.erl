@@ -238,7 +238,8 @@
               comparison_op/1,
               keep_until/0]).
 
--spec compile(condition()) -> condition().
+-spec compile(Condition) -> Condition when
+      Condition :: khepri_path:pattern_component().
 %% @private
 
 compile(#if_name_matches{regex = any} = Cond) ->
@@ -305,11 +306,13 @@ applies_to_grandchildren(#if_any{conditions = Conds}) ->
 applies_to_grandchildren(_) ->
     false.
 
--spec is_met(khepri_path:pattern_component(),
-             khepri_path:path() | khepri_path:component(),
-             khepri_machine:tree_node() |
-             khepri_machine:node_props()) ->
-    true | {false, condition()} | {false, {condition(), any()}}.
+-spec is_met(Condition, PathOrChildName, Child) -> IsMet when
+      Condition :: khepri_path:pattern_component(),
+      PathOrChildName :: khepri_path:path() | khepri_path:component(),
+      Child :: khepri_machine:tree_node() | khepri_machine:node_props(),
+      IsMet :: true | IsNotMet1 | IsNotMet2,
+      IsNotMet1 :: {false, khepri_path:pattern_component()},
+      IsNotMet2 :: {false, {condition(), any()}}.
 %% @private
 
 is_met(Condition, Path, Child) when ?IS_PATH(Path) ->
@@ -423,8 +426,8 @@ term_matches(Term, MatchSpec) ->
 -spec eval_regex(
         condition_using_regex(),
         any | iodata() | unicode:charlist(),
-        {ok, re_mp()} | {error, {string(), non_neg_integer()}},
-        iodata() | unicode:charlist()) ->
+        {ok, re_mp()} | {error, {string(), non_neg_integer()}} | undefined,
+        atom() | iodata() | unicode:charlist()) ->
     true |
     {false, condition_using_regex()} |
     {false, {condition_using_regex(),
@@ -452,10 +455,11 @@ eval_regex(Cond, SourceRegex, undefined, Value) ->
     Compiled = re:compile(SourceRegex),
     eval_regex(Cond, SourceRegex, Compiled, Value).
 
--spec compare_numerical_values(
-        condition_using_comparison_op(), non_neg_integer(),
-        comparison_op(non_neg_integer())) ->
-    true | {false, condition_using_comparison_op()}.
+-spec compare_numerical_values(Cond, ValueA, ValueB) -> Equal when
+      Cond :: condition_using_comparison_op(),
+      ValueA :: non_neg_integer(),
+      ValueB :: non_neg_integer() | comparison_op(non_neg_integer()),
+      Equal :: true | {false, condition_using_comparison_op()}.
 %% @private
 
 compare_numerical_values(Cond, ValueA, ValueB) ->
@@ -464,7 +468,10 @@ compare_numerical_values(Cond, ValueA, ValueB) ->
         false -> {false, Cond}
     end.
 
--spec compare_numerical_values(Type, comparison_op(Type)) -> boolean().
+-spec compare_numerical_values(ValueA, ValueB) -> Equal when
+      ValueA :: non_neg_integer(),
+      ValueB :: non_neg_integer() | comparison_op(non_neg_integer()),
+      Equal :: boolean().
 %% @private
 
 compare_numerical_values(Value,  Value)        -> true;

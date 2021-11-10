@@ -836,6 +836,12 @@ pass2_process_instruction(
     NewLabel = maps:get({Module, OldLabel}, LabelMap),
     setelement(3, Instruction, {f, NewLabel});
 pass2_process_instruction(
+  {test, _, {f, OldLabel}, _, _} = Instruction,
+  #state{mfa_in_progress = {Module, _, _},
+         label_map = LabelMap}) ->
+    NewLabel = maps:get({Module, OldLabel}, LabelMap),
+    setelement(3, Instruction, {f, NewLabel});
+pass2_process_instruction(
   {make_fun2, {_, _, _} = MFA, _, _, _} = Instruction,
   #state{functions = Functions}) ->
     case Functions of

@@ -16,6 +16,9 @@
          display_tree/2,
          display_tree/3]).
 
+%% khepri:get_root/1 is unexported when compiled without `-DTEST'.
+-dialyzer(no_missing_calls).
+
 -spec flat_struct_to_tree(khepri_machine:node_props_map()) ->
     khepri_machine:node_props().
 
