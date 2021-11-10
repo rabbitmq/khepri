@@ -65,7 +65,7 @@
 
 -compile({no_auto_import, [get/1, put/2, erase/1]}).
 
--type tx_fun_result() :: any().
+-type tx_fun_result() :: any() | no_return().
 -type tx_fun() :: fun(() -> tx_fun_result()).
 -type tx_fun_bindings() :: #{Name :: atom() => Value :: any()}.
 -type tx_abort() :: {aborted, any()}.
@@ -246,7 +246,9 @@ ensure_instruction_is_permitted({select_val, _, _, {list, _}}) ->
     ok;
 ensure_instruction_is_permitted({swap, _, _}) ->
     ok;
-ensure_instruction_is_permitted({test,_ , _, _}) ->
+ensure_instruction_is_permitted({test, _, _, _}) ->
+    ok;
+ensure_instruction_is_permitted({test, _, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted({test_heap, _, _}) ->
     ok;

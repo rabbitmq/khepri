@@ -13,6 +13,9 @@
 
 -include("include/khepri.hrl").
 
+-dialyzer([{[no_opaque, no_return],
+            [prop_commands_with_simple_paths_work_in_any_order/0]}]).
+
 -export([prop_commands_with_simple_paths_work_in_any_order/0]).
 -export([initial_state/0,
          command/1,

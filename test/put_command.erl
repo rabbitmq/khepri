@@ -14,6 +14,9 @@
 -include("src/khepri_machine.hrl").
 -include("test/helpers.hrl").
 
+%% khepri:get_root/1 is unexported when compiled without `-DTEST'.
+-dialyzer(no_missing_calls).
+
 initialize_machine_with_genesis_data_test() ->
     Commands = [#put{path = [foo, bar],
                      payload = ?DATA_PAYLOAD(foobar_value)},
@@ -69,7 +72,7 @@ insert_a_node_at_the_root_of_an_empty_db_with_conditions_test() ->
                                    [foo,
                                     #if_any{conditions =
                                             [#if_node_exists{exists = false},
-                                             #if_payload_version{version = 0}
+                                             #if_payload_version{version = 1}
                                             ]}]}],
                    payload = ?DATA_PAYLOAD(value)},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),

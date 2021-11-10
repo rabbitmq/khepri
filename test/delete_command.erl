@@ -14,6 +14,9 @@
 -include("src/khepri_machine.hrl").
 -include("test/helpers.hrl").
 
+%% khepri:get_root/1 is unexported when compiled without `-DTEST'.
+-dialyzer(no_missing_calls).
+
 delete_non_existing_node_test() ->
     S0 = khepri_machine:init(#{}),
     Command = #delete{path = [foo]},

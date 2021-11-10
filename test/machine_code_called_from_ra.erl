@@ -13,6 +13,10 @@
 -include("src/internal.hrl").
 -include("test/helpers.hrl").
 
+-dialyzer([{nowarn_function,
+            [use_an_invalid_path_test_/0,
+             use_an_invalid_payload_test_/0]}]).
+
 insert_a_node_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
@@ -32,8 +36,8 @@ query_a_node_test_() ->
                            child_list_version => 1,
                            child_list_length => 0}}},
          begin
-             khepri_machine:put(
-               ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(foo_value)),
+             _ = khepri_machine:put(
+                   ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(foo_value)),
              khepri_machine:get(?FUNCTION_NAME, [foo])
          end)]}.
 
@@ -49,8 +53,8 @@ delete_a_node_test_() ->
                               child_list_version => 1,
                               child_list_length => 0}}},
             begin
-                khepri_machine:put(
-                  ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(foo_value)),
+                _ = khepri_machine:put(
+                      ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(foo_value)),
                 khepri_machine:delete(?FUNCTION_NAME, [foo])
             end)},
         {"Checking the deleted key is gone",
@@ -68,11 +72,11 @@ query_keep_untils_state_test_() ->
          {ok, #{[foo] =>
                 #{[foo] => #if_child_list_length{count = {gt, 0}}}}},
          begin
-             khepri_machine:put(
-               ?FUNCTION_NAME,
-               [foo],
-               ?DATA_PAYLOAD(foo_value),
-               #{keep_until => KeepUntil}),
+             _ = khepri_machine:put(
+                   ?FUNCTION_NAME,
+                   [foo],
+                   ?DATA_PAYLOAD(foo_value),
+                   #{keep_until => KeepUntil}),
              khepri_machine:get_keep_untils_state(?FUNCTION_NAME)
          end)]}.
 

@@ -13,6 +13,10 @@
 -include("src/internal.hrl").
 -include("src/khepri_machine.hrl").
 
+-dialyzer([{no_return, [allowed_khepri_tx_api_test/0,
+                        allowed_erlang_expressions_test/0,
+                        allowed_erlang_module_api_test/0]}]).
+
 -define(make_standalone_fun(Expression),
         begin
             __Fun = fun() -> Expression end,
@@ -78,10 +82,10 @@ allowed_erlang_expressions_test() ->
            _ = 1 < 1,
            _ = 1 =< 1,
 
-           _ = not 1,
-           _ = 1 and 1,
-           _ = 1 or 1,
-           _ = 1 xor 1,
+           _ = not true,
+           _ = true and false,
+           _ = true or false,
+           _ = true xor false,
 
            _ = true andalso true,
            _ = true orelse true,
@@ -128,7 +132,7 @@ allowed_list_comprehension_with_multiple_qualifiers_test() ->
            {ok, Nodes} = khepri_tx:list([?ROOT_NODE]),
            [Data ||
             Path <- lists:sort(maps:keys(Nodes)),
-            #{data := Data} <- maps:get(Path, Nodes)]
+            #{data := Data} <- [maps:get(Path, Nodes)]]
        end).
 
 allowed_begin_block_test() ->
@@ -204,36 +208,45 @@ allowed_erlang_module_api_test() ->
     Term = receive Msg -> Msg end,
     ?assertStandaloneFun(
        begin
-           _ = erlang:abs(Term),
-           _ = erlang:adler32(Term),
-           _ = erlang:adler32(Term, Term),
+           Atom = list_to_atom(binary_to_list(term_to_binary(Term))),
+           Binary = term_to_binary(Term),
+           String = binary_to_list(Binary),
+           Int = size(term_to_binary(Term)),
+           Float = float(Int),
+           List = [Term, Term],
+           Map = maps:from_list(List),
+           Pid = list_to_pid(String),
+
+           _ = erlang:abs(Int),
+           _ = erlang:adler32(Binary),
+           _ = erlang:adler32(Term, Binary),
            _ = erlang:adler32_combine(Term, Term, Term),
            _ = erlang:append_element({Term, Term}, Term),
-           _ = erlang:atom_to_binary(Term),
-           _ = erlang:atom_to_list(Term),
-           _ = erlang:binary_to_atom(Term),
-           _ = erlang:binary_to_float(Term),
-           _ = erlang:binary_to_integer(Term),
-           _ = erlang:binary_to_list(Term),
-           _ = erlang:binary_to_term(Term),
-           _ = erlang:bitstring_to_list(Term),
-           _ = erlang:ceil(Term),
-           _ = erlang:crc32(Term),
-           _ = erlang:crc32(Term, Term),
+           _ = erlang:atom_to_binary(Atom),
+           _ = erlang:atom_to_list(Atom),
+           _ = erlang:binary_to_atom(Binary),
+           _ = erlang:binary_to_float(Binary),
+           _ = erlang:binary_to_integer(Binary),
+           _ = erlang:binary_to_list(Binary),
+           _ = erlang:binary_to_term(Binary),
+           _ = erlang:bitstring_to_list(Binary),
+           _ = erlang:ceil(Int),
+           _ = erlang:crc32(Binary),
+           _ = erlang:crc32(Term, Binary),
            _ = erlang:crc32_combine(Term, Term, Term),
            _ = erlang:delete_element(Term, {Term, Term}),
            _ = erlang:element(Term, {Term, Term}),
            _ = erlang:external_size(Term),
-           _ = erlang:float(Term),
-           _ = erlang:float_to_binary(Term),
-           _ = erlang:float_to_list(Term),
+           _ = erlang:float(Int),
+           _ = erlang:float_to_binary(Float),
+           _ = erlang:float_to_list(Float),
            _ = erlang:hd([Term, Term]),
            _ = erlang:insert_element(Term, {Term, Term}, Term),
            _ = erlang:integer_to_binary(Term),
            _ = erlang:integer_to_list(Term),
-           _ = erlang:iolist_size(Term),
-           _ = erlang:iolist_to_binary(term_to_binary(Term)),
-           _ = erlang:iolist_to_iovec(term_to_binary(Term)),
+           _ = erlang:iolist_size(Binary),
+           _ = erlang:iolist_to_binary(Binary),
+           _ = erlang:iolist_to_iovec(Binary),
            _ = erlang:is_atom(Term),
            _ = erlang:is_binary(Term),
            _ = erlang:is_bitstring(Term),
@@ -248,42 +261,42 @@ allowed_erlang_module_api_test() ->
            _ = erlang:is_record(Term, record),
            _ = erlang:is_reference(Term),
            _ = erlang:is_tuple({Term, Term}),
-           _ = erlang:list_to_atom(Term),
-           _ = erlang:list_to_binary(binary_to_list(Term)),
-           _ = erlang:list_to_bitstring(binary_to_list(Term)),
-           _ = erlang:list_to_float(Term),
-           _ = erlang:list_to_integer(Term),
-           _ = erlang:list_to_pid(Term),
-           _ = erlang:list_to_tuple(Term),
+           _ = erlang:list_to_atom(String),
+           _ = erlang:list_to_binary(String),
+           _ = erlang:list_to_bitstring(String),
+           _ = erlang:list_to_float(String),
+           _ = erlang:list_to_integer(String),
+           _ = erlang:list_to_pid(String),
+           _ = erlang:list_to_tuple(String),
            _ = erlang:make_tuple(Term, Term),
-           _ = erlang:max(Term, Term),
-           _ = erlang:md5(Term),
-           _ = erlang:md5_final(Term),
+           _ = erlang:max(Int, Int),
+           _ = erlang:md5(Binary),
+           _ = erlang:md5_final(Binary),
            _ = erlang:md5_init(),
-           _ = erlang:md5_update(Term, Term),
+           _ = erlang:md5_update(Binary, Binary),
            _ = erlang:min(Term, Term),
            _ = erlang:phash2(Term),
            _ = erlang:phash2(Term, Term),
-           _ = erlang:pid_to_list(Term),
-           _ = erlang:raise(Term, Term, Term),
+           _ = erlang:pid_to_list(Pid),
+           _ = erlang:raise(error, Term, []),
            _ = erlang:round(Term),
            _ = erlang:setelement(Term, {Term, Term}, Term),
-           _ = erlang:split_binary(Term, Term),
+           _ = erlang:split_binary(Binary, Int),
            _ = erlang:term_to_binary(Term),
            _ = erlang:term_to_iovec(Term),
            _ = erlang:tl([Term, Term]),
            _ = erlang:tuple_size({Term, Term}),
            _ = erlang:tuple_to_list({Term, Term}),
 
-           _ = erlang:binary_part(Term, 0, 10),
-           _ = erlang:bit_size(Term),
-           _ = erlang:byte_size(Term),
+           _ = erlang:binary_part(Binary, 0, 10),
+           _ = erlang:bit_size(Binary),
+           _ = erlang:byte_size(Binary),
            _ = erlang:error(Term),
            _ = erlang:exit(Term),
-           _ = erlang:length(Term),
-           _ = erlang:map_get(key, maps:from_list(Term)),
-           _ = erlang:map_size(Term),
-           _ = erlang:size(Term),
+           _ = erlang:length(List),
+           _ = erlang:map_get(key, Map),
+           _ = erlang:map_size(Map),
+           _ = erlang:size(Binary),
            _ = erlang:throw(Term)
        end).
 
@@ -468,7 +481,7 @@ when_readwrite_mode_is_true_test() ->
        {invalid_tx_fun, {call_denied, {self, 0}}},
        khepri_tx:to_standalone_fun(
          fun() ->
-                 khepri_tx:get([foo]),
+                 _ = khepri_tx:get([foo]),
                  self() ! message
          end,
          true)),
@@ -476,7 +489,7 @@ when_readwrite_mode_is_true_test() ->
        {invalid_tx_fun, {call_denied, {self, 0}}},
        khepri_tx:to_standalone_fun(
          fun() ->
-                 khepri_tx:put([foo], ?DATA_PAYLOAD(value)),
+                 _ = khepri_tx:put([foo], ?DATA_PAYLOAD(value)),
                  self() ! message
          end,
          true)),
@@ -511,7 +524,7 @@ when_readwrite_mode_is_false_test() ->
     ?assert(
        is_function(khepri_tx:to_standalone_fun(
                      fun() ->
-                             khepri_tx:get([foo]),
+                             _ = khepri_tx:get([foo]),
                              self() ! message
                      end,
                      false),
@@ -521,7 +534,7 @@ when_readwrite_mode_is_false_test() ->
     ?assert(
        is_function(khepri_tx:to_standalone_fun(
                      fun() ->
-                             khepri_tx:put([foo], ?DATA_PAYLOAD(value)),
+                             _ = khepri_tx:put([foo], ?DATA_PAYLOAD(value)),
                              self() ! message
                      end,
                      false),
@@ -555,7 +568,7 @@ when_readwrite_mode_is_auto_test() ->
     ?assert(
        is_function(khepri_tx:to_standalone_fun(
                      fun() ->
-                             khepri_tx:get([foo]),
+                             _ = khepri_tx:get([foo]),
                              self() ! message
                      end,
                      auto),
@@ -564,7 +577,7 @@ when_readwrite_mode_is_auto_test() ->
        {invalid_tx_fun, {call_denied, {self, 0}}},
        khepri_tx:to_standalone_fun(
          fun() ->
-                 khepri_tx:put([foo], ?DATA_PAYLOAD(value)),
+                 _ = khepri_tx:put([foo], ?DATA_PAYLOAD(value)),
                  self() ! message
          end,
          auto)),

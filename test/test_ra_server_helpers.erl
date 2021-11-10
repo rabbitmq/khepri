@@ -62,8 +62,9 @@ remove_store_dir(StoreDir) ->
         {error, eexist} when OnWindows ->
             %% FIXME: Some files are not deleted on Windows... Are they still
             %% open in Ra?
-            ct:pal(
-              "Files remaining in ~ts: ~p",
+            io:format(
+              standard_error,
+              "Files remaining in ~ts: ~p~n",
               [StoreDir, file:list_dir_all(StoreDir)]),
             ok;
         Error ->

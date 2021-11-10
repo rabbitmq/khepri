@@ -14,6 +14,23 @@
 -include("src/khepri_machine.hrl").
 -include("test/helpers.hrl").
 
+-dialyzer([{no_match,
+            [exception_in_ro_transaction_test_/0,
+             exception_in_rw_transaction_test_/0]},
+           {no_missing_calls,
+            [calling_unexported_remote_function_as_fun_term_test_/0]},
+           {no_return,
+            [aborted_transaction_test_/0,
+             exception_in_ro_transaction_test_/0,
+             exception_in_rw_transaction_test_/0]},
+           {nowarn_function,
+            [fun_taking_args_in_ro_transaction_test_/0,
+             fun_taking_args_in_rw_transaction_test_/0,
+             not_a_function_as_ro_transaction_test_/0,
+             not_a_function_as_rw_transaction_test_/0,
+             use_an_invalid_path_in_tx_test_/0,
+             use_an_invalid_payload_in_tx_test_/0]}]).
+
 %% Used internally for a testcase.
 -export([really_do_get_root_path/0,
          really_do_get_node_name/0]).
@@ -92,8 +109,8 @@ get_in_ro_transaction_test_() ->
                             child_list_version => 1,
                             child_list_length => 0}}}},
          begin
-             khepri_machine:put(
-               ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
+             _ = khepri_machine:put(
+                   ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
 
              Fun = fun() ->
                            khepri_tx:get([foo])
@@ -112,8 +129,8 @@ get_in_rw_transaction_test_() ->
                             child_list_version => 1,
                             child_list_length => 0}}}},
          begin
-             khepri_machine:put(
-               ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
+             _ = khepri_machine:put(
+                   ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
 
              Fun = fun() ->
                            khepri_tx:get([foo])
@@ -128,8 +145,8 @@ put_in_ro_transaction_test_() ->
      [?_assertEqual(
          {aborted, store_update_denied},
          begin
-             khepri_machine:put(
-               ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
+             _ = khepri_machine:put(
+                   ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
 
              Fun = fun() ->
                            Path = [foo],
@@ -154,8 +171,8 @@ put_in_rw_transaction_test_() ->
                             child_list_version => 1,
                             child_list_length => 0}}}},
          begin
-             khepri_machine:put(
-               ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
+             _ = khepri_machine:put(
+                   ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
 
              Fun = fun() ->
                            Path = [foo],
@@ -176,8 +193,8 @@ delete_in_ro_transaction_test_() ->
      [?_assertEqual(
          {aborted, store_update_denied},
          begin
-             khepri_machine:put(
-               ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
+             _ = khepri_machine:put(
+                   ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
 
              Fun = fun() ->
                            Path = [foo],
@@ -202,8 +219,8 @@ delete_in_rw_transaction_test_() ->
                             child_list_version => 1,
                             child_list_length => 0}}}},
          begin
-             khepri_machine:put(
-               ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
+             _ = khepri_machine:put(
+                   ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
 
              Fun = fun() ->
                            Path = [foo],
@@ -225,8 +242,8 @@ exists_api_test_() ->
          {atomic,
           {false, true, false}},
          begin
-             khepri_machine:put(
-               ?FUNCTION_NAME, [foo, bar], ?DATA_PAYLOAD(bar_value)),
+             _ = khepri_machine:put(
+                   ?FUNCTION_NAME, [foo, bar], ?DATA_PAYLOAD(bar_value)),
 
              Fun = fun() ->
                            {khepri_tx:has_data([foo]),
@@ -244,8 +261,8 @@ has_data_api_test_() ->
          {atomic,
           {true, false}},
          begin
-             khepri_machine:put(
-               ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(foo_value)),
+             _ = khepri_machine:put(
+                   ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(foo_value)),
 
              Fun = fun() ->
                            {khepri_tx:exists([foo]),
@@ -265,8 +282,8 @@ find_api_test_() ->
                             child_list_version => 1,
                             child_list_length => 0}}}},
          begin
-             khepri_machine:put(
-               ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(foo_value)),
+             _ = khepri_machine:put(
+                   ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(foo_value)),
 
              Fun = fun() ->
                            khepri_tx:find([], #if_data_matches{pattern = '_'})
@@ -288,8 +305,8 @@ simple_api_test_() ->
                             child_list_version => 1,
                             child_list_length => 0}}}},
          begin
-             khepri_machine:put(
-               ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
+             _ = khepri_machine:put(
+                   ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
 
              Fun = fun() ->
                            Path = [foo],
@@ -311,10 +328,10 @@ list_comprehension_test_() ->
      [?_assertEqual(
          {atomic, [bar_value, foo_value]},
          begin
-             khepri_machine:put(
-               ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(foo_value)),
-             khepri_machine:put(
-               ?FUNCTION_NAME, [bar], ?DATA_PAYLOAD(bar_value)),
+             _ = khepri_machine:put(
+                   ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(foo_value)),
+             _ = khepri_machine:put(
+                   ?FUNCTION_NAME, [bar], ?DATA_PAYLOAD(bar_value)),
 
              Fun = fun() ->
                            {ok, Nodes} = khepri_tx:list([?ROOT_NODE]),
@@ -338,7 +355,7 @@ aborted_transaction_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
-fun_taking_args_in_query_test_() ->
+fun_taking_args_in_ro_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -351,7 +368,7 @@ fun_taking_args_in_query_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, false)
          end)]}.
 
-fun_taking_args_in_transaction_test_() ->
+fun_taking_args_in_rw_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -512,19 +529,6 @@ calling_unexported_remote_function_as_fun_term_test_() ->
            {mod_used_for_transactions, unexported, 0}}},
          begin
              Fun = fun mod_used_for_transactions:unexported/0,
-             khepri:transaction(?FUNCTION_NAME, Fun, true)
-         end)]}.
-
-fun_requiring_args_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, {requires_args, 1}},
-         begin
-             Fun = fun(SomeArg) ->
-                           {ok, SomeArg}
-                   end,
              khepri:transaction(?FUNCTION_NAME, Fun, true)
          end)]}.
 
@@ -715,8 +719,8 @@ tx_from_the_shell_test_() ->
                             child_list_version => 1,
                             child_list_length => 0}}}},
          begin
-             khepri_machine:put(
-               ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
+             _ = khepri_machine:put(
+                   ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
 
              Bindings = erl_eval:new_bindings(),
              {ok, Tokens, _EndLocation} = erl_scan:string(?TX_CODE),
@@ -742,8 +746,8 @@ tx_using_erl_eval_test_() ->
      [?_assertThrow(
          {invalid_tx_fun, {call_denied, _}},
          begin
-             khepri_machine:put(
-               ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
+             _ = khepri_machine:put(
+                   ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(value1)),
 
              khepri_machine:transaction(
                ?FUNCTION_NAME,

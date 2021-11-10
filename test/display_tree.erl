@@ -13,6 +13,9 @@
 -include("src/internal.hrl").
 -include("test/helpers.hrl").
 
+%% khepri:get_root/1 is unexported when compiled without `-DTEST'.
+-dialyzer(no_missing_calls).
+
 complex_flat_struct_to_tree_test() ->
     Commands = [#put{path = [foo, bar, baz, qux],
                      payload = ?DATA_PAYLOAD(qux_value)},

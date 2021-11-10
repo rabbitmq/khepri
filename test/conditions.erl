@@ -12,6 +12,9 @@
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
 
+%% khepri:get_root/1 is unexported when compiled without `-DTEST'.
+-dialyzer(no_missing_calls).
+
 %% -------------------------------------------------------------------
 %% Compilation & optimization.
 %% -------------------------------------------------------------------
@@ -232,21 +235,25 @@ if_payload_version_matching_test() ->
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(#if_payload_version{version = 2}),
-         foo, #node{stat = #{payload_version => 2}})),
+         foo, #node{stat = #{payload_version => 2,
+                             child_list_version => 1}})),
     ?assertEqual(
        {false, #if_payload_version{version = 2}},
        khepri_condition:is_met(
          khepri_condition:compile(#if_payload_version{version = 2}),
-         foo, #node{stat = #{payload_version => 1}})),
+         foo, #node{stat = #{payload_version => 1,
+                             child_list_version => 1}})),
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(#if_payload_version{version = {ge, 1}}),
-         foo, #node{stat = #{payload_version => 1}})),
+         foo, #node{stat = #{payload_version => 1,
+                             child_list_version => 1}})),
     ?assertEqual(
        {false, #if_payload_version{version = {ge, 2}}},
        khepri_condition:is_met(
          khepri_condition:compile(#if_payload_version{version = {ge, 2}}),
-         foo, #node{stat = #{payload_version => 1}})).
+         foo, #node{stat = #{payload_version => 1,
+                             child_list_version => 1}})).
 
 if_child_list_version_matching_test() ->
     ?assert(
@@ -257,21 +264,25 @@ if_child_list_version_matching_test() ->
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(#if_child_list_version{version = 2}),
-         foo, #node{stat = #{child_list_version => 2}})),
+         foo, #node{stat = #{payload_version => 1,
+                             child_list_version => 2}})),
     ?assertEqual(
        {false, #if_child_list_version{version = 2}},
        khepri_condition:is_met(
          khepri_condition:compile(#if_child_list_version{version = 2}),
-         foo, #node{stat = #{child_list_version => 1}})),
+         foo, #node{stat = #{payload_version => 1,
+                             child_list_version => 1}})),
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(#if_child_list_version{version = {ge, 1}}),
-         foo, #node{stat = #{child_list_version => 1}})),
+         foo, #node{stat = #{payload_version => 1,
+                             child_list_version => 1}})),
     ?assertEqual(
        {false, #if_child_list_version{version = {ge, 2}}},
        khepri_condition:is_met(
          khepri_condition:compile(#if_child_list_version{version = {ge, 2}}),
-         foo, #node{stat = #{child_list_version => 1}})).
+         foo, #node{stat = #{payload_version => 1,
+                             child_list_version => 1}})).
 
 if_child_list_length_matching_test() ->
     ?assert(
@@ -322,7 +333,8 @@ if_not_matching_test() ->
            #if_not{condition =
                    #if_any{conditions = [foo,
                                          #if_payload_version{version = 1}]}}),
-         foo, #node{stat = #{payload_version => 1}})).
+         foo, #node{stat = #{payload_version => 1,
+                             child_list_version => 1}})).
 
 if_all_matching_test() ->
     ?assert(
@@ -336,28 +348,32 @@ if_all_matching_test() ->
          khepri_condition:compile(
            #if_all{conditions = [foo,
                                  #if_payload_version{version = 1}]}),
-         foo, #node{stat = #{payload_version => 1}})),
+         foo, #node{stat = #{payload_version => 1,
+                             child_list_version => 1}})),
     ?assertEqual(
        {false, bar},
        khepri_condition:is_met(
          khepri_condition:compile(
            #if_all{conditions = [bar,
                                  #if_payload_version{version = 1}]}),
-         foo, #node{stat = #{payload_version => 1}})),
+         foo, #node{stat = #{payload_version => 1,
+                             child_list_version => 1}})),
     ?assertEqual(
        {false, #if_payload_version{version = 2}},
        khepri_condition:is_met(
          khepri_condition:compile(
            #if_all{conditions = [foo,
                                  #if_payload_version{version = 2}]}),
-         foo, #node{stat = #{payload_version => 1}})),
+         foo, #node{stat = #{payload_version => 1,
+                             child_list_version => 1}})),
     ?assertEqual(
        {false, bar},
        khepri_condition:is_met(
          khepri_condition:compile(
            #if_all{conditions = [bar,
                                  #if_payload_version{version = 2}]}),
-         foo, #node{stat = #{payload_version => 1}})).
+         foo, #node{stat = #{payload_version => 1,
+                             child_list_version => 1}})).
 
 if_any_matching_test() ->
     ?assertEqual(
@@ -372,19 +388,22 @@ if_any_matching_test() ->
          khepri_condition:compile(
            #if_any{conditions = [foo,
                                  #if_payload_version{version = 1}]}),
-         foo, #node{stat = #{payload_version => 1}})),
+         foo, #node{stat = #{payload_version => 1,
+                             child_list_version => 1}})),
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(
            #if_any{conditions = [bar,
                                  #if_payload_version{version = 1}]}),
-         foo, #node{stat = #{payload_version => 1}})),
+         foo, #node{stat = #{payload_version => 1,
+                             child_list_version => 1}})),
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(
            #if_any{conditions = [foo,
                                  #if_payload_version{version = 2}]}),
-         foo, #node{stat = #{payload_version => 1}})),
+         foo, #node{stat = #{payload_version => 1,
+                             child_list_version => 1}})),
     ?assertEqual(
        {false, #if_any{conditions = [bar,
                                      #if_payload_version{version = 2}]}},
@@ -392,7 +411,8 @@ if_any_matching_test() ->
          khepri_condition:compile(
            #if_any{conditions = [bar,
                                  #if_payload_version{version = 2}]}),
-         foo, #node{stat = #{payload_version => 1}})).
+         foo, #node{stat = #{payload_version => 1,
+                             child_list_version => 1}})).
 
 complex_matching_test() ->
     ?assert(
@@ -403,7 +423,8 @@ complex_matching_test() ->
                             [foo,
                              #if_child_list_length{count = {lt, 10}}]},
                     #if_payload_version{version = 1000}]}),
-         foo, #node{stat = #{payload_version => 1}})),
+         foo, #node{stat = #{payload_version => 1,
+                             child_list_version => 1}})),
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(
@@ -412,7 +433,8 @@ complex_matching_test() ->
                             [bar,
                              #if_child_list_length{count = {lt, 10}}]},
                     #if_payload_version{version = 1000}]}),
-         foo, #node{stat = #{payload_version => 1000}})),
+         foo, #node{stat = #{payload_version => 1000,
+                             child_list_version => 1}})),
     ?assertEqual(
        {false, #if_any{conditions =
                        [#if_all{conditions =
@@ -426,7 +448,8 @@ complex_matching_test() ->
                             [bar,
                              #if_child_list_length{count = {lt, 10}}]},
                     #if_payload_version{version = 1}]}),
-         foo, #node{stat = #{payload_version => 1000}})).
+         foo, #node{stat = #{payload_version => 1000,
+                             child_list_version => 1}})).
 
 
 path_matching_test() ->
