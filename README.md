@@ -168,5 +168,6 @@ rebar3 compile
 ```
 rebar3 xref
 rebar3 eunit
+rebar3 proper
 rebar3 dialyzer
 ```
