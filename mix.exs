@@ -5,7 +5,7 @@ defmodule Khepri.MixProject do
     [
       app: :khepri,
       description: "Tree-like replicated on-disk database library",
-      version: "0.1.0",
+      version: "0.1.1",
       language: :erlang,
       deps: deps()
     ]
