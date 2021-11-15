@@ -14,7 +14,7 @@ defmodule Khepri.MixProject do
   defp deps() do
     [
       # Dependency pinning must be updated in rebar.config too.
-      {:ra, "2.0.1"}
+      {:ra, "2.0.2"}
     ]
   end
 end
