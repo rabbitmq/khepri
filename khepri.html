@@ -685,7 +685,7 @@ Result = khepri:find(
 <div class="spec">
 <p><code>transaction(StoreId, Fun) -&gt; Ret</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p><p><code>transaction(Fun, ReadWrite) -&gt; Ret</code>
-<ul class="definitions"><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = auto | boolean()</code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
+<ul class="definitions"><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
 <p></p>
 <p></p>
 </div>
@@ -693,7 +693,7 @@ Result = khepri:find(
 <h3 class="function"><a name="transaction-3">transaction/3</a></h3>
 <div class="spec">
 <p><code>transaction(StoreId, Fun, ReadWrite) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = auto | boolean()</code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
 <p></p>
 </div>
 

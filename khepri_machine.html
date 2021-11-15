@@ -394,7 +394,7 @@ Result = khepri_machine:delete(ra_cluster_name, [foo, bar]),
 <h3 class="function"><a name="transaction-3">transaction/3</a></h3>
 <div class="spec">
 <p><code>transaction(StoreId, Fun, ReadWrite) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = auto | boolean()</code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>Fun</code>: an arbitrary anonymous function.
  <br>
@@ -409,16 +409,16 @@ Result = khepri_machine:delete(ra_cluster_name, [foo, bar]),
 do and in which context it runs:</p>
  
   <ul>
-  <li>If <code>ReadWrite</code> is true, <code>Fun</code> can use the <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> transaction
+  <li>If <code>ReadWrite</code> is <code>ro</code>, <code>Fun</code> can do whatever it wants, except modify
+  the content of the store. In other words, uses of <a docgen-rel="seemfa" docgen-href="khepri_tx#put/2" href="khepri_tx.html#put-2"><code>khepri_tx:put/2</code></a>
+  or <a docgen-rel="seemfa" docgen-href="khepri_tx#delete/1" href="khepri_tx.html#delete-1"><code>khepri_tx:delete/1</code></a> are forbidden and will abort the function.
+  <code>Fun</code> is executed from a process on the leader Ra member.</li>
+  <li>If <code>ReadWrite</code> is <code>rw</code>, <code>Fun</code> can use the <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> transaction
   API as well as any calls to other modules as long as those functions or what
   they do is permitted. See <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> for more details. If <code>Fun</code> does
   or calls something forbidden, the transaction will be aborted. <code>Fun</code> is
   executed in the context of the state machine process on each Ra
   members.</li>
-  <li>If <code>ReadWrite</code> is false, <code>Fun</code> can do whatever it wants, except modify
-  the content of the store. In other words, uses of <a docgen-rel="seemfa" docgen-href="khepri_tx#put/2" href="khepri_tx.html#put-2"><code>khepri_tx:put/2</code></a>
-  or <a docgen-rel="seemfa" docgen-href="khepri_tx#delete/1" href="khepri_tx.html#delete-1"><code>khepri_tx:delete/1</code></a> are forbidden and will abort the function.
-  <code>Fun</code> is executed from a process on the leader Ra member.</li>
   <li>If <code>ReadWrite</code> is <code>auto</code>, <code>Fun</code> is analyzed to determine if it calls
   <a docgen-rel="seemfa" docgen-href="khepri_tx#put/2" href="khepri_tx.html#put-2"><code>khepri_tx:put/2</code></a> or <a docgen-rel="seemfa" docgen-href="khepri_tx#delete/1" href="khepri_tx.html#delete-1"><code>khepri_tx:delete/1</code></a>, or uses any denied
   operations for a read/write transaction. If it does, this is the same as
