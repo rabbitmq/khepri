@@ -161,12 +161,12 @@ abort(Reason) ->
 
 -spec to_standalone_fun(Fun, ReadWrite) -> StandaloneFun | no_return() when
       Fun :: fun(),
-      ReadWrite :: auto | boolean(),
+      ReadWrite :: ro | rw | auto,
       StandaloneFun :: khepri_fun:standalone_fun().
 
 to_standalone_fun(Fun, ReadWrite)
   when is_function(Fun, 0) andalso
-       (ReadWrite =:= auto orelse ReadWrite =:= true) ->
+       (ReadWrite =:= auto orelse ReadWrite =:= rw) ->
     Options =
     #{ensure_instruction_is_permitted => fun ensure_instruction_is_permitted/1,
       should_process_function => fun should_process_function/4,
@@ -179,7 +179,7 @@ to_standalone_fun(Fun, ReadWrite)
         throw:Error ->
             throw({invalid_tx_fun, Error})
     end;
-to_standalone_fun(Fun, false) ->
+to_standalone_fun(Fun, ro) ->
     Fun.
 
 ensure_instruction_is_permitted({allocate, _, _}) ->
@@ -448,19 +448,19 @@ is_remote_call_valid(unicode, _, _) -> true;
 
 is_remote_call_valid(_, _, _) -> false.
 
-validate(#{errors := Errors}, true) ->
+validate(#{errors := Errors}, rw) ->
     process_errors(Errors);
 validate(#{calls := Calls, errors := Errors}, auto) ->
     ReadWrite = case Calls of
-                    #{{khepri_tx, put, 2} := _}    -> true;
-                    #{{khepri_tx, put, 3} := _}    -> true;
-                    #{{khepri_tx, delete, 1} := _} -> true;
-                    _                              -> false
+                    #{{khepri_tx, put, 2} := _}    -> rw;
+                    #{{khepri_tx, put, 3} := _}    -> rw;
+                    #{{khepri_tx, delete, 1} := _} -> rw;
+                    _                              -> ro
                 end,
     case ReadWrite of
-        true when Errors =:= [] -> ok;
-        true                    -> process_errors(Errors);
-        false                   -> throw(readonly_tx_fun_detected)
+        rw when Errors =:= [] -> ok;
+        rw                    -> process_errors(Errors);
+        ro                    -> throw(readonly_tx_fun_detected)
     end.
 
 %% TODO: Return all errors?

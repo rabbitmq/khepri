@@ -422,7 +422,7 @@ transaction(StoreId, Fun) ->
 -spec transaction(StoreId, Fun, ReadWrite) -> Ret when
       StoreId :: khepri:store_id(),
       Fun :: khepri_tx:tx_fun(),
-      ReadWrite :: auto | boolean(),
+      ReadWrite :: ro | rw | auto,
       Ret :: Atomic | Aborted,
       Atomic :: {atomic, khepri_tx:tx_fun_result()},
       Aborted :: khepri_tx:tx_abort().
@@ -434,16 +434,16 @@ transaction(StoreId, Fun) ->
 %% do and in which context it runs:
 %%
 %% <ul>
-%% <li>If `ReadWrite' is true, `Fun' can use the {@link khepri_tx} transaction
+%% <li>If `ReadWrite' is `ro', `Fun' can do whatever it wants, except modify
+%% the content of the store. In other words, uses of {@link khepri_tx:put/2}
+%% or {@link khepri_tx:delete/1} are forbidden and will abort the function.
+%% `Fun' is executed from a process on the leader Ra member.</li>
+%% <li>If `ReadWrite' is `rw', `Fun' can use the {@link khepri_tx} transaction
 %% API as well as any calls to other modules as long as those functions or what
 %% they do is permitted. See {@link khepri_tx} for more details. If `Fun' does
 %% or calls something forbidden, the transaction will be aborted. `Fun' is
 %% executed in the context of the state machine process on each Ra
 %% members.</li>
-%% <li>If `ReadWrite' is false, `Fun' can do whatever it wants, except modify
-%% the content of the store. In other words, uses of {@link khepri_tx:put/2}
-%% or {@link khepri_tx:delete/1} are forbidden and will abort the function.
-%% `Fun' is executed from a process on the leader Ra member.</li>
 %% <li>If `ReadWrite' is `auto', `Fun' is analyzed to determine if it calls
 %% {@link khepri_tx:put/2} or {@link khepri_tx:delete/1}, or uses any denied
 %% operations for a read/write transaction. If it does, this is the same as
@@ -467,10 +467,10 @@ transaction(StoreId, Fun, auto = ReadWrite) when is_function(Fun, 0) ->
         _ ->
             readonly_transaction(StoreId, Fun)
     end;
-transaction(StoreId, Fun, true = ReadWrite) when is_function(Fun, 0) ->
+transaction(StoreId, Fun, rw = ReadWrite) when is_function(Fun, 0) ->
     StandaloneFun = khepri_tx:to_standalone_fun(Fun, ReadWrite),
     readwrite_transaction(StoreId, StandaloneFun);
-transaction(StoreId, Fun, false) when is_function(Fun, 0) ->
+transaction(StoreId, Fun, ro) when is_function(Fun, 0) ->
     readonly_transaction(StoreId, Fun);
 transaction(_StoreId, Fun, _ReadWrite) when is_function(Fun) ->
     {arity, Arity} = erlang:fun_info(Fun, arity),

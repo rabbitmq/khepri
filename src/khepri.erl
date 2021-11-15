@@ -935,7 +935,7 @@ transaction(Fun) ->
       Aborted :: khepri_tx:tx_abort();
 (Fun, ReadWrite) -> Ret when
       Fun :: khepri_tx:tx_fun(),
-      ReadWrite :: auto | boolean(),
+      ReadWrite :: ro | rw | auto,
       Ret :: Atomic | Aborted,
       Atomic :: {atomic, khepri_tx:tx_fun_result()},
       Aborted :: khepri_tx:tx_abort().
@@ -948,7 +948,7 @@ transaction(Fun, ReadWrite) when is_function(Fun) ->
 -spec transaction(StoreId, Fun, ReadWrite) -> Ret when
       StoreId :: store_id(),
       Fun :: khepri_tx:tx_fun(),
-      ReadWrite :: auto | boolean(),
+      ReadWrite :: ro | rw | auto,
       Ret :: Atomic | Aborted,
       Atomic :: {atomic, khepri_tx:tx_fun_result()},
       Aborted :: khepri_tx:tx_abort().

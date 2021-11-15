@@ -20,7 +20,7 @@
 -define(make_standalone_fun(Expression),
         begin
             __Fun = fun() -> Expression end,
-            khepri_tx:to_standalone_fun(__Fun, true)
+            khepri_tx:to_standalone_fun(__Fun, rw)
         end).
 
 -define(assertStandaloneFun(Expression),
@@ -468,14 +468,14 @@ when_readwrite_mode_is_true_test() ->
                    fun() ->
                            khepri_tx:get([foo])
                    end,
-                   true),
+                   rw),
                  standalone_fun)),
     ?assert(
        is_record(khepri_tx:to_standalone_fun(
                    fun() ->
                            khepri_tx:put([foo], ?DATA_PAYLOAD(value))
                    end,
-                   true),
+                   rw),
                  standalone_fun)),
     ?assertThrow(
        {invalid_tx_fun, {call_denied, {self, 0}}},
@@ -484,7 +484,7 @@ when_readwrite_mode_is_true_test() ->
                  _ = khepri_tx:get([foo]),
                  self() ! message
          end,
-         true)),
+         rw)),
     ?assertThrow(
        {invalid_tx_fun, {call_denied, {self, 0}}},
        khepri_tx:to_standalone_fun(
@@ -492,16 +492,16 @@ when_readwrite_mode_is_true_test() ->
                  _ = khepri_tx:put([foo], ?DATA_PAYLOAD(value)),
                  self() ! message
          end,
-         true)),
+         rw)),
     ?assert(
        is_record(khepri_tx:to_standalone_fun(
                    fun mod_used_for_transactions:exported/0,
-                   true),
+                   rw),
                  standalone_fun)),
     ?assert(
        is_function(khepri_tx:to_standalone_fun(
                      fun dict:new/0,
-                     true),
+                     rw),
                    0)).
 
 when_readwrite_mode_is_false_test() ->
@@ -510,7 +510,7 @@ when_readwrite_mode_is_false_test() ->
                      fun() ->
                              khepri_tx:get([foo])
                      end,
-                     false),
+                     ro),
                    0)),
     %% In the following case, `to_standalone()' works, but the transaction
     %% will abort once executed.
@@ -519,7 +519,7 @@ when_readwrite_mode_is_false_test() ->
                      fun() ->
                              khepri_tx:put([foo], ?DATA_PAYLOAD(value))
                      end,
-                     false),
+                     ro),
                    0)),
     ?assert(
        is_function(khepri_tx:to_standalone_fun(
@@ -527,7 +527,7 @@ when_readwrite_mode_is_false_test() ->
                              _ = khepri_tx:get([foo]),
                              self() ! message
                      end,
-                     false),
+                     ro),
                    0)),
     %% In the following case, `to_standalone()' works, but the transaction
     %% will abort once executed.
@@ -537,17 +537,17 @@ when_readwrite_mode_is_false_test() ->
                              _ = khepri_tx:put([foo], ?DATA_PAYLOAD(value)),
                              self() ! message
                      end,
-                     false),
+                     ro),
                    0)),
     ?assert(
        is_function(khepri_tx:to_standalone_fun(
                      fun mod_used_for_transactions:exported/0,
-                     false),
+                     ro),
                    0)),
     ?assert(
        is_function(khepri_tx:to_standalone_fun(
                      fun dict:new/0,
-                     false),
+                     ro),
                    0)).
 
 when_readwrite_mode_is_auto_test() ->
