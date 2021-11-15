@@ -3,7 +3,7 @@
 @author The RabbitMQ team <info@rabbitmq.com>
 @copyright 2021 VMware, Inc. or its affiliates.  All rights reserved.
 @title The Khepri Database
-@version 0.1.0
+@version 0.1.1
 
 @doc
 Khepri is a tree-like replicated on-disk database library for Erlang and
