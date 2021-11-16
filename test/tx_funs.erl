@@ -24,7 +24,7 @@
         end).
 
 -define(assertStandaloneFun(Expression),
-        ?assert(is_record(?make_standalone_fun(Expression), standalone_fun))).
+        ?assertMatch(#standalone_fun{}, ?make_standalone_fun(Expression))).
 
 -define(assertToFunThrow(Expected, Expression),
         ?assertThrow(Expected, ?make_standalone_fun(Expression))).
@@ -109,6 +109,16 @@ allowed_erlang_types_test() ->
            _ = #{a => b},
            _ = $c,
            _ = "string"
+       end).
+
+allowed_case_block_test() ->
+    ?assertStandaloneFun(
+       begin
+           case khepri_tx:get([foo]) of
+               {ok, #{[foo] := _}} -> {ok, found};
+               {ok, #{}}           -> {ok, not_found};
+               _                   -> error
+           end
        end).
 
 allowed_list_comprehension_test() ->
@@ -612,3 +622,182 @@ when_readwrite_mode_is_auto_test() ->
                    fun() -> Fun() end,
                    auto),
                  standalone_fun)).
+
+make_list() -> [a, b].
+make_map() -> #{a => b}.
+make_tuple() -> {a, b}.
+make_binary() -> <<"ab">>.
+
+make_fun(0)  -> fun() -> result end;
+make_fun(1)  -> fun(_) -> result end;
+make_fun(2)  -> fun(_, _) -> result end;
+make_fun(3)  -> fun(_, _, _) -> result end;
+make_fun(4)  -> fun(_, _, _, _) -> result end;
+make_fun(5)  -> fun(_, _, _, _, _) -> result end;
+make_fun(6)  -> fun(_, _, _, _, _, _) -> result end;
+make_fun(7)  -> fun(_, _, _, _, _, _, _) -> result end;
+make_fun(8)  -> fun(_, _, _, _, _, _, _, _) -> result end;
+make_fun(9)  -> fun(_, _, _, _, _, _, _, _, _) -> result end;
+make_fun(10) -> fun(_, _, _, _, _, _, _, _, _, _) -> result end.
+
+list_in_fun_env_test() ->
+    List = make_list(),
+    StandaloneFun = khepri_tx:to_standalone_fun(
+                      fun() -> List end,
+                      rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertNotEqual([], StandaloneFun#standalone_fun.env),
+    ?assertEqual(List, khepri_fun:exec(StandaloneFun, [])).
+
+map_in_fun_env_test() ->
+    Map = make_map(),
+    StandaloneFun = khepri_tx:to_standalone_fun(
+                      fun() -> Map end,
+                      rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertNotEqual([], StandaloneFun#standalone_fun.env),
+    ?assertEqual(Map, khepri_fun:exec(StandaloneFun, [])).
+
+tuple_in_fun_env_test() ->
+    Tuple = make_tuple(),
+    StandaloneFun = khepri_tx:to_standalone_fun(
+                      fun() -> Tuple end,
+                      rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertNotEqual([], StandaloneFun#standalone_fun.env),
+    ?assertEqual(Tuple, khepri_fun:exec(StandaloneFun, [])).
+
+binary_in_fun_env_test() ->
+    Binary = make_binary(),
+    StandaloneFun = khepri_tx:to_standalone_fun(
+                      fun() -> Binary end,
+                      rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertNotEqual([], StandaloneFun#standalone_fun.env),
+    ?assertEqual(Binary, khepri_fun:exec(StandaloneFun, [])).
+
+fun0_in_fun_env_test() ->
+    Fun = make_fun(0),
+    StandaloneFun = khepri_tx:to_standalone_fun(
+                      fun() -> Fun() end,
+                      rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertNotEqual([], StandaloneFun#standalone_fun.env),
+    ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
+
+fun1_in_fun_env_test() ->
+    Fun = make_fun(1),
+    StandaloneFun = khepri_tx:to_standalone_fun(
+                      fun() -> Fun(1) end,
+                      rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertNotEqual([], StandaloneFun#standalone_fun.env),
+    ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
+
+fun2_in_fun_env_test() ->
+    Fun = make_fun(2),
+    self() ! Fun,
+    receive Fun -> ok end,
+    StandaloneFun = khepri_tx:to_standalone_fun(
+                      fun() -> Fun(1, 2) end,
+                      rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertNotEqual([], StandaloneFun#standalone_fun.env),
+    ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
+
+fun3_in_fun_env_test() ->
+    Fun = make_fun(3),
+    StandaloneFun = khepri_tx:to_standalone_fun(
+                      fun() -> Fun(1, 2, 3) end,
+                      rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertNotEqual([], StandaloneFun#standalone_fun.env),
+    ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
+
+fun4_in_fun_env_test() ->
+    Fun = make_fun(4),
+    StandaloneFun = khepri_tx:to_standalone_fun(
+                      fun() -> Fun(1, 2, 3, 4) end,
+                      rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertNotEqual([], StandaloneFun#standalone_fun.env),
+    ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
+
+fun5_in_fun_env_test() ->
+    Fun = make_fun(5),
+    StandaloneFun = khepri_tx:to_standalone_fun(
+                      fun() -> Fun(1, 2, 3, 4, 5) end,
+                      rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertNotEqual([], StandaloneFun#standalone_fun.env),
+    ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
+
+fun6_in_fun_env_test() ->
+    Fun = make_fun(6),
+    StandaloneFun = khepri_tx:to_standalone_fun(
+                      fun() -> Fun(1, 2, 3, 4, 5, 6) end,
+                      rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertNotEqual([], StandaloneFun#standalone_fun.env),
+    ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
+
+fun7_in_fun_env_test() ->
+    Fun = make_fun(7),
+    StandaloneFun = khepri_tx:to_standalone_fun(
+                      fun() -> Fun(1, 2, 3, 4, 5, 6, 7) end,
+                      rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertNotEqual([], StandaloneFun#standalone_fun.env),
+    ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
+
+fun8_in_fun_env_test() ->
+    Fun = make_fun(8),
+    StandaloneFun = khepri_tx:to_standalone_fun(
+                      fun() -> Fun(1, 2, 3, 4, 5, 6, 7, 8) end,
+                      rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertNotEqual([], StandaloneFun#standalone_fun.env),
+    ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
+
+fun9_in_fun_env_test() ->
+    Fun = make_fun(9),
+    StandaloneFun = khepri_tx:to_standalone_fun(
+                      fun() -> Fun(1, 2, 3, 4, 5, 6, 7, 8, 9) end,
+                      rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertNotEqual([], StandaloneFun#standalone_fun.env),
+    ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
+
+fun10_in_fun_env_test() ->
+    Fun = make_fun(10),
+    StandaloneFun = khepri_tx:to_standalone_fun(
+                      fun() -> Fun(1, 2, 3, 4, 5, 6, 7, 8, 9, 10) end,
+                      rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertNotEqual([], StandaloneFun#standalone_fun.env),
+    ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
+
+exec_with_regular_fun_test() ->
+    Fun = khepri_tx:to_standalone_fun(
+            fun() -> result end,
+            ro),
+    ?assert(is_function(Fun)),
+    ?assertEqual(result, khepri_fun:exec(Fun, [])).
+
+exec_standalone_fun_multiple_times_test() ->
+    StandaloneFun = khepri_tx:to_standalone_fun(
+                      fun() -> result end,
+                      rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
+
+exec_with_standalone_fun_test() ->
+    StandaloneFun = khepri_tx:to_standalone_fun(
+                      fun() -> result end,
+                      rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    %% This is to make sure it still works after the generated module was
+    %% loaded once.
+    ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])),
+    ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])),
+    ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
