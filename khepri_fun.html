@@ -139,8 +139,12 @@ to older runtimes.</p>
 <p><code>ensure_instruction_is_permitted_fun() = fun((<a href="#type-beam_instr">beam_instr()</a>) -&gt; ok)</code></p>
 
 
+<h3 class="typedecl"><a name="type-is_standalone_fun_still_needed_fun">is_standalone_fun_still_needed_fun()</a></h3>
+<p><code>is_standalone_fun_still_needed_fun() = fun((#{calls := #{mfa() =&gt; true}, errors := [any()]}) -&gt; boolean())</code></p>
+
+
 <h3 class="typedecl"><a name="type-options">options()</a></h3>
-<p><code>options() = #{ensure_instruction_is_permitted =&gt; <a href="#type-ensure_instruction_is_permitted_fun">ensure_instruction_is_permitted_fun()</a>, should_process_function =&gt; <a href="#type-should_process_function_fun">should_process_function_fun()</a>, validate =&gt; <a href="#type-validate_fun">validate_fun()</a>}</code></p>
+<p><code>options() = #{ensure_instruction_is_permitted =&gt; <a href="#type-ensure_instruction_is_permitted_fun">ensure_instruction_is_permitted_fun()</a>, should_process_function =&gt; <a href="#type-should_process_function_fun">should_process_function_fun()</a>, is_standalone_fun_still_needed =&gt; <a href="#type-is_standalone_fun_still_needed_fun">is_standalone_fun_still_needed_fun()</a>}</code></p>
 
 
 <h3 class="typedecl"><a name="type-should_process_function_fun">should_process_function_fun()</a></h3>
@@ -149,10 +153,6 @@ to older runtimes.</p>
 
 <h3 class="typedecl"><a name="type-standalone_fun">standalone_fun()</a></h3>
 <p><code>standalone_fun() = #standalone_fun{module = module(), beam = binary(), arity = arity(), env = list()} | function()</code></p>
-
-
-<h3 class="typedecl"><a name="type-validate_fun">validate_fun()</a></h3>
-<p><code>validate_fun() = fun((#{calls := #{mfa() =&gt; true}, errors := [any()]}) -&gt; any())</code></p>
 
 
 <h2><a name="index">Function Index</a></h2>
