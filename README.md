@@ -171,6 +171,12 @@ name or the current date & time.
 rebar3 compile
 ```
 
+### Build documentation
+
+```
+rebar3 edoc
+```
+
 ### Test
 
 ```
