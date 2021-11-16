@@ -1,7 +1,7 @@
 # The Khepri database library
 
 [![Test](https://github.com/rabbitmq/khepri/actions/workflows/test.yaml/badge.svg)](https://github.com/rabbitmq/khepri/actions/workflows/test.yaml)
-[![Coverage Status](https://coveralls.io/repos/github/rabbitmq/khepri/badge.svg?branch=wip)](https://coveralls.io/github/rabbitmq/khepri?branch=wip)
+[![Coverage status](https://coveralls.io/repos/github/rabbitmq/khepri/badge.svg?branch=main)](https://coveralls.io/github/rabbitmq/khepri?branch=main)
 
 Khepri is a tree-like replicated on-disk database library for Erlang and
 Elixir.
