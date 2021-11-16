@@ -67,6 +67,8 @@
 %% The following basically disable Dialyzer for this module unfortunately...
 -dialyzer({nowarn_function, [compile/1,
                              to_standalone_fun/2,
+                             to_standalone_fun1/2,
+                             to_standalone_fun2/2,
                              to_standalone_env/1,
                              to_standalone_arg/2]}).
 
@@ -104,17 +106,17 @@ fun((beam_instr()) -> ok).
 -type should_process_function_fun() ::
 fun((module(), atom(), arity(), module()) -> boolean()).
 
--type validate_fun() ::
+-type is_standalone_fun_still_needed_fun() ::
 fun((#{calls := #{mfa() => true},
-       errors := [any()]}) -> any()).
+       errors := [any()]}) -> boolean()).
 
 -type standalone_fun() :: #standalone_fun{} | fun().
 -type options() :: #{ensure_instruction_is_permitted =>
                      ensure_instruction_is_permitted_fun(),
                      should_process_function =>
                      should_process_function_fun(),
-                     validate =>
-                     validate_fun()}.
+                     is_standalone_fun_still_needed =>
+                     is_standalone_fun_still_needed_fun()}.
 
 -export_type([standalone_fun/0,
               options/0]).
@@ -147,33 +149,50 @@ fun((#{calls := #{mfa() => true},
       StandaloneFun :: standalone_fun().
 
 to_standalone_fun(Fun, Options) ->
+    {StandaloneFun, _State} = to_standalone_fun1(Fun, Options),
+    StandaloneFun.
+
+-spec to_standalone_fun1(Fun, Options) -> {StandaloneFun, State} when
+      Fun :: fun(),
+      Options :: options(),
+      StandaloneFun :: standalone_fun(),
+      State :: #state{}.
+
+to_standalone_fun1(Fun, Options) ->
     Info = maps:from_list(erlang:fun_info(Fun)),
     #{module := Module,
       name := Name,
-      arity := Arity,
-      type := Type} = Info,
+      arity := Arity} = Info,
     State0 = #state{fun_info = Info,
                     all_calls = #{{Module, Name, Arity} => true},
                     options = Options},
+    to_standalone_fun2(Fun, State0).
 
+-spec to_standalone_fun2(Fun, State) -> {StandaloneFun, State} when
+      Fun :: fun(),
+      State :: #state{},
+      StandaloneFun :: standalone_fun().
+
+to_standalone_fun2(
+  Fun,
+  #state{fun_info = #{module := Module,
+                      name := Name,
+                      arity := Arity,
+                      type := Type}} = State) ->
     %% Don't extract functions like "fun dict:new/0" which are not meant to be
     %% copied.
     {ShouldProcess,
      State1} = case Type of
                    local ->
                        should_process_function(
-                         Module, Name, Arity, Module, State0);
+                         Module, Name, Arity, Module, State);
                    external ->
                        should_process_function(
-                         Module, Name, Arity, undefined, State0)
+                         Module, Name, Arity, undefined, State)
                end,
     case ShouldProcess of
         true ->
             State2 = pass1(State1),
-            validate(State2),
-
-            Asm = pass2(State2),
-            {GeneratedModuleName, Beam} = compile(Asm),
 
             %% Fun environment to standalone term.
             %%
@@ -187,18 +206,47 @@ to_standalone_fun(Fun, Options) ->
             %% However for `erl_eval' functions created from lambdas, the env
             %% contains the parsed source code of the function. We don't need
             %% to interpret it.
-            Env = case Module =:= erl_eval andalso Type =:= local of
-                      false -> to_standalone_env(State1);
-                      true  -> []
-                  end,
+            %%
+            %% TODO: `to_standalone_env()' uses `to_standalone_fun1()' to
+            %% extract and compile lambdas passed as arguments. It means they
+            %% are fully compiled even though
+            %% `is_standalone_fun_still_needed()' returns false later. This is
+            %% a waste of resources and this function can probably be split
+            %% into two parts to allow the environment to be extracted before
+            %% and compiled after, once we are sure we need to create the
+            %% final standalone fun.
+            {Env, State3} = case Module =:= erl_eval andalso Type =:= local of
+                                false -> to_standalone_env(State2);
+                                true  -> {[], State2}
+                            end,
 
-            #standalone_fun{module = GeneratedModuleName,
-                            beam = Beam,
-                            arity = Arity,
-                            env = Env};
+            %% We offer one last chance to the caller to determine if a
+            %% standalone function is still useful for him.
+            %%
+            %% This callback is only used for the top-level lambda. In other
+            %% words, if the `env' contains other lambdas (i.e. anonymous
+            %% functions passed as argument to the top-level one), the
+            %% callback is not used. However, calls and errors from those
+            %% inner lambdas are accumulated and can be used by the callback.
+            case is_standalone_fun_still_needed(State3) of
+                true ->
+                    process_errors(State3),
+
+                    Asm = pass2(State3),
+                    {GeneratedModuleName, Beam} = compile(Asm),
+
+                    StandaloneFun = #standalone_fun{
+                                       module = GeneratedModuleName,
+                                       beam = Beam,
+                                       arity = Arity,
+                                       env = Env},
+                    {StandaloneFun, State3};
+                false ->
+                    {Fun, State3}
+            end;
         false ->
-            validate(State1),
-            Fun
+            process_errors(State1),
+            {Fun, State1}
     end.
 
 -spec compile(Asm) -> {Module, Beam} when
@@ -656,27 +704,33 @@ should_process_function(
             State1 = State#state{errors = Errors1},
             {false, State1}
     end;
-should_process_function(Module, Name, Arity, FromModule, State) ->
-    {default_should_process_function(Module, Name, Arity, FromModule),
+should_process_function(Module, Name, Arity, _FromModule, State) ->
+    {default_should_process_function(Module, Name, Arity),
      State}.
 
-default_should_process_function(erlang, _Name, _Arity, _FromModule) ->
-    false;
-default_should_process_function(_Module, _Name, _Arity, _FromModule) ->
-    true.
+default_should_process_function(erlang, _Name, _Arity)  -> false;
+default_should_process_function(_Module, _Name, _Arity) -> true.
 
--spec validate(State) -> ok when
-      State :: #state{}.
+-spec is_standalone_fun_still_needed(State) -> IsNeeded when
+      State :: #state{},
+      IsNeeded :: boolean().
 
-validate(
-  #state{options = #{validate := Callback},
+is_standalone_fun_still_needed(
+  #state{options = #{is_standalone_fun_still_needed := Callback},
          all_calls = Calls,
          errors = Errors})
   when is_function(Callback) ->
     Callback(#{calls => Calls,
                errors => Errors});
-validate(_State) ->
-    ok.
+is_standalone_fun_still_needed(_State) ->
+    true.
+
+-spec process_errors(State) -> ok | no_return() when
+      State :: #state{}.
+
+%% TODO: Return all errors?
+process_errors(#state{errors = []})          -> ok;
+process_errors(#state{errors = [Error | _]}) -> throw(Error).
 
 %% -------------------------------------------------------------------
 %% Code processing [Pass 2]
@@ -906,34 +960,52 @@ gen_function_name(
 %% Environment handling.
 %% -------------------------------------------------------------------
 
--spec to_standalone_env(State) -> StandaloneEnv when
+-spec to_standalone_env(State) -> {StandaloneEnv, State} when
       State :: #state{},
       StandaloneEnv :: list().
 
-to_standalone_env(#state{fun_info = #{env := Env}} = State) ->
-    to_standalone_arg(Env, State).
+to_standalone_env(#state{fun_info = #{env := Env},
+                         options = Options} = State) ->
+    State1 = State#state{options = maps:remove(
+                                     is_standalone_fun_still_needed,
+                                     Options)},
+    {Env1, State2} = to_standalone_arg(Env, State1),
+    State3 = State2#state{options = Options},
+    {Env1, State3}.
 
 to_standalone_arg(List, State) when is_list(List) ->
-    lists:map(
-      fun(Item) ->
-              to_standalone_arg(Item, State)
-      end, List);
+    lists:foldr(
+      fun(Item, {L, St}) ->
+              {Item1, St1} = to_standalone_arg(Item, St),
+              {[Item1 | L], St1}
+      end, {[], State}, List);
 to_standalone_arg(Tuple, State) when is_tuple(Tuple) ->
     List0 = tuple_to_list(Tuple),
-    List1 = to_standalone_arg(List0, State),
-    list_to_tuple(List1);
+    {List1, State1} = to_standalone_arg(List0, State),
+    Tuple1 = list_to_tuple(List1),
+    {Tuple1, State1};
 to_standalone_arg(Map, State) when is_map(Map) ->
     maps:fold(
-      fun(Key, Value, Acc) ->
-              Key1 = to_standalone_arg(Key, State),
-              Value1 = to_standalone_arg(Value, State),
-              Acc#{Key1 => Value1}
-      end, #{}, Map);
-to_standalone_arg(Fun, #state{options = Options})
+      fun(Key, Value, {M, St}) ->
+              {Key1, St1} = to_standalone_arg(Key, St),
+              {Value1, St2} = to_standalone_arg(Value, St1),
+              M1 = M#{Key1 => Value1},
+              {M1, St2}
+      end, {#{}, State}, Map);
+to_standalone_arg(Fun, #state{options = Options,
+                              all_calls = AllCalls,
+                              errors = Errors} = State)
   when is_function(Fun) ->
-    to_standalone_fun(Fun, Options);
-to_standalone_arg(Term, _State) ->
-    Term.
+    {StandaloneFun, InnerState} = to_standalone_fun1(Fun, Options),
+    #state{all_calls = InnerAllCalls,
+           errors = InnerErrors} = InnerState,
+    AllCalls1 = maps:merge(AllCalls, InnerAllCalls),
+    Errors1 = Errors ++ InnerErrors,
+    State1 = State#state{all_calls = AllCalls1,
+                         errors = Errors1},
+    {StandaloneFun, State1};
+to_standalone_arg(Term, State) ->
+    {Term, State}.
 
 to_actual_arg(#standalone_fun{arity = Arity} = StandaloneFun) ->
     case Arity of

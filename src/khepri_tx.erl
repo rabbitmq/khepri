@@ -49,7 +49,7 @@
 %%   1. The function must be added to the whitelist in
 %%      `is_remote_call_valid()' in this file.
 %%   2. If the function modifies the tree, it must be handled in
-%%      `validate()' is this file too.
+%%      `is_standalone_fun_still_needed()' is this file too.
 -export([put/2, put/3,
          get/1, get/2,
          exists/1,
@@ -168,9 +168,12 @@ to_standalone_fun(Fun, ReadWrite)
   when is_function(Fun, 0) andalso
        (ReadWrite =:= auto orelse ReadWrite =:= rw) ->
     Options =
-    #{ensure_instruction_is_permitted => fun ensure_instruction_is_permitted/1,
-      should_process_function => fun should_process_function/4,
-      validate => fun(Params) -> validate(Params, ReadWrite) end},
+    #{ensure_instruction_is_permitted =>
+      fun ensure_instruction_is_permitted/1,
+      should_process_function =>
+      fun should_process_function/4,
+      is_standalone_fun_still_needed =>
+      fun(Params) -> is_standalone_fun_still_needed(Params, ReadWrite) end},
     try
         khepri_fun:to_standalone_fun(Fun, Options)
     catch
@@ -448,24 +451,16 @@ is_remote_call_valid(unicode, _, _) -> true;
 
 is_remote_call_valid(_, _, _) -> false.
 
-validate(#{errors := Errors}, rw) ->
-    process_errors(Errors);
-validate(#{calls := Calls, errors := Errors}, auto) ->
+is_standalone_fun_still_needed(_, rw) ->
+    true;
+is_standalone_fun_still_needed(#{calls := Calls}, auto) ->
     ReadWrite = case Calls of
                     #{{khepri_tx, put, 2} := _}    -> rw;
                     #{{khepri_tx, put, 3} := _}    -> rw;
                     #{{khepri_tx, delete, 1} := _} -> rw;
                     _                              -> ro
                 end,
-    case ReadWrite of
-        rw when Errors =:= [] -> ok;
-        rw                    -> process_errors(Errors);
-        ro                    -> throw(readonly_tx_fun_detected)
-    end.
-
-%% TODO: Return all errors?
-process_errors([])          -> ok;
-process_errors([Error | _]) -> throw(Error).
+    ReadWrite =:= rw.
 
 -spec run(State, Fun, AllowUpdates) -> Ret when
       State :: khepri_machine:state(),

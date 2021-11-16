@@ -502,7 +502,14 @@ when_readwrite_mode_is_true_test() ->
        is_function(khepri_tx:to_standalone_fun(
                      fun dict:new/0,
                      rw),
-                   0)).
+                   0)),
+
+    Fun = fun() -> khepri_tx:delete([foo]) end,
+    ?assert(
+       is_record(khepri_tx:to_standalone_fun(
+                   fun() -> Fun() end,
+                   rw),
+                 standalone_fun)).
 
 when_readwrite_mode_is_false_test() ->
     ?assert(
@@ -548,6 +555,13 @@ when_readwrite_mode_is_false_test() ->
        is_function(khepri_tx:to_standalone_fun(
                      fun dict:new/0,
                      ro),
+                   0)),
+
+    Fun = fun() -> khepri_tx:delete([foo]) end,
+    ?assert(
+       is_function(khepri_tx:to_standalone_fun(
+                     fun() -> Fun() end,
+                     ro),
                    0)).
 
 when_readwrite_mode_is_auto_test() ->
@@ -590,4 +604,11 @@ when_readwrite_mode_is_auto_test() ->
        is_function(khepri_tx:to_standalone_fun(
                      fun dict:new/0,
                      auto),
-                   0)).
+                   0)),
+
+    Fun = fun() -> khepri_tx:delete([foo]) end,
+    ?assert(
+       is_record(khepri_tx:to_standalone_fun(
+                   fun() -> Fun() end,
+                   auto),
+                 standalone_fun)).
