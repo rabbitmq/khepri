@@ -91,6 +91,270 @@ unordered_flat_struct_to_tree_test() ->
        khepri_utils:flat_struct_to_tree(
          #{[foo, bar] => #{data => bar_data}})).
 
+flat_struct_with_children_before_parents_test() ->
+    %% The following map happens to trigger a situation where the key of a
+    %% child node appears before the key of its parent in maps:fold/3, at least
+    %% with Erlang 24.1.
+    %%
+    %% In other words, the goal of this testcase is to handle this:
+    %% 1. `[foo, bar]' is added to the tree structure.
+    %% 2. `[foo]' is added, even though it is already present in the tree.
+    %%
+    %% It used to hit an assertion because the code didn't handle this case.
+    %% Now it should work and merge `[foo]' node props with its child nodes.
+    FlatStruct = #{[rabbit_auth_backend_internal, users, <<"guest">>,
+                    user_permissions, <<"/">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_vhost, <<"v7">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_vhost, <<"v6">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_vhost, <<"v10">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_vhost] =>
+                   #{child_list_length => 14, child_list_version => 14,
+                     payload_version => 1},
+                   [rabbit_vhost, <<"v5">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_vhost, <<"v3">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_vhost, <<"v9">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_auth_backend_internal, users, <<"guest">>,
+                    user_permissions, <<"v12">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_vhost, <<"v12">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_auth_backend_internal, users, <<"guest">>,
+                    user_permissions, <<"v2">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_vhost, <<"v1">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_auth_backend_internal, users, <<"guest">>,
+                    user_permissions, <<"v1">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_auth_backend_internal, users, <<"guest">>,
+                    user_permissions, <<"v8">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_vhost, <<"/">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_auth_backend_internal] =>
+                   #{child_list_length => 1, child_list_version => 1,
+                     payload_version => 1},
+                   [rabbit_vhost, <<"v4">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_auth_backend_internal, users, <<"guest">>,
+                    user_permissions, <<"v9">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_auth_backend_internal, users, <<"guest">>] =>
+                   #{child_list_length => 1, child_list_version => 2,
+                     data => true, payload_version => 1},
+                   [rabbit_auth_backend_internal, users, <<"guest">>,
+                    user_permissions, <<"v11">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_vhost, <<"v8">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_vhost, <<"v13">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_vhost, <<"v11">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_auth_backend_internal, users, <<"guest">>,
+                    user_permissions] =>
+                   #{child_list_length => 14, child_list_version => 14,
+                     payload_version => 1},
+                   [rabbit_auth_backend_internal, users] =>
+                   #{child_list_length => 1, child_list_version => 1,
+                     payload_version => 1},
+                   [rabbit_vhost, <<"v2">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_auth_backend_internal, users, <<"guest">>,
+                    user_permissions, <<"v5">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_auth_backend_internal, users, <<"guest">>,
+                    user_permissions, <<"v7">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_auth_backend_internal, users, <<"guest">>,
+                    user_permissions, <<"v13">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_auth_backend_internal, users, <<"guest">>,
+                    user_permissions, <<"v6">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_auth_backend_internal, users, <<"guest">>,
+                    user_permissions, <<"v4">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_auth_backend_internal, users, <<"guest">>,
+                    user_permissions, <<"v10">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1},
+                   [rabbit_auth_backend_internal, users, <<"guest">>,
+                    user_permissions, <<"v3">>] =>
+                   #{child_list_length => 0, child_list_version => 1,
+                     data => true, payload_version => 1}},
+    Tree = khepri_utils:flat_struct_to_tree(FlatStruct),
+    ?assertEqual(
+       #{child_nodes =>
+         #{rabbit_auth_backend_internal =>
+           #{child_list_length => 1, child_list_version => 1,
+             payload_version => 1,
+             child_nodes =>
+             #{users =>
+               #{child_list_length => 1, child_list_version => 1,
+                 payload_version => 1,
+                 child_nodes =>
+                 #{<<"guest">> =>
+                   #{child_list_length => 1,
+                     child_list_version => 2,
+                     data => true,
+                     payload_version => 1,
+                     child_nodes =>
+                     #{user_permissions =>
+                       #{child_list_length => 14,
+                         child_list_version => 14,
+                         payload_version => 1,
+                         child_nodes =>
+                         #{<<"/">> =>
+                           #{child_list_length => 0,
+                             child_list_version => 1,
+                             data => true,
+                             payload_version => 1},
+                           <<"v1">> =>
+                           #{child_list_length => 0,
+                             child_list_version => 1,
+                             data => true,
+                             payload_version => 1},
+                           <<"v10">> =>
+                           #{child_list_length => 0,
+                             child_list_version => 1,
+                             data => true,
+                             payload_version => 1},
+                           <<"v11">> =>
+                           #{child_list_length => 0,
+                             child_list_version => 1,
+                             data => true,
+                             payload_version => 1},
+                           <<"v12">> =>
+                           #{child_list_length => 0,
+                             child_list_version => 1,
+                             data => true,
+                             payload_version => 1},
+                           <<"v13">> =>
+                           #{child_list_length => 0,
+                             child_list_version => 1,
+                             data => true,
+                             payload_version => 1},
+                           <<"v2">> =>
+                           #{child_list_length => 0,
+                             child_list_version => 1,
+                             data => true,
+                             payload_version => 1},
+                           <<"v3">> =>
+                           #{child_list_length => 0,
+                             child_list_version => 1,
+                             data => true,
+                             payload_version => 1},
+                           <<"v4">> =>
+                           #{child_list_length => 0,
+                             child_list_version => 1,
+                             data => true,
+                             payload_version => 1},
+                           <<"v5">> =>
+                           #{child_list_length => 0,
+                             child_list_version => 1,
+                             data => true,
+                             payload_version => 1},
+                           <<"v6">> =>
+                           #{child_list_length => 0,
+                             child_list_version => 1,
+                             data => true,
+                             payload_version => 1},
+                           <<"v7">> =>
+                           #{child_list_length => 0,
+                             child_list_version => 1,
+                             data => true,
+                             payload_version => 1},
+                           <<"v8">> =>
+                           #{child_list_length => 0,
+                             child_list_version => 1,
+                             data => true,
+                             payload_version => 1},
+                           <<"v9">> =>
+                           #{child_list_length => 0,
+                             child_list_version => 1,
+                             data => true,
+                             payload_version => 1}}}}}}}}},
+           rabbit_vhost =>
+           #{child_list_length => 14, child_list_version => 14,
+             payload_version => 1,
+             child_nodes =>
+             #{<<"/">> =>
+               #{child_list_length => 0, child_list_version => 1,
+                 data => true, payload_version => 1},
+               <<"v1">> =>
+               #{child_list_length => 0, child_list_version => 1,
+                 data => true, payload_version => 1},
+               <<"v10">> =>
+               #{child_list_length => 0, child_list_version => 1,
+                 data => true, payload_version => 1},
+               <<"v11">> =>
+               #{child_list_length => 0, child_list_version => 1,
+                 data => true, payload_version => 1},
+               <<"v12">> =>
+               #{child_list_length => 0, child_list_version => 1,
+                 data => true, payload_version => 1},
+               <<"v13">> =>
+               #{child_list_length => 0, child_list_version => 1,
+                 data => true, payload_version => 1},
+               <<"v2">> =>
+               #{child_list_length => 0, child_list_version => 1,
+                 data => true, payload_version => 1},
+               <<"v3">> =>
+               #{child_list_length => 0, child_list_version => 1,
+                 data => true, payload_version => 1},
+               <<"v4">> =>
+               #{child_list_length => 0, child_list_version => 1,
+                 data => true, payload_version => 1},
+               <<"v5">> =>
+               #{child_list_length => 0, child_list_version => 1,
+                 data => true, payload_version => 1},
+               <<"v6">> =>
+               #{child_list_length => 0, child_list_version => 1,
+                 data => true, payload_version => 1},
+               <<"v7">> =>
+               #{child_list_length => 0, child_list_version => 1,
+                 data => true, payload_version => 1},
+               <<"v8">> =>
+               #{child_list_length => 0, child_list_version => 1,
+                 data => true, payload_version => 1},
+               <<"v9">> =>
+               #{child_list_length => 0, child_list_version => 1,
+                 data => true, payload_version => 1}}}}}, Tree).
+
 display_simple_tree_test() ->
     Commands = [#put{path = [foo],
                      payload = ?DATA_PAYLOAD(foo_value)}],
