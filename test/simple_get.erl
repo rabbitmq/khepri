@@ -52,7 +52,10 @@ get_many_nodes_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [baz], baz_value)),
       ?_assertEqual(
-         {ok, #{[foo] => #{payload_version => 1,
+         {ok, #{[] => #{payload_version => 1,
+                        child_list_version => 3,
+                        child_list_length => 2},
+                [foo] => #{payload_version => 1,
                            child_list_version => 1,
                            child_list_length => 1},
                 [baz] => #{data => baz_value,
@@ -110,7 +113,10 @@ list_existing_node_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [baz], baz_value)),
       ?_assertEqual(
-         {ok, #{[foo] => #{payload_version => 1,
+         {ok, #{[] => #{payload_version => 1,
+                        child_list_version => 3,
+                        child_list_length => 2},
+                [foo] => #{payload_version => 1,
                            child_list_version => 1,
                            child_list_length => 1},
                 [baz] => #{data => baz_value,
