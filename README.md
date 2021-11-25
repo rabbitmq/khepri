@@ -22,6 +22,11 @@ state machine in a Ra cluster.
 Khepri is still under active development and should be considered *Alpha* at
 this stage.
 
+## Documentation
+
+* A short tutorial in the [Getting started](#getting-started) section below
+* [Documentation and API reference](https://rabbitmq.github.io/khepri/)
+
 ## Getting started
 
 ### Add as a dependency
