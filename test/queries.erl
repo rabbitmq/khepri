@@ -168,10 +168,10 @@ query_many_nodes_recursively_test() ->
                      payload = ?DATA_PAYLOAD(pouet_value)}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Root = khepri_machine:get_root(S0),
-    Ret = khepri_machine:find_matching_nodes(
-            Root,
-            [#if_path_matches{regex = any}],
-            #{}),
+    Ret1 = khepri_machine:find_matching_nodes(
+             Root,
+             [#if_path_matches{regex = any}],
+             #{}),
 
     ?assertEqual(
        {ok, #{[] => #{payload_version => 1,
@@ -196,7 +196,13 @@ query_many_nodes_recursively_test() ->
                                 payload_version => 1,
                                 child_list_version => 1,
                                 child_list_length => 0}}},
-       Ret).
+       Ret1),
+
+    Ret2 = khepri_machine:find_matching_nodes(
+             Root,
+             [?ROOT_NODE, #if_path_matches{regex = any}],
+             #{}),
+    ?assertEqual(Ret1, Ret2).
 
 query_many_nodes_recursively_using_regex_test() ->
     Commands = [#put{path = [foo, bar],

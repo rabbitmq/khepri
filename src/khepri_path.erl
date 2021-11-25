@@ -341,6 +341,9 @@ realpath([Component | Rest], Result) ->
 realpath([], Result) ->
     lists:reverse(Result).
 
-pattern_includes_root_node([#if_name_matches{regex = any}]) -> true;
-pattern_includes_root_node([#if_path_matches{regex = any}]) -> true;
-pattern_includes_root_node(_)                               -> false.
+pattern_includes_root_node(Path) ->
+    pattern_includes_root_node1(realpath(Path)).
+
+pattern_includes_root_node1([#if_name_matches{regex = any}]) -> true;
+pattern_includes_root_node1([#if_path_matches{regex = any}]) -> true;
+pattern_includes_root_node1(_)                               -> false.
