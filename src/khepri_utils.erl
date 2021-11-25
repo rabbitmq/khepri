@@ -44,8 +44,15 @@ flat_struct_to_tree([ChildName | [_ | _] = Path], NodeProps, Tree) ->
     end,
     Tree#{ChildName => Child1};
 flat_struct_to_tree([ChildName], NodeProps, Tree) ->
-    ?assertNot(maps:is_key(ChildName, Tree)),
-    Tree#{ChildName => NodeProps}.
+    case Tree of
+        #{ChildName := Child} ->
+            ?assertEqual([child_nodes], maps:keys(Child)),
+            ?assertNot(maps:is_key(child_nodes, NodeProps)),
+            NodeProps1 = maps:merge(NodeProps, Child),
+            Tree#{ChildName => NodeProps1};
+        _ ->
+            Tree#{ChildName => NodeProps}
+    end.
 
 -spec display_tree(khepri_machine:node_props()) -> ok.
 
