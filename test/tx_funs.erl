@@ -44,7 +44,8 @@ allowed_khepri_tx_api_test() ->
            _ = khepri_tx:list([foo]),
            _ = khepri_tx:find([foo], ?STAR),
            _ = khepri_tx:delete([foo]),
-           _ = khepri_tx:abort(error)
+           _ = khepri_tx:abort(error),
+           _ = khepri_tx:is_transaction()
        end).
 
 denied_khepri_tx_run_3_test() ->

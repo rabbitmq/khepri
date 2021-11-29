@@ -72,6 +72,29 @@ fun_extraction_test() ->
             end
     end.
 
+is_transaction_test_() ->
+    [?_assertNot(khepri_tx:is_transaction()),
+     {setup,
+      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+      [?_assertEqual(
+          {atomic, true},
+          begin
+              Fun = fun() ->
+                            khepri_tx:is_transaction()
+                    end,
+              khepri_machine:transaction(?FUNCTION_NAME, Fun, ro)
+          end),
+       ?_assertEqual(
+          {atomic, true},
+          begin
+              Fun = fun() ->
+                            khepri_tx:is_transaction()
+                    end,
+              khepri_machine:transaction(?FUNCTION_NAME, Fun, rw)
+          end)]}
+    ].
+
 noop_in_ro_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
