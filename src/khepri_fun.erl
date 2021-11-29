@@ -7,10 +7,10 @@
 
 %% @doc Anonymous function extraction API.
 %%
-%% This module is responsible for extracting the code of an anonymous
-%% function. The goal is to be able to store the extracted function and
-%% execute it later, regardless of the available of the initial Erlang module
-%% which declared it.
+%% This module is responsible for extracting the code of an anonymous function.
+%% The goal is to be able to store the extracted function and execute it later,
+%% regardless of the availability of the initial Erlang module which declared
+%% it.
 %%
 %% This module also provides a way for the caller to indicate forbidden
 %% operations or function calls.
