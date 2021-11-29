@@ -57,7 +57,8 @@
          list/1,
          find/2,
          delete/1,
-         abort/1]).
+         abort/1,
+         is_transaction/0]).
 
 %% For internal user only.
 -export([to_standalone_fun/2,
@@ -158,6 +159,12 @@ delete(PathPattern) ->
 
 abort(Reason) ->
     throw({aborted, Reason}).
+
+-spec is_transaction() -> boolean().
+
+is_transaction() ->
+    State = erlang:get(?TX_STATE_KEY),
+    is_record(State, khepri_machine).
 
 -spec to_standalone_fun(Fun, ReadWrite) -> StandaloneFun | no_return() when
       Fun :: fun(),
@@ -349,6 +356,7 @@ is_remote_call_valid(khepri_tx, list, _) -> true;
 is_remote_call_valid(khepri_tx, find, _) -> true;
 is_remote_call_valid(khepri_tx, delete, _) -> true;
 is_remote_call_valid(khepri_tx, abort, _) -> true;
+is_remote_call_valid(khepri_tx, is_transaction, _) -> true;
 
 is_remote_call_valid(_, module_info, _) -> false;
 
