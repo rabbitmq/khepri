@@ -1,5 +1,6 @@
 # The Khepri database library
 
+[![Hex.pm](https://img.shields.io/hexpm/v/khepri)](https://hex.pm/packages/khepri/)
 [![Test](https://github.com/rabbitmq/khepri/actions/workflows/test.yaml/badge.svg)](https://github.com/rabbitmq/khepri/actions/workflows/test.yaml)
 [![Coverage status](https://coveralls.io/repos/github/rabbitmq/khepri/badge.svg?branch=main)](https://coveralls.io/github/rabbitmq/khepri?branch=main)
 
