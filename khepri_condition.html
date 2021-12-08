@@ -86,7 +86,7 @@
 
 <h2><a name="description">Description</a></h2><p>Condition support.</p>
  
-  <p>Conditions can be used in path patterns and <code>keep_until</code> conditions.</p>
+  <p>Conditions can be used in path patterns and <code>keep_while</code> conditions.</p>
  
   <p>A condition is an Erlang record defining a specific property. Some of them  
 have arguments to further define the condition.</p>
@@ -268,8 +268,8 @@ corresponds to the expected value.</p>
   <pre><code>#if_payload_version{version = 1}.
 #if_payload_version{version = {gt, 10}}.</code></pre></p>
 
-<h3 class="typedecl"><a name="type-keep_until">keep_until()</a></h3>
-<p><code>keep_until() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; <a href="#type-condition">condition()</a>}</code></p>
+<h3 class="typedecl"><a name="type-keep_while">keep_while()</a></h3>
+<p><code>keep_while() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; <a href="#type-condition">condition()</a>}</code></p>
 
 
 <h3 class="typedecl"><a name="type-re_mp">re_mp()</a></h3>

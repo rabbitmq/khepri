@@ -244,9 +244,9 @@ tree nodes <code>stock</code> and <code>wood</code> were created if they were mi
 <code>&lt;&lt;"walnut"&gt;&gt;</code> is removed, they will stay in the tree with possibly neither
 payload nor child nodes.</p>
 
-<p>Khepri has the concept of <em><code>keep_until</code> conditions</em>. A <code>keep_until</code>
+<p>Khepri has the concept of <em><code>keep_while</code> conditions</em>. A <code>keep_while</code>
 condition is like the conditions which can be used inside path pattern. When a
-node is inserted or updated, it is possible to set <code>keep_until</code> conditions:
+node is inserted or updated, it is possible to set <code>keep_while</code> conditions:
 when these conditions evaluate to false, the tree node is removed from the
 tree.</p>
 
@@ -254,9 +254,9 @@ For instance, it is possible to set the following condition on <code>[stock, woo
 to make sure it is removed after its last child node is removed:
 <pre><code>%% We keep [stock, wood] as long as its child nodes count is strictly greater
 %% then zero.
-KeepUntilCondition = #{[stock, wood] =&gt; #if_child_list_length{count = {gt, 0}}}.</code></pre>
+KeepWhileCondition = #{[stock, wood] =&gt; #if_child_list_length{count = {gt, 0}}}.</code></pre>
 
-<p><code>keep_until</code> conditions on self (like the example above) are not evaluated on
+<p><code>keep_while</code> conditions on self (like the example above) are not evaluated on
 the first insert though.</p>
 
 <h3><a name="Khepri_API">Khepri API</a></h3>

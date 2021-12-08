@@ -162,13 +162,13 @@ added or removed).</p>
 <p><code>data() = any()</code></p>
 <p>  Data stored in a node's payload.</p>
 
-<h3 class="typedecl"><a name="type-keep_untils_map">keep_untils_map()</a></h3>
-<p><code>keep_untils_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_until">khepri_condition:keep_until()</a>}</code></p>
-<p>  Internal index of the per-node keep_until conditions.</p>
+<h3 class="typedecl"><a name="type-keep_while_conds_map">keep_while_conds_map()</a></h3>
+<p><code>keep_while_conds_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></p>
+<p>  Internal index of the per-node keep_while conditions.</p>
 
-<h3 class="typedecl"><a name="type-keep_untils_revidx">keep_untils_revidx()</a></h3>
-<p><code>keep_untils_revidx() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; ok}}</code></p>
-<p>  Internal reverse index of the keep_until conditions. If node A depends on a
+<h3 class="typedecl"><a name="type-keep_while_conds_revidx">keep_while_conds_revidx()</a></h3>
+<p><code>keep_while_conds_revidx() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; ok}}</code></p>
+<p>  Internal reverse index of the keep_while conditions. If node A depends on a
   condition on node B, then this reverse index will have a "node B =&gt; node A"
   entry.</p>
 
@@ -224,7 +224,7 @@ payload and child nodes.</p>
 <p>  Stats attached to each node in the tree structure.</p>
 
 <h3 class="typedecl"><a name="type-state">state()</a></h3>
-<p><code>state() = #khepri_machine{config = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-machine_config">khepri_machine:machine_config()</a>, root = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tree_node">khepri_machine:tree_node()</a>, keep_untils = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_untils_map">khepri_machine:keep_untils_map()</a>, keep_untils_revidx = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_untils_revidx">khepri_machine:keep_untils_revidx()</a>, metrics = any()}</code></p>
+<p><code>state() = #khepri_machine{config = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-machine_config">khepri_machine:machine_config()</a>, root = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tree_node">khepri_machine:tree_node()</a>, keep_while_conds = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_while_conds_map">khepri_machine:keep_while_conds_map()</a>, keep_while_conds_revidx = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_while_conds_revidx">khepri_machine:keep_while_conds_revidx()</a>, metrics = any()}</code></p>
 <p>  State of this Ra state machine.</p>
 
 <h3 class="typedecl"><a name="type-tree_node">tree_node()</a></h3>
@@ -258,12 +258,12 @@ payload and child nodes.</p>
 <h3 class="function"><a name="put-4">put/4</a></h3>
 <div class="spec">
 <p><code>put(StoreId, PathPattern, Payload, Extra) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Payload = <a href="#type-payload">payload()</a></code></li><li><code>Extra = #{keep_until =&gt; <a href="#type-keep_untils_map">keep_untils_map()</a>}</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Payload = <a href="#type-payload">payload()</a></code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
 <code>Payload</code>: the payload to put in the specified node.<br>
-<code>Extra</code>: extra options such as <code>keep_until</code> conditions.
+<code>Extra</code>: extra options such as <code>keep_while</code> conditions.
  <br>
 </p>
 <p>returns: an "ok" tuple with a map with one entry, or an "error" tuple.</p>
