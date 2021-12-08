@@ -1009,14 +1009,14 @@ info(StoreId) ->
     Nodes = lists:sort([Node || {_, Node} <- members(StoreId)]),
     lists:foreach(fun(Node) -> io:format("~ts~n", [Node]) end, Nodes),
 
-    case khepri_machine:get_keep_untils_state(StoreId) of
-        {ok, KeepUntils} when KeepUntils =/= #{} ->
+    case khepri_machine:get_keep_while_conds_state(StoreId) of
+        {ok, KeepWhileConds} when KeepWhileConds =/= #{} ->
             io:format("~n\033[1;32m== LIFETIME DEPS ==\033[0m~n", []),
-            WatcherList = lists:sort(maps:keys(KeepUntils)),
+            WatcherList = lists:sort(maps:keys(KeepWhileConds)),
             lists:foreach(
               fun(Watcher) ->
                       io:format("~n\033[1m~p depends on:\033[0m~n", [Watcher]),
-                      WatchedsMap = maps:get(Watcher, KeepUntils),
+                      WatchedsMap = maps:get(Watcher, KeepWhileConds),
                       Watcheds = lists:sort(maps:keys(WatchedsMap)),
                       lists:foreach(
                         fun(Watched) ->

@@ -171,9 +171,9 @@ tree nodes `stock' and `wood' were created if they were missing. After
 `<<"walnut">>' is removed, they will stay in the tree with possibly neither
 payload nor child nodes.
 
-Khepri has the concept of <em>`keep_until' conditions</em>. A `keep_until'
+Khepri has the concept of <em>`keep_while' conditions</em>. A `keep_while'
 condition is like the conditions which can be used inside path pattern. When a
-node is inserted or updated, it is possible to set `keep_until' conditions:
+node is inserted or updated, it is possible to set `keep_while' conditions:
 when these conditions evaluate to false, the tree node is removed from the
 tree.
 
@@ -182,10 +182,10 @@ to make sure it is removed after its last child node is removed:
 ```
 %% We keep [stock, wood] as long as its child nodes count is strictly greater
 %% then zero.
-KeepUntilCondition = #{[stock, wood] => #if_child_list_length{count = {gt, 0}}}.
+KeepWhileCondition = #{[stock, wood] => #if_child_list_length{count = {gt, 0}}}.
 '''
 
-`keep_until' conditions on self (like the example above) are not evaluated on
+`keep_while' conditions on self (like the example above) are not evaluated on
 the first insert though.
 
 == Khepri API ==

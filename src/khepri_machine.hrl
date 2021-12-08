@@ -14,6 +14,7 @@
 -record(khepri_machine,
         {config = #config{} :: khepri_machine:machine_config(),
          root = #node{stat = ?INIT_NODE_STAT} :: khepri_machine:tree_node(),
-         keep_untils = #{} :: khepri_machine:keep_untils_map(),
-         keep_untils_revidx = #{} :: khepri_machine:keep_untils_revidx(),
+         keep_while_conds = #{} :: khepri_machine:keep_while_conds_map(),
+         keep_while_conds_revidx = #{}
+           :: khepri_machine:keep_while_conds_revidx(),
          metrics = #{}}).

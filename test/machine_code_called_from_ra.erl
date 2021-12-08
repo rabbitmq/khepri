@@ -63,8 +63,8 @@ delete_a_node_test_() ->
             khepri_machine:get(?FUNCTION_NAME, [foo]))}]}
      ]}.
 
-query_keep_untils_state_test_() ->
-    KeepUntil = #{[?THIS_NODE] => #if_child_list_length{count = {gt, 0}}},
+query_keep_while_conds_state_test_() ->
+    KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = {gt, 0}}},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -76,8 +76,8 @@ query_keep_untils_state_test_() ->
                    ?FUNCTION_NAME,
                    [foo],
                    ?DATA_PAYLOAD(foo_value),
-                   #{keep_until => KeepUntil}),
-             khepri_machine:get_keep_untils_state(?FUNCTION_NAME)
+                   #{keep_while => KeepWhile}),
+             khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME)
          end)]}.
 
 use_an_invalid_path_test_() ->

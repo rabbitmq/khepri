@@ -90,7 +90,7 @@ put(PathPattern, Payload) ->
 -spec put(PathPattern, Payload, Extra) -> Result when
       PathPattern :: khepri_path:pattern(),
       Payload :: khepri_machine:payload(),
-      Extra :: #{keep_until => khepri_condition:keep_until()},
+      Extra :: #{keep_while => khepri_condition:keep_while()},
       Result :: khepri_machine:result().
 %% @doc Creates or modifies a specific tree node in the tree structure.
 
