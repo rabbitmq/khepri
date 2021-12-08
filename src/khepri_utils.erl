@@ -14,7 +14,9 @@
 -export([flat_struct_to_tree/1,
          display_tree/1,
          display_tree/2,
-         display_tree/3]).
+         display_tree/3,
+         should_collect_code_for_module/1,
+         format_exception/4]).
 
 %% khepri:get_root/1 is unexported when compiled without `-DTEST'.
 -dialyzer(no_missing_calls).
@@ -92,6 +94,7 @@ display_nodes([Key | Rest], Children, Prefix, Options) ->
     DataPrefix = NewPrefix ++ data_prefix(NodeProps, Options),
     case NodeProps of
         #{data := Data} -> display_data(Data, DataPrefix, Options);
+        #{sproc := Fun} -> display_data(Fun, DataPrefix, Options);
         _               -> ok
     end,
     display_tree(NodeProps, NewPrefix, Options),
@@ -143,3 +146,88 @@ data_prefix(_, _Options)                            -> "  ".
 
 format_data(Data, _Options) ->
     lists:flatten(io_lib:format("Data: ~tp", [Data])).
+
+%% -------------------------------------------------------------------
+%% Helpers to standalone function extraction.
+%% -------------------------------------------------------------------
+
+should_collect_code_for_module(Module) ->
+    Modules = get_list_of_module_to_skip(),
+    not maps:is_key(Module, Modules).
+
+get_list_of_module_to_skip() ->
+    Key = {?MODULE, skipped_modules_in_code_collection},
+    case persistent_term:get(Key, undefined) of
+        Modules when Modules =/= undefined ->
+            Modules;
+        undefined ->
+            InitialModules = #{erlang => true},
+            Applications = [erts,
+                            kernel,
+                            stdlib,
+                            mnesia,
+                            sasl,
+                            ssl,
+                            khepri],
+            Modules = lists:foldl(
+                        fun(App, Modules0) ->
+                                _ = application:load(App),
+                                case application:get_key(App, modules) of
+                                    {ok, Mods} ->
+                                        lists:foldl(
+                                          fun(Mod, Modules1) ->
+                                                  Modules1#{Mod => true}
+                                          end, Modules0, Mods);
+                                    undefined ->
+                                        Modules0
+                                end
+                        end, InitialModules, Applications),
+            persistent_term:put(Key, Modules),
+
+            %% Applications which were not loaded before this function are not
+            %% unloaded now: we have no way to determine if another process
+            %% could have loaded them in parallel.
+
+            Modules
+    end.
+
+-if(?OTP_RELEASE >= 24).
+format_exception(Class, Reason, Stacktrace, Options) ->
+    erl_error:format_exception(Class, Reason, Stacktrace, Options).
+-else.
+format_exception(Class, Reason, Stacktrace, Options) ->
+    Column = case Options of
+                 #{column := C} when is_integer(C) andalso C > 1 -> C;
+                 _                                               -> 1
+             end,
+    Prefix = string:chars($\s, Column - 1),
+    StacktraceStrs = [begin
+                          case proplists:get_value(line, Props) of
+                              undefined when is_list(ArgListOrArity) ->
+                                  io_lib:format(
+                                    Prefix ++ " ~ts:~ts/~b~n" ++
+                                    Prefix ++ "     args: ~p",
+                                    [Mod, Fun, length(ArgListOrArity),
+                                     ArgListOrArity]);
+                              undefined when is_integer(ArgListOrArity) ->
+                                  io_lib:format(
+                                    Prefix ++ " ~ts:~ts/~b",
+                                    [Mod, Fun, ArgListOrArity]);
+                              Line when is_list(ArgListOrArity) ->
+                                  io_lib:format(
+                                    Prefix ++ " ~ts:~ts/~b, line ~b~n" ++
+                                    Prefix ++ "     args: ~p",
+                                    [Mod, Fun, length(ArgListOrArity), Line,
+                                     ArgListOrArity]);
+                              Line when is_integer(ArgListOrArity) ->
+                                  io_lib:format(
+                                    Prefix ++ " ~ts:~ts/~b, line ~b",
+                                    [Mod, Fun, ArgListOrArity, Line])
+                          end
+                      end
+                      || {Mod, Fun, ArgListOrArity, Props} <- Stacktrace],
+    io_lib:format(
+      Prefix ++ "exception ~s: ~p~n"
+      "~ts",
+      [Class, Reason, string:join(StacktraceStrs, "\n")]).
+-endif.

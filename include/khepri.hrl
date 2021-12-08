@@ -33,10 +33,16 @@
 -define(IS_PATH_PATTERN(Path),
         (Path =:= [] orelse ?IS_PATH_CONDITION(hd(Path)))).
 
+%% -------------------------------------------------------------------
+%% Payload types.
+%% -------------------------------------------------------------------
+
 -record(kpayload_data, {data :: khepri_machine:data()}).
+-record(kpayload_sproc, {sproc :: khepri_fun:standalone_fun()}).
 
 -define(IS_KHEPRI_PAYLOAD(Payload), (Payload =:= none orelse
-                                     is_record(Payload, kpayload_data))).
+                                     is_record(Payload, kpayload_data) orelse
+                                     is_record(Payload, kpayload_sproc))).
 
 %% -------------------------------------------------------------------
 %% Path conditions.
@@ -88,3 +94,14 @@
 
 -record(if_any,
         {conditions = [] :: [khepri_path:pattern_component()]}).
+
+%% -------------------------------------------------------------------
+%% Event filtering.
+%% -------------------------------------------------------------------
+
+-record(kevf_tree, {path :: khepri_path:pattern(),
+                    props = #{} :: #{on_actions => [create | update | delete],
+                                     priority => integer()}}).
+%-record(kevf_process, {pid :: pid(),
+%                       props = #{} :: #{on_reason => ets:match_pattern(),
+%                                        priority => integer()}}).

@@ -9,7 +9,8 @@
 -define(SNAPSHOT_INTERVAL, 4096).
 
 -record(config,
-        {snapshot_interval = ?SNAPSHOT_INTERVAL :: non_neg_integer()}).
+        {store_id :: khepri:store_id(),
+         snapshot_interval = ?SNAPSHOT_INTERVAL :: non_neg_integer()}).
 
 -record(khepri_machine,
         {config = #config{} :: khepri_machine:machine_config(),
@@ -17,4 +18,9 @@
          keep_while_conds = #{} :: khepri_machine:keep_while_conds_map(),
          keep_while_conds_revidx = #{}
            :: khepri_machine:keep_while_conds_revidx(),
-         metrics = #{}}).
+         triggers = #{} ::
+           #{khepri_machine:trigger_id() =>
+             #{sproc := khepri_path:path(),
+               event_filter := khepri_machine:event_filter()}},
+         emitted_triggers = [] :: [khepri_machine:triggered()],
+         metrics = #{} :: #{applied_command_count => non_neg_integer()}}).

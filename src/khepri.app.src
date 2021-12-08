@@ -15,6 +15,7 @@
     ra
    ]},
   {env,[]},
+  {mod, {khepri_app, []}},
   {files, [
     "README.md", "LICENSE", "mix.exs",
     "rebar.config", "rebar.lock", "src", "include"]},
