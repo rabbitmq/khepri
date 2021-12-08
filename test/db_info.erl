@@ -104,8 +104,8 @@ get_store_info_on_running_store_test_() ->
              ?capturedOutput
          end)]}.
 
-get_store_info_with_keep_untils_test_() ->
-    KeepUntil = #{[?THIS_NODE] => #if_child_list_length{count = {gt, 0}}},
+get_store_info_with_keep_while_conds_test_() ->
+    KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = {gt, 0}}},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -113,7 +113,7 @@ get_store_info_with_keep_untils_test_() ->
          {ok, #{[foo] => #{}}},
          khepri_machine:put(
            ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(foo_value),
-           #{keep_until => KeepUntil})),
+           #{keep_while => KeepWhile})),
       ?_assertEqual(
          "\n"
          "\033[1;32m== CLUSTER MEMBERS ==\033[0m\n"

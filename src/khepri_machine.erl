@@ -80,7 +80,7 @@
          delete/2,
          transaction/2,
          transaction/3]).
--export([get_keep_untils_state/1]).
+-export([get_keep_while_conds_state/1]).
 -export([init/1,
          apply/3,
          init_aux/1,
@@ -91,10 +91,10 @@
          delete_matching_nodes/2]).
 
 -ifdef(TEST).
--export([are_keep_until_conditions_met/2,
+-export([are_keep_while_conditions_met/2,
          get_root/1,
-         get_keep_untils/1,
-         get_keep_untils_revidx/1]).
+         get_keep_while_conds/1,
+         get_keep_while_conds_revidx/1]).
 -endif.
 
 -compile({no_auto_import, [apply/3]}).
@@ -172,13 +172,13 @@
 -type machine_config() :: #config{}.
 %% Configuration record, holding read-only or rarely changing fields.
 
--type keep_untils_map() :: #{khepri_path:path() =>
-                             khepri_condition:keep_until()}.
-%% Internal index of the per-node keep_until conditions.
+-type keep_while_conds_map() :: #{khepri_path:path() =>
+                                  khepri_condition:keep_while()}.
+%% Internal index of the per-node keep_while conditions.
 
--type keep_untils_revidx() :: #{khepri_path:path() =>
-                                #{khepri_path:path() => ok}}.
-%% Internal reverse index of the keep_until conditions. If node A depends on a
+-type keep_while_conds_revidx() :: #{khepri_path:path() =>
+                                     #{khepri_path:path() => ok}}.
+%% Internal reverse index of the keep_while conditions. If node A depends on a
 %% condition on node B, then this reverse index will have a "node B => node A"
 %% entry.
 
@@ -194,10 +194,10 @@
 
 -type walk_down_the_tree_extra() :: #{include_root_props =>
                                       boolean(),
-                                      keep_untils =>
-                                      keep_untils_map(),
-                                      keep_untils_revidx =>
-                                      keep_untils_revidx()}.
+                                      keep_while_conds =>
+                                      keep_while_conds_map(),
+                                      keep_while_conds_revidx =>
+                                      keep_while_conds_revidx()}.
 
 -type walk_down_the_tree_fun() ::
     fun((khepri_path:path(),
@@ -225,8 +225,8 @@
               operation_options/0]).
 -export_type([state/0,
               machine_config/0,
-              keep_untils_map/0,
-              keep_untils_revidx/0]).
+              keep_while_conds_map/0,
+              keep_while_conds_revidx/0]).
 
 %% -------------------------------------------------------------------
 %% Machine protocol.
@@ -254,7 +254,7 @@ put(StoreId, PathPattern, Payload) ->
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Payload :: payload(),
-      Extra :: #{keep_until => keep_untils_map()},
+      Extra :: #{keep_while => keep_while_conds_map()},
       Result :: result().
 %% @doc Creates or modifies a specific tree node in the tree structure.
 %%
@@ -303,7 +303,7 @@ put(StoreId, PathPattern, Payload) ->
 %% @param PathPattern the path (or path pattern) to the node to create or
 %%        modify.
 %% @param Payload the payload to put in the specified node.
-%% @param Extra extra options such as `keep_until' conditions.
+%% @param Extra extra options such as `keep_while' conditions.
 %%
 %% @returns an "ok" tuple with a map with one entry, or an "error" tuple.
 
@@ -503,23 +503,23 @@ readwrite_transaction(StoreId, StandaloneFun) ->
             {atomic, Ret}
     end.
 
--spec get_keep_untils_state(StoreId) -> Ret when
+-spec get_keep_while_conds_state(StoreId) -> Ret when
       StoreId :: khepri:store_id(),
-      Ret :: {ok, keep_untils_map()} | khepri:error().
-%% @doc Returns the `keep_until' conditions internal state.
+      Ret :: {ok, keep_while_conds_map()} | khepri:error().
+%% @doc Returns the `keep_while' conditions internal state.
 %%
-%% The returned state consists of all the `keep_until' condition set so far.
+%% The returned state consists of all the `keep_while' condition set so far.
 %% However, it doesn't include the reverse index.
 %%
 %% @param StoreId the name of the Ra cluster.
 %%
-%% @returns the `keep_until' conditions internal state.
+%% @returns the `keep_while' conditions internal state.
 %%
 %% @private
 
-get_keep_untils_state(StoreId) ->
-    Query = fun(#?MODULE{keep_untils = KeepUntils}) ->
-                    {ok, KeepUntils}
+get_keep_while_conds_state(StoreId) ->
+    Query = fun(#?MODULE{keep_while_conds = KeepWhileConds}) ->
+                    {ok, KeepWhileConds}
             end,
     process_query(StoreId, Query).
 
@@ -794,33 +794,33 @@ gather_node_props(#node{stat = #{payload_version := DVersion,
         _                   -> Result1
     end.
 
--spec to_absolute_keep_until(BasePath, KeepUntil) -> KeepUntil when
+-spec to_absolute_keep_while(BasePath, KeepWhile) -> KeepWhile when
       BasePath :: khepri_path:path(),
-      KeepUntil :: khepri_condition:keep_until().
+      KeepWhile :: khepri_condition:keep_while().
 %% @private
 
-to_absolute_keep_until(BasePath, KeepUntil) ->
+to_absolute_keep_while(BasePath, KeepWhile) ->
     maps:fold(
       fun(Path, Cond, Acc) ->
               AbsPath = khepri_path:abspath(Path, BasePath),
               Acc#{AbsPath => Cond}
-      end, #{}, KeepUntil).
+      end, #{}, KeepWhile).
 
--spec are_keep_until_conditions_met(
-        tree_node(), khepri_condition:keep_until()) ->
+-spec are_keep_while_conditions_met(
+        tree_node(), khepri_condition:keep_while()) ->
     true | {false, any()}.
 %% @private
 
-are_keep_until_conditions_met(_, KeepUntil)
-  when KeepUntil =:= #{} ->
+are_keep_while_conditions_met(_, KeepWhile)
+  when KeepWhile =:= #{} ->
     true;
-are_keep_until_conditions_met(Root, KeepUntil) ->
+are_keep_while_conditions_met(Root, KeepWhile) ->
     maps:fold(
       fun
           (Path, Condition, true) ->
               case find_matching_nodes(Root, Path, #{}) of
                   {ok, Result} when Result =/= #{} ->
-                      are_keep_until_conditions_met1(Result, Condition);
+                      are_keep_while_conditions_met1(Result, Condition);
                   {ok, _} ->
                       {false, {pattern_matches_no_nodes, Path}};
                   {error, Reason} ->
@@ -828,9 +828,9 @@ are_keep_until_conditions_met(Root, KeepUntil) ->
               end;
           (_, _, False) ->
               False
-      end, true, KeepUntil).
+      end, true, KeepWhile).
 
-are_keep_until_conditions_met1(Result, Condition) ->
+are_keep_while_conditions_met1(Result, Condition) ->
     maps:fold(
       fun
           (Path, NodeProps, true) ->
@@ -839,28 +839,28 @@ are_keep_until_conditions_met1(Result, Condition) ->
               False
       end, true, Result).
 
-is_keep_until_condition_met_on_self(
-  Path, Node, #{keep_untils := KeepUntils}) ->
-    case KeepUntils of
+is_keep_while_condition_met_on_self(
+  Path, Node, #{keep_while_conds := KeepWhileConds}) ->
+    case KeepWhileConds of
         #{Path := #{Path := Condition}} ->
             khepri_condition:is_met(Condition, Path, Node);
         _ ->
             true
     end;
-is_keep_until_condition_met_on_self(_, _, _) ->
+is_keep_while_condition_met_on_self(_, _, _) ->
     true.
 
--spec update_keep_untils_revidx(
-        keep_untils_map(), keep_untils_revidx(),
-        khepri_path:path(), khepri_condition:keep_until()) ->
-    keep_untils_revidx().
+-spec update_keep_while_conds_revidx(
+        keep_while_conds_map(), keep_while_conds_revidx(),
+        khepri_path:path(), khepri_condition:keep_while()) ->
+    keep_while_conds_revidx().
 
-update_keep_untils_revidx(
-  KeepUntils, KeepUntilsRevIdx, Watcher, KeepUntil) ->
+update_keep_while_conds_revidx(
+  KeepWhileConds, KeepWhileCondsRevIdx, Watcher, KeepWhile) ->
     %% First, clean up reversed index where a watched path isn't watched
-    %% anymore in the new keep_until.
-    OldWatcheds = maps:get(Watcher, KeepUntils, #{}),
-    KeepUntilsRevIdx1 = maps:fold(
+    %% anymore in the new keep_while.
+    OldWatcheds = maps:get(Watcher, KeepWhileConds, #{}),
+    KeepWhileCondsRevIdx1 = maps:fold(
                           fun(Watched, _, KURevIdx) ->
                                   Watchers = maps:get(Watched, KURevIdx),
                                   Watchers1 = maps:remove(Watcher, Watchers),
@@ -868,14 +868,14 @@ update_keep_untils_revidx(
                                       0 -> maps:remove(Watched, KURevIdx);
                                       _ -> KURevIdx#{Watched => Watchers1}
                                   end
-                          end, KeepUntilsRevIdx, OldWatcheds),
+                          end, KeepWhileCondsRevIdx, OldWatcheds),
     %% Then, record the watched paths.
     maps:fold(
       fun(Watched, _, KURevIdx) ->
               Watchers = maps:get(Watched, KURevIdx, #{}),
               Watchers1 = Watchers#{Watcher => ok},
               KURevIdx#{Watched => Watchers1}
-      end, KeepUntilsRevIdx1, KeepUntil).
+      end, KeepWhileCondsRevIdx1, KeepWhile).
 
 -spec find_matching_nodes(
         tree_node(),
@@ -916,31 +916,31 @@ find_matching_nodes_cb(_, {interrupted, _, _}, _, Result) ->
 
 -spec insert_or_update_node(
         state(), khepri_path:pattern(), payload(),
-        #{keep_until => khepri_condition:keep_until()}) ->
+        #{keep_while => khepri_condition:keep_while()}) ->
     {state(), result()}.
 %% @private
 
 insert_or_update_node(
   #?MODULE{root = Root,
-           keep_untils = KeepUntils,
-           keep_untils_revidx = KeepUntilsRevIdx} = State,
+           keep_while_conds = KeepWhileConds,
+           keep_while_conds_revidx = KeepWhileCondsRevIdx} = State,
   PathPattern, Payload,
-  #{keep_until := KeepUntil}) ->
+  #{keep_while := KeepWhile}) ->
     Fun = fun(Path, Node, {_, _, Result}) ->
                   Ret = insert_or_update_node_cb(
                           Path, Node, Payload, Result),
                   case Ret of
                       {ok, Node1, Result1} when Result1 =/= #{} ->
-                          AbsKeepUntil = to_absolute_keep_until(
-                                           Path, KeepUntil),
-                          KeepUntilOnOthers = maps:remove(Path, AbsKeepUntil),
-                          KUMet = are_keep_until_conditions_met(
-                                    Root, KeepUntilOnOthers),
+                          AbsKeepWhile = to_absolute_keep_while(
+                                           Path, KeepWhile),
+                          KeepWhileOnOthers = maps:remove(Path, AbsKeepWhile),
+                          KUMet = are_keep_while_conditions_met(
+                                    Root, KeepWhileOnOthers),
                           case KUMet of
                               true ->
                                   {ok, Node1, {updated, Path, Result1}};
                               {false, Reason} ->
-                                  %% The keep_until condition is not met. We
+                                  %% The keep_while condition is not met. We
                                   %% can't insert the node and return an
                                   %% error.
                                   NodeName = case Path of
@@ -949,9 +949,9 @@ insert_or_update_node(
                                              end,
                                   Info = #{node_name => NodeName,
                                            node_path => Path,
-                                           keep_until_reason => Reason},
+                                           keep_while_reason => Reason},
                                   {error,
-                                   {keep_until_conditions_not_met, Info}}
+                                   {keep_while_conditions_not_met, Info}}
                           end;
                       {ok, Node1, Result1} ->
                           {ok, Node1, {updated, Path, Result1}};
@@ -962,36 +962,36 @@ insert_or_update_node(
     %% TODO: Should we support setting many nodes with the same value?
     Ret1 = walk_down_the_tree(
              Root, PathPattern, specific_node,
-             #{keep_untils => KeepUntils,
-               keep_untils_revidx => KeepUntilsRevIdx},
+             #{keep_while_conds => KeepWhileConds,
+               keep_while_conds_revidx => KeepWhileCondsRevIdx},
              Fun, {undefined, [], #{}}),
     case Ret1 of
-        {ok, Root1, #{keep_untils := KeepUntils1,
-                      keep_untils_revidx := KeepUntilsRevIdx1},
+        {ok, Root1, #{keep_while_conds := KeepWhileConds1,
+                      keep_while_conds_revidx := KeepWhileCondsRevIdx1},
          {updated, ResolvedPath, Ret2}} ->
-            AbsKeepUntil = to_absolute_keep_until(ResolvedPath, KeepUntil),
-            KeepUntilsRevIdx2 = update_keep_untils_revidx(
-                                  KeepUntils1, KeepUntilsRevIdx1,
-                                  ResolvedPath, AbsKeepUntil),
-            KeepUntils2 = KeepUntils1#{ResolvedPath => AbsKeepUntil},
+            AbsKeepWhile = to_absolute_keep_while(ResolvedPath, KeepWhile),
+            KeepWhileCondsRevIdx2 = update_keep_while_conds_revidx(
+                                  KeepWhileConds1, KeepWhileCondsRevIdx1,
+                                  ResolvedPath, AbsKeepWhile),
+            KeepWhileConds2 = KeepWhileConds1#{ResolvedPath => AbsKeepWhile},
             State1 = State#?MODULE{root = Root1,
-                                   keep_untils = KeepUntils2,
-                                   keep_untils_revidx = KeepUntilsRevIdx2},
+                                   keep_while_conds = KeepWhileConds2,
+                                   keep_while_conds_revidx = KeepWhileCondsRevIdx2},
             {State1, {ok, Ret2}};
-        {ok, Root1, #{keep_untils := KeepUntils1,
-                      keep_untils_revidx := KeepUntilsRevIdx1},
+        {ok, Root1, #{keep_while_conds := KeepWhileConds1,
+                      keep_while_conds_revidx := KeepWhileCondsRevIdx1},
          {removed, _, Ret2}} ->
             State1 = State#?MODULE{root = Root1,
-                                   keep_untils = KeepUntils1,
-                                   keep_untils_revidx = KeepUntilsRevIdx1},
+                                   keep_while_conds = KeepWhileConds1,
+                                   keep_while_conds_revidx = KeepWhileCondsRevIdx1},
             {State1, {ok, Ret2}};
         Error ->
             {State, Error}
     end;
 insert_or_update_node(
   #?MODULE{root = Root,
-           keep_untils = KeepUntils,
-           keep_untils_revidx = KeepUntilsRevIdx} = State,
+           keep_while_conds = KeepWhileConds,
+           keep_while_conds_revidx = KeepWhileCondsRevIdx} = State,
   PathPattern, Payload,
   _Extra) ->
     Fun = fun(Path, Node, Result) ->
@@ -1000,16 +1000,16 @@ insert_or_update_node(
           end,
     Ret1 = walk_down_the_tree(
              Root, PathPattern, specific_node,
-             #{keep_untils => KeepUntils,
-               keep_untils_revidx => KeepUntilsRevIdx},
+             #{keep_while_conds => KeepWhileConds,
+               keep_while_conds_revidx => KeepWhileCondsRevIdx},
              Fun, #{}),
     case Ret1 of
-        {ok, Root1, #{keep_untils := KeepUntils1,
-                      keep_untils_revidx := KeepUntilsRevIdx1},
+        {ok, Root1, #{keep_while_conds := KeepWhileConds1,
+                      keep_while_conds_revidx := KeepWhileCondsRevIdx1},
          Ret2} ->
             State1 = State#?MODULE{root = Root1,
-                                   keep_untils = KeepUntils1,
-                                   keep_untils_revidx = KeepUntilsRevIdx1},
+                                   keep_while_conds = KeepWhileConds1,
+                                   keep_while_conds_revidx = KeepWhileCondsRevIdx1},
             {State1, {ok, Ret2}};
         Error ->
             {State, Error}
@@ -1067,20 +1067,20 @@ can_continue_update_after_node_not_found1(_) ->
 
 delete_matching_nodes(
   #?MODULE{root = Root,
-           keep_untils = KeepUntils,
-           keep_untils_revidx = KeepUntilsRevIdx} = State,
+           keep_while_conds = KeepWhileConds,
+           keep_while_conds_revidx = KeepWhileCondsRevIdx} = State,
   PathPattern) ->
     Ret1 = do_delete_matching_nodes(
              PathPattern, Root,
-             #{keep_untils => KeepUntils,
-               keep_untils_revidx => KeepUntilsRevIdx}),
+             #{keep_while_conds => KeepWhileConds,
+               keep_while_conds_revidx => KeepWhileCondsRevIdx}),
     case Ret1 of
-        {ok, Root1, #{keep_untils := KeepUntils1,
-                      keep_untils_revidx := KeepUntilsRevIdx1},
+        {ok, Root1, #{keep_while_conds := KeepWhileConds1,
+                      keep_while_conds_revidx := KeepWhileCondsRevIdx1},
          Ret2} ->
             State1 = State#?MODULE{root = Root1,
-                                   keep_untils = KeepUntils1,
-                                   keep_untils_revidx = KeepUntilsRevIdx1},
+                                   keep_while_conds = KeepWhileConds1,
+                                   keep_while_conds_revidx = KeepWhileCondsRevIdx1},
             {State1, {ok, Ret2}};
         Error ->
             {State, Error}
@@ -1337,7 +1337,7 @@ walk_down_the_tree1(
             case Ret1 of
                 {ok, CurrentNode, Extra2, FunAcc2} ->
                     %% The current node didn't change, no need to update the
-                    %% tree and evaluate keep_until conditions.
+                    %% tree and evaluate keep_while conditions.
                     ?assertEqual(Extra, Extra2),
                     StartingNode = starting_node_in_rev_parent_tree(
                                      ReversedParentTree, CurrentNode),
@@ -1557,89 +1557,89 @@ walk_back_up_the_tree(
 walk_back_up_the_tree(
   remove,
   [ChildName | ReversedPath] = WholeReversedPath,
-  [ParentNode | ReversedParentTree], Extra, KeepUntilAftermath, FunAcc) ->
-    %% Evaluate keep_until of nodes which depended on ChildName (it is
+  [ParentNode | ReversedParentTree], Extra, KeepWhileAftermath, FunAcc) ->
+    %% Evaluate keep_while of nodes which depended on ChildName (it is
     %% removed) at the end of walk_back_up_the_tree().
     Path = lists:reverse(WholeReversedPath),
-    KeepUntilAftermath1 = KeepUntilAftermath#{Path => remove},
+    KeepWhileAftermath1 = KeepWhileAftermath#{Path => remove},
 
-    %% Evaluate keep_until of parent node on itself right now (its child_count
+    %% Evaluate keep_while of parent node on itself right now (its child_count
     %% has changed).
     ParentNode1 = remove_node_child(ParentNode, ChildName),
-    handle_keep_until_for_parent_update(
+    handle_keep_while_for_parent_update(
       ParentNode1, ReversedPath, ReversedParentTree,
-      Extra, KeepUntilAftermath1, FunAcc);
+      Extra, KeepWhileAftermath1, FunAcc);
 walk_back_up_the_tree(
   Child,
   [ChildName | ReversedPath],
   [{ParentNode, child_created} | ReversedParentTree],
-  Extra, KeepUntilAftermath, FunAcc) ->
-    %% No keep_until to evaluate, the child is new and no nodes depend on it
+  Extra, KeepWhileAftermath, FunAcc) ->
+    %% No keep_while to evaluate, the child is new and no nodes depend on it
     %% at this stage.
     %% FIXME: Perhaps there is a condition in a if_any{}?
     Child1 = reset_versions(Child),
 
-    %% Evaluate keep_until of parent node on itself right now (its child_count
+    %% Evaluate keep_while of parent node on itself right now (its child_count
     %% has changed).
     ParentNode1 = add_node_child(ParentNode, ChildName, Child1),
-    handle_keep_until_for_parent_update(
+    handle_keep_while_for_parent_update(
       ParentNode1, ReversedPath, ReversedParentTree,
-      Extra, KeepUntilAftermath, FunAcc);
+      Extra, KeepWhileAftermath, FunAcc);
 walk_back_up_the_tree(
   Child,
   [ChildName | ReversedPath] = WholeReversedPath,
   [ParentNode | ReversedParentTree],
-  Extra, KeepUntilAftermath, FunAcc) ->
-    %% Evaluate keep_until of nodes which depend on ChildName (it is
+  Extra, KeepWhileAftermath, FunAcc) ->
+    %% Evaluate keep_while of nodes which depend on ChildName (it is
     %% modified) at the end of walk_back_up_the_tree().
     Path = lists:reverse(WholeReversedPath),
     NodeProps = gather_node_props(Child, #{}),
-    KeepUntilAftermath1 = KeepUntilAftermath#{Path => NodeProps},
+    KeepWhileAftermath1 = KeepWhileAftermath#{Path => NodeProps},
 
-    %% No need to evaluate keep_until of ParentNode, its child_count is
+    %% No need to evaluate keep_while of ParentNode, its child_count is
     %% unchanged.
     ParentNode1 = update_node_child(ParentNode, ChildName, Child),
     walk_back_up_the_tree(
       ParentNode1, ReversedPath, ReversedParentTree,
-      Extra, KeepUntilAftermath1, FunAcc);
+      Extra, KeepWhileAftermath1, FunAcc);
 walk_back_up_the_tree(
   StartingNode,
   [], %% <-- We reached the root (i.e. not in a branch, see handle_branch())
-  [], Extra, KeepUntilAftermath, FunAcc) ->
-    Extra1 = merge_keep_until_aftermath(Extra, KeepUntilAftermath),
-    handle_keep_until_aftermath(StartingNode, Extra1, FunAcc);
+  [], Extra, KeepWhileAftermath, FunAcc) ->
+    Extra1 = merge_keep_while_aftermath(Extra, KeepWhileAftermath),
+    handle_keep_while_aftermath(StartingNode, Extra1, FunAcc);
 walk_back_up_the_tree(
   StartingNode,
   _ReversedPath,
-  [], Extra, KeepUntilAftermath, FunAcc) ->
-    Extra1 = merge_keep_until_aftermath(Extra, KeepUntilAftermath),
+  [], Extra, KeepWhileAftermath, FunAcc) ->
+    Extra1 = merge_keep_while_aftermath(Extra, KeepWhileAftermath),
     {ok, StartingNode, Extra1, FunAcc}.
 
-handle_keep_until_for_parent_update(
+handle_keep_while_for_parent_update(
   ParentNode,
   ReversedPath,
   ReversedParentTree,
-  Extra, KeepUntilAftermath, FunAcc) ->
+  Extra, KeepWhileAftermath, FunAcc) ->
     ParentPath = lists:reverse(ReversedPath),
-    IsMet = is_keep_until_condition_met_on_self(
+    IsMet = is_keep_while_condition_met_on_self(
               ParentPath, ParentNode, Extra),
     case IsMet of
         true ->
             %% We continue with the update.
             walk_back_up_the_tree(
               ParentNode, ReversedPath, ReversedParentTree,
-              Extra, KeepUntilAftermath, FunAcc);
+              Extra, KeepWhileAftermath, FunAcc);
         {false, _Reason} ->
             %% This parent node must be removed because it doesn't meet its
-            %% own keep_until condition. keep_until conditions for nodes
+            %% own keep_while condition. keep_while conditions for nodes
             %% depending on this one will be evaluated with the recursion.
             walk_back_up_the_tree(
               remove, ReversedPath, ReversedParentTree,
-              Extra, KeepUntilAftermath, FunAcc)
+              Extra, KeepWhileAftermath, FunAcc)
     end.
 
-merge_keep_until_aftermath(Extra, KeepUntilAftermath) ->
-    OldKUA = maps:get(keep_until_aftermath, Extra, #{}),
+merge_keep_while_aftermath(Extra, KeepWhileAftermath) ->
+    OldKUA = maps:get(keep_while_aftermath, Extra, #{}),
     NewKUA = maps:fold(
                fun
                    (Path, remove, KUA1) ->
@@ -1649,56 +1649,57 @@ merge_keep_until_aftermath(Extra, KeepUntilAftermath) ->
                            #{Path := remove} -> KUA1;
                            _                 -> KUA1#{Path => NodeProps}
                        end
-               end, OldKUA, KeepUntilAftermath),
-    Extra#{keep_until_aftermath => NewKUA}.
+               end, OldKUA, KeepWhileAftermath),
+    Extra#{keep_while_aftermath => NewKUA}.
 
-handle_keep_until_aftermath(
+handle_keep_while_aftermath(
   Root,
-  #{keep_until_aftermath := KeepUntilAftermath} = Extra,
+  #{keep_while_aftermath := KeepWhileAftermath} = Extra,
   FunAcc)
-  when KeepUntilAftermath =:= #{} ->
+  when KeepWhileAftermath =:= #{} ->
     {ok, Root, Extra, FunAcc};
-handle_keep_until_aftermath(
+handle_keep_while_aftermath(
   Root,
-  #{keep_untils := KeepUntils,
-    keep_untils_revidx := KeepUntilsRevIdx,
-    keep_until_aftermath := KeepUntilAftermath} = Extra,
+  #{keep_while_conds := KeepWhileConds,
+    keep_while_conds_revidx := KeepWhileCondsRevIdx,
+    keep_while_aftermath := KeepWhileAftermath} = Extra,
   FunAcc) ->
-    ToRemove = eval_keep_until_conditions(
-                 KeepUntilAftermath, KeepUntils, KeepUntilsRevIdx, Root),
+    ToRemove = eval_keep_while_conditions(
+                 KeepWhileAftermath, KeepWhileConds, KeepWhileCondsRevIdx,
+                 Root),
 
-    {KeepUntils1,
-     KeepUntilsRevIdx1} = maps:fold(
+    {KeepWhileConds1,
+     KeepWhileCondsRevIdx1} = maps:fold(
                             fun
                                 (RemovedPath, remove, {KU, KURevIdx}) ->
                                     KU1 = maps:remove(RemovedPath, KU),
-                                    KURevIdx1 = update_keep_untils_revidx(
+                                    KURevIdx1 = update_keep_while_conds_revidx(
                                                   KU, KURevIdx,
                                                   RemovedPath, #{}),
                                     {KU1, KURevIdx1};
                                 (_, _, Acc) ->
                                     Acc
-                            end, {KeepUntils, KeepUntilsRevIdx},
-                            KeepUntilAftermath),
-    Extra1 = maps:remove(keep_until_aftermath, Extra),
-    Extra2 = Extra1#{keep_untils => KeepUntils1,
-                     keep_untils_revidx => KeepUntilsRevIdx1},
+                            end, {KeepWhileConds, KeepWhileCondsRevIdx},
+                            KeepWhileAftermath),
+    Extra1 = maps:remove(keep_while_aftermath, Extra),
+    Extra2 = Extra1#{keep_while_conds => KeepWhileConds1,
+                     keep_while_conds_revidx => KeepWhileCondsRevIdx1},
 
-    ToRemove1 = filter_and_sort_paths_to_remove(ToRemove, KeepUntilAftermath),
+    ToRemove1 = filter_and_sort_paths_to_remove(ToRemove, KeepWhileAftermath),
     remove_expired_nodes(ToRemove1, Root, Extra2, FunAcc).
 
-eval_keep_until_conditions(
-  KeepUntilAftermath, KeepUntils, KeepUntilsRevIdx, Root) ->
-    %% KeepUntilAftermath lists all nodes which were modified or removed. We
+eval_keep_while_conditions(
+  KeepWhileAftermath, KeepWhileConds, KeepWhileCondsRevIdx, Root) ->
+    %% KeepWhileAftermath lists all nodes which were modified or removed. We
     %% want to transform that into a list of nodes to remove.
     %%
-    %% Those marked as `remove' in KeepUntilAftermath are already gone. We
-    %% need to find the nodes which depended on them, i.e. their keep_until
+    %% Those marked as `remove' in KeepWhileAftermath are already gone. We
+    %% need to find the nodes which depended on them, i.e. their keep_while
     %% condition is not met anymore. Note that removed nodes' child nodes are
     %% gone as well and must be handled (they are not specified in
-    %% KeepUntilAftermath).
+    %% KeepWhileAftermath).
     %%
-    %% Those modified in KeepUntilAftermath must be evaluated again to decide
+    %% Those modified in KeepWhileAftermath must be evaluated again to decide
     %% if they should be removed.
     maps:fold(
       fun
@@ -1707,54 +1708,54 @@ eval_keep_until_conditions(
                 fun(Path, Watchers, ToRemove1) ->
                         case lists:prefix(RemovedPath, Path) of
                             true ->
-                                eval_keep_until_conditions_after_removal(
-                                  Watchers, KeepUntils, Root, ToRemove1);
+                                eval_keep_while_conditions_after_removal(
+                                  Watchers, KeepWhileConds, Root, ToRemove1);
                             false ->
                                 ToRemove1
                         end
-                end, ToRemove, KeepUntilsRevIdx);
+                end, ToRemove, KeepWhileCondsRevIdx);
           (UpdatedPath, NodeProps, ToRemove) ->
-              case KeepUntilsRevIdx of
+              case KeepWhileCondsRevIdx of
                   #{UpdatedPath := Watchers} ->
-                      eval_keep_until_conditions_after_update(
+                      eval_keep_while_conditions_after_update(
                         UpdatedPath, NodeProps,
-                        Watchers, KeepUntils, Root, ToRemove);
+                        Watchers, KeepWhileConds, Root, ToRemove);
                   _ ->
                       ToRemove
               end
-      end, #{}, KeepUntilAftermath).
+      end, #{}, KeepWhileAftermath).
 
-eval_keep_until_conditions_after_update(
-  UpdatedPath, NodeProps, Watchers, KeepUntils, Root, ToRemove) ->
+eval_keep_while_conditions_after_update(
+  UpdatedPath, NodeProps, Watchers, KeepWhileConds, Root, ToRemove) ->
     maps:fold(
       fun(Watcher, ok, ToRemove1) ->
-              KeepUntil = maps:get(Watcher, KeepUntils),
-              CondOnUpdated = maps:get(UpdatedPath, KeepUntil),
+              KeepWhile = maps:get(Watcher, KeepWhileConds),
+              CondOnUpdated = maps:get(UpdatedPath, KeepWhile),
               IsMet = khepri_condition:is_met(
                         CondOnUpdated, UpdatedPath, NodeProps),
               case IsMet of
                   true ->
                       ToRemove1;
                   {false, _} ->
-                      case are_keep_until_conditions_met(Root, KeepUntil) of
+                      case are_keep_while_conditions_met(Root, KeepWhile) of
                           true       -> ToRemove1;
                           {false, _} -> ToRemove1#{Watcher => remove}
                       end
               end
       end, ToRemove, Watchers).
 
-eval_keep_until_conditions_after_removal(
-  Watchers, KeepUntils, Root, ToRemove) ->
+eval_keep_while_conditions_after_removal(
+  Watchers, KeepWhileConds, Root, ToRemove) ->
     maps:fold(
       fun(Watcher, ok, ToRemove1) ->
-              KeepUntil = maps:get(Watcher, KeepUntils),
-              case are_keep_until_conditions_met(Root, KeepUntil) of
+              KeepWhile = maps:get(Watcher, KeepWhileConds),
+              case are_keep_while_conditions_met(Root, KeepWhile) of
                   true       -> ToRemove1;
                   {false, _} -> ToRemove1#{Watcher => remove}
               end
       end, ToRemove, Watchers).
 
-filter_and_sort_paths_to_remove(ToRemove, KeepUntilAftermath) ->
+filter_and_sort_paths_to_remove(ToRemove, KeepWhileAftermath) ->
     Paths1 = lists:sort(
                fun
                    (A, B) when length(A) =:= length(B) ->
@@ -1765,7 +1766,7 @@ filter_and_sort_paths_to_remove(ToRemove, KeepUntilAftermath) ->
                maps:keys(ToRemove)),
     Paths2 = lists:foldl(
                fun(Path, Map) ->
-                       case KeepUntilAftermath of
+                       case KeepWhileAftermath of
                            #{Path := remove} ->
                                Map;
                            _ ->
@@ -1802,9 +1803,11 @@ remove_expired_nodes([PathToRemove | Rest], Root, Extra, FunAcc) ->
 get_root(#?MODULE{root = Root}) ->
     Root.
 
-get_keep_untils(#?MODULE{keep_untils = KeepUntils}) ->
-    KeepUntils.
+get_keep_while_conds(
+  #?MODULE{keep_while_conds = KeepWhileConds}) ->
+    KeepWhileConds.
 
-get_keep_untils_revidx(#?MODULE{keep_untils_revidx = KeepUntilsRevIdx}) ->
-    KeepUntilsRevIdx.
+get_keep_while_conds_revidx(
+  #?MODULE{keep_while_conds_revidx = KeepWhileCondsRevIdx}) ->
+    KeepWhileCondsRevIdx.
 -endif.

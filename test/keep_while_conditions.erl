@@ -5,7 +5,7 @@
 %% Copyright (c) 2021 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--module(keep_until_conditions).
+-module(keep_while_conditions).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -16,12 +16,12 @@
 
 %% khepri:get_root/1 is unexported when compiled without `-DTEST'. Likewise
 %% for:
-%%   - `khepri_machine:get_keep_untils/1'
-%%   - `khepri_machine:get_keep_untils_revidx/1'
-%%   - `khepri_machine:are_keep_until_conditions_met/2'
+%%   - `khepri_machine:get_keep_while_conds/1'
+%%   - `khepri_machine:get_keep_while_conds_revidx/1'
+%%   - `khepri_machine:are_keep_while_conditions_met/2'
 -dialyzer(no_missing_calls).
 
-are_keep_until_conditions_met_test() ->
+are_keep_while_conditions_met_test() ->
     Commands = [#put{path = [foo, bar],
                      payload = ?DATA_PAYLOAD(bar_value)}],
     S0 = khepri_machine:init(#{commands => Commands}),
@@ -29,48 +29,48 @@ are_keep_until_conditions_met_test() ->
 
     %% TODO: Add more testcases.
     ?assert(
-       khepri_machine:are_keep_until_conditions_met(
+       khepri_machine:are_keep_while_conditions_met(
          Root,
          #{})),
     ?assert(
-       khepri_machine:are_keep_until_conditions_met(
+       khepri_machine:are_keep_while_conditions_met(
          Root,
          #{[foo] => #if_node_exists{exists = true}})),
     ?assertEqual(
        {false, {pattern_matches_no_nodes, [baz]}},
-       khepri_machine:are_keep_until_conditions_met(
+       khepri_machine:are_keep_while_conditions_met(
          Root,
          #{[baz] => #if_node_exists{exists = true}})),
     ?assert(
-       khepri_machine:are_keep_until_conditions_met(
+       khepri_machine:are_keep_while_conditions_met(
          Root,
          #{[foo, bar] => #if_node_exists{exists = true}})),
     ?assert(
-       khepri_machine:are_keep_until_conditions_met(
+       khepri_machine:are_keep_while_conditions_met(
          Root,
          #{[foo, bar] => #if_child_list_length{count = 0}})),
     ?assertEqual(
        {false, #if_child_list_length{count = 1}},
-       khepri_machine:are_keep_until_conditions_met(
+       khepri_machine:are_keep_while_conditions_met(
          Root,
          #{[foo, bar] => #if_child_list_length{count = 1}})).
 
-%% TODO: Add checks for the internal structures, `keep_untils` and
-%% `keep_untils_revidx`.
+%% TODO: Add checks for the internal structures, `keep_while_conds` and
+%% `keep_while_conds_revidx`.
 
-insert_when_keep_until_true_test() ->
+insert_when_keep_while_true_test() ->
     Commands = [#put{path = [foo],
                      payload = ?DATA_PAYLOAD(foo_value)}],
     S0 = khepri_machine:init(#{commands => Commands}),
 
-    KeepUntil = #{[foo] => #if_node_exists{exists = true}},
+    KeepWhile = #{[foo] => #if_node_exists{exists = true}},
     Command = #put{path = [baz],
                    payload = ?DATA_PAYLOAD(baz_value),
-                   extra = #{keep_until => KeepUntil}},
+                   extra = #{keep_while => KeepWhile}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
-    KeepUntils = khepri_machine:get_keep_untils(S1),
-    KeepUntilsRevIdx = khepri_machine:get_keep_untils_revidx(S1),
+    KeepWhileConds = khepri_machine:get_keep_while_conds(S1),
+    KeepWhileCondsRevIdx = khepri_machine:get_keep_while_conds_revidx(S1),
 
     ?assertEqual(
        #node{
@@ -88,59 +88,59 @@ insert_when_keep_until_true_test() ->
                payload = {data, baz_value}}}},
        Root),
     ?assertEqual(
-       #{[baz] => KeepUntil},
-       KeepUntils),
+       #{[baz] => KeepWhile},
+       KeepWhileConds),
     ?assertEqual(
        #{[foo] => #{[baz] => ok}},
-       KeepUntilsRevIdx),
+       KeepWhileCondsRevIdx),
     ?assertEqual({ok, #{[baz] => #{}}}, Ret).
 
-insert_when_keep_until_false_test() ->
+insert_when_keep_while_false_test() ->
     Commands = [#put{path = [foo],
                      payload = ?DATA_PAYLOAD(foo_value)}],
     S0 = khepri_machine:init(#{commands => Commands}),
 
-    %% The targeted keep_until node does not exist.
-    KeepUntil1 = #{[foo, bar] => #if_node_exists{exists = true}},
+    %% The targeted keep_while node does not exist.
+    KeepWhile1 = #{[foo, bar] => #if_node_exists{exists = true}},
     Command1 = #put{path = [baz],
                     payload = ?DATA_PAYLOAD(baz_value),
-                    extra = #{keep_until => KeepUntil1}},
+                    extra = #{keep_while => KeepWhile1}},
     {S1, Ret1} = khepri_machine:apply(?META, Command1, S0),
 
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({error,
-                  {keep_until_conditions_not_met,
+                  {keep_while_conditions_not_met,
                    #{node_name => baz,
                      node_path => [baz],
-                     keep_until_reason =>
+                     keep_while_reason =>
                      {pattern_matches_no_nodes, [foo, bar]}}}},
                  Ret1),
 
-    %% The targeted keep_until node exists but the condition is not verified.
-    KeepUntil2 = #{[foo] => #if_child_list_length{count = 10}},
+    %% The targeted keep_while node exists but the condition is not verified.
+    KeepWhile2 = #{[foo] => #if_child_list_length{count = 10}},
     Command2 = #put{path = [baz],
                     payload = ?DATA_PAYLOAD(baz_value),
                     extra =
-                    #{keep_until => KeepUntil2}},
+                    #{keep_while => KeepWhile2}},
     {S2, Ret2} = khepri_machine:apply(?META, Command2, S0),
 
     ?assertEqual(S0#khepri_machine.root, S2#khepri_machine.root),
     ?assertEqual(#{applied_command_count => 1}, S2#khepri_machine.metrics),
     ?assertEqual({error,
-                  {keep_until_conditions_not_met,
+                  {keep_while_conditions_not_met,
                    #{node_name => baz,
                      node_path => [baz],
-                     keep_until_reason =>
+                     keep_while_reason =>
                      #if_child_list_length{count = 10}}}},
                  Ret2).
 
-insert_when_keep_until_true_on_self_test() ->
+insert_when_keep_while_true_on_self_test() ->
     S0 = khepri_machine:init(#{}),
-    KeepUntil = #{[?THIS_NODE] => #if_child_list_length{count = 0}},
+    KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = 0}},
     Command = #put{path = [foo],
                    payload = ?DATA_PAYLOAD(foo_value),
-                   extra = #{keep_until => KeepUntil}},
+                   extra = #{keep_while => KeepWhile}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -157,12 +157,12 @@ insert_when_keep_until_true_on_self_test() ->
        Root),
     ?assertEqual({ok, #{[foo] => #{}}}, Ret).
 
-insert_when_keep_until_false_on_self_test() ->
+insert_when_keep_while_false_on_self_test() ->
     S0 = khepri_machine:init(#{}),
-    KeepUntil = #{[?THIS_NODE] => #if_child_list_length{count = 1}},
+    KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = 1}},
     Command = #put{path = [foo],
                    payload = ?DATA_PAYLOAD(foo_value),
-                   extra = #{keep_until => KeepUntil}},
+                   extra = #{keep_while => KeepWhile}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -179,13 +179,13 @@ insert_when_keep_until_false_on_self_test() ->
        Root),
     ?assertEqual({ok, #{[foo] => #{}}}, Ret).
 
-keep_until_still_true_after_command_test() ->
-    KeepUntil = #{[foo] => #if_child_list_length{count = 0}},
+keep_while_still_true_after_command_test() ->
+    KeepWhile = #{[foo] => #if_child_list_length{count = 0}},
     Commands = [#put{path = [foo],
                      payload = ?DATA_PAYLOAD(foo_value)},
                 #put{path = [baz],
                      payload = ?DATA_PAYLOAD(baz_value),
-                     extra = #{keep_until => KeepUntil}}],
+                     extra = #{keep_while => KeepWhile}}],
     S0 = khepri_machine:init(#{commands => Commands}),
 
     Command = #put{path = [foo],
@@ -214,13 +214,13 @@ keep_until_still_true_after_command_test() ->
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret).
 
-keep_until_now_false_after_command_test() ->
-    KeepUntil = #{[foo] => #if_child_list_length{count = 0}},
+keep_while_now_false_after_command_test() ->
+    KeepWhile = #{[foo] => #if_child_list_length{count = 0}},
     Commands = [#put{path = [foo],
                      payload = ?DATA_PAYLOAD(foo_value)},
                 #put{path = [baz],
                      payload = ?DATA_PAYLOAD(baz_value),
-                     extra = #{keep_until => KeepUntil}}],
+                     extra = #{keep_while => KeepWhile}}],
     S0 = khepri_machine:init(#{commands => Commands}),
 
     Command = #put{path = [foo, bar],
@@ -247,13 +247,13 @@ keep_until_now_false_after_command_test() ->
     ?assertEqual({ok, #{[foo, bar] => #{}}}, Ret).
 
 recursive_automatic_cleanup_test() ->
-    KeepUntil = #{[?THIS_NODE] => #if_child_list_length{count = {gt, 0}}},
+    KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = {gt, 0}}},
     Commands = [#put{path = [foo],
                      payload = ?DATA_PAYLOAD(foo_value),
-                     extra = #{keep_until => KeepUntil}},
+                     extra = #{keep_while => KeepWhile}},
                 #put{path = [foo, bar],
                      payload = ?DATA_PAYLOAD(bar_value),
-                     extra = #{keep_until => KeepUntil}},
+                     extra = #{keep_while => KeepWhile}},
                 #put{path = [foo, bar, baz],
                      payload = ?DATA_PAYLOAD(baz_value)}],
     S0 = khepri_machine:init(#{commands => Commands}),

@@ -7,7 +7,7 @@
 
 %% @doc Condition support.
 %%
-%% Conditions can be used in path patterns and `keep_until' conditions.
+%% Conditions can be used in path patterns and `keep_while' conditions.
 %%
 %% A condition is an Erlang record defining a specific property. Some of them
 %% have arguments to further define the condition.
@@ -222,7 +222,7 @@
                                          if_child_list_version() |
                                          if_child_list_length().
 
--type keep_until() :: #{khepri_path:path() => condition()}.
+-type keep_while() :: #{khepri_path:path() => condition()}.
 
 -export([compile/1,
          applies_to_grandchildren/1,
@@ -236,7 +236,7 @@
 
 -export_type([condition/0,
               comparison_op/1,
-              keep_until/0]).
+              keep_while/0]).
 
 -spec compile(Condition) -> Condition when
       Condition :: khepri_path:pattern_component().
