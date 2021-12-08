@@ -180,11 +180,11 @@ if_has_data_matching_test() ->
        {false, #if_has_data{has_data = false}},
        khepri_condition:is_met(
          khepri_condition:compile(#if_has_data{has_data = false}),
-         foo, #node{payload = {data, foo}})),
+         foo, #node{payload = #kpayload_data{data = foo}})),
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(#if_has_data{has_data = true}),
-         foo, #node{payload = {data, foo}})).
+         foo, #node{payload = #kpayload_data{data = foo}})).
 
 if_data_matches_matching_test() ->
     CompiledCond1 = khepri_condition:compile(
@@ -195,7 +195,7 @@ if_data_matches_matching_test() ->
          CompiledCond1, foo, #node{})),
     ?assert(
        khepri_condition:is_met(
-         CompiledCond1, foo, #node{payload = {data, {a, b}}})),
+         CompiledCond1, foo, #node{payload = #kpayload_data{data = {a, b}}})),
 
     CompiledCond2 = khepri_condition:compile(
                       #if_data_matches{pattern = {a, '_'}}),
@@ -213,18 +213,18 @@ if_data_matches_matching_test() ->
 
     ?assert(
        khepri_condition:is_met(
-         CompiledCond2, foo, #node{payload = {data, {a, b}}})),
+         CompiledCond2, foo, #node{payload = #kpayload_data{data = {a, b}}})),
     ?assert(
        khepri_condition:is_met(
-         CompiledCond2, foo, #node{payload = {data, {a, c}}})),
+         CompiledCond2, foo, #node{payload = #kpayload_data{data = {a, c}}})),
     ?assertEqual(
        {false, CompiledCond2},
        khepri_condition:is_met(
-         CompiledCond2, foo, #node{payload = {data, {b, c}}})),
+         CompiledCond2, foo, #node{payload = #kpayload_data{data = {b, c}}})),
     ?assertEqual(
        {false, CompiledCond2},
        khepri_condition:is_met(
-         CompiledCond2, foo, #node{payload = {data, other}})).
+         CompiledCond2, foo, #node{payload = #kpayload_data{data = other}})).
 
 if_payload_version_matching_test() ->
     ?assert(

@@ -110,19 +110,19 @@ add_entry(Entries, Path, Payload) ->
                             {Entry0, true}
                     end,
     Entry2 = case Payload of
-                 ?DATA_PAYLOAD(Data) -> Entry1#{data => Data};
-                 ?NO_PAYLOAD         -> maps:remove(data, Entry1)
+                 #kpayload_data{data = Data} -> Entry1#{data => Data};
+                 none                        -> maps:remove(data, Entry1)
              end,
     Entries1 = Entries#{Path => Entry2},
     add_entry1(Entries1, tl(lists:reverse(Path)), New).
 
-set_node_payload(#{data := Data} = Entry, ?DATA_PAYLOAD(Data)) ->
+set_node_payload(#{data := Data} = Entry, #kpayload_data{data = Data}) ->
     Entry;
-set_node_payload(Entry, ?NO_PAYLOAD) when not is_map_key(data, Entry) ->
+set_node_payload(Entry, none) when not is_map_key(data, Entry) ->
     Entry;
-set_node_payload(Entry, ?DATA_PAYLOAD(Data)) ->
+set_node_payload(Entry, #kpayload_data{data = Data}) ->
     Entry#{data => Data};
-set_node_payload(Entry, ?NO_PAYLOAD) ->
+set_node_payload(Entry, none) ->
     maps:remove(data, Entry).
 
 add_entry1(Entries, ReversedPath, New) ->
@@ -226,9 +226,9 @@ payload() ->
               data_payload()]).
 
 no_payload() ->
-    ?NO_PAYLOAD.
+    none.
 
 data_payload() ->
     ?LET(Data,
          binary(),
-         ?DATA_PAYLOAD(Data)).
+         #kpayload_data{data = Data}).

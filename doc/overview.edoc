@@ -91,8 +91,8 @@ the future.
 
 Payloads are represented using macros or helper functions:
 <ul>
-<li>`?NO_PAYLOAD' and {@link khepri:no_payload/0}</li>
-<li>`?DATA_PAYLOAD(Term)' and {@link khepri:data_payload/1}</li>
+<li>`none' and {@link khepri:no_payload/0}</li>
+<li>`#kpayload_data{data = Term}' and {@link khepri:data_payload/1}</li>
 </ul>
 
 Functions in {@link khepri_machine} have no assumption on the type of the
@@ -222,7 +222,9 @@ specific use cases may need to rely on that low-level API.
 %% Unlike the high-level API's `khepri:insert/2' function, this low-level %
 %% insert returns whatever it replaced (if anything). In this case, there was
 %% nothing before, so the returned value is pretty empty.
-Ret1 = khepri_machine:put(StoreId, [stock, wood, <<"lime tree">>], ?DATA_PAYLOAD(150)),
+Ret1 = khepri_machine:put(
+         StoreId, [stock, wood, <<"lime tree">>],
+         #kpayload_data{data = 150}),
 {ok, #{}} = Ret1,
 
 Ret2 = khepri_machine:get(StoreId, [stock, wood, <<"lime tree">>]),

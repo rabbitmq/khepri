@@ -146,7 +146,9 @@ khepri:transaction(
                 %% There is less than 100 pieces of wood, or there is none
                 %% at all (the node does not exist in Khepri). We need to
                 %% request a new order.
-                {ok, _} = khepri_tx:put([order, wood], ?DATA_PAYLOAD(1000)),
+                {ok, _} = khepri_tx:put(
+                            [order, wood],
+                            #kpayload_data{data = 1000}),
                 true
         end
     end).

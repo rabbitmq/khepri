@@ -152,7 +152,7 @@
                   child_list_version := child_list_version()}.
 %% Stats attached to each node in the tree structure.
 
--type payload() :: ?NO_PAYLOAD | ?DATA_PAYLOAD(data()).
+-type payload() :: none | #kpayload_data{}.
 %% All types of payload stored in the nodes of the tree structure.
 %%
 %% Beside the absence of payload, the only type of payload supported is data.
@@ -281,16 +281,16 @@ put(StoreId, PathPattern, Payload) ->
 %%
 %% The payload must be one of the following form:
 %% <ul>
-%% <li>`?NO_PAYLOAD', meaning there will be no payload attached to the
+%% <li>`none', meaning there will be no payload attached to the node</li>
+%% <li>`#kpayload_data{data = Term}' to store any type of term in the
 %% node</li>
-%% <li>`?DATA_PAYLOAD(Term)' to store any type of term in the node</li>
 %% </ul>
 %%
 %% Example:
 %% ```
 %% %% Insert a node at `/foo/bar', overwriting the previous value.
 %% Result = khepri_machine:put(
-%%            ra_cluster_name, [foo, bar], ?DATA_PAYLOAD(new_value)),
+%%            ra_cluster_name, [foo, bar], #kpayload_data{data = new_value}),
 %%
 %% %% Here is the content of `Result'.
 %% {ok, #{[foo, bar] => #{data => old_value,
@@ -307,7 +307,7 @@ put(StoreId, PathPattern, Payload) ->
 %%
 %% @returns an "ok" tuple with a map with one entry, or an "error" tuple.
 
-put(StoreId, PathPattern, Payload, Extra) when ?IS_PAYLOAD(Payload) ->
+put(StoreId, PathPattern, Payload, Extra) when ?IS_KHEPRI_PAYLOAD(Payload) ->
     khepri_path:ensure_is_valid(PathPattern),
     Command = #put{path = PathPattern,
                    payload = Payload,
@@ -728,11 +728,13 @@ set_node_payload(#node{stat = #{payload_version := DVersion} = Stat} = Node,
 -spec remove_node_payload(tree_node()) -> tree_node().
 %% @private
 
-remove_node_payload(#node{payload = ?NO_PAYLOAD} = Node) ->
+remove_node_payload(
+  #node{payload = none} = Node) ->
     Node;
-remove_node_payload(#node{stat = #{payload_version := DVersion} = Stat} = Node) ->
+remove_node_payload(
+  #node{stat = #{payload_version := DVersion} = Stat} = Node) ->
     Stat1 = Stat#{payload_version => DVersion + 1},
-    Node#node{stat = Stat1, payload = ?NO_PAYLOAD}.
+    Node#node{stat = Stat1, payload = none}.
 
 -spec add_node_child(tree_node(), khepri_path:component(), tree_node()) ->
     tree_node().
@@ -790,8 +792,8 @@ gather_node_props(#node{stat = #{payload_version := DVersion,
                       Result0
               end,
     case Payload of
-        ?DATA_PAYLOAD(Data) -> Result1#{data => Data};
-        _                   -> Result1
+        #kpayload_data{data = Data} -> Result1#{data => Data};
+        _                           -> Result1
     end.
 
 -spec to_absolute_keep_while(BasePath, KeepWhile) -> KeepWhile when

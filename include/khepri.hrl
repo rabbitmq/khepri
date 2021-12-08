@@ -33,12 +33,10 @@
 -define(IS_PATH_PATTERN(Path),
         (Path =:= [] orelse ?IS_PATH_CONDITION(hd(Path)))).
 
--define(NO_PAYLOAD, none).
--define(DATA_PAYLOAD(Data), {data, Data}).
--define(IS_PAYLOAD(Payload), (Payload =:= none orelse
-                              (is_tuple(Payload) andalso
-                               size(Payload) =:= 2 andalso
-                               element(1, Payload) =:= data))).
+-record(kpayload_data, {data :: khepri_machine:data()}).
+
+-define(IS_KHEPRI_PAYLOAD(Payload), (Payload =:= none orelse
+                                     is_record(Payload, kpayload_data))).
 
 %% -------------------------------------------------------------------
 %% Path conditions.
