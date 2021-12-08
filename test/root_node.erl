@@ -51,7 +51,7 @@ query_root_node_using_dot_test() ->
 
 query_above_root_node_using_dot_dot_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(value)}],
+                     payload = #kpayload_data{data = value}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Root = khepri_machine:get_root(S0),
 
@@ -109,7 +109,7 @@ query_root_node_with_conditions_false_test() ->
 store_data_in_root_node_using_empty_path_test() ->
     S0 = khepri_machine:init(#{}),
     Command = #put{path = [],
-                   payload = ?DATA_PAYLOAD(value)},
+                   payload = #kpayload_data{data = value}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -118,7 +118,7 @@ store_data_in_root_node_using_empty_path_test() ->
           stat =
           #{payload_version => 2,
             child_list_version => 1},
-          payload = {data, value}},
+          payload = #kpayload_data{data = value}},
        Root),
     ?assertEqual({ok, #{[] => #{payload_version => 1,
                                 child_list_version => 1,
@@ -127,7 +127,7 @@ store_data_in_root_node_using_empty_path_test() ->
 store_data_in_root_node_using_root_test() ->
     S0 = khepri_machine:init(#{}),
     Command = #put{path = [?ROOT_NODE],
-                   payload = ?DATA_PAYLOAD(value)},
+                   payload = #kpayload_data{data = value}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -136,7 +136,7 @@ store_data_in_root_node_using_root_test() ->
           stat =
           #{payload_version => 2,
             child_list_version => 1},
-          payload = {data, value}},
+          payload = #kpayload_data{data = value}},
        Root),
     ?assertEqual({ok, #{[] => #{payload_version => 1,
                                 child_list_version => 1,
@@ -145,7 +145,7 @@ store_data_in_root_node_using_root_test() ->
 store_data_in_root_node_using_dot_test() ->
     S0 = khepri_machine:init(#{}),
     Command = #put{path = [?THIS_NODE],
-                   payload = ?DATA_PAYLOAD(value)},
+                   payload = #kpayload_data{data = value}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -154,7 +154,7 @@ store_data_in_root_node_using_dot_test() ->
           stat =
           #{payload_version => 2,
             child_list_version => 1},
-          payload = {data, value}},
+          payload = #kpayload_data{data = value}},
        Root),
     ?assertEqual({ok, #{[] => #{payload_version => 1,
                                 child_list_version => 1,
@@ -163,7 +163,7 @@ store_data_in_root_node_using_dot_test() ->
 store_data_in_root_node_using_dot_dot_test() ->
     S0 = khepri_machine:init(#{}),
     Command = #put{path = [?PARENT_NODE],
-                   payload = ?DATA_PAYLOAD(value)},
+                   payload = #kpayload_data{data = value}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -172,7 +172,7 @@ store_data_in_root_node_using_dot_dot_test() ->
           stat =
           #{payload_version => 2,
             child_list_version => 1},
-          payload = {data, value}},
+          payload = #kpayload_data{data = value}},
        Root),
     ?assertEqual({ok, #{[] => #{payload_version => 1,
                                 child_list_version => 1,
@@ -182,7 +182,7 @@ store_data_in_root_node_with_condition_true_test() ->
     S0 = khepri_machine:init(#{}),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 0}),
     Command = #put{path = [#if_all{conditions = [?ROOT_NODE, Compiled]}],
-                   payload = ?DATA_PAYLOAD(value)},
+                   payload = #kpayload_data{data = value}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -191,7 +191,7 @@ store_data_in_root_node_with_condition_true_test() ->
           stat =
           #{payload_version => 2,
             child_list_version => 1},
-          payload = {data, value}},
+          payload = #kpayload_data{data = value}},
        Root),
     ?assertEqual({ok, #{[] => #{payload_version => 1,
                                 child_list_version => 1,
@@ -201,7 +201,7 @@ store_data_in_root_node_with_condition_true_using_dot_test() ->
     S0 = khepri_machine:init(#{}),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 0}),
     Command = #put{path = [#if_all{conditions = [?THIS_NODE, Compiled]}],
-                   payload = ?DATA_PAYLOAD(value)},
+                   payload = #kpayload_data{data = value}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -210,7 +210,7 @@ store_data_in_root_node_with_condition_true_using_dot_test() ->
           stat =
           #{payload_version => 2,
             child_list_version => 1},
-          payload = {data, value}},
+          payload = #kpayload_data{data = value}},
        Root),
     ?assertEqual({ok, #{[] => #{payload_version => 1,
                                 child_list_version => 1,
@@ -220,7 +220,7 @@ store_data_in_root_node_with_condition_false_test() ->
     S0 = khepri_machine:init(#{}),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 1}),
     Command = #put{path = [#if_all{conditions = [?ROOT_NODE, Compiled]}],
-                   payload = ?DATA_PAYLOAD(value)},
+                   payload = #kpayload_data{data = value}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -258,7 +258,7 @@ delete_empty_root_node_test() ->
 
 delete_root_node_using_empty_path_test() ->
     Commands = [#put{path = [],
-                     payload = ?DATA_PAYLOAD(value)}],
+                     payload = #kpayload_data{data = value}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Command = #delete{path = []},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
@@ -277,7 +277,7 @@ delete_root_node_using_empty_path_test() ->
 
 delete_root_node_using_root_test() ->
     Commands = [#put{path = [],
-                     payload = ?DATA_PAYLOAD(value)}],
+                     payload = #kpayload_data{data = value}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Command = #delete{path = [?ROOT_NODE]},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
@@ -296,7 +296,7 @@ delete_root_node_using_root_test() ->
 
 delete_root_node_using_dot_test() ->
     Commands = [#put{path = [],
-                     payload = ?DATA_PAYLOAD(value)}],
+                     payload = #kpayload_data{data = value}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Command = #delete{path = [?THIS_NODE]},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
@@ -315,7 +315,7 @@ delete_root_node_using_dot_test() ->
 
 delete_root_node_using_dot_dot_test() ->
     Commands = [#put{path = [],
-                     payload = ?DATA_PAYLOAD(value)}],
+                     payload = #kpayload_data{data = value}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Command = #delete{path = [?PARENT_NODE]},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
@@ -334,9 +334,9 @@ delete_root_node_using_dot_dot_test() ->
 
 delete_root_node_with_child_nodes_test() ->
     Commands = [#put{path = [foo, bar],
-                     payload = ?DATA_PAYLOAD(bar_value)},
+                     payload = #kpayload_data{data = bar_value}},
                 #put{path = [baz, qux],
-                     payload = ?DATA_PAYLOAD(qux_value)}],
+                     payload = #kpayload_data{data = qux_value}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Command = #delete{path = []},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
@@ -354,7 +354,7 @@ delete_root_node_with_child_nodes_test() ->
 
 delete_root_node_with_condition_true_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(foo_value)}],
+                     payload = #kpayload_data{data = foo_value}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 1}),
     Command = #delete{path = [#if_all{conditions = [?ROOT_NODE, Compiled]}]},
@@ -373,7 +373,7 @@ delete_root_node_with_condition_true_test() ->
 
 delete_root_node_with_condition_true_using_dot_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(foo_value)}],
+                     payload = #kpayload_data{data = foo_value}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 1}),
     Command = #delete{path = [#if_all{conditions = [?THIS_NODE, Compiled]}]},
@@ -392,7 +392,7 @@ delete_root_node_with_condition_true_using_dot_test() ->
 
 delete_root_node_with_condition_false_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(foo_value)}],
+                     payload = #kpayload_data{data = foo_value}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 0}),
     Command = #delete{path = [#if_all{conditions = [?ROOT_NODE, Compiled]}]},
@@ -407,6 +407,6 @@ delete_root_node_with_condition_false_test() ->
           child_nodes =
           #{foo =>
             #node{stat = ?INIT_NODE_STAT,
-                  payload = {data, foo_value}}}},
+                  payload = #kpayload_data{data = foo_value}}}},
        Root),
     ?assertEqual({ok, #{}}, Ret).

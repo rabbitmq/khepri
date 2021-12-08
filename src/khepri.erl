@@ -632,7 +632,7 @@ compare_and_swap(StoreId, Path, DataPattern, Data) ->
 %% @private
 
 do_put(StoreId, Path, Data) ->
-    case khepri_machine:put(StoreId, Path, ?DATA_PAYLOAD(Data)) of
+    case khepri_machine:put(StoreId, Path, #kpayload_data{data = Data}) of
         {ok, _} -> ok;
         Error   -> Error
     end.
@@ -654,7 +654,7 @@ clear_payload(Path) ->
       Path :: khepri_path:pattern() | string().
 %% @doc Clears the payload of an existing specific tree node in the tree structure.
 %%
-%% In other words, the payload is set to `?NO_PAYLOAD'.
+%% In other words, the payload is set to `none'.
 %%
 %% The `Path' can be provided as a list of node names and conditions or as a
 %% string. See {@link khepri_path:from_string/1}.
@@ -669,7 +669,7 @@ clear_payload(Path) ->
 
 clear_payload(StoreId, Path) ->
     Path1 = khepri_path:maybe_from_string(Path),
-    case khepri_machine:put(StoreId, Path1, ?NO_PAYLOAD) of
+    case khepri_machine:put(StoreId, Path1, none) of
         {ok, _} -> ok;
         Error   -> Error
     end.
@@ -967,23 +967,24 @@ clear_store(StoreId) ->
     delete(StoreId, [?STAR]).
 
 -spec no_payload() -> none.
-%% @doc Returns `?NO_PAYLOAD'.
+%% @doc Returns `none'.
 %%
-%% This is a helper for cases where using macros is inconvenient, like in an
+%% This is a helper for cases where using records is inconvenient, like in an
 %% Erlang shell.
 
 no_payload() ->
-    ?NO_PAYLOAD.
+    none.
 
--spec data_payload(Term) -> {data, Term} when
-      Term :: khepri_machine:data().
-%% @doc Returns `?DATA_PAYLOAD(Term)'.
+-spec data_payload(Term) -> Payload when
+      Term :: khepri_machine:data(),
+      Payload :: #kpayload_data{}.
+%% @doc Returns `#kpayload_data{data = Term}'.
 %%
 %% This is a helper for cases where using macros is inconvenient, like in an
 %% Erlang shell.
 
 data_payload(Term) ->
-    ?DATA_PAYLOAD(Term).
+    #kpayload_data{data = Term}.
 
 %% -------------------------------------------------------------------
 %% Public helpers.

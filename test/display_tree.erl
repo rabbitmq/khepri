@@ -18,13 +18,13 @@
 
 complex_flat_struct_to_tree_test() ->
     Commands = [#put{path = [foo, bar, baz, qux],
-                     payload = ?DATA_PAYLOAD(qux_value)},
+                     payload = #kpayload_data{data = qux_value}},
                 #put{path = [foo, youpi],
-                     payload = ?DATA_PAYLOAD(youpi_value)},
+                     payload = #kpayload_data{data = youpi_value}},
                 #put{path = [baz],
-                     payload = ?DATA_PAYLOAD(baz_value)},
+                     payload = #kpayload_data{data = baz_value}},
                 #put{path = [baz, pouet],
-                     payload = ?DATA_PAYLOAD(pouet_value)}],
+                     payload = #kpayload_data{data = pouet_value}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Root = khepri_machine:get_root(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
@@ -357,7 +357,7 @@ flat_struct_with_children_before_parents_test() ->
 
 display_simple_tree_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(foo_value)}],
+                     payload = #kpayload_data{data = foo_value}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Root = khepri_machine:get_root(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
@@ -376,13 +376,14 @@ display_simple_tree_test() ->
 
 display_large_tree_test() ->
     Commands = [#put{path = [foo, bar, baz, qux],
-                     payload = ?DATA_PAYLOAD(qux_value)},
+                     payload = #kpayload_data{data = qux_value}},
                 #put{path = [foo, youpi],
-                     payload = ?DATA_PAYLOAD(youpi_value)},
+                     payload = #kpayload_data{data = youpi_value}},
                 #put{path = [baz],
-                     payload = ?DATA_PAYLOAD(baz_value)},
+                     payload = #kpayload_data{data = baz_value}},
                 #put{path = [baz, pouet],
-                     payload = ?DATA_PAYLOAD(
+                     payload = #kpayload_data{
+                                  data =
                                   [lorem, ipsum, dolor, sit, amet,
                                    consectetur, adipiscing, elit, sed, do,
                                    eiusmod, tempor, incididunt, ut, labore,
@@ -395,7 +396,7 @@ display_large_tree_test() ->
                                    nulla, pariatur, excepteur, sint, occaecat,
                                    cupidatat, non, proident, sunt, in, culpa,
                                    qui, officia, deserunt, mollit, anim, id,
-                                   est, laborum])}],
+                                   est, laborum]}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Root = khepri_machine:get_root(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
@@ -432,13 +433,14 @@ display_large_tree_test() ->
 
 display_tree_with_plaintext_lines_test() ->
     Commands = [#put{path = [foo, bar, baz, qux],
-                     payload = ?DATA_PAYLOAD(qux_value)},
+                     payload = #kpayload_data{data = qux_value}},
                 #put{path = [foo, youpi],
-                     payload = ?DATA_PAYLOAD(youpi_value)},
+                     payload = #kpayload_data{data = youpi_value}},
                 #put{path = [baz],
-                     payload = ?DATA_PAYLOAD(baz_value)},
+                     payload = #kpayload_data{data = baz_value}},
                 #put{path = [baz, pouet],
-                     payload = ?DATA_PAYLOAD(
+                     payload = #kpayload_data{
+                                  data =
                                   [lorem, ipsum, dolor, sit, amet,
                                    consectetur, adipiscing, elit, sed, do,
                                    eiusmod, tempor, incididunt, ut, labore,
@@ -451,7 +453,7 @@ display_tree_with_plaintext_lines_test() ->
                                    nulla, pariatur, excepteur, sint, occaecat,
                                    cupidatat, non, proident, sunt, in, culpa,
                                    qui, officia, deserunt, mollit, anim, id,
-                                   est, laborum])}],
+                                   est, laborum]}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Root = khepri_machine:get_root(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
@@ -488,13 +490,14 @@ display_tree_with_plaintext_lines_test() ->
 
 display_tree_without_colors_test() ->
     Commands = [#put{path = [foo, bar, baz, qux],
-                     payload = ?DATA_PAYLOAD(qux_value)},
+                     payload = #kpayload_data{data = qux_value}},
                 #put{path = [foo, youpi],
-                     payload = ?DATA_PAYLOAD(youpi_value)},
+                     payload = #kpayload_data{data = youpi_value}},
                 #put{path = [baz],
-                     payload = ?DATA_PAYLOAD(baz_value)},
+                     payload = #kpayload_data{data = baz_value}},
                 #put{path = [baz, pouet],
-                     payload = ?DATA_PAYLOAD(
+                     payload = #kpayload_data{
+                                  data =
                                   [lorem, ipsum, dolor, sit, amet,
                                    consectetur, adipiscing, elit, sed, do,
                                    eiusmod, tempor, incididunt, ut, labore,
@@ -507,7 +510,7 @@ display_tree_without_colors_test() ->
                                    nulla, pariatur, excepteur, sint, occaecat,
                                    cupidatat, non, proident, sunt, in, culpa,
                                    qui, officia, deserunt, mollit, anim, id,
-                                   est, laborum])}],
+                                   est, laborum]}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Root = khepri_machine:get_root(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
@@ -544,13 +547,14 @@ display_tree_without_colors_test() ->
 
 display_tree_with_plaintext_lines_and_without_colors_test() ->
     Commands = [#put{path = [foo, bar, baz, qux],
-                     payload = ?DATA_PAYLOAD(qux_value)},
+                     payload = #kpayload_data{data = qux_value}},
                 #put{path = [foo, youpi],
-                     payload = ?DATA_PAYLOAD(youpi_value)},
+                     payload = #kpayload_data{data = youpi_value}},
                 #put{path = [baz],
-                     payload = ?DATA_PAYLOAD(baz_value)},
+                     payload = #kpayload_data{data = baz_value}},
                 #put{path = [baz, pouet],
-                     payload = ?DATA_PAYLOAD(
+                     payload = #kpayload_data{
+                                  data =
                                   [lorem, ipsum, dolor, sit, amet,
                                    consectetur, adipiscing, elit, sed, do,
                                    eiusmod, tempor, incididunt, ut, labore,
@@ -563,7 +567,7 @@ display_tree_with_plaintext_lines_and_without_colors_test() ->
                                    nulla, pariatur, excepteur, sint, occaecat,
                                    cupidatat, non, proident, sunt, in, culpa,
                                    qui, officia, deserunt, mollit, anim, id,
-                                   est, laborum])}],
+                                   est, laborum]}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Root = khepri_machine:get_root(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
@@ -601,9 +605,9 @@ display_tree_with_plaintext_lines_and_without_colors_test() ->
 
 display_tree_with_binary_key_test() ->
     Commands = [#put{path = [<<"foo">>],
-                     payload = ?DATA_PAYLOAD(foo_value)},
+                     payload = #kpayload_data{data = foo_value}},
                 #put{path = [bar],
-                     payload = ?DATA_PAYLOAD(bar_value)}],
+                     payload = #kpayload_data{data = bar_value}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Root = khepri_machine:get_root(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
@@ -625,9 +629,9 @@ display_tree_with_binary_key_test() ->
 
 display_tree_with_similar_atom_and_binary_keys_test() ->
     Commands = [#put{path = [<<"foo">>],
-                     payload = ?DATA_PAYLOAD(foo_binary)},
+                     payload = #kpayload_data{data = foo_binary}},
                 #put{path = [foo],
-                     payload = ?DATA_PAYLOAD(foo_atom)}],
+                     payload = #kpayload_data{data = foo_atom}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Root = khepri_machine:get_root(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(

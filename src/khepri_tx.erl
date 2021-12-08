@@ -94,7 +94,7 @@ put(PathPattern, Payload) ->
       Result :: khepri_machine:result().
 %% @doc Creates or modifies a specific tree node in the tree structure.
 
-put(PathPattern, Payload, Extra) when ?IS_PAYLOAD(Payload) ->
+put(PathPattern, Payload, Extra) when ?IS_KHEPRI_PAYLOAD(Payload) ->
     ensure_path_pattern_is_valid(PathPattern),
     ensure_updates_are_allowed(),
     State = get_tx_state(),

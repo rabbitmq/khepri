@@ -345,17 +345,17 @@ is_met(
   _Child) ->
     eval_regex(Cond, SourceRegex, CompiledRegex, ChildName);
 is_met(#if_has_data{has_data = true},
-       _ChildName, #node{payload = {data, _}}) ->
+       _ChildName, #node{payload = #kpayload_data{data = _}}) ->
     true;
 is_met(#if_has_data{has_data = false} = Cond,
-       _ChildName, #node{payload = {data, _}}) ->
+       _ChildName, #node{payload = #kpayload_data{data = _}}) ->
     {false, Cond};
 is_met(#if_has_data{has_data = true} = Cond, _ChildName, _Child) ->
     {false, Cond};
 is_met(#if_has_data{has_data = false}, _ChildName, _Child) ->
     true;
 is_met(#if_data_matches{compiled = CompMatchSpec} = Cond,
-       _ChildName, #node{payload = {data, Data}}) ->
+       _ChildName, #node{payload = #kpayload_data{data = Data}}) ->
     case term_matches(Data, CompMatchSpec) of
         true  -> true;
         false -> {false, Cond}

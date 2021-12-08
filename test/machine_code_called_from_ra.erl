@@ -24,7 +24,7 @@ insert_a_node_test_() ->
      [?_assertEqual(
          {ok, #{[foo] => #{}}},
          khepri_machine:put(
-           ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(foo_value)))]}.
+           ?FUNCTION_NAME, [foo], #kpayload_data{data = foo_value}))]}.
 
 query_a_node_test_() ->
     {setup,
@@ -37,7 +37,7 @@ query_a_node_test_() ->
                            child_list_length => 0}}},
          begin
              _ = khepri_machine:put(
-                   ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(foo_value)),
+                   ?FUNCTION_NAME, [foo], #kpayload_data{data = foo_value}),
              khepri_machine:get(?FUNCTION_NAME, [foo])
          end)]}.
 
@@ -54,7 +54,8 @@ delete_a_node_test_() ->
                               child_list_length => 0}}},
             begin
                 _ = khepri_machine:put(
-                      ?FUNCTION_NAME, [foo], ?DATA_PAYLOAD(foo_value)),
+                      ?FUNCTION_NAME, [foo],
+                      #kpayload_data{data = foo_value}),
                 khepri_machine:delete(?FUNCTION_NAME, [foo])
             end)},
         {"Checking the deleted key is gone",
@@ -75,7 +76,7 @@ query_keep_while_conds_state_test_() ->
              _ = khepri_machine:put(
                    ?FUNCTION_NAME,
                    [foo],
-                   ?DATA_PAYLOAD(foo_value),
+                   #kpayload_data{data = foo_value},
                    #{keep_while => KeepWhile}),
              khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME)
          end)]}.
@@ -89,13 +90,13 @@ use_an_invalid_path_test_() ->
          khepri_machine:put(
            ?FUNCTION_NAME,
            not_a_list,
-           ?NO_PAYLOAD)),
+           none)),
       ?_assertThrow(
          {invalid_path, "not_a_component"},
          khepri_machine:put(
            ?FUNCTION_NAME,
            ["not_a_component"],
-           ?NO_PAYLOAD))]}.
+           none))]}.
 
 use_an_invalid_payload_test_() ->
     {setup,

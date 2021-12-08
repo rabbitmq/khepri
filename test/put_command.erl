@@ -19,9 +19,9 @@
 
 initialize_machine_with_genesis_data_test() ->
     Commands = [#put{path = [foo, bar],
-                     payload = ?DATA_PAYLOAD(foobar_value)},
+                     payload = #kpayload_data{data = foobar_value}},
                 #put{path = [baz],
-                     payload = ?DATA_PAYLOAD(baz_value)}],
+                     payload = #kpayload_data{data = baz_value}}],
     S0 = khepri_machine:init(#{commands => Commands}),
     Root = khepri_machine:get_root(S0),
 
@@ -38,18 +38,18 @@ initialize_machine_with_genesis_data_test() ->
                #{bar =>
                  #node{
                     stat = ?INIT_NODE_STAT,
-                    payload = {data, foobar_value}}}},
+                    payload = #kpayload_data{data = foobar_value}}}},
             baz =>
             #node{
                stat = ?INIT_NODE_STAT,
-               payload = {data, baz_value}}
+               payload = #kpayload_data{data = baz_value}}
            }},
        Root).
 
 insert_a_node_at_the_root_of_an_empty_db_test() ->
     S0 = khepri_machine:init(#{}),
     Command = #put{path = [foo],
-                   payload = ?DATA_PAYLOAD(value)},
+                   payload = #kpayload_data{data = value}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -62,7 +62,7 @@ insert_a_node_at_the_root_of_an_empty_db_test() ->
           #{foo =>
             #node{
                stat = ?INIT_NODE_STAT,
-               payload = {data, value}}}},
+               payload = #kpayload_data{data = value}}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{}}}, Ret).
 
@@ -74,7 +74,7 @@ insert_a_node_at_the_root_of_an_empty_db_with_conditions_test() ->
                                             [#if_node_exists{exists = false},
                                              #if_payload_version{version = 1}
                                             ]}]}],
-                   payload = ?DATA_PAYLOAD(value)},
+                   payload = #kpayload_data{data = value}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -87,17 +87,17 @@ insert_a_node_at_the_root_of_an_empty_db_with_conditions_test() ->
           #{foo =>
             #node{
                stat = ?INIT_NODE_STAT,
-               payload = {data, value}}}},
+               payload = #kpayload_data{data = value}}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{}}}, Ret).
 
 overwrite_an_existing_node_data_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(value1)}],
+                     payload = #kpayload_data{data = value1}}],
     S0 = khepri_machine:init(#{commands => Commands}),
 
     Command = #put{path = [foo],
-                   payload = ?DATA_PAYLOAD(value2)},
+                   payload = #kpayload_data{data = value2}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -111,7 +111,7 @@ overwrite_an_existing_node_data_test() ->
             #node{
                stat = #{payload_version => 2,
                         child_list_version => 1},
-               payload = {data, value2}}}},
+               payload = #kpayload_data{data = value2}}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => value1,
                                    payload_version => 1,
@@ -121,7 +121,7 @@ overwrite_an_existing_node_data_test() ->
 insert_a_node_with_path_containing_dot_and_dot_dot_test() ->
     S0 = khepri_machine:init(#{}),
     Command = #put{path = [foo, ?PARENT_NODE, foo, bar, ?THIS_NODE],
-                   payload = ?DATA_PAYLOAD(value)},
+                   payload = #kpayload_data{data = value}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -138,14 +138,14 @@ insert_a_node_with_path_containing_dot_and_dot_dot_test() ->
                #{bar =>
                  #node{
                     stat = ?INIT_NODE_STAT,
-                    payload = {data, value}}}}}},
+                    payload = #kpayload_data{data = value}}}}}},
        Root),
     ?assertEqual({ok, #{[foo, bar] => #{}}}, Ret).
 
 insert_a_node_under_an_nonexisting_parents_test() ->
     S0 = khepri_machine:init(#{}),
     Command = #put{path = [foo, bar, baz, qux],
-                   payload = ?DATA_PAYLOAD(value)},
+                   payload = #kpayload_data{data = value}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -170,19 +170,19 @@ insert_a_node_under_an_nonexisting_parents_test() ->
                          #{qux =>
                            #node{
                               stat = ?INIT_NODE_STAT,
-                              payload = {data, value}}}}}}}}}},
+                              payload = #kpayload_data{data = value}}}}}}}}}},
        Root),
     ?assertEqual({ok, #{[foo, bar, baz, qux] => #{}}}, Ret).
 
 insert_a_node_with_condition_true_on_self_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(value1)}],
+                     payload = #kpayload_data{data = value1}}],
     S0 = khepri_machine:init(#{commands => Commands}),
 
     Command = #put{path = [#if_all{conditions =
                                    [foo,
                                     #if_data_matches{pattern = value1}]}],
-                   payload = ?DATA_PAYLOAD(value2)},
+                   payload = #kpayload_data{data = value2}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -195,7 +195,7 @@ insert_a_node_with_condition_true_on_self_test() ->
             #node{
                stat = #{payload_version => 2,
                         child_list_version => 1},
-               payload = {data, value2}}}},
+               payload = #kpayload_data{data = value2}}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => value1,
                                    payload_version => 1,
@@ -204,14 +204,14 @@ insert_a_node_with_condition_true_on_self_test() ->
 
 insert_a_node_with_condition_false_on_self_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(value1)}],
+                     payload = #kpayload_data{data = value1}}],
     S0 = khepri_machine:init(#{commands => Commands}),
 
     %% We compile the condition beforehand because we need the compiled
     %% version to make an exact match on the returned error later.
     Compiled = khepri_condition:compile(#if_data_matches{pattern = value2}),
     Command = #put{path = [#if_all{conditions = [foo, Compiled]}],
-                   payload = ?DATA_PAYLOAD(value3)},
+                   payload = #kpayload_data{data = value3}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
 
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
@@ -229,14 +229,14 @@ insert_a_node_with_condition_false_on_self_test() ->
 
 insert_a_node_with_condition_true_on_self_using_dot_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(value1)}],
+                     payload = #kpayload_data{data = value1}}],
     S0 = khepri_machine:init(#{commands => Commands}),
 
     Command = #put{path = [foo,
                            #if_all{conditions =
                                    [?THIS_NODE,
                                     #if_data_matches{pattern = value1}]}],
-                   payload = ?DATA_PAYLOAD(value2)},
+                   payload = #kpayload_data{data = value2}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -249,7 +249,7 @@ insert_a_node_with_condition_true_on_self_using_dot_test() ->
             #node{
                stat = #{payload_version => 2,
                         child_list_version => 1},
-               payload = {data, value2}}}},
+               payload = #kpayload_data{data = value2}}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => value1,
                                    payload_version => 1,
@@ -258,7 +258,7 @@ insert_a_node_with_condition_true_on_self_using_dot_test() ->
 
 insert_a_node_with_condition_false_on_self_using_dot_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(value1)}],
+                     payload = #kpayload_data{data = value1}}],
     S0 = khepri_machine:init(#{commands => Commands}),
 
     %% We compile the condition beforehand because we need the compiled
@@ -266,7 +266,7 @@ insert_a_node_with_condition_false_on_self_using_dot_test() ->
     Compiled = khepri_condition:compile(#if_data_matches{pattern = value2}),
     Command = #put{path = [foo,
                            #if_all{conditions = [?THIS_NODE, Compiled]}],
-                   payload = ?DATA_PAYLOAD(value3)},
+                   payload = #kpayload_data{data = value3}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
 
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
@@ -284,14 +284,14 @@ insert_a_node_with_condition_false_on_self_using_dot_test() ->
 
 insert_a_node_with_condition_true_on_parent_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(value1)}],
+                     payload = #kpayload_data{data = value1}}],
     S0 = khepri_machine:init(#{commands => Commands}),
 
     Command = #put{path = [#if_all{conditions =
                                    [foo,
                                     #if_data_matches{pattern = value1}]},
                            bar],
-                   payload = ?DATA_PAYLOAD(bar_value)},
+                   payload = #kpayload_data{data = bar_value}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -304,18 +304,18 @@ insert_a_node_with_condition_true_on_parent_test() ->
             #node{
                stat = #{payload_version => 1,
                         child_list_version => 2},
-               payload = {data, value1},
+               payload = #kpayload_data{data = value1},
                child_nodes =
                #{bar =>
                  #node{
                     stat = ?INIT_NODE_STAT,
-                    payload = {data, bar_value}}}}}},
+                    payload = #kpayload_data{data = bar_value}}}}}},
        Root),
     ?assertEqual({ok, #{[foo, bar] => #{}}}, Ret).
 
 insert_a_node_with_condition_false_on_parent_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(value1)}],
+                     payload = #kpayload_data{data = value1}}],
     S0 = khepri_machine:init(#{commands => Commands}),
 
     %% We compile the condition beforehand because we need the compiled
@@ -323,7 +323,7 @@ insert_a_node_with_condition_false_on_parent_test() ->
     Compiled = khepri_condition:compile(#if_data_matches{pattern = value2}),
     Command = #put{path = [#if_all{conditions = [foo, Compiled]},
                            bar],
-                   payload = ?DATA_PAYLOAD(bar_value)},
+                   payload = #kpayload_data{data = bar_value}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
 
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
@@ -345,13 +345,13 @@ insert_a_node_with_condition_false_on_parent_test() ->
 
 insert_a_node_with_if_node_exists_true_on_self_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(value1)}],
+                     payload = #kpayload_data{data = value1}}],
     S0 = khepri_machine:init(#{commands => Commands}),
 
     Command1 = #put{path = [#if_all{conditions =
                                     [foo,
                                      #if_node_exists{exists = true}]}],
-                    payload = ?DATA_PAYLOAD(value2)},
+                    payload = #kpayload_data{data = value2}},
     {S1, Ret1} = khepri_machine:apply(?META, Command1, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -365,7 +365,7 @@ insert_a_node_with_if_node_exists_true_on_self_test() ->
             #node{
                stat = #{payload_version => 2,
                         child_list_version => 1},
-               payload = {data, value2}}}},
+               payload = #kpayload_data{data = value2}}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => value1,
                                    payload_version => 1,
@@ -377,7 +377,7 @@ insert_a_node_with_if_node_exists_true_on_self_test() ->
                          [baz,
                           #if_node_exists{exists = true}]}),
     Command2 = #put{path = [Compiled],
-                    payload = ?DATA_PAYLOAD(value2)},
+                    payload = #kpayload_data{data = value2}},
     {S2, Ret2} = khepri_machine:apply(?META, Command2, S0),
 
     ?assertEqual(S0#khepri_machine.root, S2#khepri_machine.root),
@@ -391,13 +391,13 @@ insert_a_node_with_if_node_exists_true_on_self_test() ->
 
 insert_a_node_with_if_node_exists_false_on_self_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(value1)}],
+                     payload = #kpayload_data{data = value1}}],
     S0 = khepri_machine:init(#{commands => Commands}),
 
     Command1 = #put{path = [#if_all{conditions =
                                     [foo,
                                      #if_node_exists{exists = false}]}],
-                    payload = ?DATA_PAYLOAD(value2)},
+                    payload = #kpayload_data{data = value2}},
     {S1, Ret1} = khepri_machine:apply(?META, Command1, S0),
 
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
@@ -416,7 +416,7 @@ insert_a_node_with_if_node_exists_false_on_self_test() ->
     Command2 = #put{path = [#if_all{conditions =
                                     [baz,
                                      #if_node_exists{exists = false}]}],
-                    payload = ?DATA_PAYLOAD(value2)},
+                    payload = #kpayload_data{data = value2}},
     {S2, Ret2} = khepri_machine:apply(?META, Command2, S0),
     Root = khepri_machine:get_root(S2),
 
@@ -429,24 +429,24 @@ insert_a_node_with_if_node_exists_false_on_self_test() ->
           #{foo =>
             #node{
                stat = ?INIT_NODE_STAT,
-               payload = {data, value1}},
+               payload = #kpayload_data{data = value1}},
             baz =>
             #node{
                stat = ?INIT_NODE_STAT,
-               payload = {data, value2}}}},
+               payload = #kpayload_data{data = value2}}}},
        Root),
     ?assertEqual({ok, #{[baz] => #{}}}, Ret2).
 
 insert_a_node_with_if_node_exists_true_on_parent_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(value1)}],
+                     payload = #kpayload_data{data = value1}}],
     S0 = khepri_machine:init(#{commands => Commands}),
 
     Command1 = #put{path = [#if_all{conditions =
                                     [foo,
                                      #if_node_exists{exists = true}]},
                             bar],
-                    payload = ?DATA_PAYLOAD(bar_value)},
+                    payload = #kpayload_data{data = bar_value}},
     {S1, Ret1} = khepri_machine:apply(?META, Command1, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -459,12 +459,12 @@ insert_a_node_with_if_node_exists_true_on_parent_test() ->
             #node{
                stat = #{payload_version => 1,
                         child_list_version => 2},
-               payload = {data, value1},
+               payload = #kpayload_data{data = value1},
                child_nodes =
                #{bar =>
                  #node{
                     stat = ?INIT_NODE_STAT,
-                    payload = {data, bar_value}}}}}},
+                    payload = #kpayload_data{data = bar_value}}}}}},
        Root),
     ?assertEqual({ok, #{[foo, bar] => #{}}}, Ret1),
 
@@ -474,7 +474,7 @@ insert_a_node_with_if_node_exists_true_on_parent_test() ->
                           #if_node_exists{exists = true}]}),
     Command2 = #put{path = [Compiled,
                             bar],
-                    payload = ?DATA_PAYLOAD(bar_value)},
+                    payload = #kpayload_data{data = bar_value}},
     {S2, Ret2} = khepri_machine:apply(?META, Command2, S0),
 
     ?assertEqual(S0#khepri_machine.root, S2#khepri_machine.root),
@@ -488,14 +488,14 @@ insert_a_node_with_if_node_exists_true_on_parent_test() ->
 
 insert_a_node_with_if_node_exists_false_on_parent_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(value1)}],
+                     payload = #kpayload_data{data = value1}}],
     S0 = khepri_machine:init(#{commands => Commands}),
 
     Command1 = #put{path = [#if_all{conditions =
                                     [foo,
                                      #if_node_exists{exists = false}]},
                             bar],
-                    payload = ?DATA_PAYLOAD(value2)},
+                    payload = #kpayload_data{data = value2}},
     {S1, Ret1} = khepri_machine:apply(?META, Command1, S0),
 
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
@@ -506,16 +506,16 @@ insert_a_node_with_if_node_exists_false_on_parent_test() ->
                      node_path => [foo],
                      node_is_target => false,
                      node_props => #{data => value1,
-                                         payload_version => 1,
-                                         child_list_version => 1,
-                                         child_list_length => 0},
+                                     payload_version => 1,
+                                     child_list_version => 1,
+                                     child_list_length => 0},
                      condition => #if_node_exists{exists = false}}}}, Ret1),
 
     Command2 = #put{path = [#if_all{conditions =
                                     [baz,
                                      #if_node_exists{exists = false}]},
                             bar],
-                    payload = ?DATA_PAYLOAD(bar_value)},
+                    payload = #kpayload_data{data = bar_value}},
     {S2, Ret2} = khepri_machine:apply(?META, Command2, S0),
     Root = khepri_machine:get_root(S2),
 
@@ -528,7 +528,7 @@ insert_a_node_with_if_node_exists_false_on_parent_test() ->
           #{foo =>
             #node{
                stat = ?INIT_NODE_STAT,
-               payload = {data, value1}},
+               payload = #kpayload_data{data = value1}},
             baz =>
             #node{
                stat = ?INIT_NODE_STAT,
@@ -536,19 +536,19 @@ insert_a_node_with_if_node_exists_false_on_parent_test() ->
                #{bar =>
                  #node{
                     stat = ?INIT_NODE_STAT,
-                    payload = {data, bar_value}}}}}},
+                    payload = #kpayload_data{data = bar_value}}}}}},
        Root),
     ?assertEqual({ok, #{[baz, bar] => #{}}}, Ret2).
 
 insert_with_a_path_matching_many_nodes_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(foo_value)},
+                     payload = #kpayload_data{data = foo_value}},
                 #put{path = [bar],
-                     payload = ?DATA_PAYLOAD(bar_value)}],
+                     payload = #kpayload_data{data = bar_value}}],
     S0 = khepri_machine:init(#{commands => Commands}),
 
     Command = #put{path = [#if_name_matches{regex = any}],
-                   payload = ?DATA_PAYLOAD(new_value)},
+                   payload = #kpayload_data{data = new_value}},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
 
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
@@ -557,11 +557,11 @@ insert_with_a_path_matching_many_nodes_test() ->
 
 clear_payload_in_an_existing_node_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(value)}],
+                     payload = #kpayload_data{data = value}}],
     S0 = khepri_machine:init(#{commands => Commands}),
 
     Command = #put{path = [foo],
-                   payload = ?NO_PAYLOAD},
+                   payload = none},
     {S1, Ret} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -584,26 +584,26 @@ clear_payload_in_an_existing_node_test() ->
 
 put_command_bumps_applied_command_count_test() ->
     Commands = [#put{path = [foo],
-                     payload = ?DATA_PAYLOAD(value)}],
+                     payload = #kpayload_data{data = value}}],
     S0 = khepri_machine:init(#{snapshot_interval => 3,
                                commands => Commands}),
 
     ?assertEqual(#{}, S0#khepri_machine.metrics),
 
     Command1 = #put{path = [bar],
-                    payload = ?NO_PAYLOAD},
+                    payload = none},
     {S1, _} = khepri_machine:apply(?META, Command1, S0),
 
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
 
     Command2 = #put{path = [baz],
-                    payload = ?NO_PAYLOAD},
+                    payload = none},
     {S2, _} = khepri_machine:apply(?META, Command2, S1),
 
     ?assertEqual(#{applied_command_count => 2}, S2#khepri_machine.metrics),
 
     Command3 = #put{path = [qux],
-                    payload = ?NO_PAYLOAD},
+                    payload = none},
     Meta = ?META,
     {S3, _, Effects} = khepri_machine:apply(Meta, Command3, S2),
 
