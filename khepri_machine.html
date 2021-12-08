@@ -203,7 +203,7 @@ payload and child nodes.</p>
 <p>  Options used in <a docgen-rel="seemfa" docgen-href="#find_matching_nodes/3" href="#find_matching_nodes-3"><code>find_matching_nodes/3</code></a>.</p>
 
 <h3 class="typedecl"><a name="type-payload">payload()</a></h3>
-<p><code>payload() = none | {data, <a href="#type-data">data()</a>}</code></p>
+<p><code>payload() = none | #kpayload_data{data = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-data">khepri_machine:data()</a>}</code></p>
 <p><p>  All types of payload stored in the nodes of the tree structure.</p>
  
   Beside the absence of payload, the only type of payload supported is data.</p>
@@ -292,15 +292,15 @@ there was no properties or payload to return).</p>
  
   The payload must be one of the following form:
   <ul>
-  <li><code>?NO_PAYLOAD</code>, meaning there will be no payload attached to the
+  <li><code>none</code>, meaning there will be no payload attached to the node</li>
+  <li><code>#kpayload_data{data = Term}</code> to store any type of term in the
   node</li>
-  <li><code>?DATA_PAYLOAD(Term)</code> to store any type of term in the node</li>
   </ul>
  
   Example:
   <pre><code>%% Insert a node at `/foo/bar', overwriting the previous value.
 Result = khepri_machine:put(
-           ra_cluster_name, [foo, bar], ?DATA_PAYLOAD(new_value)),
+           ra_cluster_name, [foo, bar], #kpayload_data{data = new_value}),
  
 %% Here is the content of `Result'.
 {ok, #{[foo, bar] =&gt; #{data =&gt; old_value,

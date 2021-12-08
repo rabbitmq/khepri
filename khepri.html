@@ -223,8 +223,8 @@ exists.</td></tr>
 <tr><td valign="top"><a href="#transaction-3">transaction/3</a></td><td></td></tr>
 <tr><td valign="top"><a href="#clear_store-0">clear_store/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#clear_store-1">clear_store/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#no_payload-0">no_payload/0</a></td><td>Returns <code>?NO_PAYLOAD</code>.</td></tr>
-<tr><td valign="top"><a href="#data_payload-1">data_payload/1</a></td><td>Returns <code>?DATA_PAYLOAD(Term)</code>.</td></tr>
+<tr><td valign="top"><a href="#no_payload-0">no_payload/0</a></td><td>Returns <code>none</code>.</td></tr>
+<tr><td valign="top"><a href="#data_payload-1">data_payload/1</a></td><td>Returns <code>#kpayload_data{data = Term}</code>.</td></tr>
 <tr><td valign="top"><a href="#info-0">info/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#info-1">info/1</a></td><td></td></tr>
 </table>
@@ -467,7 +467,7 @@ condition on its last component.</p>
  </p>
 </div><p><p>Clears the payload of an existing specific tree node in the tree structure.</p>
  
-  <p>In other words, the payload is set to <code>?NO_PAYLOAD</code>.</p>
+  <p>In other words, the payload is set to <code>none</code>.</p>
  
   <p>The <code>Path</code> can be provided as a list of node names and conditions or as a
   string. See <a docgen-rel="seemfa" docgen-href="khepri_path#from_string/1" href="khepri_path.html#from_string-1"><code>khepri_path:from_string/1</code></a>.</p>
@@ -713,17 +713,17 @@ Result = khepri:find(
 <div class="spec">
 <p><code>no_payload() -&gt; none</code><br></p>
 <p></p>
-</div><p><p>Returns <code>?NO_PAYLOAD</code>.</p>
+</div><p><p>Returns <code>none</code>.</p>
  
-  This is a helper for cases where using macros is inconvenient, like in an
+  This is a helper for cases where using records is inconvenient, like in an
   Erlang shell.</p>
 
 <h3 class="function"><a name="data_payload-1">data_payload/1</a></h3>
 <div class="spec">
-<p><code>data_payload(Term) -&gt; {data, Term}</code>
-<ul class="definitions"><li><code>Term = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-data">khepri_machine:data()</a></code></li></ul></p>
+<p><code>data_payload(Term) -&gt; Payload</code>
+<ul class="definitions"><li><code>Term = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-data">khepri_machine:data()</a></code></li><li><code>Payload = #kpayload_data{data = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-data">khepri_machine:data()</a>}</code></li></ul></p>
 <p></p>
-</div><p><p>Returns <code>?DATA_PAYLOAD(Term)</code>.</p>
+</div><p><p>Returns <code>#kpayload_data{data = Term}</code>.</p>
  
   This is a helper for cases where using macros is inconvenient, like in an
   Erlang shell.</p>

@@ -168,8 +168,8 @@ the future.</p>
 
 Payloads are represented using macros or helper functions:
 <ul>
-<li><code>?NO_PAYLOAD</code> and <a docgen-rel="seemfa" docgen-href="khepri#no_payload/0" href="khepri.html#no_payload-0"><code>khepri:no_payload/0</code></a></li>
-<li><code>?DATA_PAYLOAD(Term)</code> and <a docgen-rel="seemfa" docgen-href="khepri#data_payload/1" href="khepri.html#data_payload-1"><code>khepri:data_payload/1</code></a></li>
+<li><code>none</code> and <a docgen-rel="seemfa" docgen-href="khepri#no_payload/0" href="khepri.html#no_payload-0"><code>khepri:no_payload/0</code></a></li>
+<li><code>#kpayload_data{data = Term}</code> and <a docgen-rel="seemfa" docgen-href="khepri#data_payload/1" href="khepri.html#data_payload-1"><code>khepri:data_payload/1</code></a></li>
 </ul>
 
 <p>Functions in <a docgen-rel="seeerl" docgen-href="khepri_machine" href="khepri_machine.html"><code>khepri_machine</code></a> have no assumption on the type of the
@@ -253,7 +253,7 @@ tree.</p>
 For instance, it is possible to set the following condition on <code>[stock, wood]</code>
 to make sure it is removed after its last child node is removed:
 <pre><code>%% We keep [stock, wood] as long as its child nodes count is strictly greater
-%% then zero.
+%% than zero.
 KeepWhileCondition = #{[stock, wood] =&gt; #if_child_list_length{count = {gt, 0}}}.</code></pre>
 
 <p><code>keep_while</code> conditions on self (like the example above) are not evaluated on
@@ -290,7 +290,9 @@ specific use cases may need to rely on that low-level API.</p>
 <pre><code>%% Unlike the high-level API's `khepri:insert/2' function, this low-level %
 %% insert returns whatever it replaced (if anything). In this case, there was
 %% nothing before, so the returned value is pretty empty.
-Ret1 = khepri_machine:put(StoreId, [stock, wood, &lt;&lt;"lime tree"&gt;&gt;], ?DATA_PAYLOAD(150)),
+Ret1 = khepri_machine:put(
+         StoreId, [stock, wood, &lt;&lt;"lime tree"&gt;&gt;],
+         #kpayload_data{data = 150}),
 {ok, #{}} = Ret1,
 
 Ret2 = khepri_machine:get(StoreId, [stock, wood, &lt;&lt;"lime tree"&gt;&gt;]),
