@@ -82,9 +82,7 @@
          transaction/3]).
 -export([get_keep_while_conds_state/1]).
 -export([init/1,
-         apply/3,
-         init_aux/1,
-         handle_aux/6]).
+         apply/3]).
 %% For internal user only.
 -export([find_matching_nodes/3,
          insert_or_update_node/4,
@@ -684,22 +682,6 @@ bump_applied_command_count(
 reset_applied_command_count(#?MODULE{metrics = Metrics} = State) ->
     Metrics1 = maps:remove(applied_command_count, Metrics),
     State#?MODULE{metrics = Metrics1}.
-
-%% @private
-
-init_aux(_) ->
-    undefined.
-
-%% @private
-
-handle_aux(_RaftState, _Type, tick, AuxState, LogState, _MacState) ->
-    {no_reply, AuxState, LogState};
-handle_aux(_RaftState, _Type, Cmd, AuxState, LogState, _MacState) ->
-    ?LOG_DEBUG(
-       "Sending event to Khepri monitoring manager: ~p",
-       [Cmd],
-       #{domain => [khepri, ra_machine]}),
-    {no_reply, AuxState, LogState}.
 
 %% -------------------------------------------------------------------
 %% Internal functions.
