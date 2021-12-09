@@ -569,7 +569,9 @@ lookup_function1(
       BeamFileRecord :: #beam_file{}.
 %% @private
 
-erl_eval_fun_to_asm(Module, Name, Arity, [{[], _, _, Clauses}]) ->
+erl_eval_fun_to_asm(Module, Name, Arity, [{Bindings, _, _, Clauses}])
+  when Bindings =:= [] orelse %% Erlang is using a list for bindings,
+       Bindings =:= #{} ->    %% but Elixir is using a map.
     %% We construct an abstract form based on the `env' of the lambda loaded
     %% by `erl_eval'.
     Anno = erl_anno:from_term(1),
