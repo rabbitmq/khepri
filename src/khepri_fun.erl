@@ -276,8 +276,7 @@ exec(
                   beam = Beam,
                   arity = Arity,
                   env = Env},
-  Args) ->
-    ?assertEqual(Arity, length(Args)),
+  Args) when length(Args) =:= Arity ->
     case code:is_loaded(Module) of
         false ->
             {module, _} = code:load_binary(Module, ?MODULE_STRING, Beam),
@@ -287,6 +286,8 @@ exec(
     end,
     Env1 = to_actual_arg(Env),
     erlang:apply(Module, run, Args ++ Env1);
+exec(#standalone_fun{} = StandaloneFun, Args) ->
+    exit({badarity, {StandaloneFun, Args}});
 exec(Fun, Args) ->
     erlang:apply(Fun, Args).
 
