@@ -29,7 +29,7 @@ jobs:
         uses: actions/cache@v2
         if: ${{ matrix.otp_version == env.LATEST_OTP_RELEASE && matrix.os == 'ubuntu-latest' }}
         with:
-          path: _build/default/rebar3_*_plt
+          path: _build/*/rebar3_*_plt
           key: dialyzer-plt-cache-${{ steps.install-erlang.outputs.otp-version }}-${{ runner.os }}-${{ hashFiles('rebar.config*') }}-v1
 
       - name: Compile
@@ -49,7 +49,7 @@ jobs:
 
       - name: Dialyzer
         if: ${{ matrix.otp_version == env.LATEST_OTP_RELEASE && matrix.os == 'ubuntu-latest' }}
-        run: rebar3 clean && rebar3 dialyzer
+        run: rebar3 clean && rebar3 as test dialyzer
 
   Finish:
     name: Finishing
