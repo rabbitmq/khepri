@@ -3,6 +3,7 @@ erl_crash.dump
 .*.sw?
 /deps
 /_build
+/deps
 /doc/*
 !/doc/overview.edoc
 !/doc/README.md

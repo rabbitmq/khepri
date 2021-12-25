@@ -45,20 +45,22 @@
 
 -include("include/khepri.hrl").
 
--export([compile/1,
-         from_string/1,
-         component_from_string/1,
-         maybe_from_string/1,
-         to_string/1,
-         component_to_string/1,
-         combine_with_conditions/2,
-         targets_specific_node/1,
-         component_targets_specific_node/1,
-         is_valid/1,
-         ensure_is_valid/1,
-         abspath/2,
-         realpath/1,
-         pattern_includes_root_node/1]).
+-export([
+    compile/1,
+    from_string/1,
+    component_from_string/1,
+    maybe_from_string/1,
+    to_string/1,
+    component_to_string/1,
+    combine_with_conditions/2,
+    targets_specific_node/1,
+    component_targets_specific_node/1,
+    is_valid/1,
+    ensure_is_valid/1,
+    abspath/2,
+    realpath/1,
+    pattern_includes_root_node/1
+]).
 
 -type node_id() :: atom() | binary().
 %% A node name.
@@ -75,11 +77,13 @@
 
 -type pattern_component() :: component() | khepri_condition:condition().
 
--export_type([path/0,
-              pattern/0,
-              component/0,
-              pattern_component/0,
-              node_id/0]).
+-export_type([
+    path/0,
+    pattern/0,
+    component/0,
+    pattern_component/0,
+    node_id/0
+]).
 
 -spec compile(pattern()) -> pattern().
 %% @private
@@ -142,10 +146,11 @@ component_from_string("**") ->
     ?STAR_STAR;
 component_from_string(Component) ->
     ReOpts1 = [{capture, all_but_first, list}, dotall],
-    Component1 = case re:run(Component, "^<<(.*)>>$", ReOpts1) of
-                     {match, [C]} -> C;
-                     nomatch      -> Component
-                 end,
+    Component1 =
+        case re:run(Component, "^<<(.*)>>$", ReOpts1) of
+            {match, [C]} -> C;
+            nomatch -> Component
+        end,
     ReOpts2 = [{capture, none}],
     case re:run(Component1, "\\*", ReOpts2) of
         match ->
@@ -160,51 +165,59 @@ component_from_string(Component) ->
 
 -spec maybe_from_string(pattern() | string()) -> pattern().
 
-maybe_from_string([Component | _] = Path)
-  when ?IS_NODE_ID(Component) orelse
-       ?IS_CONDITION(Component) ->
+maybe_from_string([Component | _] = Path) when
+    ?IS_NODE_ID(Component) orelse
+        ?IS_CONDITION(Component)
+->
     Path;
 maybe_from_string([?ROOT_NODE]) ->
     [];
-maybe_from_string([Component] = Path)
-  when ?IS_SPECIAL_PATH_COMPONENT(Component) ->
+maybe_from_string([Component] = Path) when
+    ?IS_SPECIAL_PATH_COMPONENT(Component)
+->
     Path;
 maybe_from_string([] = Path) ->
     Path;
-maybe_from_string([Char | _] = Path)
-  when is_integer(Char) andalso
-       Char >= 0 andalso Char =< 16#10ffff andalso
-       not ?IS_SPECIAL_PATH_COMPONENT(Char) ->
+maybe_from_string([Char | _] = Path) when
+    is_integer(Char) andalso
+        Char >= 0 andalso Char =< 16#10ffff andalso
+        not ?IS_SPECIAL_PATH_COMPONENT(Char)
+->
     from_string(Path);
-maybe_from_string([Char1, Char2 | _] = Path)
-  when ?IS_SPECIAL_PATH_COMPONENT(Char1) ->
+maybe_from_string([Char1, Char2 | _] = Path) when
+    ?IS_SPECIAL_PATH_COMPONENT(Char1)
+->
     if
         ?IS_NODE_ID(Char2) orelse ?IS_CONDITION(Char2) -> Path;
-        true                                           -> from_string(Path)
+        true -> from_string(Path)
     end.
 
 -spec to_string(path()) -> string().
 
 to_string([?ROOT_NODE | Path]) ->
     "/" ++
-    string:join(
-      lists:map(fun component_to_string/1, Path),
-      "/");
+        string:join(
+            lists:map(fun component_to_string/1, Path),
+            "/"
+        );
 to_string([?THIS_NODE = Component]) ->
     component_to_string(Component);
 to_string([?THIS_NODE | Path]) ->
     string:join(
-      lists:map(fun component_to_string/1, Path),
-      "/");
+        lists:map(fun component_to_string/1, Path),
+        "/"
+    );
 to_string([?PARENT_NODE | _] = Path) ->
     string:join(
-      lists:map(fun component_to_string/1, Path),
-      "/");
+        lists:map(fun component_to_string/1, Path),
+        "/"
+    );
 to_string(Path) ->
     "/" ++
-    string:join(
-      lists:map(fun component_to_string/1, Path),
-      "/").
+        string:join(
+            lists:map(fun component_to_string/1, Path),
+            "/"
+        ).
 
 -spec component_to_string(component()) -> string().
 
@@ -218,7 +231,8 @@ component_to_string(Component) when is_atom(Component) ->
     atom_to_list(Component);
 component_to_string(Component) when is_binary(Component) ->
     lists:flatten(
-      io_lib:format("<<~s>>", [Component])).
+        io_lib:format("<<~s>>", [Component])
+    ).
 
 -spec combine_with_conditions(pattern(), [khepri_condition:condition()]) ->
     pattern().
@@ -239,7 +253,7 @@ targets_specific_node(PathPattern) ->
 targets_specific_node([Condition | Rest], Path) ->
     case component_targets_specific_node(Condition) of
         {true, Component} -> targets_specific_node(Rest, [Component | Path]);
-        false             -> false
+        false -> false
     end;
 targets_specific_node([], Path) ->
     {true, lists:reverse(Path)}.
@@ -248,8 +262,9 @@ targets_specific_node([], Path) ->
     {true, component()} | false.
 %% @private
 
-component_targets_specific_node(ChildName)
-  when ?IS_PATH_COMPONENT(ChildName) ->
+component_targets_specific_node(ChildName) when
+    ?IS_PATH_COMPONENT(ChildName)
+->
     {true, ChildName};
 component_targets_specific_node(#if_not{condition = Cond}) ->
     component_targets_specific_node(Cond);
@@ -257,66 +272,76 @@ component_targets_specific_node(#if_all{conditions = []}) ->
     false;
 component_targets_specific_node(#if_all{conditions = Conds}) ->
     lists:foldl(
-      fun
-          (Cond, {true, _} = True) ->
-              case component_targets_specific_node(Cond) of
-                  True      -> True;
-                  {true, _} -> false;
-                  false     -> True
-              end;
-          (Cond, false) ->
-              case component_targets_specific_node(Cond) of
-                  {true, _} = True -> True;
-                  false            -> false
-              end;
-          (Cond, undefined) ->
-              component_targets_specific_node(Cond)
-      end, undefined, Conds);
+        fun
+            (Cond, {true, _} = True) ->
+                case component_targets_specific_node(Cond) of
+                    True -> True;
+                    {true, _} -> false;
+                    false -> True
+                end;
+            (Cond, false) ->
+                case component_targets_specific_node(Cond) of
+                    {true, _} = True -> True;
+                    false -> false
+                end;
+            (Cond, undefined) ->
+                component_targets_specific_node(Cond)
+        end,
+        undefined,
+        Conds
+    );
 component_targets_specific_node(#if_any{conditions = []}) ->
     false;
 component_targets_specific_node(#if_any{conditions = Conds}) ->
     lists:foldl(
-      fun
-          (Cond, {true, _} = True) ->
-              case component_targets_specific_node(Cond) of
-                  True      -> True;
-                  {true, _} -> false;
-                  false     -> false
-              end;
-          (_, false) ->
-              false;
-          (Cond, undefined) ->
-              component_targets_specific_node(Cond)
-      end, undefined, Conds);
+        fun
+            (Cond, {true, _} = True) ->
+                case component_targets_specific_node(Cond) of
+                    True -> True;
+                    {true, _} -> false;
+                    false -> false
+                end;
+            (_, false) ->
+                false;
+            (Cond, undefined) ->
+                component_targets_specific_node(Cond)
+        end,
+        undefined,
+        Conds
+    );
 component_targets_specific_node(_) ->
     false.
 
 -spec is_valid(PathPattern) -> IsValid when
-      PathPattern :: pattern(),
-      IsValid :: true | {false, pattern_component()}.
+    PathPattern :: pattern(),
+    IsValid :: true | {false, pattern_component()}.
 
 is_valid(PathPattern) when is_list(PathPattern) ->
     lists:foldl(
-      fun
-          (_, {false, _} = False) -> False;
-          (Component, _)          -> khepri_condition:is_valid(Component)
-      end, true, PathPattern);
+        fun
+            (_, {false, _} = False) -> False;
+            (Component, _) -> khepri_condition:is_valid(Component)
+        end,
+        true,
+        PathPattern
+    );
 is_valid(NotPathPattern) ->
     {false, NotPathPattern}.
 
 -spec ensure_is_valid(PathPattern) -> ok | no_return() when
-      PathPattern :: pattern().
+    PathPattern :: pattern().
 
 ensure_is_valid(PathPattern) ->
     case is_valid(PathPattern) of
-        true          -> ok;
+        true -> ok;
         {false, Path} -> throw({invalid_path, Path})
     end.
 
 -spec abspath(pattern(), pattern()) -> pattern().
 
-abspath([FirstComponent | _] = AbsolutePath, _)
-  when FirstComponent =/= ?THIS_NODE andalso FirstComponent =/= ?PARENT_NODE ->
+abspath([FirstComponent | _] = AbsolutePath, _) when
+    FirstComponent =/= ?THIS_NODE andalso FirstComponent =/= ?PARENT_NODE
+->
     AbsolutePath;
 abspath([_ | _] = RelativePath, BasePath) ->
     realpath(BasePath ++ RelativePath, []);
@@ -346,4 +371,4 @@ pattern_includes_root_node(Path) ->
 
 pattern_includes_root_node1([#if_name_matches{regex = any}]) -> true;
 pattern_includes_root_node1([#if_path_matches{regex = any}]) -> true;
-pattern_includes_root_node1(_)                               -> false.
+pattern_includes_root_node1(_) -> false.

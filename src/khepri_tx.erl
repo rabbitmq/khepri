@@ -50,19 +50,23 @@
 %%      `is_remote_call_valid()' in this file.
 %%   2. If the function modifies the tree, it must be handled in
 %%      `is_standalone_fun_still_needed()' is this file too.
--export([put/2, put/3,
-         get/1, get/2,
-         exists/1,
-         has_data/1,
-         list/1,
-         find/2,
-         delete/1,
-         abort/1,
-         is_transaction/0]).
+-export([
+    put/2, put/3,
+    get/1, get/2,
+    exists/1,
+    has_data/1,
+    list/1,
+    find/2,
+    delete/1,
+    abort/1,
+    is_transaction/0
+]).
 
 %% For internal user only.
--export([to_standalone_fun/2,
-         run/3]).
+-export([
+    to_standalone_fun/2,
+    run/3
+]).
 
 -compile({no_auto_import, [get/1, put/2, erase/1]}).
 
@@ -73,25 +77,27 @@
 
 -type tx_props() :: #{allow_updates := boolean()}.
 
--export_type([tx_fun/0,
-              tx_fun_bindings/0,
-              tx_fun_result/0,
-              tx_abort/0]).
+-export_type([
+    tx_fun/0,
+    tx_fun_bindings/0,
+    tx_fun_result/0,
+    tx_abort/0
+]).
 
 -spec put(PathPattern, Payload) -> Result when
-      PathPattern :: khepri_path:pattern(),
-      Payload :: khepri_machine:payload(),
-      Result :: khepri_machine:result().
+    PathPattern :: khepri_path:pattern(),
+    Payload :: khepri_machine:payload(),
+    Result :: khepri_machine:result().
 %% @doc Creates or modifies a specific tree node in the tree structure.
 
 put(PathPattern, Payload) ->
     put(PathPattern, Payload, #{}).
 
 -spec put(PathPattern, Payload, Extra) -> Result when
-      PathPattern :: khepri_path:pattern(),
-      Payload :: khepri_machine:payload(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Result :: khepri_machine:result().
+    PathPattern :: khepri_path:pattern(),
+    Payload :: khepri_machine:payload(),
+    Extra :: #{keep_while => khepri_condition:keep_while()},
+    Result :: khepri_machine:result().
 %% @doc Creates or modifies a specific tree node in the tree structure.
 
 put(PathPattern, Payload, Extra) when ?IS_KHEPRI_PAYLOAD(Payload) ->
@@ -99,7 +105,8 @@ put(PathPattern, Payload, Extra) when ?IS_KHEPRI_PAYLOAD(Payload) ->
     ensure_updates_are_allowed(),
     State = get_tx_state(),
     {NewState, Result} = khepri_machine:insert_or_update_node(
-                           State, PathPattern, Payload, Extra),
+        State, PathPattern, Payload, Extra
+    ),
     set_tx_state(NewState),
     Result;
 put(PathPattern, Payload, _Extra) ->
@@ -114,18 +121,18 @@ get(PathPattern, Options) ->
     khepri_machine:find_matching_nodes(Root, PathPattern, Options).
 
 -spec exists(Path) -> Exists when
-      Path :: khepri_path:pattern(),
-      Exists :: boolean().
+    Path :: khepri_path:pattern(),
+    Exists :: boolean().
 
 exists(Path) ->
     case get(Path, #{expect_specific_node => true}) of
         {ok, _} -> true;
-        _       -> false
+        _ -> false
     end.
 
 -spec has_data(Path) -> HasData when
-      Path :: khepri_path:pattern(),
-      HasData :: boolean().
+    Path :: khepri_path:pattern(),
+    HasData :: boolean().
 
 has_data(Path) ->
     case get(Path, #{expect_specific_node => true}) of
@@ -150,12 +157,13 @@ delete(PathPattern) ->
     ensure_updates_are_allowed(),
     State = get_tx_state(),
     {NewState, Result} = khepri_machine:delete_matching_nodes(
-                           State, PathPattern),
+        State, PathPattern
+    ),
     set_tx_state(NewState),
     Result.
 
 -spec abort(Reason) -> no_return() when
-      Reason :: any().
+    Reason :: any().
 
 abort(Reason) ->
     throw({aborted, Reason}).
@@ -167,20 +175,23 @@ is_transaction() ->
     is_record(State, khepri_machine).
 
 -spec to_standalone_fun(Fun, ReadWrite) -> StandaloneFun | no_return() when
-      Fun :: fun(),
-      ReadWrite :: ro | rw | auto,
-      StandaloneFun :: khepri_fun:standalone_fun().
+    Fun :: fun(),
+    ReadWrite :: ro | rw | auto,
+    StandaloneFun :: khepri_fun:standalone_fun().
 
-to_standalone_fun(Fun, ReadWrite)
-  when is_function(Fun, 0) andalso
-       (ReadWrite =:= auto orelse ReadWrite =:= rw) ->
+to_standalone_fun(Fun, ReadWrite) when
+    is_function(Fun, 0) andalso
+        (ReadWrite =:= auto orelse ReadWrite =:= rw)
+->
     Options =
-    #{ensure_instruction_is_permitted =>
-      fun ensure_instruction_is_permitted/1,
-      should_process_function =>
-      fun should_process_function/4,
-      is_standalone_fun_still_needed =>
-      fun(Params) -> is_standalone_fun_still_needed(Params, ReadWrite) end},
+        #{
+            ensure_instruction_is_permitted =>
+                fun ensure_instruction_is_permitted/1,
+            should_process_function =>
+                fun should_process_function/4,
+            is_standalone_fun_still_needed =>
+                fun(Params) -> is_standalone_fun_still_needed(Params, ReadWrite) end
+        },
     try
         khepri_fun:to_standalone_fun(Fun, Options)
     catch
@@ -203,12 +214,14 @@ ensure_instruction_is_permitted({badmatch, _}) ->
 ensure_instruction_is_permitted({bif, Bif, _, Args, _}) ->
     Arity = length(Args),
     ensure_bif_is_valid(Bif, Arity);
-ensure_instruction_is_permitted({Call, _, _})
-  when Call =:= call orelse Call =:= call_only orelse
-       Call =:= call_ext orelse Call =:= call_ext_only ->
+ensure_instruction_is_permitted({Call, _, _}) when
+    Call =:= call orelse Call =:= call_only orelse
+        Call =:= call_ext orelse Call =:= call_ext_only
+->
     ok;
-ensure_instruction_is_permitted({Call, _, _, _})
-  when Call =:= call_last orelse Call =:= call_ext_last ->
+ensure_instruction_is_permitted({Call, _, _, _}) when
+    Call =:= call_last orelse Call =:= call_ext_last
+->
     ok;
 ensure_instruction_is_permitted({call_fun, _}) ->
     ok;
@@ -282,8 +295,7 @@ should_process_function(Module, Name, Arity, FromModule) ->
                         true ->
                             true;
                         false ->
-                            throw({call_to_unexported_function,
-                                   {Module, Name, Arity}})
+                            throw({call_to_unexported_function, {Module, Name, Arity}})
                     end
             end;
         false ->
@@ -302,26 +314,34 @@ get_list_of_module_to_skip() ->
             Modules;
         undefined ->
             InitialModules = #{erlang => true},
-            Applications = [erts,
-                            kernel,
-                            stdlib,
-                            mnesia,
-                            sasl,
-                            ssl,
-                            khepri],
+            Applications = [
+                erts,
+                kernel,
+                stdlib,
+                mnesia,
+                sasl,
+                ssl,
+                khepri
+            ],
             Modules = lists:foldl(
-                        fun(App, Modules0) ->
-                                _ = application:load(App),
-                                case application:get_key(App, modules) of
-                                    {ok, Mods} ->
-                                        lists:foldl(
-                                          fun(Mod, Modules1) ->
-                                                  Modules1#{Mod => true}
-                                          end, Modules0, Mods);
-                                    undefined ->
-                                        Modules0
-                                end
-                        end, InitialModules, Applications),
+                fun(App, Modules0) ->
+                    _ = application:load(App),
+                    case application:get_key(App, modules) of
+                        {ok, Mods} ->
+                            lists:foldl(
+                                fun(Mod, Modules1) ->
+                                    Modules1#{Mod => true}
+                                end,
+                                Modules0,
+                                Mods
+                            );
+                        undefined ->
+                            Modules0
+                    end
+                end,
+                InitialModules,
+                Applications
+            ),
             persistent_term:put(Key, Modules),
 
             %% Applications which were not loaded before this function are not
@@ -333,7 +353,7 @@ get_list_of_module_to_skip() ->
 
 ensure_call_is_valid(Module, Name, Arity) ->
     case is_remote_call_valid(Module, Name, Arity) of
-        true  -> ok;
+        true -> ok;
         false -> throw({call_denied, {Module, Name, Arity}})
     end.
 
@@ -347,7 +367,6 @@ ensure_bif_is_valid(Bif, Arity) ->
 
 is_remote_call_valid(khepri, no_payload, 0) -> true;
 is_remote_call_valid(khepri, data_payload, 1) -> true;
-
 is_remote_call_valid(khepri_tx, put, _) -> true;
 is_remote_call_valid(khepri_tx, get, _) -> true;
 is_remote_call_valid(khepri_tx, exists, _) -> true;
@@ -357,9 +376,7 @@ is_remote_call_valid(khepri_tx, find, _) -> true;
 is_remote_call_valid(khepri_tx, delete, _) -> true;
 is_remote_call_valid(khepri_tx, abort, _) -> true;
 is_remote_call_valid(khepri_tx, is_transaction, _) -> true;
-
 is_remote_call_valid(_, module_info, _) -> false;
-
 is_remote_call_valid(erlang, abs, _) -> true;
 is_remote_call_valid(erlang, adler32, _) -> true;
 is_remote_call_valid(erlang, adler32_combine, _) -> true;
@@ -439,7 +456,6 @@ is_remote_call_valid(erlang, throw, _) -> true;
 is_remote_call_valid(erlang, tl, _) -> true;
 is_remote_call_valid(erlang, tuple_size, _) -> true;
 is_remote_call_valid(erlang, tuple_to_list, _) -> true;
-
 is_remote_call_valid(dict, _, _) -> true;
 is_remote_call_valid(io_lib, format, _) -> true;
 is_remote_call_valid(lists, _, _) -> true;
@@ -458,29 +474,29 @@ is_remote_call_valid(proplists, _, _) -> true;
 is_remote_call_valid(sets, _, _) -> true;
 is_remote_call_valid(string, _, _) -> true;
 is_remote_call_valid(unicode, _, _) -> true;
-
 is_remote_call_valid(_, _, _) -> false.
 
 is_standalone_fun_still_needed(_, rw) ->
     true;
 is_standalone_fun_still_needed(#{calls := Calls}, auto) ->
-    ReadWrite = case Calls of
-                    #{{khepri_tx, put, 2} := _}    -> rw;
-                    #{{khepri_tx, put, 3} := _}    -> rw;
-                    #{{khepri_tx, delete, 1} := _} -> rw;
-                    _                              -> ro
-                end,
+    ReadWrite =
+        case Calls of
+            #{{khepri_tx, put, 2} := _} -> rw;
+            #{{khepri_tx, put, 3} := _} -> rw;
+            #{{khepri_tx, delete, 1} := _} -> rw;
+            _ -> ro
+        end,
     ReadWrite =:= rw.
 
 -spec run(State, Fun, AllowUpdates) -> Ret when
-      State :: khepri_machine:state(),
-      Fun :: tx_fun(),
-      AllowUpdates :: boolean(),
-      Ret :: {khepri_machine:state(), tx_fun_result() | Exception},
-      Exception :: {exception, Class, Reason, Stacktrace},
-      Class :: error | exit | throw,
-      Reason :: any(),
-      Stacktrace :: list().
+    State :: khepri_machine:state(),
+    Fun :: tx_fun(),
+    AllowUpdates :: boolean(),
+    Ret :: {khepri_machine:state(), tx_fun_result() | Exception},
+    Exception :: {exception, Class, Reason, Stacktrace},
+    Class :: error | exit | throw,
+    Reason :: any(),
+    Stacktrace :: list().
 %% @private
 
 run(State, Fun, AllowUpdates) ->
@@ -506,7 +522,7 @@ run(State, Fun, AllowUpdates) ->
     end.
 
 -spec get_tx_state() -> State when
-      State :: khepri_machine:state().
+    State :: khepri_machine:state().
 %% @private
 
 get_tx_state() ->
@@ -514,26 +530,26 @@ get_tx_state() ->
     State.
 
 -spec set_tx_state(State) -> ok when
-      State :: khepri_machine:state().
+    State :: khepri_machine:state().
 %% @private
 
 set_tx_state(#khepri_machine{} = NewState) ->
-     _ = erlang:put(?TX_STATE_KEY, NewState),
-     ok.
+    _ = erlang:put(?TX_STATE_KEY, NewState),
+    ok.
 
 -spec get_tx_props() -> TxProps when
-      TxProps :: tx_props().
+    TxProps :: tx_props().
 %% @private
 
 get_tx_props() ->
     erlang:get(?TX_PROPS).
 
 -spec ensure_path_pattern_is_valid(PathPattern) -> ok | no_return() when
-      PathPattern :: khepri_path:pattern().
+    PathPattern :: khepri_path:pattern().
 
 ensure_path_pattern_is_valid(PathPattern) ->
     case khepri_path:is_valid(PathPattern) of
-        true          -> ok;
+        true -> ok;
         {false, Path} -> abort({invalid_path, Path})
     end.
 
@@ -542,6 +558,6 @@ ensure_path_pattern_is_valid(PathPattern) ->
 
 ensure_updates_are_allowed() ->
     case get_tx_props() of
-        #{allow_updates := true}  -> ok;
+        #{allow_updates := true} -> ok;
         #{allow_updates := false} -> abort(store_update_denied)
     end.

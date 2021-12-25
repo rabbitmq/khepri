@@ -14,26 +14,32 @@
 -include("src/khepri_machine.hrl").
 -include("test/helpers.hrl").
 
--dialyzer([{no_match,
-            [exception_in_ro_transaction_test_/0,
-             exception_in_rw_transaction_test_/0]},
-           {no_missing_calls,
-            [calling_unexported_remote_function_as_fun_term_test_/0]},
-           {no_return,
-            [aborted_transaction_test_/0,
-             exception_in_ro_transaction_test_/0,
-             exception_in_rw_transaction_test_/0]},
-           {nowarn_function,
-            [fun_taking_args_in_ro_transaction_test_/0,
-             fun_taking_args_in_rw_transaction_test_/0,
-             not_a_function_as_ro_transaction_test_/0,
-             not_a_function_as_rw_transaction_test_/0,
-             use_an_invalid_path_in_tx_test_/0,
-             use_an_invalid_payload_in_tx_test_/0]}]).
+-dialyzer([
+    {no_match, [
+        exception_in_ro_transaction_test_/0,
+        exception_in_rw_transaction_test_/0
+    ]},
+    {no_missing_calls, [calling_unexported_remote_function_as_fun_term_test_/0]},
+    {no_return, [
+        aborted_transaction_test_/0,
+        exception_in_ro_transaction_test_/0,
+        exception_in_rw_transaction_test_/0
+    ]},
+    {nowarn_function, [
+        fun_taking_args_in_ro_transaction_test_/0,
+        fun_taking_args_in_rw_transaction_test_/0,
+        not_a_function_as_ro_transaction_test_/0,
+        not_a_function_as_rw_transaction_test_/0,
+        use_an_invalid_path_in_tx_test_/0,
+        use_an_invalid_payload_in_tx_test_/0
+    ]}
+]).
 
 %% Used internally for a testcase.
--export([really_do_get_root_path/0,
-         really_do_get_node_name/0]).
+-export([
+    really_do_get_root_path/0,
+    really_do_get_node_name/0
+]).
 
 fun_extraction_test() ->
     Parent = self(),
@@ -45,15 +51,13 @@ fun_extraction_test() ->
     %% If we were to do that from the test process, it would have a reference
     %% to the module's code and it would be impossible to unload and purge it.
     Child = spawn(
-              fun() ->
-                      Fun = mod_used_for_transactions:get_lambda(),
-                      ExpectedRet = Fun(Parent),
-                      StandaloneFun = khepri_fun:to_standalone_fun(Fun, #{}),
-                      Parent ! {standalone_fun,
-                                StandaloneFun,
-                                [Parent],
-                                ExpectedRet}
-              end),
+        fun() ->
+            Fun = mod_used_for_transactions:get_lambda(),
+            ExpectedRet = Fun(Parent),
+            StandaloneFun = khepri_fun:to_standalone_fun(Fun, #{}),
+            Parent ! {standalone_fun, StandaloneFun, [Parent], ExpectedRet}
+        end
+    ),
     MRef = erlang:monitor(process, Child),
     receive
         {'DOWN', MRef, process, Child, _Reason} ->
@@ -67,410 +71,491 @@ fun_extraction_test() ->
                 {standalone_fun, StandaloneFun, Args, ExpectedRet} ->
                     ?assertMatch({ok, _, _}, ExpectedRet),
                     ?assertEqual(
-                       ExpectedRet,
-                       khepri_fun:exec(StandaloneFun, Args))
+                        ExpectedRet,
+                        khepri_fun:exec(StandaloneFun, Args)
+                    )
             end
     end.
 
 is_transaction_test_() ->
-    [?_assertNot(khepri_tx:is_transaction()),
-     {setup,
-      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-      [?_assertEqual(
-          {atomic, true},
-          begin
-              Fun = fun() ->
+    [
+        ?_assertNot(khepri_tx:is_transaction()),
+        {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+            fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+                ?_assertEqual(
+                    {atomic, true},
+                    begin
+                        Fun = fun() ->
                             khepri_tx:is_transaction()
-                    end,
-              khepri_machine:transaction(?FUNCTION_NAME, Fun, ro)
-          end),
-       ?_assertEqual(
-          {atomic, true},
-          begin
-              Fun = fun() ->
+                        end,
+                        khepri_machine:transaction(?FUNCTION_NAME, Fun, ro)
+                    end
+                ),
+                ?_assertEqual(
+                    {atomic, true},
+                    begin
+                        Fun = fun() ->
                             khepri_tx:is_transaction()
-                    end,
-              khepri_machine:transaction(?FUNCTION_NAME, Fun, rw)
-          end)]}
+                        end,
+                        khepri_machine:transaction(?FUNCTION_NAME, Fun, rw)
+                    end
+                )
+            ]}
     ].
 
 noop_in_ro_transaction_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic, ok},
-         begin
-             Fun = fun() ->
-                           ok
-                   end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun, ro)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic, ok},
+                begin
+                    Fun = fun() ->
+                        ok
+                    end,
+                    khepri_machine:transaction(?FUNCTION_NAME, Fun, ro)
+                end
+            )
+        ]}.
 
 noop_in_rw_transaction_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic, ok},
-         begin
-             Fun = fun() ->
-                           ok
-                   end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic, ok},
+                begin
+                    Fun = fun() ->
+                        ok
+                    end,
+                    khepri_machine:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 get_in_ro_transaction_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic,
-          {ok, #{[foo] => #{data => value1,
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic,
+                    {ok, #{
+                        [foo] => #{
+                            data => value1,
                             payload_version => 1,
                             child_list_version => 1,
-                            child_list_length => 0}}}},
-         begin
-             _ = khepri_machine:put(
-                   ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}),
+                            child_list_length => 0
+                        }
+                    }}},
+                begin
+                    _ = khepri_machine:put(
+                        ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}
+                    ),
 
-             Fun = fun() ->
-                           khepri_tx:get([foo])
-                   end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun, ro)
-         end)]}.
+                    Fun = fun() ->
+                        khepri_tx:get([foo])
+                    end,
+                    khepri_machine:transaction(?FUNCTION_NAME, Fun, ro)
+                end
+            )
+        ]}.
 
 get_in_rw_transaction_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic,
-          {ok, #{[foo] => #{data => value1,
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic,
+                    {ok, #{
+                        [foo] => #{
+                            data => value1,
                             payload_version => 1,
                             child_list_version => 1,
-                            child_list_length => 0}}}},
-         begin
-             _ = khepri_machine:put(
-                   ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}),
+                            child_list_length => 0
+                        }
+                    }}},
+                begin
+                    _ = khepri_machine:put(
+                        ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}
+                    ),
 
-             Fun = fun() ->
-                           khepri_tx:get([foo])
-                   end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+                    Fun = fun() ->
+                        khepri_tx:get([foo])
+                    end,
+                    khepri_machine:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 put_in_ro_transaction_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {aborted, store_update_denied},
-         begin
-             _ = khepri_machine:put(
-                   ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}),
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {aborted, store_update_denied},
+                begin
+                    _ = khepri_machine:put(
+                        ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}
+                    ),
 
-             Fun = fun() ->
-                           Path = [foo],
-                           case khepri_tx:get(Path) of
-                               {ok, #{Path := #{data := value1}}} ->
-                                   khepri_tx:put(
-                                     Path, #kpayload_data{data = value2});
-                               Other ->
-                                   Other
-                           end
-                   end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun, ro)
-         end)]}.
+                    Fun = fun() ->
+                        Path = [foo],
+                        case khepri_tx:get(Path) of
+                            {ok, #{Path := #{data := value1}}} ->
+                                khepri_tx:put(
+                                    Path, #kpayload_data{data = value2}
+                                );
+                            Other ->
+                                Other
+                        end
+                    end,
+                    khepri_machine:transaction(?FUNCTION_NAME, Fun, ro)
+                end
+            )
+        ]}.
 
 put_in_rw_transaction_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic,
-          {ok, #{[foo] => #{data => value1,
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic,
+                    {ok, #{
+                        [foo] => #{
+                            data => value1,
                             payload_version => 1,
                             child_list_version => 1,
-                            child_list_length => 0}}}},
-         begin
-             _ = khepri_machine:put(
-                   ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}),
+                            child_list_length => 0
+                        }
+                    }}},
+                begin
+                    _ = khepri_machine:put(
+                        ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}
+                    ),
 
-             Fun = fun() ->
-                           Path = [foo],
-                           case khepri_tx:get(Path) of
-                               {ok, #{Path := #{data := value1}}} ->
-                                   khepri_tx:put(
-                                     Path, #kpayload_data{data = value2});
-                               Other ->
-                                   Other
-                           end
-                   end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+                    Fun = fun() ->
+                        Path = [foo],
+                        case khepri_tx:get(Path) of
+                            {ok, #{Path := #{data := value1}}} ->
+                                khepri_tx:put(
+                                    Path, #kpayload_data{data = value2}
+                                );
+                            Other ->
+                                Other
+                        end
+                    end,
+                    khepri_machine:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 delete_in_ro_transaction_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {aborted, store_update_denied},
-         begin
-             _ = khepri_machine:put(
-                   ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}),
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {aborted, store_update_denied},
+                begin
+                    _ = khepri_machine:put(
+                        ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}
+                    ),
 
-             Fun = fun() ->
-                           Path = [foo],
-                           case khepri_tx:get(Path) of
-                               {ok, #{Path := #{data := value1}}} ->
-                                   khepri_tx:delete(Path);
-                               Other ->
-                                   Other
-                           end
-                   end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun, ro)
-         end)]}.
+                    Fun = fun() ->
+                        Path = [foo],
+                        case khepri_tx:get(Path) of
+                            {ok, #{Path := #{data := value1}}} ->
+                                khepri_tx:delete(Path);
+                            Other ->
+                                Other
+                        end
+                    end,
+                    khepri_machine:transaction(?FUNCTION_NAME, Fun, ro)
+                end
+            )
+        ]}.
 
 delete_in_rw_transaction_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic,
-          {ok, #{[foo] => #{data => value1,
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic,
+                    {ok, #{
+                        [foo] => #{
+                            data => value1,
                             payload_version => 1,
                             child_list_version => 1,
-                            child_list_length => 0}}}},
-         begin
-             _ = khepri_machine:put(
-                   ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}),
+                            child_list_length => 0
+                        }
+                    }}},
+                begin
+                    _ = khepri_machine:put(
+                        ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}
+                    ),
 
-             Fun = fun() ->
-                           Path = [foo],
-                           case khepri_tx:get(Path) of
-                               {ok, #{Path := #{data := value1}}} ->
-                                   khepri_tx:delete(Path);
-                               Other ->
-                                   Other
-                           end
-                   end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+                    Fun = fun() ->
+                        Path = [foo],
+                        case khepri_tx:get(Path) of
+                            {ok, #{Path := #{data := value1}}} ->
+                                khepri_tx:delete(Path);
+                            Other ->
+                                Other
+                        end
+                    end,
+                    khepri_machine:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 exists_api_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic,
-          {false, true, false}},
-         begin
-             _ = khepri_machine:put(
-                   ?FUNCTION_NAME, [foo, bar],
-                   #kpayload_data{data = bar_value}),
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic, {false, true, false}},
+                begin
+                    _ = khepri_machine:put(
+                        ?FUNCTION_NAME,
+                        [foo, bar],
+                        #kpayload_data{data = bar_value}
+                    ),
 
-             Fun = fun() ->
-                           {khepri_tx:has_data([foo]),
+                    Fun = fun() ->
+                        {
+                            khepri_tx:has_data([foo]),
                             khepri_tx:has_data([foo, bar]),
-                            khepri_tx:has_data([foo, bar, baz])}
-                   end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+                            khepri_tx:has_data([foo, bar, baz])
+                        }
+                    end,
+                    khepri_machine:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 has_data_api_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic,
-          {true, false}},
-         begin
-             _ = khepri_machine:put(
-                   ?FUNCTION_NAME, [foo], #kpayload_data{data = foo_value}),
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic, {true, false}},
+                begin
+                    _ = khepri_machine:put(
+                        ?FUNCTION_NAME, [foo], #kpayload_data{data = foo_value}
+                    ),
 
-             Fun = fun() ->
-                           {khepri_tx:exists([foo]),
-                            khepri_tx:exists([bar])}
-                   end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+                    Fun = fun() ->
+                        {khepri_tx:exists([foo]), khepri_tx:exists([bar])}
+                    end,
+                    khepri_machine:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 find_api_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic,
-          {ok, #{[foo] => #{data => foo_value,
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic,
+                    {ok, #{
+                        [foo] => #{
+                            data => foo_value,
                             payload_version => 1,
                             child_list_version => 1,
-                            child_list_length => 0}}}},
-         begin
-             _ = khepri_machine:put(
-                   ?FUNCTION_NAME, [foo], #kpayload_data{data = foo_value}),
+                            child_list_length => 0
+                        }
+                    }}},
+                begin
+                    _ = khepri_machine:put(
+                        ?FUNCTION_NAME, [foo], #kpayload_data{data = foo_value}
+                    ),
 
-             Fun = fun() ->
-                           khepri_tx:find([], #if_data_matches{pattern = '_'})
-                   end,
-             khepri_machine:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+                    Fun = fun() ->
+                        khepri_tx:find([], #if_data_matches{pattern = '_'})
+                    end,
+                    khepri_machine:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 simple_api_test_() ->
     %% This is in the `khepri` module which provides the "simple API", but in
     %% the case of transactions, the API is the same as the "advanced API"
     %% from `khepri_machine`.
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic,
-          {ok, #{[foo] => #{data => value1,
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic,
+                    {ok, #{
+                        [foo] => #{
+                            data => value1,
                             payload_version => 1,
                             child_list_version => 1,
-                            child_list_length => 0}}}},
-         begin
-             _ = khepri_machine:put(
-                   ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}),
+                            child_list_length => 0
+                        }
+                    }}},
+                begin
+                    _ = khepri_machine:put(
+                        ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}
+                    ),
 
-             Fun = fun() ->
-                           Path = [foo],
-                           case khepri_tx:get(Path) of
-                               {ok, #{Path := #{data := value1}}} ->
-                                   khepri_tx:put(
-                                     Path, #kpayload_data{data = value2});
-                               Other ->
-                                   Other
-                           end
-                   end,
-             %% Let Khepri detect if the transaction is R/W or R/O.
-             khepri:transaction(?FUNCTION_NAME, Fun)
-         end)]}.
+                    Fun = fun() ->
+                        Path = [foo],
+                        case khepri_tx:get(Path) of
+                            {ok, #{Path := #{data := value1}}} ->
+                                khepri_tx:put(
+                                    Path, #kpayload_data{data = value2}
+                                );
+                            Other ->
+                                Other
+                        end
+                    end,
+                    %% Let Khepri detect if the transaction is R/W or R/O.
+                    khepri:transaction(?FUNCTION_NAME, Fun)
+                end
+            )
+        ]}.
 
 list_comprehension_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic, [bar_value, foo_value]},
-         begin
-             _ = khepri_machine:put(
-                   ?FUNCTION_NAME, [foo], #kpayload_data{data = foo_value}),
-             _ = khepri_machine:put(
-                   ?FUNCTION_NAME, [bar], #kpayload_data{data = bar_value}),
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic, [bar_value, foo_value]},
+                begin
+                    _ = khepri_machine:put(
+                        ?FUNCTION_NAME, [foo], #kpayload_data{data = foo_value}
+                    ),
+                    _ = khepri_machine:put(
+                        ?FUNCTION_NAME, [bar], #kpayload_data{data = bar_value}
+                    ),
 
-             Fun = fun() ->
-                           {ok, Nodes} = khepri_tx:list([?ROOT_NODE]),
-                           [Data ||
-                            Path <- lists:sort(maps:keys(Nodes)),
-                            #{data := Data} <- [maps:get(Path, Nodes)]]
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+                    Fun = fun() ->
+                        {ok, Nodes} = khepri_tx:list([?ROOT_NODE]),
+                        [
+                            Data
+                         || Path <- lists:sort(maps:keys(Nodes)),
+                            #{data := Data} <- [maps:get(Path, Nodes)]
+                        ]
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 aborted_transaction_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {aborted, abort_transaction},
-         begin
-             Fun = fun() ->
-                           khepri_tx:abort(abort_transaction)
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {aborted, abort_transaction},
+                begin
+                    Fun = fun() ->
+                        khepri_tx:abort(abort_transaction)
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 fun_taking_args_in_ro_transaction_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, {requires_args, 1}},
-         begin
-             Fun = fun(Arg) ->
-                           Arg
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, ro)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertThrow(
+                {invalid_tx_fun, {requires_args, 1}},
+                begin
+                    Fun = fun(Arg) ->
+                        Arg
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun, ro)
+                end
+            )
+        ]}.
 
 fun_taking_args_in_rw_transaction_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, {requires_args, 1}},
-         begin
-             Fun = fun(Arg) ->
-                           Arg
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertThrow(
+                {invalid_tx_fun, {requires_args, 1}},
+                begin
+                    Fun = fun(Arg) ->
+                        Arg
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 not_a_function_as_ro_transaction_test_() ->
     Term = an_atom,
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, Term},
-         khepri:transaction(?FUNCTION_NAME, Term, ro))]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertThrow(
+                {invalid_tx_fun, Term},
+                khepri:transaction(?FUNCTION_NAME, Term, ro)
+            )
+        ]}.
 
 not_a_function_as_rw_transaction_test_() ->
     Term = an_atom,
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, Term},
-         khepri:transaction(?FUNCTION_NAME, Term, rw))]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertThrow(
+                {invalid_tx_fun, Term},
+                khepri:transaction(?FUNCTION_NAME, Term, rw)
+            )
+        ]}.
 
 exception_in_ro_transaction_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertError(
-         {badmatch, {ok, #{[] := #{payload_version := 1,
-                                   child_list_version := 1,
-                                   child_list_length := 0}}}},
-         begin
-             Fun = fun() ->
-                           bad_return_value = khepri_tx:list([])
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, ro)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertError(
+                {badmatch,
+                    {ok, #{
+                        [] := #{
+                            payload_version := 1,
+                            child_list_version := 1,
+                            child_list_length := 0
+                        }
+                    }}},
+                begin
+                    Fun = fun() ->
+                        bad_return_value = khepri_tx:list([])
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun, ro)
+                end
+            )
+        ]}.
 
 exception_in_rw_transaction_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertError(
-         {badmatch, {ok, #{[] := #{payload_version := 1,
-                                   child_list_version := 1,
-                                   child_list_length := 0}}}},
-         begin
-             Fun = fun() ->
-                           bad_return_value = khepri_tx:list([])
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertError(
+                {badmatch,
+                    {ok, #{
+                        [] := #{
+                            payload_version := 1,
+                            child_list_version := 1,
+                            child_list_length := 0
+                        }
+                    }}},
+                begin
+                    Fun = fun() ->
+                        bad_return_value = khepri_tx:list([])
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 external_variable_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic, {ok, #{[] => #{payload_version => 1,
-                                 child_list_version => 1,
-                                 child_list_length => 0}}}},
-         begin
-             Path = [],
-             Fun = fun() ->
-                           khepri_tx:get(Path)
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic,
+                    {ok, #{
+                        [] => #{
+                            payload_version => 1,
+                            child_list_version => 1,
+                            child_list_length => 0
+                        }
+                    }}},
+                begin
+                    Path = [],
+                    Fun = fun() ->
+                        khepri_tx:get(Path)
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 get_root_path() -> do_get_root_path().
 do_get_root_path() -> ?MODULE:really_do_get_root_path().
@@ -478,283 +563,314 @@ really_do_get_root_path() -> seriously_do_get_root_path().
 seriously_do_get_root_path() -> [].
 
 calling_valid_local_function_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic, {ok, #{[] => #{payload_version => 1,
-                                 child_list_version => 1,
-                                 child_list_length => 0}}}},
-         begin
-             Fun = fun() ->
-                           Path = get_root_path(),
-                           khepri_tx:get(Path)
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic,
+                    {ok, #{
+                        [] => #{
+                            payload_version => 1,
+                            child_list_version => 1,
+                            child_list_length => 0
+                        }
+                    }}},
+                begin
+                    Fun = fun() ->
+                        Path = get_root_path(),
+                        khepri_tx:get(Path)
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 get_node_name() -> do_get_node_name().
 do_get_node_name() -> ?MODULE:really_do_get_node_name().
 really_do_get_node_name() -> node().
 
 calling_invalid_local_function_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, {call_denied, {node, 0}}},
-         begin
-             Fun = fun() ->
-                           Path = [node, get_node_name()],
-                           khepri_tx:get(Path)
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertThrow(
+                {invalid_tx_fun, {call_denied, {node, 0}}},
+                begin
+                    Fun = fun() ->
+                        Path = [node, get_node_name()],
+                        khepri_tx:get(Path)
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 noop() -> ok.
 
 calling_local_function_as_fun_term_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic, ok},
-         begin
-             Fun = fun noop/0,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic, ok},
+                begin
+                    Fun = fun noop/0,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 calling_stdlib_function_as_fun_term_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic, dict:new()},
-         begin
-             Fun = fun dict:new/0,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic, dict:new()},
+                begin
+                    Fun = fun dict:new/0,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 calling_remote_function_as_fun_term_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic, mod_used_for_transactions:exported()},
-         begin
-             Fun = fun mod_used_for_transactions:exported/0,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic, mod_used_for_transactions:exported()},
+                begin
+                    Fun = fun mod_used_for_transactions:exported/0,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 calling_unexported_remote_function_as_fun_term_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun,
-          {call_to_unexported_function,
-           {mod_used_for_transactions, unexported, 0}}},
-         begin
-             Fun = fun mod_used_for_transactions:unexported/0,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertThrow(
+                {invalid_tx_fun,
+                    {call_to_unexported_function, {mod_used_for_transactions, unexported, 0}}},
+                begin
+                    Fun = fun mod_used_for_transactions:unexported/0,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 with(Arg, Fun) ->
     fun() -> Fun(Arg) end.
 
 nested_funs_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic, {nested, arg1}},
-         begin
-             Fun = fun(Arg) ->
-                           erlang:list_to_tuple([nested, Arg])
-                   end,
-             khepri:transaction(?FUNCTION_NAME, with(arg1, Fun), rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic, {nested, arg1}},
+                begin
+                    Fun = fun(Arg) ->
+                        erlang:list_to_tuple([nested, Arg])
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, with(arg1, Fun), rw)
+                end
+            )
+        ]}.
 
 trying_to_send_msg_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, sending_message_denied},
-         begin
-             Pid = self(),
-             Fun = fun() ->
-                           Pid ! msg
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertThrow(
+                {invalid_tx_fun, sending_message_denied},
+                begin
+                    Pid = self(),
+                    Fun = fun() ->
+                        Pid ! msg
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 trying_to_receive_msg_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, receiving_message_denied},
-         begin
-             Fun = fun() ->
-                           receive
-                               Msg ->
-                                   Msg
-                           after 100 ->
-                                     ok
-                           end
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertThrow(
+                {invalid_tx_fun, receiving_message_denied},
+                begin
+                    Fun = fun() ->
+                        receive
+                            Msg ->
+                                Msg
+                        after 100 ->
+                            ok
+                        end
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 trying_to_use_process_dict_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, {call_denied, {erlang, get, 0}}},
-         begin
-             Fun = fun() ->
-                           get()
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertThrow(
+                {invalid_tx_fun, {call_denied, {erlang, get, 0}}},
+                begin
+                    Fun = fun() ->
+                        get()
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 trying_to_use_persistent_term_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, {call_denied, {persistent_term, put, 2}}},
-         begin
-             Fun = fun() ->
-                           persistent_term:put(key, value)
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertThrow(
+                {invalid_tx_fun, {call_denied, {persistent_term, put, 2}}},
+                begin
+                    Fun = fun() ->
+                        persistent_term:put(key, value)
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 trying_to_use_mnesia_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, {call_denied, {mnesia, read, 2}}},
-         begin
-             Fun = fun() ->
-                           mnesia:read(table, key)
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertThrow(
+                {invalid_tx_fun, {call_denied, {mnesia, read, 2}}},
+                begin
+                    Fun = fun() ->
+                        mnesia:read(table, key)
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 trying_to_run_http_request_test_() ->
     %% In this case, Khepri will try to copy the code of the `httpc' module
     %% and will eventually find a forbidden instruction or call.
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, _},
-         begin
-             Fun = fun() ->
-                           httpc:request("url://")
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertThrow(
+                {invalid_tx_fun, _},
+                begin
+                    Fun = fun() ->
+                        httpc:request("url://")
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 trying_to_use_ssl_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, {call_denied, {ssl, connect, 4}}},
-         begin
-             Fun = fun() ->
-                           ssl:connect("localhost", 1234, [], infinity)
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertThrow(
+                {invalid_tx_fun, {call_denied, {ssl, connect, 4}}},
+                begin
+                    Fun = fun() ->
+                        ssl:connect("localhost", 1234, [], infinity)
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun, rw)
+                end
+            )
+        ]}.
 
 use_an_invalid_path_in_tx_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {aborted, {invalid_path, not_a_list}},
-         begin
-             Fun = fun() ->
-                           khepri_tx:put(not_a_list, none)
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
-         end),
-      ?_assertEqual(
-         {aborted, {invalid_path, "not_a_component"}},
-         begin
-             Fun = fun() ->
-                           khepri_tx:put(["not_a_component"], none)
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {aborted, {invalid_path, not_a_list}},
+                begin
+                    Fun = fun() ->
+                        khepri_tx:put(not_a_list, none)
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun)
+                end
+            ),
+            ?_assertEqual(
+                {aborted, {invalid_path, "not_a_component"}},
+                begin
+                    Fun = fun() ->
+                        khepri_tx:put(["not_a_component"], none)
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun)
+                end
+            )
+        ]}.
 
 use_an_invalid_payload_in_tx_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {aborted, {invalid_payload, [foo], invalid_payload}},
-         begin
-             Fun = fun() ->
-                           khepri_tx:put([foo], invalid_payload)
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
-         end),
-      ?_assertEqual(
-         {aborted, {invalid_payload, [foo], {invalid_payload, in_a_tuple}}},
-         begin
-             Fun = fun() ->
-                           khepri_tx:put([foo], {invalid_payload, in_a_tuple})
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun)
-         end)]}.
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {aborted, {invalid_payload, [foo], invalid_payload}},
+                begin
+                    Fun = fun() ->
+                        khepri_tx:put([foo], invalid_payload)
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun)
+                end
+            ),
+            ?_assertEqual(
+                {aborted, {invalid_payload, [foo], {invalid_payload, in_a_tuple}}},
+                begin
+                    Fun = fun() ->
+                        khepri_tx:put([foo], {invalid_payload, in_a_tuple})
+                    end,
+                    khepri:transaction(?FUNCTION_NAME, Fun)
+                end
+            )
+        ]}.
 
--define(TX_CODE, "Fun = fun() ->
-                          Path = [foo],
-                          case khepri_tx:get(Path) of
-                              {ok, #{Path := #{data := value1}}} ->
-                                  khepri_tx:put(
-                                    Path,
-                                    khepri:data_payload(value2));
-                              Other ->
-                                  Other
-                          end
-                  end,
-                  khepri_machine:transaction(
-                    " ++ atom_to_list(?FUNCTION_NAME) ++ ",
-                    Fun).
-                  ").
+-define(TX_CODE,
+    "Fun = fun() ->\n"
+    "                          Path = [foo],\n"
+    "                          case khepri_tx:get(Path) of\n"
+    "                              {ok, #{Path := #{data := value1}}} ->\n"
+    "                                  khepri_tx:put(\n"
+    "                                    Path,\n"
+    "                                    khepri:data_payload(value2));\n"
+    "                              Other ->\n"
+    "                                  Other\n"
+    "                          end\n"
+    "                  end,\n"
+    "                  khepri_machine:transaction(\n"
+    "                    " ++ atom_to_list(?FUNCTION_NAME) ++
+        ",\n"
+        "                    Fun).\n"
+        "                  "
+).
 
 tx_from_the_shell_test_() ->
     %% We simuate the use of a transaction from the Erlang shell by using
     %% `erl_parse' and `erl_eval'. The transaction is the same as
     %% `put_tx_test_()'.
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {atomic,
-          {ok, #{[foo] => #{data => value1,
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertEqual(
+                {atomic,
+                    {ok, #{
+                        [foo] => #{
+                            data => value1,
                             payload_version => 1,
                             child_list_version => 1,
-                            child_list_length => 0}}}},
-         begin
-             _ = khepri_machine:put(
-                   ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}),
+                            child_list_length => 0
+                        }
+                    }}},
+                begin
+                    _ = khepri_machine:put(
+                        ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}
+                    ),
 
-             Bindings = erl_eval:new_bindings(),
-             {ok, Tokens, _EndLocation} = erl_scan:string(?TX_CODE),
-             {ok, Exprs} = erl_parse:parse_exprs(Tokens),
-             {value, Value, _NewBindings} = erl_eval:exprs(Exprs, Bindings),
-             Value
-         end)]}.
+                    Bindings = erl_eval:new_bindings(),
+                    {ok, Tokens, _EndLocation} = erl_scan:string(?TX_CODE),
+                    {ok, Exprs} = erl_parse:parse_exprs(Tokens),
+                    {value, Value, _NewBindings} = erl_eval:exprs(Exprs, Bindings),
+                    Value
+                end
+            )
+        ]}.
 
 local_fun_using_erl_eval() ->
     Bindings = erl_eval:new_bindings(),
@@ -767,17 +883,20 @@ tx_using_erl_eval_test_() ->
     %% Unlike the previous testcase, the transaction calls a function using
     %% `erl_eval'. This situation shouldn't happen in an Erlang shell. It is
     %% unsupported and rejected.
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, {call_denied, _}},
-         begin
-             _ = khepri_machine:put(
-                   ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}),
+    {setup, fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+        fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end, [
+            ?_assertThrow(
+                {invalid_tx_fun, {call_denied, _}},
+                begin
+                    _ = khepri_machine:put(
+                        ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}
+                    ),
 
-             khepri_machine:transaction(
-               ?FUNCTION_NAME,
-               fun local_fun_using_erl_eval/0,
-               rw)
-         end)]}.
+                    khepri_machine:transaction(
+                        ?FUNCTION_NAME,
+                        fun local_fun_using_erl_eval/0,
+                        rw
+                    )
+                end
+            )
+        ]}.

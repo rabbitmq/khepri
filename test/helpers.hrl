@@ -5,6 +5,8 @@
 %% Copyright (c) 2021 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--define(META, #{index => ?LINE,
-                term => 1,
-                system_time => ?LINE}).
+-define(META, #{
+    index => ?LINE,
+    term => 1,
+    system_time => ?LINE
+}).

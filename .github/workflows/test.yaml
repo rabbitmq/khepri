@@ -35,12 +35,18 @@ jobs:
       - name: Compile
         run: rebar3 compile
 
+      - name: Formatting
+        run: rebar3 fmt --check
+
       - name: Xref
         run: rebar3 xref
+
       - name: EUnit
         run: rebar3 eunit --verbose --cover
+
       - name: PropEr
         run: rebar3 proper --verbose --cover
+
       - name: Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -20,12 +20,13 @@
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
 
--type comparison_op(Type) :: {eq, Type} |
-                             {ne, Type} |
-                             {lt, Type} |
-                             {le, Type} |
-                             {gt, Type} |
-                             {ge, Type}.
+-type comparison_op(Type) ::
+    {eq, Type}
+    | {ne, Type}
+    | {lt, Type}
+    | {le, Type}
+    | {gt, Type}
+    | {ge, Type}.
 %% Comparison operator in some {@link condition()}.
 
 -type if_name_matches() :: #if_name_matches{}.
@@ -204,42 +205,51 @@
 %%                       #if_has_data{has_data = true}]}.
 %% '''
 
--type condition() :: if_name_matches() |
-                     if_path_matches() |
-                     if_has_data() |
-                     if_data_matches() |
-                     if_node_exists() |
-                     if_payload_version() |
-                     if_child_list_version() |
-                     if_child_list_length() |
-                     if_not() |
-                     if_all() |
-                     if_any().
+-type condition() ::
+    if_name_matches()
+    | if_path_matches()
+    | if_has_data()
+    | if_data_matches()
+    | if_node_exists()
+    | if_payload_version()
+    | if_child_list_version()
+    | if_child_list_length()
+    | if_not()
+    | if_all()
+    | if_any().
 
--type condition_using_regex() :: if_name_matches() |
-                                 if_path_matches().
--type condition_using_comparison_op() :: if_payload_version() |
-                                         if_child_list_version() |
-                                         if_child_list_length().
+-type condition_using_regex() ::
+    if_name_matches()
+    | if_path_matches().
+-type condition_using_comparison_op() ::
+    if_payload_version()
+    | if_child_list_version()
+    | if_child_list_length().
 
 -type keep_while() :: #{khepri_path:path() => condition()}.
 
--export([compile/1,
-         applies_to_grandchildren/1,
-         is_met/3,
-         is_valid/1]).
+-export([
+    compile/1,
+    applies_to_grandchildren/1,
+    is_met/3,
+    is_valid/1
+]).
 
 -ifdef(TEST).
--export([eval_regex/4,
-         compare_numerical_values/2]).
+-export([
+    eval_regex/4,
+    compare_numerical_values/2
+]).
 -endif.
 
--export_type([condition/0,
-              comparison_op/1,
-              keep_while/0]).
+-export_type([
+    condition/0,
+    comparison_op/1,
+    keep_while/0
+]).
 
 -spec compile(Condition) -> Condition when
-      Condition :: khepri_path:pattern_component().
+    Condition :: khepri_path:pattern_component().
 %% @private
 
 compile(#if_name_matches{regex = any} = Cond) ->
@@ -274,8 +284,9 @@ compile(Cond) ->
 optimize_if_all_conditions(Conds) ->
     optimize_if_all_conditions(Conds, []).
 
-optimize_if_all_conditions([ChildName | Rest], Result)
-  when ?IS_PATH_COMPONENT(ChildName) ->
+optimize_if_all_conditions([ChildName | Rest], Result) when
+    ?IS_PATH_COMPONENT(ChildName)
+->
     %% The path component exact match condition will become the first one
     %% tested.
     Result1 = Result ++ [ChildName],
@@ -307,107 +318,147 @@ applies_to_grandchildren(_) ->
     false.
 
 -spec is_met(Condition, PathOrChildName, Child) -> IsMet when
-      Condition :: khepri_path:pattern_component(),
-      PathOrChildName :: khepri_path:path() | khepri_path:component(),
-      Child :: khepri_machine:tree_node() | khepri_machine:node_props(),
-      IsMet :: true | IsNotMet1 | IsNotMet2,
-      IsNotMet1 :: {false, khepri_path:pattern_component()},
-      IsNotMet2 :: {false, {condition(), any()}}.
+    Condition :: khepri_path:pattern_component(),
+    PathOrChildName :: khepri_path:path() | khepri_path:component(),
+    Child :: khepri_machine:tree_node() | khepri_machine:node_props(),
+    IsMet :: true | IsNotMet1 | IsNotMet2,
+    IsNotMet1 :: {false, khepri_path:pattern_component()},
+    IsNotMet2 :: {false, {condition(), any()}}.
 %% @private
 
 is_met(Condition, Path, Child) when ?IS_PATH(Path) ->
-    ChildName = case Path of
-                    [] -> '';
-                    _  -> lists:last(Path)
-                end,
+    ChildName =
+        case Path of
+            [] -> '';
+            _ -> lists:last(Path)
+        end,
     is_met(Condition, ChildName, Child);
-
-is_met(ChildName, ChildName, _Child)
-  when ?IS_PATH_COMPONENT(ChildName) ->
+is_met(ChildName, ChildName, _Child) when
+    ?IS_PATH_COMPONENT(ChildName)
+->
     true;
 is_met(?THIS_NODE, _ChildNameB, _Child) ->
     true;
-is_met(ChildNameA, _ChildNameB, _Child)
-  when ?IS_PATH_COMPONENT(ChildNameA) ->
+is_met(ChildNameA, _ChildNameB, _Child) when
+    ?IS_PATH_COMPONENT(ChildNameA)
+->
     {false, ChildNameA};
 is_met(#if_node_exists{exists = true}, _ChildName, _Child) ->
     true;
 is_met(#if_node_exists{exists = false} = Cond, _ChildName, _Child) ->
     {false, Cond};
 is_met(
-  #if_name_matches{regex = SourceRegex, compiled = CompiledRegex} = Cond,
-  ChildName,
-  _Child) ->
+    #if_name_matches{regex = SourceRegex, compiled = CompiledRegex} = Cond,
+    ChildName,
+    _Child
+) ->
     eval_regex(Cond, SourceRegex, CompiledRegex, ChildName);
 is_met(
-  #if_path_matches{regex = SourceRegex, compiled = CompiledRegex} = Cond,
-  ChildName,
-  _Child) ->
+    #if_path_matches{regex = SourceRegex, compiled = CompiledRegex} = Cond,
+    ChildName,
+    _Child
+) ->
     eval_regex(Cond, SourceRegex, CompiledRegex, ChildName);
-is_met(#if_has_data{has_data = true},
-       _ChildName, #node{payload = #kpayload_data{data = _}}) ->
+is_met(
+    #if_has_data{has_data = true},
+    _ChildName,
+    #node{payload = #kpayload_data{data = _}}
+) ->
     true;
-is_met(#if_has_data{has_data = false} = Cond,
-       _ChildName, #node{payload = #kpayload_data{data = _}}) ->
+is_met(
+    #if_has_data{has_data = false} = Cond,
+    _ChildName,
+    #node{payload = #kpayload_data{data = _}}
+) ->
     {false, Cond};
 is_met(#if_has_data{has_data = true} = Cond, _ChildName, _Child) ->
     {false, Cond};
 is_met(#if_has_data{has_data = false}, _ChildName, _Child) ->
     true;
-is_met(#if_data_matches{compiled = CompMatchSpec} = Cond,
-       _ChildName, #node{payload = #kpayload_data{data = Data}}) ->
+is_met(
+    #if_data_matches{compiled = CompMatchSpec} = Cond,
+    _ChildName,
+    #node{payload = #kpayload_data{data = Data}}
+) ->
     case term_matches(Data, CompMatchSpec) of
-        true  -> true;
+        true -> true;
         false -> {false, Cond}
     end;
-is_met(#if_data_matches{compiled = CompMatchSpec} = Cond,
-       _ChildName, #{data := Data}) ->
+is_met(
+    #if_data_matches{compiled = CompMatchSpec} = Cond,
+    _ChildName,
+    #{data := Data}
+) ->
     case term_matches(Data, CompMatchSpec) of
-        true  -> true;
+        true -> true;
         false -> {false, Cond}
     end;
-is_met(#if_payload_version{version = DVersionB} = Cond, _ChildName,
-       #node{stat = #{payload_version := DVersionA}}) ->
+is_met(
+    #if_payload_version{version = DVersionB} = Cond,
+    _ChildName,
+    #node{stat = #{payload_version := DVersionA}}
+) ->
     compare_numerical_values(Cond, DVersionA, DVersionB);
-is_met(#if_payload_version{version = DVersionB} = Cond, _ChildName,
-       #{payload_version := DVersionA}) ->
+is_met(
+    #if_payload_version{version = DVersionB} = Cond,
+    _ChildName,
+    #{payload_version := DVersionA}
+) ->
     compare_numerical_values(Cond, DVersionA, DVersionB);
-is_met(#if_child_list_version{version = CVersionB} = Cond, _ChildName,
-       #node{stat = #{child_list_version := CVersionA}}) ->
+is_met(
+    #if_child_list_version{version = CVersionB} = Cond,
+    _ChildName,
+    #node{stat = #{child_list_version := CVersionA}}
+) ->
     compare_numerical_values(Cond, CVersionA, CVersionB);
-is_met(#if_child_list_version{version = CVersionB} = Cond, _ChildName,
-       #{child_list_version := CVersionA}) ->
+is_met(
+    #if_child_list_version{version = CVersionB} = Cond,
+    _ChildName,
+    #{child_list_version := CVersionA}
+) ->
     compare_numerical_values(Cond, CVersionA, CVersionB);
-is_met(#if_child_list_length{count = ExpectedCount} = Cond, _ChildName,
-       #node{child_nodes = Children}) ->
+is_met(
+    #if_child_list_length{count = ExpectedCount} = Cond,
+    _ChildName,
+    #node{child_nodes = Children}
+) ->
     Count = maps:size(Children),
     compare_numerical_values(Cond, Count, ExpectedCount);
-is_met(#if_child_list_length{count = ExpectedCount} = Cond, _ChildName,
-       #{child_list_length := Count}) ->
+is_met(
+    #if_child_list_length{count = ExpectedCount} = Cond,
+    _ChildName,
+    #{child_list_length := Count}
+) ->
     compare_numerical_values(Cond, Count, ExpectedCount);
 is_met(#if_not{condition = InnerCond} = Cond, ChildName, Child) ->
     case is_met(InnerCond, ChildName, Child) of
-        true       -> {false, Cond};
+        true -> {false, Cond};
         {false, _} -> true
     end;
 is_met(#if_all{conditions = []}, _ChildName, _Child) ->
     true;
 is_met(#if_all{conditions = Conds}, ChildName, Child) ->
     lists:foldl(
-      fun
-          (_, {false, _} = False) -> False;
-          (Cond, _)               -> is_met(Cond, ChildName, Child)
-      end, true, Conds);
+        fun
+            (_, {false, _} = False) -> False;
+            (Cond, _) -> is_met(Cond, ChildName, Child)
+        end,
+        true,
+        Conds
+    );
 is_met(#if_any{conditions = []} = Cond, _ChildName, _Child) ->
     {false, Cond};
 is_met(#if_any{conditions = Conds} = IfAnyCond, ChildName, Child) ->
     Ret = lists:foldl(
-            fun
-                (_, true) -> true;
-                (Cond, _) -> is_met(Cond, ChildName, Child)
-            end, {false, undefined}, Conds),
+        fun
+            (_, true) -> true;
+            (Cond, _) -> is_met(Cond, ChildName, Child)
+        end,
+        {false, undefined},
+        Conds
+    ),
     case Ret of
-        true       -> true;
+        true -> true;
         {false, _} -> {false, IfAnyCond}
     end;
 is_met(Cond, _, _) ->
@@ -420,34 +471,39 @@ is_met(Cond, _, _) ->
 term_matches(Term, MatchSpec) ->
     case ets:match_spec_run([Term], MatchSpec) of
         [match] -> true;
-        _       -> false
+        _ -> false
     end.
 
 -spec eval_regex(
+    condition_using_regex(),
+    any | iodata() | unicode:charlist(),
+    {ok, re_mp()} | {error, {string(), non_neg_integer()}} | undefined,
+    atom() | iodata() | unicode:charlist()
+) ->
+    true
+    | {false, condition_using_regex()}
+    | {false, {
         condition_using_regex(),
-        any | iodata() | unicode:charlist(),
-        {ok, re_mp()} | {error, {string(), non_neg_integer()}} | undefined,
-        atom() | iodata() | unicode:charlist()) ->
-    true |
-    {false, condition_using_regex()} |
-    {false, {condition_using_regex(),
-             {error,
-              match_limit |
-              match_limit_recursion |
-              {string(), non_neg_integer()}}}}.
+        {error,
+            match_limit
+            | match_limit_recursion
+            | {string(), non_neg_integer()}}
+    }}.
 %% @private
 
 eval_regex(_Cond, any, _CompiledRegex, _Value) ->
     true;
-eval_regex(Cond, _SourceRegex, {ok, Regex}, Value)
-  when not is_atom(Value) ->
+eval_regex(Cond, _SourceRegex, {ok, Regex}, Value) when
+    not is_atom(Value)
+->
     case re:run(Value, Regex, [{capture, none}]) of
-        match   -> true;
+        match -> true;
         nomatch -> {false, Cond};
-        Error   -> {false, {Cond, Error}}
+        Error -> {false, {Cond, Error}}
     end;
-eval_regex(Cond, _SourceRegex, {error, _} = Error, Value)
-  when not is_atom(Value) ->
+eval_regex(Cond, _SourceRegex, {error, _} = Error, Value) when
+    not is_atom(Value)
+->
     {false, {Cond, Error}};
 eval_regex(Cond, SourceRegex, CompiledRegex, Value) when is_atom(Value) ->
     eval_regex(Cond, SourceRegex, CompiledRegex, atom_to_list(Value));
@@ -456,36 +512,36 @@ eval_regex(Cond, SourceRegex, undefined, Value) ->
     eval_regex(Cond, SourceRegex, Compiled, Value).
 
 -spec compare_numerical_values(Cond, ValueA, ValueB) -> Equal when
-      Cond :: condition_using_comparison_op(),
-      ValueA :: non_neg_integer(),
-      ValueB :: non_neg_integer() | comparison_op(non_neg_integer()),
-      Equal :: true | {false, condition_using_comparison_op()}.
+    Cond :: condition_using_comparison_op(),
+    ValueA :: non_neg_integer(),
+    ValueB :: non_neg_integer() | comparison_op(non_neg_integer()),
+    Equal :: true | {false, condition_using_comparison_op()}.
 %% @private
 
 compare_numerical_values(Cond, ValueA, ValueB) ->
     case compare_numerical_values(ValueA, ValueB) of
-        true  -> true;
+        true -> true;
         false -> {false, Cond}
     end.
 
 -spec compare_numerical_values(ValueA, ValueB) -> Equal when
-      ValueA :: non_neg_integer(),
-      ValueB :: non_neg_integer() | comparison_op(non_neg_integer()),
-      Equal :: boolean().
+    ValueA :: non_neg_integer(),
+    ValueB :: non_neg_integer() | comparison_op(non_neg_integer()),
+    Equal :: boolean().
 %% @private
 
-compare_numerical_values(Value,  Value)        -> true;
-compare_numerical_values(Value,  {eq, Value})  -> true;
+compare_numerical_values(Value, Value) -> true;
+compare_numerical_values(Value, {eq, Value}) -> true;
 compare_numerical_values(ValueA, {ne, ValueB}) -> ValueA =/= ValueB;
 compare_numerical_values(ValueA, {lt, ValueB}) -> ValueA < ValueB;
 compare_numerical_values(ValueA, {le, ValueB}) -> ValueA =< ValueB;
 compare_numerical_values(ValueA, {gt, ValueB}) -> ValueA > ValueB;
 compare_numerical_values(ValueA, {ge, ValueB}) -> ValueA >= ValueB;
-compare_numerical_values(_, _)                 -> false.
+compare_numerical_values(_, _) -> false.
 
 -spec is_valid(Condition) -> IsValid when
-      Condition :: khepri_path:pattern_component(),
-      IsValid :: true | {false, khepri_path:pattern_component()}.
+    Condition :: khepri_path:pattern_component(),
+    IsValid :: true | {false, khepri_path:pattern_component()}.
 
 is_valid(Component) when ?IS_PATH_COMPONENT(Component) ->
     true;
@@ -511,15 +567,21 @@ is_valid(#if_not{condition = InnerCond}) ->
     is_valid(InnerCond);
 is_valid(#if_all{conditions = Conds}) when is_list(Conds) ->
     lists:foldl(
-      fun
-          (_, {false, _} = False) -> False;
-          (Cond, _)               -> is_valid(Cond)
-      end, true, Conds);
+        fun
+            (_, {false, _} = False) -> False;
+            (Cond, _) -> is_valid(Cond)
+        end,
+        true,
+        Conds
+    );
 is_valid(#if_any{conditions = Conds}) when is_list(Conds) ->
     lists:foldl(
-      fun
-          (_, {false, _} = False) -> False;
-          (Cond, _)               -> is_valid(Cond)
-      end, true, Conds);
+        fun
+            (_, {false, _} = False) -> False;
+            (Cond, _) -> is_valid(Cond)
+        end,
+        true,
+        Conds
+    );
 is_valid(Cond) ->
     {false, Cond}.

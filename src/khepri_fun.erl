@@ -58,138 +58,170 @@
 
 -include("src/internal.hrl").
 
--export([to_standalone_fun/2,
-         exec/2]).
+-export([
+    to_standalone_fun/2,
+    exec/2
+]).
 
 %% FIXME: compile:forms/2 is incorrectly specified and doesn't accept
 %% assembly. This breaks compile/1 and causes a cascade of errors.
 %%
 %% The following basically disable Dialyzer for this module unfortunately...
--dialyzer({nowarn_function, [compile/1,
-                             to_standalone_fun/2,
-                             to_standalone_fun1/2,
-                             to_standalone_fun2/2,
-                             to_standalone_env/1,
-                             to_standalone_arg/2]}).
+-dialyzer(
+    {nowarn_function, [
+        compile/1,
+        to_standalone_fun/2,
+        to_standalone_fun1/2,
+        to_standalone_fun2/2,
+        to_standalone_env/1,
+        to_standalone_arg/2
+    ]}
+).
 
--type fun_info() :: #{arity => arity(),
-                      env => any(),
-                      index => any(),
-                      name => atom(),
-                      module => module(),
-                      new_index => any(),
-                      new_uniq => any(),
-                      pid => any(),
-                      type => local | external,
-                      uniq => any()}.
+-type fun_info() :: #{
+    arity => arity(),
+    env => any(),
+    index => any(),
+    name => atom(),
+    module => module(),
+    new_index => any(),
+    new_uniq => any(),
+    pid => any(),
+    type => local | external,
+    uniq => any()
+}.
 -type beam_instr() :: atom() | tuple().
 -type label() :: pos_integer().
 
 %% -------------------------------------------------------------------
 %% Taken from lib/compiler/src/beam_disasm.hrl,
 %% commit 7b3ffa5bb72a2ba84b07fb8a98d755216e78fa79
--record(function, {name      :: atom(),
-                   arity     :: byte(),
-                   entry     :: beam_lib:label(),    %% unnecessary ?
-                   code = [] :: [beam_instr()]}).
+-record(function, {
+    name :: atom(),
+    arity :: byte(),
+    %% unnecessary ?
+    entry :: beam_lib:label(),
+    code = [] :: [beam_instr()]
+}).
 
--record(beam_file, {module               :: module(),
-                    labeled_exports = [] :: [beam_lib:labeled_entry()],
-                    attributes      = [] :: [beam_lib:attrib_entry()],
-                    compile_info    = [] :: [beam_lib:compinfo_entry()],
-                    code            = [] :: [#function{}]}).
+-record(beam_file, {
+    module :: module(),
+    labeled_exports = [] :: [beam_lib:labeled_entry()],
+    attributes = [] :: [beam_lib:attrib_entry()],
+    compile_info = [] :: [beam_lib:compinfo_entry()],
+    code = [] :: [#function{}]
+}).
 %% -------------------------------------------------------------------
 
 -type ensure_instruction_is_permitted_fun() ::
-fun((beam_instr()) -> ok).
+    fun((beam_instr()) -> ok).
 
 -type should_process_function_fun() ::
-fun((module(), atom(), arity(), module()) -> boolean()).
+    fun((module(), atom(), arity(), module()) -> boolean()).
 
 -type is_standalone_fun_still_needed_fun() ::
-fun((#{calls := #{mfa() => true},
-       errors := [any()]}) -> boolean()).
+    fun(
+        (
+            #{
+                calls := #{mfa() => true},
+                errors := [any()]
+            }
+        ) -> boolean()
+    ).
 
 -type standalone_fun() :: #standalone_fun{} | fun().
--type options() :: #{ensure_instruction_is_permitted =>
-                     ensure_instruction_is_permitted_fun(),
-                     should_process_function =>
-                     should_process_function_fun(),
-                     is_standalone_fun_still_needed =>
-                     is_standalone_fun_still_needed_fun()}.
+-type options() :: #{
+    ensure_instruction_is_permitted =>
+        ensure_instruction_is_permitted_fun(),
+    should_process_function =>
+        should_process_function_fun(),
+    is_standalone_fun_still_needed =>
+        is_standalone_fun_still_needed_fun()
+}.
 
--export_type([standalone_fun/0,
-              options/0]).
+-export_type([
+    standalone_fun/0,
+    options/0
+]).
 
--record(state, {generated_module_name :: module() | undefined,
-                entrypoint :: mfa() | undefined,
-                checksums = #{} :: #{module() => binary()},
-                fun_info :: fun_info(),
-                calls = #{} :: #{mfa() => true},
-                all_calls = #{} :: #{mfa() => true},
-                functions = #{} :: #{mfa() => #function{}},
+-record(state, {
+    generated_module_name :: module() | undefined,
+    entrypoint :: mfa() | undefined,
+    checksums = #{} :: #{module() => binary()},
+    fun_info :: fun_info(),
+    calls = #{} :: #{mfa() => true},
+    all_calls = #{} :: #{mfa() => true},
+    functions = #{} :: #{mfa() => #function{}},
 
-                mfa_in_progress :: mfa() | undefined,
-                function_in_progress :: atom() | undefined,
-                next_label = 1 :: label(),
-                label_map = #{} :: #{{module(), label()} => label()},
+    mfa_in_progress :: mfa() | undefined,
+    function_in_progress :: atom() | undefined,
+    next_label = 1 :: label(),
+    label_map = #{} :: #{{module(), label()} => label()},
 
-                errors = [] :: [any()],
-                options = #{} :: options()}).
+    errors = [] :: [any()],
+    options = #{} :: options()
+}).
 
--type asm() :: {module(),
-                [{atom(), arity()}],
-                [],
-                [#function{}],
-                label()}.
+-type asm() :: {module(), [{atom(), arity()}], [], [#function{}], label()}.
 
 -spec to_standalone_fun(Fun, Options) -> StandaloneFun when
-      Fun :: fun(),
-      Options :: options(),
-      StandaloneFun :: standalone_fun().
+    Fun :: fun(),
+    Options :: options(),
+    StandaloneFun :: standalone_fun().
 
 to_standalone_fun(Fun, Options) ->
     {StandaloneFun, _State} = to_standalone_fun1(Fun, Options),
     StandaloneFun.
 
 -spec to_standalone_fun1(Fun, Options) -> {StandaloneFun, State} when
-      Fun :: fun(),
-      Options :: options(),
-      StandaloneFun :: standalone_fun(),
-      State :: #state{}.
+    Fun :: fun(),
+    Options :: options(),
+    StandaloneFun :: standalone_fun(),
+    State :: #state{}.
 
 to_standalone_fun1(Fun, Options) ->
     Info = maps:from_list(erlang:fun_info(Fun)),
-    #{module := Module,
-      name := Name,
-      arity := Arity} = Info,
-    State0 = #state{fun_info = Info,
-                    all_calls = #{{Module, Name, Arity} => true},
-                    options = Options},
+    #{
+        module := Module,
+        name := Name,
+        arity := Arity
+    } = Info,
+    State0 = #state{
+        fun_info = Info,
+        all_calls = #{{Module, Name, Arity} => true},
+        options = Options
+    },
     to_standalone_fun2(Fun, State0).
 
 -spec to_standalone_fun2(Fun, State) -> {StandaloneFun, State} when
-      Fun :: fun(),
-      State :: #state{},
-      StandaloneFun :: standalone_fun().
+    Fun :: fun(),
+    State :: #state{},
+    StandaloneFun :: standalone_fun().
 
 to_standalone_fun2(
-  Fun,
-  #state{fun_info = #{module := Module,
-                      name := Name,
-                      arity := Arity,
-                      type := Type}} = State) ->
+    Fun,
+    #state{
+        fun_info = #{
+            module := Module,
+            name := Name,
+            arity := Arity,
+            type := Type
+        }
+    } = State
+) ->
     %% Don't extract functions like "fun dict:new/0" which are not meant to be
     %% copied.
-    {ShouldProcess,
-     State1} = case Type of
-                   local ->
-                       should_process_function(
-                         Module, Name, Arity, Module, State);
-                   external ->
-                       should_process_function(
-                         Module, Name, Arity, undefined, State)
-               end,
+    {ShouldProcess, State1} =
+        case Type of
+            local ->
+                should_process_function(
+                    Module, Name, Arity, Module, State
+                );
+            external ->
+                should_process_function(
+                    Module, Name, Arity, undefined, State
+                )
+        end,
     case ShouldProcess of
         true ->
             State2 = pass1(State1),
@@ -215,10 +247,11 @@ to_standalone_fun2(
             %% into two parts to allow the environment to be extracted before
             %% and compiled after, once we are sure we need to create the
             %% final standalone fun.
-            {Env, State3} = case Module =:= erl_eval andalso Type =:= local of
-                                false -> to_standalone_env(State2);
-                                true  -> {[], State2}
-                            end,
+            {Env, State3} =
+                case Module =:= erl_eval andalso Type =:= local of
+                    false -> to_standalone_env(State2);
+                    true -> {[], State2}
+                end,
 
             %% We offer one last chance to the caller to determine if a
             %% standalone function is still useful for him.
@@ -236,10 +269,11 @@ to_standalone_fun2(
                     {GeneratedModuleName, Beam} = compile(Asm),
 
                     StandaloneFun = #standalone_fun{
-                                       module = GeneratedModuleName,
-                                       beam = Beam,
-                                       arity = Arity,
-                                       env = Env},
+                        module = GeneratedModuleName,
+                        beam = Beam,
+                        arity = Arity,
+                        env = Env
+                    },
                     {StandaloneFun, State3};
                 false ->
                     {Fun, State3}
@@ -250,33 +284,39 @@ to_standalone_fun2(
     end.
 
 -spec compile(Asm) -> {Module, Beam} when
-      Asm :: asm(), %% FIXME: compile:forms/2 is incorrectly specified.
-      Module :: module(),
-      Beam :: binary().
+    %% FIXME: compile:forms/2 is incorrectly specified.
+    Asm :: asm(),
+    Module :: module(),
+    Beam :: binary().
 
 compile(Asm) ->
-    CompilerOptions = [from_asm,
-                       binary,
-                       warnings_as_errors,
-                       return_errors,
-                       return_warnings,
-                       deterministic],
+    CompilerOptions = [
+        from_asm,
+        binary,
+        warnings_as_errors,
+        return_errors,
+        return_warnings,
+        deterministic
+    ],
     case compile:forms(Asm, CompilerOptions) of
         {ok, Module, Beam, []} -> {Module, Beam};
-        Error                  -> throw({compilation_failure, Error})
+        Error -> throw({compilation_failure, Error})
     end.
 
 -spec exec(StandaloneFun, Args) -> Ret when
-      StandaloneFun :: standalone_fun(),
-      Args :: [any()],
-      Ret :: any().
+    StandaloneFun :: standalone_fun(),
+    Args :: [any()],
+    Ret :: any().
 
 exec(
-  #standalone_fun{module = Module,
-                  beam = Beam,
-                  arity = Arity,
-                  env = Env},
-  Args) ->
+    #standalone_fun{
+        module = Module,
+        beam = Beam,
+        arity = Arity,
+        env = Env
+    },
+    Args
+) ->
     ?assertEqual(Arity, length(Args)),
     case code:is_loaded(Module) of
         false ->
@@ -295,87 +335,116 @@ exec(Fun, Args) ->
 %% -------------------------------------------------------------------
 
 -spec pass1(State) -> State when
-      State :: #state{}.
+    State :: #state{}.
 
 pass1(
-  #state{fun_info = #{module := erl_eval, type := local} = Info,
-         checksums = Checksums} = State) ->
-    #{module := Module,
-      name := Name,
-      arity := Arity} = Info,
+    #state{
+        fun_info = #{module := erl_eval, type := local} = Info,
+        checksums = Checksums
+    } = State
+) ->
+    #{
+        module := Module,
+        name := Name,
+        arity := Arity
+    } = Info,
 
     Checksum = maps:get(new_uniq, Info),
     ?assert(is_binary(Checksum)),
     Checksums1 = Checksums#{Module => Checksum},
-    State1 = State#state{checksums = Checksums1,
-                         entrypoint = {Module, Name, Arity}},
+    State1 = State#state{
+        checksums = Checksums1,
+        entrypoint = {Module, Name, Arity}
+    },
 
     pass1_process_function(Module, Name, Arity, State1);
 pass1(
-  #state{fun_info = Info,
-         checksums = Checksums} = State) ->
-    #{module := Module,
-      name := Name,
-      arity := Arity,
-      env := Env} = Info,
+    #state{
+        fun_info = Info,
+        checksums = Checksums
+    } = State
+) ->
+    #{
+        module := Module,
+        name := Name,
+        arity := Arity,
+        env := Env
+    } = Info,
 
     %% Internally, a lambda which takes arguments and values from its
     %% environment (i.e. variables declared in the function which defined that
     %% lambda).
     InternalArity = Arity + length(Env),
 
-    State1 = case maps:get(type, Info) of
-                 local ->
-                     Checksum = maps:get(new_uniq, Info),
-                     ?assert(is_binary(Checksum)),
-                     Checksums1 = Checksums#{Module => Checksum},
-                     State#state{checksums = Checksums1};
-                 external ->
-                     State
-             end,
+    State1 =
+        case maps:get(type, Info) of
+            local ->
+                Checksum = maps:get(new_uniq, Info),
+                ?assert(is_binary(Checksum)),
+                Checksums1 = Checksums#{Module => Checksum},
+                State#state{checksums = Checksums1};
+            external ->
+                State
+        end,
     State2 = State1#state{entrypoint = {Module, Name, InternalArity}},
 
     pass1_process_function(Module, Name, InternalArity, State2).
 
 -spec pass1_process_function(Module, Name, Arity, State) -> State when
-      Module :: module(),
-      Name :: atom(),
-      Arity :: arity(),
-      State :: #state{}.
+    Module :: module(),
+    Name :: atom(),
+    Arity :: arity(),
+    State :: #state{}.
 
 pass1_process_function(
-  Module, Name, Arity,
-  #state{functions = Functions} = State)
-  when is_map_key({Module, Name, Arity}, Functions) ->
+    Module,
+    Name,
+    Arity,
+    #state{functions = Functions} = State
+) when
+    is_map_key({Module, Name, Arity}, Functions)
+->
     State;
 pass1_process_function(Module, Name, Arity, State) ->
     MFA = {Module, Name, Arity},
-    State1 = State#state{mfa_in_progress = MFA,
-                         calls = #{}},
+    State1 = State#state{
+        mfa_in_progress = MFA,
+        calls = #{}
+    },
     {Function0, State2} = lookup_function(Module, Name, Arity, State1),
     {Function1, State3} = pass1_process_function_code(Function0, State2),
 
-    #state{calls = Calls,
-           functions = Functions} = State3,
-    Functions1 = Functions#{MFA  => Function1},
+    #state{
+        calls = Calls,
+        functions = Functions
+    } = State3,
+    Functions1 = Functions#{MFA => Function1},
     State4 = State3#state{functions = Functions1},
 
     %% Recurse with called functions.
     maps:fold(
-      fun({M, F, A}, true, St) ->
-              pass1_process_function(M, F, A, St)
-      end, State4, Calls).
+        fun({M, F, A}, true, St) ->
+            pass1_process_function(M, F, A, St)
+        end,
+        State4,
+        Calls
+    ).
 
 -spec pass1_process_function_code(Function, State) -> {Function, State} when
-      Function :: #function{},
-      State :: #state{}.
+    Function :: #function{},
+    State :: #state{}.
 
 pass1_process_function_code(
-  #function{entry = OldEntryLabel,
-            code = Instructions} = Function,
-  #state{mfa_in_progress = {Module, _, _} = MFA,
-         next_label = NextLabel,
-         functions = Functions} = State) ->
+    #function{
+        entry = OldEntryLabel,
+        code = Instructions
+    } = Function,
+    #state{
+        mfa_in_progress = {Module, _, _} = MFA,
+        next_label = NextLabel,
+        functions = Functions
+    } = State
+) ->
     ?assertNot(maps:is_key(MFA, Functions)),
 
     %% Compute label diff.
@@ -393,15 +462,17 @@ pass1_process_function_code(
 
     %% Rename function & fix its entry label.
     Function1 = Function#function{
-                  entry = NewEntryLabel,
-                  code = Instructions1},
+        entry = NewEntryLabel,
+        code = Instructions1
+    },
 
     {Function1, State1}.
 
 -spec pass1_process_instructions(Instructions, State) ->
-    {Instructions, State} when
-      Instructions :: [beam_instr()],
-      State :: #state{}.
+    {Instructions, State}
+when
+    Instructions :: [beam_instr()],
+    State :: #state{}.
 
 pass1_process_instructions(Instructions, State) ->
     %% Check allowed & denied instructions.
@@ -410,98 +481,126 @@ pass1_process_instructions(Instructions, State) ->
     pass1_process_instructions(Instructions, State, []).
 
 pass1_process_instructions(
-  [{Call, Arity, {Module, Name, Arity}} = Instruction | Rest],
-  State,
-  Result)
-  when Call =:= call orelse Call =:= call_only ->
+    [{Call, Arity, {Module, Name, Arity}} = Instruction | Rest],
+    State,
+    Result
+) when
+    Call =:= call orelse Call =:= call_only
+->
     State1 = ensure_instruction_is_permitted(Instruction, State),
     State2 = pass1_process_call(Module, Name, Arity, State1),
     pass1_process_instructions(Rest, State2, [Instruction | Result]);
 pass1_process_instructions(
-  [{Call, Arity, {extfunc, Module, Name, Arity}} = Instruction | Rest],
-  State,
-  Result)
-  when Call =:= call_ext orelse Call =:= call_ext_only ->
+    [{Call, Arity, {extfunc, Module, Name, Arity}} = Instruction | Rest],
+    State,
+    Result
+) when
+    Call =:= call_ext orelse Call =:= call_ext_only
+->
     State1 = ensure_instruction_is_permitted(Instruction, State),
     State2 = pass1_process_call(Module, Name, Arity, State1),
     pass1_process_instructions(Rest, State2, [Instruction | Result]);
 pass1_process_instructions(
-  [{call_last, Arity, {Module, Name, Arity}, _} = Instruction
-   | Rest],
-  State,
-  Result) ->
+    [
+        {call_last, Arity, {Module, Name, Arity}, _} = Instruction
+        | Rest
+    ],
+    State,
+    Result
+) ->
     State1 = ensure_instruction_is_permitted(Instruction, State),
     State2 = pass1_process_call(Module, Name, Arity, State1),
     pass1_process_instructions(Rest, State2, [Instruction | Result]);
 pass1_process_instructions(
-  [{call_ext_last, Arity, {extfunc, Module, Name, Arity}, _} = Instruction
-   | Rest],
-  State,
-  Result) ->
+    [
+        {call_ext_last, Arity, {extfunc, Module, Name, Arity}, _} = Instruction
+        | Rest
+    ],
+    State,
+    Result
+) ->
     State1 = ensure_instruction_is_permitted(Instruction, State),
     State2 = pass1_process_call(Module, Name, Arity, State1),
     pass1_process_instructions(Rest, State2, [Instruction | Result]);
 pass1_process_instructions(
-  [{label, OldLabel} | Rest],
-  #state{mfa_in_progress = {Module, _, _},
-         next_label = NewLabel,
-         label_map = LabelMap} = State,
-  Result) ->
+    [{label, OldLabel} | Rest],
+    #state{
+        mfa_in_progress = {Module, _, _},
+        next_label = NewLabel,
+        label_map = LabelMap
+    } = State,
+    Result
+) ->
     Instruction = {label, NewLabel},
     LabelKey = {Module, OldLabel},
     ?assertNot(maps:is_key(LabelKey, LabelMap)),
     LabelMap1 = LabelMap#{LabelKey => NewLabel},
-    State1 = State#state{next_label = NewLabel + 1,
-                         label_map = LabelMap1},
+    State1 = State#state{
+        next_label = NewLabel + 1,
+        label_map = LabelMap1
+    },
     pass1_process_instructions(Rest, State1, [Instruction | Result]);
 pass1_process_instructions(
-  [{line, _} | Rest],
-  State,
-  Result) ->
+    [{line, _} | Rest],
+    State,
+    Result
+) ->
     %% Drop this instruction.
     pass1_process_instructions(Rest, State, Result);
 pass1_process_instructions(
-  [{make_fun2, {Module, Name, Arity}, _, _, _} = Instruction | Rest],
-  State,
-  Result) ->
+    [{make_fun2, {Module, Name, Arity}, _, _, _} = Instruction | Rest],
+    State,
+    Result
+) ->
     State1 = ensure_instruction_is_permitted(Instruction, State),
     State2 = pass1_process_call(Module, Name, Arity, State1),
     pass1_process_instructions(Rest, State2, [Instruction | Result]);
 pass1_process_instructions(
-  [{make_fun3, {Module, Name, Arity}, _, _, _, _} = Instruction | Rest],
-  State,
-  Result) ->
+    [{make_fun3, {Module, Name, Arity}, _, _, _, _} = Instruction | Rest],
+    State,
+    Result
+) ->
     State1 = ensure_instruction_is_permitted(Instruction, State),
     State2 = pass1_process_call(Module, Name, Arity, State1),
     pass1_process_instructions(Rest, State2, [Instruction | Result]);
 pass1_process_instructions(
-  [Instruction | Rest],
-  State,
-  Result) ->
+    [Instruction | Rest],
+    State,
+    Result
+) ->
     State1 = ensure_instruction_is_permitted(Instruction, State),
     pass1_process_instructions(Rest, State1, [Instruction | Result]);
 pass1_process_instructions(
-  [],
-  State,
-  Result) ->
+    [],
+    State,
+    Result
+) ->
     {lists:reverse(Result), State}.
 
 -spec pass1_process_call(Module, Name, Arity, State) -> State when
-      Module :: module(),
-      Name :: atom(),
-      Arity :: arity(),
-      State :: #state{}.
+    Module :: module(),
+    Name :: atom(),
+    Arity :: arity(),
+    State :: #state{}.
 
 pass1_process_call(
-  Module, Name, Arity,
-  #state{mfa_in_progress = {Module, Name, Arity}} = State) ->
+    Module,
+    Name,
+    Arity,
+    #state{mfa_in_progress = {Module, Name, Arity}} = State
+) ->
     State;
 pass1_process_call(
-  Module, Name, Arity,
-  #state{mfa_in_progress = {FromModule, _, _},
-         functions = Functions,
-         calls = Calls,
-         all_calls = AllCalls} = State) ->
+    Module,
+    Name,
+    Arity,
+    #state{
+        mfa_in_progress = {FromModule, _, _},
+        functions = Functions,
+        calls = Calls,
+        all_calls = AllCalls
+    } = State
+) ->
     CallKey = {Module, Name, Arity},
     AllCalls1 = AllCalls#{CallKey => true},
     case should_process_function(Module, Name, Arity, FromModule, State) of
@@ -511,26 +610,35 @@ pass1_process_call(
                     State1;
                 _ ->
                     Calls1 = Calls#{CallKey => true},
-                    State1#state{calls = Calls1,
-                                 all_calls = AllCalls1}
+                    State1#state{
+                        calls = Calls1,
+                        all_calls = AllCalls1
+                    }
             end;
         {false, State1} ->
             State1#state{all_calls = AllCalls1}
     end.
 
 -spec lookup_function(Module, Name, Arity, State) -> {Function, State} when
-      Module :: module(),
-      Name :: atom(),
-      Arity :: non_neg_integer() | undefined,
-      State :: #state{},
-      Function :: #function{}.
+    Module :: module(),
+    Name :: atom(),
+    Arity :: non_neg_integer() | undefined,
+    State :: #state{},
+    Function :: #function{}.
 
 lookup_function(
-  erl_eval = Module, Name, _Arity,
-  #state{fun_info = #{module := Module,
-                      name := Name,
-                      arity := Arity,
-                      env := Env}} = State) ->
+    erl_eval = Module,
+    Name,
+    _Arity,
+    #state{
+        fun_info = #{
+            module := Module,
+            name := Name,
+            arity := Arity,
+            env := Env
+        }
+    } = State
+) ->
     %% There is a special case for `erl_eval' local functions: they are
     %% lambdas dynamically parsed, compiled and loaded by `erl_eval' and
     %% appear as local functions inside `erl_eval' directly.
@@ -549,43 +657,56 @@ lookup_function(Module, Name, Arity, State) ->
     {lookup_function1(Code, Name, Arity), State1}.
 
 lookup_function1(
-  [#function{name = Name, arity = Arity} = Function | _],
-  Name, Arity) when is_integer(Arity) ->
+    [#function{name = Name, arity = Arity} = Function | _],
+    Name,
+    Arity
+) when is_integer(Arity) ->
     Function;
 lookup_function1(
-  [#function{name = Name} = Function | _],
-  Name, undefined) ->
+    [#function{name = Name} = Function | _],
+    Name,
+    undefined
+) ->
     Function;
 lookup_function1(
-  [_ | Rest],
-  Name, Arity) ->
+    [_ | Rest],
+    Name,
+    Arity
+) ->
     lookup_function1(Rest, Name, Arity).
 
 -spec erl_eval_fun_to_asm(Module, Name, Arity, Env) -> BeamFileRecord when
-      Module :: module(),
-      Name :: atom(),
-      Arity :: arity(),
-      Env :: any(),
-      BeamFileRecord :: #beam_file{}.
+    Module :: module(),
+    Name :: atom(),
+    Arity :: arity(),
+    Env :: any(),
+    BeamFileRecord :: #beam_file{}.
 %% @private
 
-erl_eval_fun_to_asm(Module, Name, Arity, [{Bindings, _, _, Clauses}])
-  when Bindings =:= [] orelse %% Erlang is using a list for bindings,
-       Bindings =:= #{} ->    %% but Elixir is using a map.
+erl_eval_fun_to_asm(Module, Name, Arity, [{Bindings, _, _, Clauses}]) when
+    %% Erlang is using a list for bindings,
+    Bindings =:= [] orelse
+        %% but Elixir is using a map.
+        Bindings =:= #{}
+->
     %% We construct an abstract form based on the `env' of the lambda loaded
     %% by `erl_eval'.
     Anno = erl_anno:from_term(1),
-    Forms = [{attribute, Anno, module, Module},
-             {attribute, Anno, export, [{Name, Arity}]},
-             {function, Anno, Name, Arity, Clauses}],
+    Forms = [
+        {attribute, Anno, module, Module},
+        {attribute, Anno, export, [{Name, Arity}]},
+        {function, Anno, Name, Arity, Clauses}
+    ],
 
     %% The abstract form is now compiled to binary code. Then, the assembly
     %% code is extracted from the compiled beam.
-    CompilerOptions = [from_abstr,
-                       binary,
-                       return_errors,
-                       return_warnings,
-                       deterministic],
+    CompilerOptions = [
+        from_abstr,
+        binary,
+        return_errors,
+        return_warnings,
+        deterministic
+    ],
     case compile:forms(Forms, CompilerOptions) of
         {ok, Module, Beam, _Warnings} ->
             %% We can ignore warnings because the lambda was already parsed
@@ -596,22 +717,25 @@ erl_eval_fun_to_asm(Module, Name, Arity, [{Bindings, _, _, Clauses}])
     end.
 
 -spec disassemble_module(Module, State) -> {BeamFileRecord, State} when
-      Module :: module(),
-      State :: #state{},
-      BeamFileRecord :: #beam_file{}.
+    Module :: module(),
+    State :: #state{},
+    BeamFileRecord :: #beam_file{}.
 
 -define(ASM_CACHE_KEY(Module, Checksum),
-        {?MODULE, asm_cache, Module, Checksum}).
+    {?MODULE, asm_cache, Module, Checksum}
+).
 
 disassemble_module(Module, #state{checksums = Checksums} = State) ->
     case Checksums of
         #{Module := Checksum} ->
             {BeamFileRecord, Checksum} = disassemble_module1(
-                                           Module, Checksum),
+                Module, Checksum
+            ),
             {BeamFileRecord, State};
         _ ->
             {BeamFileRecord, Checksum} = disassemble_module1(
-                                           Module, undefined),
+                Module, undefined
+            ),
             ?assert(is_binary(Checksum)),
             Checksums1 = Checksums#{Module => Checksum},
             State1 = State#state{checksums = Checksums1},
@@ -629,12 +753,13 @@ disassemble_module1(Module, Checksum) when is_binary(Checksum) ->
             case ActualChecksum of
                 Checksum ->
                     BeamFileRecord = do_disassemble_and_cache(
-                                       Module, Checksum, Beam),
+                        Module, Checksum, Beam
+                    ),
                     {BeamFileRecord, Checksum};
                 _ ->
                     throw(
-                      {mismatching_module_checksum,
-                       Module, Checksum, ActualChecksum})
+                        {mismatching_module_checksum, Module, Checksum, ActualChecksum}
+                    )
             end
     end;
 disassemble_module1(Module, undefined) ->
@@ -653,15 +778,20 @@ do_disassemble(Beam) ->
     beam_disasm:file(Beam).
 
 -spec ensure_instruction_is_permitted(Instruction, State) ->
-    State when
-      Instruction :: beam_instr(),
-      State :: #state{}.
+    State
+when
+    Instruction :: beam_instr(),
+    State :: #state{}.
 
 ensure_instruction_is_permitted(
-  Instruction,
-  #state{options = #{ensure_instruction_is_permitted := Callback},
-         errors = Errors} = State)
-  when is_function(Callback) ->
+    Instruction,
+    #state{
+        options = #{ensure_instruction_is_permitted := Callback},
+        errors = Errors
+    } = State
+) when
+    is_function(Callback)
+->
     try
         Callback(Instruction),
         State
@@ -674,29 +804,45 @@ ensure_instruction_is_permitted(_Instruction, State) ->
     State.
 
 -spec should_process_function(Module, Name, Arity, FromModule, State) ->
-    {ShouldProcess, State} when
-      Module :: module(),
-      Name :: atom(),
-      Arity :: arity(),
-      FromModule :: module(),
-      State :: #state{},
-      ShouldProcess :: boolean().
+    {ShouldProcess, State}
+when
+    Module :: module(),
+    Name :: atom(),
+    Arity :: arity(),
+    FromModule :: module(),
+    State :: #state{},
+    ShouldProcess :: boolean().
 
 should_process_function(
-  erl_eval, Name, Arity, _FromModule,
-  #state{fun_info = #{module := erl_eval,
-                      name := Name,
-                      arity := Arity,
-                      type := local}} = State) ->
+    erl_eval,
+    Name,
+    Arity,
+    _FromModule,
+    #state{
+        fun_info = #{
+            module := erl_eval,
+            name := Name,
+            arity := Arity,
+            type := local
+        }
+    } = State
+) ->
     %% We want to process lambas loaded by `erl_eval'
     %% even though we wouldn't do that with the
     %% regular `erl_eval' API.
     {true, State};
 should_process_function(
-  Module, Name, Arity, FromModule,
-  #state{options = #{should_process_function := Callback},
-         errors = Errors} = State)
-  when is_function(Callback) ->
+    Module,
+    Name,
+    Arity,
+    FromModule,
+    #state{
+        options = #{should_process_function := Callback},
+        errors = Errors
+    } = State
+) when
+    is_function(Callback)
+->
     try
         ShouldProcess = Callback(Module, Name, Arity, FromModule),
         {ShouldProcess, State}
@@ -707,31 +853,36 @@ should_process_function(
             {false, State1}
     end;
 should_process_function(Module, Name, Arity, _FromModule, State) ->
-    {default_should_process_function(Module, Name, Arity),
-     State}.
+    {default_should_process_function(Module, Name, Arity), State}.
 
-default_should_process_function(erlang, _Name, _Arity)  -> false;
+default_should_process_function(erlang, _Name, _Arity) -> false;
 default_should_process_function(_Module, _Name, _Arity) -> true.
 
 -spec is_standalone_fun_still_needed(State) -> IsNeeded when
-      State :: #state{},
-      IsNeeded :: boolean().
+    State :: #state{},
+    IsNeeded :: boolean().
 
 is_standalone_fun_still_needed(
-  #state{options = #{is_standalone_fun_still_needed := Callback},
-         all_calls = Calls,
-         errors = Errors})
-  when is_function(Callback) ->
-    Callback(#{calls => Calls,
-               errors => Errors});
+    #state{
+        options = #{is_standalone_fun_still_needed := Callback},
+        all_calls = Calls,
+        errors = Errors
+    }
+) when
+    is_function(Callback)
+->
+    Callback(#{
+        calls => Calls,
+        errors => Errors
+    });
 is_standalone_fun_still_needed(_State) ->
     true.
 
 -spec process_errors(State) -> ok | no_return() when
-      State :: #state{}.
+    State :: #state{}.
 
 %% TODO: Return all errors?
-process_errors(#state{errors = []})          -> ok;
+process_errors(#state{errors = []}) -> ok;
 process_errors(#state{errors = [Error | _]}) -> throw(Error).
 
 %% -------------------------------------------------------------------
@@ -739,12 +890,15 @@ process_errors(#state{errors = [Error | _]}) -> throw(Error).
 %% -------------------------------------------------------------------
 
 -spec pass2(State) -> Asm when
-      State :: #state{},
-      Asm :: asm().
+    State :: #state{},
+    Asm :: asm().
 
 pass2(
-  #state{functions = Functions,
-         next_label = NextLabel} = State) ->
+    #state{
+        functions = Functions,
+        next_label = NextLabel
+    } = State
+) ->
     %% The module name is based on a hash of its entire code.
     GeneratedModuleName = gen_module_name(Functions, State),
     State1 = State#state{generated_module_name = GeneratedModuleName},
@@ -753,10 +907,14 @@ pass2(
 
     %% Sort functions by their entrypoint label.
     Functions2 = lists:sort(
-                   fun(#function{entry = EntryA},
-                       #function{entry = EntryB}) ->
-                           EntryA < EntryB
-                   end, maps:values(Functions1)),
+        fun(
+            #function{entry = EntryA},
+            #function{entry = EntryB}
+        ) ->
+            EntryA < EntryB
+        end,
+        maps:values(Functions1)
+    ),
 
     %% The first function (the lambda) is the only one exported.
     [#function{name = Name, arity = Arity} | _] = Functions2,
@@ -765,52 +923,59 @@ pass2(
     Attributes = [],
     Labels = NextLabel,
 
-    {GeneratedModuleName,
-     Exports,
-     Attributes,
-     Functions2,
-     Labels}.
+    {GeneratedModuleName, Exports, Attributes, Functions2, Labels}.
 
 -spec pass2_process_functions(Functions, State) -> Functions when
-      Functions :: #{mfa() => #function{}},
-      State :: #state{}.
+    Functions :: #{mfa() => #function{}},
+    State :: #state{}.
 
 pass2_process_functions(Functions, State) ->
     maps:map(
-      fun(MFA, Function) ->
-              pass2_process_function(MFA, Function, State)
-      end, Functions).
+        fun(MFA, Function) ->
+            pass2_process_function(MFA, Function, State)
+        end,
+        Functions
+    ).
 
 -spec pass2_process_function(MFA, Function, State) -> Function when
-      MFA :: mfa(),
-      Function :: #function{},
-      State :: #state{}.
+    MFA :: mfa(),
+    Function :: #function{},
+    State :: #state{}.
 
 pass2_process_function(
-  {Module, Name, Arity},
-  #function{name = Name,
-            code = Instructions} = Function,
-  State) ->
+    {Module, Name, Arity},
+    #function{
+        name = Name,
+        code = Instructions
+    } = Function,
+    State
+) ->
     Name1 = gen_function_name(Module, Name, Arity, State),
     Instructions1 = lists:map(
-                      fun(Instruction) ->
-                              S1 = State#state{mfa_in_progress = {Module,
-                                                                  Name,
-                                                                  Arity},
-                                               function_in_progress = Name1},
-                              pass2_process_instruction(Instruction, S1)
-                      end, Instructions),
-    Function#function{name = Name1,
-                      code = Instructions1}.
+        fun(Instruction) ->
+            S1 = State#state{
+                mfa_in_progress = {Module, Name, Arity},
+                function_in_progress = Name1
+            },
+            pass2_process_instruction(Instruction, S1)
+        end,
+        Instructions
+    ),
+    Function#function{
+        name = Name1,
+        code = Instructions1
+    }.
 
 -spec pass2_process_instruction(Instruction, State) -> Instruction when
-      Instruction :: beam_instr(),
-      State :: #state{}.
+    Instruction :: beam_instr(),
+    State :: #state{}.
 
 pass2_process_instruction(
-  {Call, Arity, {_, _, _} = MFA} = Instruction,
-  #state{functions = Functions})
-  when Call =:= call orelse Call =:= call_only ->
+    {Call, Arity, {_, _, _} = MFA} = Instruction,
+    #state{functions = Functions}
+) when
+    Call =:= call orelse Call =:= call_only
+->
     case Functions of
         #{MFA := #function{entry = EntryLabel}} ->
             {Call, Arity, {f, EntryLabel}};
@@ -818,23 +983,27 @@ pass2_process_instruction(
             Instruction
     end;
 pass2_process_instruction(
-  {Call, Arity, {extfunc, Module, Name, Arity}} = Instruction,
-  #state{functions = Functions})
-  when Call =:= call_ext orelse Call =:= call_ext_only ->
+    {Call, Arity, {extfunc, Module, Name, Arity}} = Instruction,
+    #state{functions = Functions}
+) when
+    Call =:= call_ext orelse Call =:= call_ext_only
+->
     MFA = {Module, Name, Arity},
     case Functions of
         #{MFA := #function{entry = EntryLabel}} ->
-            Call1 = case Call of
-                        call_ext      -> call;
-                        call_ext_only -> call_only
-                    end,
+            Call1 =
+                case Call of
+                    call_ext -> call;
+                    call_ext_only -> call_only
+                end,
             {Call1, Arity, {f, EntryLabel}};
         _ ->
             Instruction
     end;
 pass2_process_instruction(
-  {call_last, Arity, {Module, Name, Arity}, Opaque} = Instruction,
-  #state{functions = Functions}) ->
+    {call_last, Arity, {Module, Name, Arity}, Opaque} = Instruction,
+    #state{functions = Functions}
+) ->
     MFA = {Module, Name, Arity},
     case Functions of
         #{MFA := #function{entry = EntryLabel}} ->
@@ -843,8 +1012,9 @@ pass2_process_instruction(
             Instruction
     end;
 pass2_process_instruction(
-  {call_ext_last, Arity, {extfunc, Module, Name, Arity}, Opaque} = Instruction,
-  #state{functions = Functions}) ->
+    {call_ext_last, Arity, {extfunc, Module, Name, Arity}, Opaque} = Instruction,
+    #state{functions = Functions}
+) ->
     MFA = {Module, Name, Arity},
     case Functions of
         #{MFA := #function{entry = EntryLabel}} ->
@@ -853,53 +1023,75 @@ pass2_process_instruction(
             Instruction
     end;
 pass2_process_instruction(
-  {func_info, _ModRepr, _NameRepr, Arity},
-  #state{generated_module_name = GeneratedModuleName,
-         function_in_progress = Name}) ->
+    {func_info, _ModRepr, _NameRepr, Arity},
+    #state{
+        generated_module_name = GeneratedModuleName,
+        function_in_progress = Name
+    }
+) ->
     ModRepr = {atom, GeneratedModuleName},
     NameRepr = {atom, Name},
     {func_info, ModRepr, NameRepr, Arity};
 pass2_process_instruction(
-  {get_map_elements, {f, OldLabel}, _, _} = Instruction,
-  #state{mfa_in_progress = {Module, _, _},
-         label_map = LabelMap}) ->
+    {get_map_elements, {f, OldLabel}, _, _} = Instruction,
+    #state{
+        mfa_in_progress = {Module, _, _},
+        label_map = LabelMap
+    }
+) ->
     NewLabel = maps:get({Module, OldLabel}, LabelMap),
     setelement(2, Instruction, {f, NewLabel});
 pass2_process_instruction(
-  {loop_rec, {f, OldLabel}, _} = Instruction,
-  #state{mfa_in_progress = {Module, _, _},
-         label_map = LabelMap}) ->
+    {loop_rec, {f, OldLabel}, _} = Instruction,
+    #state{
+        mfa_in_progress = {Module, _, _},
+        label_map = LabelMap
+    }
+) ->
     NewLabel = maps:get({Module, OldLabel}, LabelMap),
     setelement(2, Instruction, {f, NewLabel});
 pass2_process_instruction(
-  {select_val, _, {f, OldEndLabel}, {list, Cases}} = Instruction,
-  #state{mfa_in_progress = {Module, _, _},
-         label_map = LabelMap}) ->
-    Cases1 = [case Case of
-                  {f, OldLabel} ->
-                      NewLabel = maps:get({Module, OldLabel}, LabelMap),
-                      {f, NewLabel};
-                  _ ->
-                      Case
-              end || Case <- Cases],
+    {select_val, _, {f, OldEndLabel}, {list, Cases}} = Instruction,
+    #state{
+        mfa_in_progress = {Module, _, _},
+        label_map = LabelMap
+    }
+) ->
+    Cases1 = [
+        case Case of
+            {f, OldLabel} ->
+                NewLabel = maps:get({Module, OldLabel}, LabelMap),
+                {f, NewLabel};
+            _ ->
+                Case
+        end
+     || Case <- Cases
+    ],
     NewEndLabel = maps:get({Module, OldEndLabel}, LabelMap),
     Instruction1 = setelement(3, Instruction, {f, NewEndLabel}),
     setelement(4, Instruction1, {list, Cases1});
 pass2_process_instruction(
-  {test, _, {f, OldLabel}, _} = Instruction,
-  #state{mfa_in_progress = {Module, _, _},
-         label_map = LabelMap}) ->
+    {test, _, {f, OldLabel}, _} = Instruction,
+    #state{
+        mfa_in_progress = {Module, _, _},
+        label_map = LabelMap
+    }
+) ->
     NewLabel = maps:get({Module, OldLabel}, LabelMap),
     setelement(3, Instruction, {f, NewLabel});
 pass2_process_instruction(
-  {test, _, {f, OldLabel}, _, _} = Instruction,
-  #state{mfa_in_progress = {Module, _, _},
-         label_map = LabelMap}) ->
+    {test, _, {f, OldLabel}, _, _} = Instruction,
+    #state{
+        mfa_in_progress = {Module, _, _},
+        label_map = LabelMap
+    }
+) ->
     NewLabel = maps:get({Module, OldLabel}, LabelMap),
     setelement(3, Instruction, {f, NewLabel});
 pass2_process_instruction(
-  {make_fun2, {_, _, _} = MFA, _, _, _} = Instruction,
-  #state{functions = Functions}) ->
+    {make_fun2, {_, _, _} = MFA, _, _, _} = Instruction,
+    #state{functions = Functions}
+) ->
     case Functions of
         #{MFA := #function{entry = EntryLabel}} ->
             setelement(2, Instruction, {f, EntryLabel});
@@ -907,8 +1099,9 @@ pass2_process_instruction(
             Instruction
     end;
 pass2_process_instruction(
-  {make_fun3, {_, _, _} = MFA, _, _, _, _} = Instruction,
-  #state{functions = Functions}) ->
+    {make_fun3, {_, _, _} = MFA, _, _, _, _} = Instruction,
+    #state{functions = Functions}
+) ->
     case Functions of
         #{MFA := #function{entry = EntryLabel}} ->
             setelement(2, Instruction, {f, EntryLabel});
@@ -916,46 +1109,62 @@ pass2_process_instruction(
             Instruction
     end;
 pass2_process_instruction(
-  {wait_timeout, {f, OldLabel}, _} = Instruction,
-  #state{mfa_in_progress = {Module, _, _},
-         label_map = LabelMap}) ->
+    {wait_timeout, {f, OldLabel}, _} = Instruction,
+    #state{
+        mfa_in_progress = {Module, _, _},
+        label_map = LabelMap
+    }
+) ->
     NewLabel = maps:get({Module, OldLabel}, LabelMap),
     setelement(2, Instruction, {f, NewLabel});
 pass2_process_instruction(
-  Instruction,
-  _State) ->
+    Instruction,
+    _State
+) ->
     Instruction.
 
 -spec gen_module_name(Functions, State) -> Module when
-      Functions :: #{mfa() => #function{}},
-      State :: #state{},
-      Module :: module().
+    Functions :: #{mfa() => #function{}},
+    State :: #state{},
+    Module :: module().
 
 gen_module_name(Functions, #state{fun_info = Info}) ->
-    #{module := Module,
-      name := Name} = Info,
+    #{
+        module := Module,
+        name := Name
+    } = Info,
     Checksum = erlang:phash2(Functions),
     InternalName = lists:flatten(
-                     io_lib:format(
-                       "ktx__~s__~s__~b", [Module, Name, Checksum])),
+        io_lib:format(
+            "ktx__~s__~s__~b", [Module, Name, Checksum]
+        )
+    ),
     list_to_atom(InternalName).
 
 -spec gen_function_name(Module, Name, Arity, State) -> Name when
-      Module :: module(),
-      Name :: atom(),
-      Arity :: arity(),
-      State :: #state{}.
+    Module :: module(),
+    Name :: atom(),
+    Arity :: arity(),
+    State :: #state{}.
 
 gen_function_name(
-  Module, Name, Arity,
-  #state{entrypoint = {Module, Name, Arity}}) ->
+    Module,
+    Name,
+    Arity,
+    #state{entrypoint = {Module, Name, Arity}}
+) ->
     run;
 gen_function_name(
-  Module, Name, _Arity,
-  _State) ->
+    Module,
+    Name,
+    _Arity,
+    _State
+) ->
     InternalName = lists:flatten(
-                     io_lib:format(
-                       "~s__~s", [Module, Name])),
+        io_lib:format(
+            "~s__~s", [Module, Name]
+        )
+    ),
     list_to_atom(InternalName).
 
 %% -------------------------------------------------------------------
@@ -963,24 +1172,34 @@ gen_function_name(
 %% -------------------------------------------------------------------
 
 -spec to_standalone_env(State) -> {StandaloneEnv, State} when
-      State :: #state{},
-      StandaloneEnv :: list().
+    State :: #state{},
+    StandaloneEnv :: list().
 
-to_standalone_env(#state{fun_info = #{env := Env},
-                         options = Options} = State) ->
-    State1 = State#state{options = maps:remove(
-                                     is_standalone_fun_still_needed,
-                                     Options)},
+to_standalone_env(
+    #state{
+        fun_info = #{env := Env},
+        options = Options
+    } = State
+) ->
+    State1 = State#state{
+        options = maps:remove(
+            is_standalone_fun_still_needed,
+            Options
+        )
+    },
     {Env1, State2} = to_standalone_arg(Env, State1),
     State3 = State2#state{options = Options},
     {Env1, State3}.
 
 to_standalone_arg(List, State) when is_list(List) ->
     lists:foldr(
-      fun(Item, {L, St}) ->
-              {Item1, St1} = to_standalone_arg(Item, St),
-              {[Item1 | L], St1}
-      end, {[], State}, List);
+        fun(Item, {L, St}) ->
+            {Item1, St1} = to_standalone_arg(Item, St),
+            {[Item1 | L], St1}
+        end,
+        {[], State},
+        List
+    );
 to_standalone_arg(Tuple, State) when is_tuple(Tuple) ->
     List0 = tuple_to_list(Tuple),
     {List1, State1} = to_standalone_arg(List0, State),
@@ -988,23 +1207,36 @@ to_standalone_arg(Tuple, State) when is_tuple(Tuple) ->
     {Tuple1, State1};
 to_standalone_arg(Map, State) when is_map(Map) ->
     maps:fold(
-      fun(Key, Value, {M, St}) ->
-              {Key1, St1} = to_standalone_arg(Key, St),
-              {Value1, St2} = to_standalone_arg(Value, St1),
-              M1 = M#{Key1 => Value1},
-              {M1, St2}
-      end, {#{}, State}, Map);
-to_standalone_arg(Fun, #state{options = Options,
-                              all_calls = AllCalls,
-                              errors = Errors} = State)
-  when is_function(Fun) ->
+        fun(Key, Value, {M, St}) ->
+            {Key1, St1} = to_standalone_arg(Key, St),
+            {Value1, St2} = to_standalone_arg(Value, St1),
+            M1 = M#{Key1 => Value1},
+            {M1, St2}
+        end,
+        {#{}, State},
+        Map
+    );
+to_standalone_arg(
+    Fun,
+    #state{
+        options = Options,
+        all_calls = AllCalls,
+        errors = Errors
+    } = State
+) when
+    is_function(Fun)
+->
     {StandaloneFun, InnerState} = to_standalone_fun1(Fun, Options),
-    #state{all_calls = InnerAllCalls,
-           errors = InnerErrors} = InnerState,
+    #state{
+        all_calls = InnerAllCalls,
+        errors = InnerErrors
+    } = InnerState,
     AllCalls1 = maps:merge(AllCalls, InnerAllCalls),
     Errors1 = Errors ++ InnerErrors,
-    State1 = State#state{all_calls = AllCalls1,
-                         errors = Errors1},
+    State1 = State#state{
+        all_calls = AllCalls1,
+        errors = Errors1
+    },
     {StandaloneFun, State1};
 to_standalone_arg(Term, State) ->
     {Term, State}.
@@ -1019,61 +1251,80 @@ to_actual_arg(#standalone_fun{arity = Arity} = StandaloneFun) ->
             fun(Arg1, Arg2) -> exec(StandaloneFun, [Arg1, Arg2]) end;
         3 ->
             fun(Arg1, Arg2, Arg3) ->
-                    exec(StandaloneFun, [Arg1, Arg2, Arg3])
+                exec(StandaloneFun, [Arg1, Arg2, Arg3])
             end;
         4 ->
             fun(Arg1, Arg2, Arg3, Arg4) ->
-                    exec(StandaloneFun, [Arg1, Arg2, Arg3, Arg4])
+                exec(StandaloneFun, [Arg1, Arg2, Arg3, Arg4])
             end;
         5 ->
             fun(Arg1, Arg2, Arg3, Arg4, Arg5) ->
-                    exec(StandaloneFun, [Arg1, Arg2, Arg3, Arg4, Arg5])
+                exec(StandaloneFun, [Arg1, Arg2, Arg3, Arg4, Arg5])
             end;
         6 ->
             fun(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6) ->
-                    exec(StandaloneFun, [Arg1, Arg2, Arg3, Arg4, Arg5, Arg6])
+                exec(StandaloneFun, [Arg1, Arg2, Arg3, Arg4, Arg5, Arg6])
             end;
         7 ->
             fun(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7) ->
-                    exec(
-                      StandaloneFun,
-                      [Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7])
+                exec(
+                    StandaloneFun,
+                    [Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7]
+                )
             end;
         8 ->
             fun(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8) ->
-                    exec(
-                      StandaloneFun,
-                      [Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8])
+                exec(
+                    StandaloneFun,
+                    [Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8]
+                )
             end;
         9 ->
             fun(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9) ->
-                    exec(
-                      StandaloneFun,
-                      [Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9])
+                exec(
+                    StandaloneFun,
+                    [Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9]
+                )
             end;
         10 ->
             fun(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9, Arg10) ->
-                    exec(
-                      StandaloneFun,
-                      [Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9,
-                       Arg10])
+                exec(
+                    StandaloneFun,
+                    [
+                        Arg1,
+                        Arg2,
+                        Arg3,
+                        Arg4,
+                        Arg5,
+                        Arg6,
+                        Arg7,
+                        Arg8,
+                        Arg9,
+                        Arg10
+                    ]
+                )
             end
     end;
 to_actual_arg(List) when is_list(List) ->
     lists:map(
-      fun(Item) ->
-              to_actual_arg(Item)
-      end, List);
+        fun(Item) ->
+            to_actual_arg(Item)
+        end,
+        List
+    );
 to_actual_arg(Tuple) when is_tuple(Tuple) ->
     List0 = tuple_to_list(Tuple),
     List1 = to_actual_arg(List0),
     list_to_tuple(List1);
 to_actual_arg(Map) when is_map(Map) ->
     maps:fold(
-      fun(Key, Value, Acc) ->
-              Key1 = to_actual_arg(Key),
-              Value1 = to_actual_arg(Value),
-              Acc#{Key1 => Value1}
-      end, #{}, Map);
+        fun(Key, Value, Acc) ->
+            Key1 = to_actual_arg(Key),
+            Value1 = to_actual_arg(Value),
+            Acc#{Key1 => Value1}
+        end,
+        #{},
+        Map
+    );
 to_actual_arg(Term) ->
     Term.
