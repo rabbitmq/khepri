@@ -1,6 +1,7 @@
 erl_crash.dump
 .sw?
 .*.sw?
+/deps
 /_build
 /doc/*
 !/doc/overview.edoc
