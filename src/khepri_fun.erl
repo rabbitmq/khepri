@@ -922,6 +922,12 @@ pass2_process_instruction(
     NewLabel = maps:get({Module, OldLabel}, LabelMap),
     setelement(2, Instruction, {f, NewLabel});
 pass2_process_instruction(
+  {jump, {f, OldLabel}} = Instruction,
+  #state{mfa_in_progress = {Module, _, _},
+         label_map = LabelMap}) ->
+    NewLabel = maps:get({Module, OldLabel}, LabelMap),
+    setelement(2, Instruction, {f, NewLabel});
+pass2_process_instruction(
   Instruction,
   _State) ->
     Instruction.

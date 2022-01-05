@@ -348,6 +348,26 @@ simple_api_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun)
          end)]}.
 
+case_abort_jump_instruction_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {atomic, {created, [foo]}},
+         begin
+             Fun = fun() ->
+                           Path = [foo],
+                           case khepri_tx:put(Path, #kpayload_data{data = value2}) of
+                               {ok, _} ->
+                                   ok;
+                               Error ->
+                                   khepri_tx:abort(Error)
+                           end,
+                           {created, Path}
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun)
+         end)]}.
+
 list_comprehension_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
