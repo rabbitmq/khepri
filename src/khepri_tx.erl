@@ -203,6 +203,18 @@ ensure_instruction_is_permitted({badmatch, _}) ->
 ensure_instruction_is_permitted({bif, Bif, _, Args, _}) ->
     Arity = length(Args),
     ensure_bif_is_valid(Bif, Arity);
+ensure_instruction_is_permitted({bs_add, _, _, _}) ->
+    ok;
+ensure_instruction_is_permitted({bs_append, _, _, _, _, _, _, _, _}) ->
+    ok;
+ensure_instruction_is_permitted({bs_init2, _, _, _, _, _, _}) ->
+    ok;
+ensure_instruction_is_permitted({bs_put_binary, _, _, _, _, _}) ->
+    ok;
+ensure_instruction_is_permitted({bs_put_integer, _, _, _, _, _}) ->
+    ok;
+ensure_instruction_is_permitted({bs_put_string, _, _}) ->
+    ok;
 ensure_instruction_is_permitted({Call, _, _})
   when Call =:= call orelse Call =:= call_only orelse
        Call =:= call_ext orelse Call =:= call_ext_only ->
@@ -229,6 +241,8 @@ ensure_instruction_is_permitted({get_list, _, _, _}) ->
 ensure_instruction_is_permitted({init, _}) ->
     ok;
 ensure_instruction_is_permitted({init_yregs, _}) ->
+    ok;
+ensure_instruction_is_permitted({jump, _}) ->
     ok;
 ensure_instruction_is_permitted({move, _, _}) ->
     ok;
@@ -265,8 +279,6 @@ ensure_instruction_is_permitted({test, _, _, _, _}) ->
 ensure_instruction_is_permitted({test_heap, _, _}) ->
     ok;
 ensure_instruction_is_permitted({trim, _, _}) ->
-    ok;
-ensure_instruction_is_permitted({jump, _}) ->
     ok;
 ensure_instruction_is_permitted(Unknown) ->
     throw({unknown_instruction, Unknown}).

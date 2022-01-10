@@ -122,6 +122,18 @@ allowed_case_block_test() ->
            end
        end).
 
+allowed_binary_handling_test() ->
+    ?assertStandaloneFun(
+       begin
+           _ = name_concat(<<"prefix">>, <<"name2">>),
+           _ = name_concat(<<"name1">>, 0)
+       end).
+
+name_concat(<<"prefix">>, Name2) ->
+    <<"prefix_", Name2/binary>>;
+name_concat(Name1, Name2) ->
+    <<Name1/binary, "_", Name2/signed>>.
+
 allowed_list_comprehension_test() ->
     ?assertStandaloneFun(
        begin
