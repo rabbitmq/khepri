@@ -833,6 +833,25 @@ pass2_process_instruction(
             Instruction
     end;
 pass2_process_instruction(
+  {bs_add, _, _, _} = Instruction, State) ->
+    replace_label(Instruction, 2, State);
+pass2_process_instruction(
+  {bs_append, _, _, _, _, _, _, _, _} = Instruction, State) ->
+    Instruction0 = replace_label(Instruction, 2, State),
+    replace_field_flags(Instruction0, 8);
+pass2_process_instruction(
+  {bs_init2, _, _, _, _, _, _} = Instruction, State) ->
+    Instruction0 = replace_label(Instruction, 2, State),
+    replace_field_flags(Instruction0, 6);
+pass2_process_instruction(
+  {bs_put_binary, _, _, _, _, _} = Instruction, State) ->
+    Instruction0 = replace_label(Instruction, 2, State),
+    replace_field_flags(Instruction0, 5);
+pass2_process_instruction(
+  {bs_put_integer, _, _, _, _, _} = Instruction, State) ->
+    Instruction0 = replace_label(Instruction, 2, State),
+    replace_field_flags(Instruction0, 5);
+pass2_process_instruction(
   {call_last, Arity, {Module, Name, Arity}, Opaque} = Instruction,
   #state{functions = Functions}) ->
     MFA = {Module, Name, Arity},
@@ -860,21 +879,18 @@ pass2_process_instruction(
     NameRepr = {atom, Name},
     {func_info, ModRepr, NameRepr, Arity};
 pass2_process_instruction(
-  {get_map_elements, {f, OldLabel}, _, _} = Instruction,
-  #state{mfa_in_progress = {Module, _, _},
-         label_map = LabelMap}) ->
-    NewLabel = maps:get({Module, OldLabel}, LabelMap),
-    setelement(2, Instruction, {f, NewLabel});
+  {get_map_elements, _, _, _} = Instruction, State) ->
+    replace_label(Instruction, 2, State);
 pass2_process_instruction(
-  {loop_rec, {f, OldLabel}, _} = Instruction,
-  #state{mfa_in_progress = {Module, _, _},
-         label_map = LabelMap}) ->
-    NewLabel = maps:get({Module, OldLabel}, LabelMap),
-    setelement(2, Instruction, {f, NewLabel});
+  {jump, _} = Instruction, State) ->
+    replace_label(Instruction, 2, State);
 pass2_process_instruction(
-  {select_val, _, {f, OldEndLabel}, {list, Cases}} = Instruction,
+  {loop_rec, _, _} = Instruction, State) ->
+    replace_label(Instruction, 2, State);
+pass2_process_instruction(
+  {select_val, _, _, {list, Cases}} = Instruction,
   #state{mfa_in_progress = {Module, _, _},
-         label_map = LabelMap}) ->
+         label_map = LabelMap} = State) ->
     Cases1 = [case Case of
                   {f, OldLabel} ->
                       NewLabel = maps:get({Module, OldLabel}, LabelMap),
@@ -882,21 +898,14 @@ pass2_process_instruction(
                   _ ->
                       Case
               end || Case <- Cases],
-    NewEndLabel = maps:get({Module, OldEndLabel}, LabelMap),
-    Instruction1 = setelement(3, Instruction, {f, NewEndLabel}),
+    Instruction1 = replace_label(Instruction, 3, State),
     setelement(4, Instruction1, {list, Cases1});
 pass2_process_instruction(
-  {test, _, {f, OldLabel}, _} = Instruction,
-  #state{mfa_in_progress = {Module, _, _},
-         label_map = LabelMap}) ->
-    NewLabel = maps:get({Module, OldLabel}, LabelMap),
-    setelement(3, Instruction, {f, NewLabel});
+  {test, _, _, _} = Instruction, State) ->
+    replace_label(Instruction, 3, State);
 pass2_process_instruction(
-  {test, _, {f, OldLabel}, _, _} = Instruction,
-  #state{mfa_in_progress = {Module, _, _},
-         label_map = LabelMap}) ->
-    NewLabel = maps:get({Module, OldLabel}, LabelMap),
-    setelement(3, Instruction, {f, NewLabel});
+  {test, _, _, _, _} = Instruction, State) ->
+    replace_label(Instruction, 3, State);
 pass2_process_instruction(
   {make_fun2, {_, _, _} = MFA, _, _, _} = Instruction,
   #state{functions = Functions}) ->
@@ -916,21 +925,49 @@ pass2_process_instruction(
             Instruction
     end;
 pass2_process_instruction(
-  {wait_timeout, {f, OldLabel}, _} = Instruction,
-  #state{mfa_in_progress = {Module, _, _},
-         label_map = LabelMap}) ->
-    NewLabel = maps:get({Module, OldLabel}, LabelMap),
-    setelement(2, Instruction, {f, NewLabel});
-pass2_process_instruction(
-  {jump, {f, OldLabel}} = Instruction,
-  #state{mfa_in_progress = {Module, _, _},
-         label_map = LabelMap}) ->
-    NewLabel = maps:get({Module, OldLabel}, LabelMap),
-    setelement(2, Instruction, {f, NewLabel});
+  {wait_timeout, _, _} = Instruction, State) ->
+    replace_label(Instruction, 2, State);
 pass2_process_instruction(
   Instruction,
   _State) ->
     Instruction.
+
+replace_field_flags(Instruction, Pos) ->
+    {field_flags, FieldFlagsBitField} = element(Pos, Instruction),
+    FieldFlags = decode_field_flags(FieldFlagsBitField),
+    setelement(Pos, Instruction, {field_flags, FieldFlags}).
+
+%% The field flags, which correspond to `Var/signed', `Var/unsigned',
+%% `Var/little', `Var/big' and `Var/native' in the bitstring syntax, need to be
+%% decoded here. It's the opposite to:
+%%   https://github.com/erlang/otp/blob/OTP-24.2/lib/compiler/src/beam_asm.erl#L486-L493
+%%
+%% The field flags bit field becomes a sublist of [signed, little, native].
+decode_field_flags(0) ->
+    [];
+decode_field_flags(FieldFlags) ->
+    lists:filtermap(
+      fun
+          (little) -> (FieldFlags band 16#02) == 16#02;
+          (signed) -> (FieldFlags band 16#04) == 16#04;
+          (native) -> (FieldFlags band 16#10) == 16#10
+      end, [signed, little, native]).
+
+replace_label(
+  Instruction, Pos,
+  #state{mfa_in_progress = {Module, _, _},
+         label_map = LabelMap}) ->
+    case element(Pos, Instruction) of
+        {f, 0} ->
+            %% The `0' label is an exception label in the compiler, used to
+            %% trigger an exception when branching. It should remain unchanged
+            %% here, for more information see:
+            %%   https://github.com/erlang/otp/blob/d955dc663a6d5dd03ab3360f9dd3dc0f439c7ef5/lib/compiler/src/beam_validator.erl#L26-L32
+            Instruction;
+        {f, OldLabel} ->
+            NewLabel = maps:get({Module, OldLabel}, LabelMap),
+            setelement(Pos, Instruction, {f, NewLabel})
+    end.
 
 -spec gen_module_name(Functions, State) -> Module when
       Functions :: #{mfa() => #function{}},
