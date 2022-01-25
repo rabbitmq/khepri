@@ -511,6 +511,23 @@ allowed_unicode_api_test() ->
            _ = unicode:characters_to_binary("")
        end).
 
+allowed_re_test() ->
+    ?assertStandaloneFun(
+       begin
+           {ok, MP} = re:compile("abcd"),
+           _ = re:inspect(MP, namelist),
+           _ = re:run("abcd", "ab.*"),
+           _ = re:replace("abcd", "ab", "ef"),
+           _ = re:split("abcab", "a")
+       end).
+
+denied_re_version_test() ->
+    ?assertToFunThrow(
+       {invalid_tx_fun, {call_denied, {re, version, 0}}},
+       begin
+           re:version()
+       end).
+
 when_readwrite_mode_is_true_test() ->
     ?assert(
        is_record(khepri_tx:to_standalone_fun(
