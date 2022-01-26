@@ -263,7 +263,7 @@ compile(Asm) ->
                        deterministic],
     case compile:forms(Asm, CompilerOptions) of
         {ok, Module, Beam, []} -> {Module, Beam};
-        Error                  -> throw({compilation_failure, Error})
+        Error                  -> throw({compilation_failure, Error, Asm})
     end.
 
 -spec exec(StandaloneFun, Args) -> Ret when
