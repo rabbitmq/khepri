@@ -845,20 +845,20 @@ update_keep_while_conds_revidx(
     %% anymore in the new keep_while.
     OldWatcheds = maps:get(Watcher, KeepWhileConds, #{}),
     KeepWhileCondsRevIdx1 = maps:fold(
-                          fun(Watched, _, KURevIdx) ->
-                                  Watchers = maps:get(Watched, KURevIdx),
+                          fun(Watched, _, KWRevIdx) ->
+                                  Watchers = maps:get(Watched, KWRevIdx),
                                   Watchers1 = maps:remove(Watcher, Watchers),
                                   case maps:size(Watchers1) of
-                                      0 -> maps:remove(Watched, KURevIdx);
-                                      _ -> KURevIdx#{Watched => Watchers1}
+                                      0 -> maps:remove(Watched, KWRevIdx);
+                                      _ -> KWRevIdx#{Watched => Watchers1}
                                   end
                           end, KeepWhileCondsRevIdx, OldWatcheds),
     %% Then, record the watched paths.
     maps:fold(
-      fun(Watched, _, KURevIdx) ->
-              Watchers = maps:get(Watched, KURevIdx, #{}),
+      fun(Watched, _, KWRevIdx) ->
+              Watchers = maps:get(Watched, KWRevIdx, #{}),
               Watchers1 = Watchers#{Watcher => ok},
-              KURevIdx#{Watched => Watchers1}
+              KWRevIdx#{Watched => Watchers1}
       end, KeepWhileCondsRevIdx1, KeepWhile).
 
 -spec find_matching_nodes(
@@ -918,9 +918,9 @@ insert_or_update_node(
                           AbsKeepWhile = to_absolute_keep_while(
                                            Path, KeepWhile),
                           KeepWhileOnOthers = maps:remove(Path, AbsKeepWhile),
-                          KUMet = are_keep_while_conditions_met(
+                          KWMet = are_keep_while_conditions_met(
                                     Root, KeepWhileOnOthers),
-                          case KUMet of
+                          case KWMet of
                               true ->
                                   {ok, Node1, {updated, Path, Result1}};
                               {false, Reason} ->
@@ -1623,18 +1623,18 @@ handle_keep_while_for_parent_update(
     end.
 
 merge_keep_while_aftermath(Extra, KeepWhileAftermath) ->
-    OldKUA = maps:get(keep_while_aftermath, Extra, #{}),
-    NewKUA = maps:fold(
+    OldKWA = maps:get(keep_while_aftermath, Extra, #{}),
+    NewKWA = maps:fold(
                fun
-                   (Path, remove, KUA1) ->
-                       KUA1#{Path => remove};
-                   (Path, NodeProps, KUA1) ->
-                       case KUA1 of
-                           #{Path := remove} -> KUA1;
-                           _                 -> KUA1#{Path => NodeProps}
+                   (Path, remove, KWA1) ->
+                       KWA1#{Path => remove};
+                   (Path, NodeProps, KWA1) ->
+                       case KWA1 of
+                           #{Path := remove} -> KWA1;
+                           _                 -> KWA1#{Path => NodeProps}
                        end
-               end, OldKUA, KeepWhileAftermath),
-    Extra#{keep_while_aftermath => NewKUA}.
+               end, OldKWA, KeepWhileAftermath),
+    Extra#{keep_while_aftermath => NewKWA}.
 
 handle_keep_while_aftermath(
   Root,
@@ -1655,12 +1655,12 @@ handle_keep_while_aftermath(
     {KeepWhileConds1,
      KeepWhileCondsRevIdx1} = maps:fold(
                             fun
-                                (RemovedPath, remove, {KU, KURevIdx}) ->
-                                    KU1 = maps:remove(RemovedPath, KU),
-                                    KURevIdx1 = update_keep_while_conds_revidx(
-                                                  KU, KURevIdx,
+                                (RemovedPath, remove, {KW, KWRevIdx}) ->
+                                    KW1 = maps:remove(RemovedPath, KW),
+                                    KWRevIdx1 = update_keep_while_conds_revidx(
+                                                  KW, KWRevIdx,
                                                   RemovedPath, #{}),
-                                    {KU1, KURevIdx1};
+                                    {KW1, KWRevIdx1};
                                 (_, _, Acc) ->
                                     Acc
                             end, {KeepWhileConds, KeepWhileCondsRevIdx},
