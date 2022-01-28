@@ -244,6 +244,8 @@ ensure_instruction_is_permitted({get_map_elements, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted({get_list, _, _, _}) ->
     ok;
+ensure_instruction_is_permitted(if_end) ->
+    ok;
 ensure_instruction_is_permitted({init, _}) ->
     ok;
 ensure_instruction_is_permitted({init_yregs, _}) ->
