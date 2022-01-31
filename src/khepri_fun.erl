@@ -987,7 +987,7 @@ gen_module_name(Functions, #state{fun_info = Info}) ->
     Checksum = erlang:phash2(Functions),
     InternalName = lists:flatten(
                      io_lib:format(
-                       "ktx__~s__~s__~b", [Module, Name, Checksum])),
+                       "kfun__~s__~s__~b", [Module, Name, Checksum])),
     list_to_atom(InternalName).
 
 -spec gen_function_name(Module, Name, Arity, State) -> Name when
