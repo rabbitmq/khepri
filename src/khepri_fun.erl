@@ -625,7 +625,7 @@ disassemble_module1(Module, Checksum) when is_binary(Checksum) ->
         #beam_file{} = BeamFileRecord ->
             {BeamFileRecord, Checksum};
         undefined ->
-            {Module, Beam, _} = code:get_object_code(Module),
+            {Module, Beam, _} = get_object_code(Module),
             {ok, {Module, ActualChecksum}} = beam_lib:md5(Beam),
             case ActualChecksum of
                 Checksum ->
@@ -639,10 +639,16 @@ disassemble_module1(Module, Checksum) when is_binary(Checksum) ->
             end
     end;
 disassemble_module1(Module, undefined) ->
-    {Module, Beam, _} = code:get_object_code(Module),
+    {Module, Beam, _} = get_object_code(Module),
     {ok, {Module, Checksum}} = beam_lib:md5(Beam),
     BeamFileRecord = do_disassemble_and_cache(Module, Checksum, Beam),
     {BeamFileRecord, Checksum}.
+
+get_object_code(Module) ->
+    case code:get_object_code(Module) of
+        {Module, Beam, Filename} -> {Module, Beam, Filename};
+        error                    -> throw({module_not_found, Module})
+    end.
 
 do_disassemble_and_cache(Module, Checksum, Beam) ->
     Key = ?ASM_CACHE_KEY(Module, Checksum),
