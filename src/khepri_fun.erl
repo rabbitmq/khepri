@@ -193,8 +193,15 @@ to_standalone_fun2(
                        should_process_function(
                          Module, Name, Arity, Module, State);
                    external ->
-                       should_process_function(
-                         Module, Name, Arity, undefined, State)
+                       _ = code:ensure_loaded(Module),
+                       case erlang:function_exported(Module, Name, Arity) of
+                           true ->
+                               should_process_function(
+                                 Module, Name, Arity, undefined, State);
+                           false ->
+                               throw({call_to_unexported_function,
+                                      {Module, Name, Arity}})
+                       end
                end,
     case ShouldProcess of
         true ->
