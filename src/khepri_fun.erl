@@ -263,7 +263,7 @@ compile(Asm) ->
                        deterministic],
     case compile:forms(Asm, CompilerOptions) of
         {ok, Module, Beam, []} -> {Module, Beam};
-        Error                  -> throw({compilation_failure, Error})
+        Error                  -> throw({compilation_failure, Error, Asm})
     end.
 
 -spec exec(StandaloneFun, Args) -> Ret when
@@ -625,7 +625,7 @@ disassemble_module1(Module, Checksum) when is_binary(Checksum) ->
         #beam_file{} = BeamFileRecord ->
             {BeamFileRecord, Checksum};
         undefined ->
-            {Module, Beam, _} = code:get_object_code(Module),
+            {Module, Beam, _} = get_object_code(Module),
             {ok, {Module, ActualChecksum}} = beam_lib:md5(Beam),
             case ActualChecksum of
                 Checksum ->
@@ -639,10 +639,16 @@ disassemble_module1(Module, Checksum) when is_binary(Checksum) ->
             end
     end;
 disassemble_module1(Module, undefined) ->
-    {Module, Beam, _} = code:get_object_code(Module),
+    {Module, Beam, _} = get_object_code(Module),
     {ok, {Module, Checksum}} = beam_lib:md5(Beam),
     BeamFileRecord = do_disassemble_and_cache(Module, Checksum, Beam),
     {BeamFileRecord, Checksum}.
+
+get_object_code(Module) ->
+    case code:get_object_code(Module) of
+        {Module, Beam, Filename} -> {Module, Beam, Filename};
+        error                    -> throw({module_not_found, Module})
+    end.
 
 do_disassemble_and_cache(Module, Checksum, Beam) ->
     Key = ?ASM_CACHE_KEY(Module, Checksum),
@@ -981,7 +987,7 @@ gen_module_name(Functions, #state{fun_info = Info}) ->
     Checksum = erlang:phash2(Functions),
     InternalName = lists:flatten(
                      io_lib:format(
-                       "ktx__~s__~s__~b", [Module, Name, Checksum])),
+                       "kfun__~s__~s__~b", [Module, Name, Checksum])),
     list_to_atom(InternalName).
 
 -spec gen_function_name(Module, Name, Arity, State) -> Name when
