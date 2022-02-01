@@ -10,7 +10,9 @@
 -export([exported/0,
          get_lambda/0,
          %% We export this one just to try to prevent inlining.
-         hash_term/1]).
+         hash_term/1,
+         make_record/1,
+         outer_function/2]).
 
 exported() -> unexported().
 unexported() -> ok.
@@ -22,3 +24,20 @@ get_lambda() ->
 
 hash_term(Term) ->
     erlang:phash2(Term).
+
+-record(my_record, {function}).
+
+make_record(Function) ->
+    #my_record{function = Function}.
+
+outer_function(#my_record{function = Value} = MyRecord, Term) ->
+    is_atom(Value) andalso
+    inner_function(MyRecord, Term);
+outer_function(_, _) ->
+    false.
+
+inner_function(#my_record{function = hash_term = Function}, Term) ->
+    _ = (?MODULE:Function(Term)),
+    true;
+inner_function(_, _) ->
+    false.

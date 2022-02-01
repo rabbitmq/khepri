@@ -65,12 +65,18 @@
 %% assembly. This breaks compile/1 and causes a cascade of errors.
 %%
 %% The following basically disable Dialyzer for this module unfortunately...
+%% This can be removed once we start using Erlang 25 to run Dialyzer.
 -dialyzer({nowarn_function, [compile/1,
                              to_standalone_fun/2,
                              to_standalone_fun1/2,
                              to_standalone_fun2/2,
                              to_standalone_env/1,
-                             to_standalone_arg/2]}).
+                             to_standalone_arg/2,
+                             handle_compilation_error/2,
+                             add_comment_and_retry/4,
+                             add_comment_to_function/7,
+                             add_comment_to_code/5,
+                             are_comments_conflicting/2]}).
 
 -type fun_info() :: #{arity => arity(),
                       env => any(),
@@ -263,8 +269,109 @@ compile(Asm) ->
                        deterministic],
     case compile:forms(Asm, CompilerOptions) of
         {ok, Module, Beam, []} -> {Module, Beam};
-        Error                  -> throw({compilation_failure, Error, Asm})
+        Error                  -> handle_compilation_error(Asm, Error)
     end.
+
+handle_compilation_error(
+  Asm,
+  {error,
+   [{_GeneratedModuleName,
+     [{_, beam_validator,
+       {FailingFun,
+        {{get_tuple_element, Src, _Element, _Dst},
+         _,
+         {bad_type,
+          {needed, {t_tuple, _Size, _, _Fields} = NeededType},
+          {actual, any}}}}}]}],
+   []} = Error) ->
+    VarInfo = {var_info, Src, [{type, NeededType}]},
+    Comment = {'%', VarInfo},
+    add_comment_and_retry(Asm, Error, FailingFun, Comment);
+handle_compilation_error(
+  Asm,
+  %% Same as above, but returned by Erlang 23's compiler instead of Erlang 24+.
+  {error,
+   [{_GeneratedModuleName,
+     [{beam_validator,
+       {FailingFun,
+        {{get_tuple_element, Src, _Element, _Dst},
+         _,
+         {bad_type,
+          {needed, {t_tuple, _Size, _, _Fields} = NeededType},
+          {actual, any}}}}}]}],
+   []} = Error) ->
+    VarInfo = {var_info, Src, [{type, NeededType}]},
+    Comment = {'%', VarInfo},
+    add_comment_and_retry(Asm, Error, FailingFun, Comment);
+handle_compilation_error(Asm, Error) ->
+    throw({compilation_failure, Error, Asm}).
+
+add_comment_and_retry(
+  Asm, Error, {GeneratedModuleName, Name, Arity} = _FailingFun, Comment) ->
+    {GeneratedModuleName,
+     Exports,
+     Attributes,
+     Functions,
+     Labels} = Asm,
+    Functions1 = add_comment_to_function(
+                   Asm, Error, Functions, Name, Arity, Comment, []),
+    Asm1 = {GeneratedModuleName,
+            Exports,
+            Attributes,
+            Functions1,
+            Labels},
+    compile(Asm1).
+
+add_comment_to_function(
+  Asm, Error,
+  [#function{name = Name, arity = Arity, code = Code} = Function | Rest],
+  Name, Arity, Comment, Result) ->
+    Code1 = add_comment_to_code(Asm, Error, Code, Comment, []),
+    Function1 = Function#function{code = Code1},
+    lists:reverse(Result) ++ [Function1 | Rest];
+add_comment_to_function(
+  Asm, Error,
+  [Function | Rest], Name, Arity, Comment, Result) ->
+    add_comment_to_function(
+      Asm, Error, Rest, Name, Arity, Comment, [Function | Result]).
+
+add_comment_to_code(
+  Asm, Error,
+  [{label, _} = Instruction | Rest],
+  Comment, Result) ->
+    add_comment_to_code(Asm, Error, Rest, Comment, [Instruction | Result]);
+add_comment_to_code(
+  Asm, Error,
+  [{func_info, _, _, _} = Instruction | Rest],
+  Comment, Result) ->
+    add_comment_to_code(Asm, Error, Rest, Comment, [Instruction | Result]);
+add_comment_to_code(
+  Asm, Error,
+  [{'%', _} = Instruction | Rest],
+  Comment, Result) ->
+    case are_comments_conflicting(Instruction, Comment) of
+        false ->
+            add_comment_to_code(
+              Asm, Error, Rest, Comment, [Instruction | Result]);
+        true ->
+            throw(
+              {conflicting_assembly_annotations,
+               Instruction, Comment, Error, Asm})
+    end;
+add_comment_to_code(
+  _Asm, _Error,
+  Rest,
+  Comment, Result) ->
+    lists:reverse(Result) ++ [Comment | Rest].
+
+are_comments_conflicting(
+  {'%', {var_info, Register, _}},
+  {'%', {var_info, Register, _}}) ->
+    %% If we are about to generate two `var_info' comments affecting the same
+    %% register (i.e. same variable), we abort.
+    true;
+are_comments_conflicting(_Comment1, _Comment2) ->
+    false.
 
 -spec exec(StandaloneFun, Args) -> Ret when
       StandaloneFun :: standalone_fun(),
