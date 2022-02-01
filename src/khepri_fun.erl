@@ -932,6 +932,9 @@ pass2_process_instruction(
             Instruction
     end;
 pass2_process_instruction(
+  {'try', _, _} = Instruction, State) ->
+    replace_label(Instruction, 3, State);
+pass2_process_instruction(
   {wait_timeout, _, _} = Instruction, State) ->
     replace_label(Instruction, 2, State);
 pass2_process_instruction(
