@@ -213,6 +213,15 @@ allowed_bs_match_test() ->
            matches_type(queue, proplists:get_value('apply-to', List))
        end).
 
+parse_date(<<Year:4/bytes, $-, Month:2/bytes, $-, Day:2/bytes, _Rest/binary>>) ->
+    {Year, Month, Day}.
+
+allowed_bs_match_date_parser_test() ->
+    ?assertStandaloneFun(
+       begin
+           {<<"2022">>, <<"02">>, <<"02">>} = parse_date(<<"2022-02-02">>)
+       end).
+
 denied_receive_block_test() ->
     ?assertToFunThrow(
        {invalid_tx_fun, receiving_message_denied},

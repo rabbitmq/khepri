@@ -215,6 +215,14 @@ ensure_instruction_is_permitted({BsPutSomething, _, _, _, _, _})
     ok;
 ensure_instruction_is_permitted({bs_put_string, _, _}) ->
     ok;
+ensure_instruction_is_permitted({bs_get_position, _, _, _}) ->
+    ok;
+ensure_instruction_is_permitted({bs_set_position, _, _}) ->
+    ok;
+ensure_instruction_is_permitted({bs_get_tail, _, _, _}) ->
+    ok;
+ensure_instruction_is_permitted({bs_start_match4, _, _, _, _}) ->
+    ok;
 ensure_instruction_is_permitted({Call, _, _})
   when Call =:= call orelse Call =:= call_only orelse
        Call =:= call_ext orelse Call =:= call_ext_only ->
