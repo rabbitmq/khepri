@@ -189,6 +189,15 @@ allowed_try_catch_block_test() ->
            end
        end).
 
+allowed_catch_test() ->
+    ?assertStandaloneFun(
+       begin
+           case catch (exit(a)) of
+               {'EXIT', _Exit} -> true;
+               _ -> false
+           end
+       end).
+
 denied_receive_block_test() ->
     ?assertToFunThrow(
        {invalid_tx_fun, receiving_message_denied},

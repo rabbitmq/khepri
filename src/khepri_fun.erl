@@ -993,6 +993,9 @@ pass2_process_instruction(
             Instruction
     end;
 pass2_process_instruction(
+  {'catch', _, _} = Instruction, State) ->
+    replace_label(Instruction, 3, State);
+pass2_process_instruction(
   {func_info, _ModRepr, _NameRepr, Arity},
   #state{generated_module_name = GeneratedModuleName,
          function_in_progress = Name}) ->

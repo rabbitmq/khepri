@@ -226,6 +226,10 @@ ensure_instruction_is_permitted({call_fun, _}) ->
     ok;
 ensure_instruction_is_permitted({case_end, _}) ->
     ok;
+ensure_instruction_is_permitted({'catch', _, _}) ->
+    ok;
+ensure_instruction_is_permitted({catch_end, _}) ->
+    ok;
 ensure_instruction_is_permitted({deallocate, _}) ->
     ok;
 ensure_instruction_is_permitted({func_info, _, _, _}) ->
