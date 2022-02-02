@@ -15,7 +15,9 @@
 
 -dialyzer([{no_return, [allowed_khepri_tx_api_test/0,
                         allowed_erlang_expressions_test/0,
-                        allowed_erlang_module_api_test/0]}]).
+                        allowed_erlang_module_api_test/0]},
+           {no_missing_calls,
+            [extracting_unexported_external_function_test/0]}]).
 
 -define(make_standalone_fun(Expression),
         begin
@@ -816,3 +818,26 @@ exec_with_standalone_fun_test() ->
     ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])),
     ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])),
     ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
+
+record_matching_fun_clause_test() ->
+    StandaloneFun = khepri_fun:to_standalone_fun(
+                      fun mod_used_for_transactions:outer_function/2,
+                      #{}),
+    %% Dialyzer doesn't like that we ?assertMatch(#standalone_fun{},
+    %% StandaloneFun), I don't know why... Let's verify we don't have a
+    %% function object instead.
+    ?assertNot(is_function(StandaloneFun)),
+    MyRecord1 = mod_used_for_transactions:make_record(hash_term),
+    ?assertEqual(true, khepri_fun:exec(StandaloneFun, [MyRecord1, a])),
+    MyRecord2 = mod_used_for_transactions:make_record(non_existing),
+    ?assertEqual(false, khepri_fun:exec(StandaloneFun, [MyRecord2, a])),
+    ?assertEqual(false, khepri_fun:exec(StandaloneFun, [not_my_record, a])),
+    ok.
+
+extracting_unexported_external_function_test() ->
+    ?assertThrow(
+       {call_to_unexported_function,
+        {mod_used_for_transactions, inner_function, 2}},
+       khepri_fun:to_standalone_fun(
+         fun mod_used_for_transactions:inner_function/2,
+         #{})).
