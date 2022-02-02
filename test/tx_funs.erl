@@ -17,7 +17,9 @@
                         allowed_erlang_expressions_test/0,
                         allowed_erlang_module_api_test/0]},
            {no_missing_calls,
-            [extracting_unexported_external_function_test/0]}]).
+            [extracting_unexported_external_function_test/0]},
+           {no_match,
+            [matches_type/2]}]).
 
 -define(make_standalone_fun(Expression),
         begin
@@ -196,6 +198,19 @@ allowed_catch_test() ->
                {'EXIT', _Exit} -> true;
                _ -> false
            end
+       end).
+
+matches_type(exchange, <<"exchanges">>) -> true;
+matches_type(queue,    <<"queues">>)    -> true;
+matches_type(exchange, <<"all">>)       -> true;
+matches_type(queue,    <<"all">>)       -> true;
+matches_type(_,        _)               -> false.
+
+allowed_bs_match_test() ->
+    List = [{'apply-to', <<"queues">>}],
+    ?assertStandaloneFun(
+       begin
+           matches_type(queue, proplists:get_value('apply-to', List))
        end).
 
 denied_receive_block_test() ->

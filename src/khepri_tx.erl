@@ -209,9 +209,9 @@ ensure_instruction_is_permitted({bs_append, _, _, _, _, _, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted({bs_init2, _, _, _, _, _, _}) ->
     ok;
-ensure_instruction_is_permitted({bs_put_binary, _, _, _, _, _}) ->
-    ok;
-ensure_instruction_is_permitted({bs_put_integer, _, _, _, _, _}) ->
+ensure_instruction_is_permitted({BsPutSomething, _, _, _, _, _})
+  when BsPutSomething =:= bs_put_binary orelse
+       BsPutSomething =:= bs_put_integer ->
     ok;
 ensure_instruction_is_permitted({bs_put_string, _, _}) ->
     ok;
@@ -283,6 +283,8 @@ ensure_instruction_is_permitted({swap, _, _}) ->
 ensure_instruction_is_permitted({test, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted({test, _, _, _, _}) ->
+    ok;
+ensure_instruction_is_permitted({test, _, _, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted({test_heap, _, _}) ->
     ok;
