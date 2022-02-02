@@ -226,17 +226,25 @@ ensure_instruction_is_permitted({call_fun, _}) ->
     ok;
 ensure_instruction_is_permitted({case_end, _}) ->
     ok;
+ensure_instruction_is_permitted({'catch', _, _}) ->
+    ok;
+ensure_instruction_is_permitted({catch_end, _}) ->
+    ok;
 ensure_instruction_is_permitted({deallocate, _}) ->
     ok;
 ensure_instruction_is_permitted({func_info, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted({gc_bif, Bif, _, Arity, _, _}) ->
     ensure_bif_is_valid(Bif, Arity);
+ensure_instruction_is_permitted({get_hd, _, _}) ->
+    ok;
 ensure_instruction_is_permitted({get_tuple_element, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted({get_map_elements, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted({get_list, _, _, _}) ->
+    ok;
+ensure_instruction_is_permitted(if_end) ->
     ok;
 ensure_instruction_is_permitted({init, _}) ->
     ok;
@@ -453,6 +461,16 @@ is_remote_call_valid(erlang, throw, _) -> true;
 is_remote_call_valid(erlang, tl, _) -> true;
 is_remote_call_valid(erlang, tuple_size, _) -> true;
 is_remote_call_valid(erlang, tuple_to_list, _) -> true;
+is_remote_call_valid(erlang, '++', _) -> true;
+is_remote_call_valid(erlang, '+', _) -> true;
+is_remote_call_valid(erlang, '>=', _) -> true;
+is_remote_call_valid(erlang, '=<', _) -> true;
+is_remote_call_valid(erlang, '>', _) -> true;
+is_remote_call_valid(erlang, '<', _) -> true;
+is_remote_call_valid(erlang, '==', _) -> true;
+is_remote_call_valid(erlang, '/=', _) -> true;
+is_remote_call_valid(erlang, '=:=', _) -> true;
+is_remote_call_valid(erlang, '=/=', _) -> true;
 
 is_remote_call_valid(dict, _, _) -> true;
 is_remote_call_valid(io_lib, format, _) -> true;
