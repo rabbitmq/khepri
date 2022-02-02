@@ -459,6 +459,16 @@ is_remote_call_valid(erlang, throw, _) -> true;
 is_remote_call_valid(erlang, tl, _) -> true;
 is_remote_call_valid(erlang, tuple_size, _) -> true;
 is_remote_call_valid(erlang, tuple_to_list, _) -> true;
+is_remote_call_valid(erlang, '++', _) -> true;
+is_remote_call_valid(erlang, '+', _) -> true;
+is_remote_call_valid(erlang, '>=', _) -> true;
+is_remote_call_valid(erlang, '=<', _) -> true;
+is_remote_call_valid(erlang, '>', _) -> true;
+is_remote_call_valid(erlang, '<', _) -> true;
+is_remote_call_valid(erlang, '==', _) -> true;
+is_remote_call_valid(erlang, '/=', _) -> true;
+is_remote_call_valid(erlang, '=:=', _) -> true;
+is_remote_call_valid(erlang, '=/=', _) -> true;
 
 is_remote_call_valid(dict, _, _) -> true;
 is_remote_call_valid(io_lib, format, _) -> true;
