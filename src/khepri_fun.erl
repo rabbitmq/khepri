@@ -519,10 +519,81 @@ pass1_process_function_code(
       State :: #state{}.
 
 pass1_process_instructions(Instructions, State) ->
-    %% Check allowed & denied instructions.
-    %% Record all calls that need their code to be copied.
-    %% Adjust label based on label diff.
     pass1_process_instructions(Instructions, State, []).
+
+%% The first group of clauses of this function patch incorrectly decoded
+%% instructions. These clauses recurse after fixing the instruction to enter
+%% the second group of clauses who.
+%%
+%% The second group of clauses:
+%%   1. ensures the instruction is known and allowed,
+%%   2. records all calls that need their code to be copied and
+%%   3. records jump labels.
+
+%% First group.
+
+pass1_process_instructions(
+  [{bs_append, _, _, _, _, _, _, {field_flags, FF}, _} = Instruction0 | Rest],
+  State,
+  Result)
+  when is_integer(FF) ->
+    %% `beam_disasm' did not decode this instruction's field flags.
+    Instruction = decode_field_flags(Instruction0, 8),
+    pass1_process_instructions([Instruction | Rest], State, Result);
+pass1_process_instructions(
+  [{bs_init2, _, _, _, _, {field_flags, FF}, _} = Instruction0 | Rest],
+  State,
+  Result)
+  when is_integer(FF) ->
+    %% `beam_disasm' did not decode this instruction's field flags.
+    Instruction = decode_field_flags(Instruction0, 6),
+    pass1_process_instructions([Instruction | Rest], State, Result);
+pass1_process_instructions(
+  [{BsPutSomething, _, _, _, {field_flags, FF}, _} = Instruction0 | Rest],
+  State,
+  Result)
+  when (BsPutSomething =:= bs_put_binary orelse
+        BsPutSomething =:= bs_put_integer) andalso
+       is_integer(FF) ->
+    %% `beam_disasm' did not decode this instruction's field flags.
+    Instruction = decode_field_flags(Instruction0, 5),
+    pass1_process_instructions([Instruction | Rest], State, Result);
+pass1_process_instructions(
+  [{bs_start_match3, Fail, Bin, {u, Live}, Dst} | Rest],
+  State,
+  Result) ->
+    %% `beam_disasm' did not decode this instruction correctly. We need to
+    %% patch it to:
+    %%   1. add `test' as the first element in the tuple,
+    %%   2. swap `Bin' and `Live',
+    %%   3. put `Bin' in a list and
+    %%   4. store `Live' as an integer.
+    Instruction = {test, bs_start_match3, Fail, Live, [Bin], Dst},
+    pass1_process_instructions([Instruction | Rest], State, Result);
+pass1_process_instructions(
+  [{test, bs_get_integer2,
+    Fail, [Ctx, Live, Size, Unit, {field_flags, FF} = FieldFlags0, Dst]}
+   | Rest],
+  State,
+  Result) when is_integer(FF) ->
+    %% `beam_disasm' did not decode this instruction correctly. We need to
+    %% patch it to move `Live' before the list. We also need to decode field
+    %% flags.
+    FieldFlags = decode_field_flags(FieldFlags0),
+    Instruction = {test, bs_get_integer2,
+                   Fail, Live, [Ctx, Size, Unit, FieldFlags], Dst},
+    pass1_process_instructions([Instruction | Rest], State, Result);
+pass1_process_instructions(
+  [{test, bs_match_string, Fail, [Ctx, Stride, String]} | Rest],
+  State,
+  Result) when is_binary(String) ->
+    %% `beam_disasm' did not decode this instruction correctly. We need to
+    %% patch it to put `String' inside a tuple.
+    Instruction = {test, bs_match_string,
+                   Fail, [Ctx, Stride, {string, String}]},
+    pass1_process_instructions([Instruction | Rest], State, Result);
+
+%% Second group.
 
 pass1_process_instructions(
   [{Call, Arity, {Module, Name, Arity}} = Instruction | Rest],
@@ -773,6 +844,39 @@ do_disassemble_and_cache(Module, Checksum, Beam) ->
 do_disassemble(Beam) ->
     beam_disasm:file(Beam).
 
+%% The field flags, which correspond to `Var/signed', `Var/unsigned',
+%% `Var/little', `Var/big' and `Var/native' in the bitstring syntax, need to
+%% be decoded here. It's the opposite to:
+%%   https://github.com/erlang/otp/blob/OTP-24.2/lib/compiler/src/beam_asm.erl#L486-L493
+%%
+%% The field flags bit field becomes a sublist of [signed, little, native].
+
+decode_field_flags(Instruction, Pos) when is_tuple(Instruction) ->
+    FieldFlags0 = element(Pos, Instruction),
+    FieldFlags1 = decode_field_flags(FieldFlags0),
+    setelement(Pos, Instruction, FieldFlags1).
+
+-spec decode_field_flags(FieldFlagsBitFieldsTuple | FieldFlagsBitField) ->
+    FieldFlagsTuple | FieldFlags when
+      FieldFlagsBitFieldsTuple :: {field_flags, FieldFlagsBitField},
+      FieldFlagsBitField :: non_neg_integer(),
+      FieldFlagsTuple :: {field_flags, FieldFlags},
+      FieldFlags :: [FieldFlag],
+      FieldFlag :: little | signed | native.
+
+decode_field_flags(0) ->
+    [];
+decode_field_flags(FieldFlags) when is_integer(FieldFlags) ->
+    lists:filtermap(
+      fun
+          (little) -> (FieldFlags band 16#02) == 16#02;
+          (signed) -> (FieldFlags band 16#04) == 16#04;
+          (native) -> (FieldFlags band 16#10) == 16#10
+      end, [signed, little, native]);
+decode_field_flags({field_flags, FieldFlagsBitField}) ->
+    FieldFlags = decode_field_flags(FieldFlagsBitField),
+    {field_flags, FieldFlags}.
+
 -spec ensure_instruction_is_permitted(Instruction, State) ->
     State when
       Instruction :: beam_instr(),
@@ -958,20 +1062,15 @@ pass2_process_instruction(
     replace_label(Instruction, 2, State);
 pass2_process_instruction(
   {bs_append, _, _, _, _, _, _, _, _} = Instruction, State) ->
-    Instruction0 = replace_label(Instruction, 2, State),
-    replace_field_flags(Instruction0, 8);
+    replace_label(Instruction, 2, State);
 pass2_process_instruction(
   {bs_init2, _, _, _, _, _, _} = Instruction, State) ->
-    Instruction0 = replace_label(Instruction, 2, State),
-    replace_field_flags(Instruction0, 6);
+    replace_label(Instruction, 2, State);
 pass2_process_instruction(
-  {bs_put_binary, _, _, _, _, _} = Instruction, State) ->
-    Instruction0 = replace_label(Instruction, 2, State),
-    replace_field_flags(Instruction0, 5);
-pass2_process_instruction(
-  {bs_put_integer, _, _, _, _, _} = Instruction, State) ->
-    Instruction0 = replace_label(Instruction, 2, State),
-    replace_field_flags(Instruction0, 5);
+  {BsPutSomething, _, _, _, _, _} = Instruction, State)
+  when BsPutSomething =:= bs_put_binary orelse
+       BsPutSomething =:= bs_put_integer ->
+    replace_label(Instruction, 2, State);
 pass2_process_instruction(
   {call_last, Arity, {Module, Name, Arity}, Opaque} = Instruction,
   #state{functions = Functions}) ->
@@ -1031,6 +1130,9 @@ pass2_process_instruction(
   {test, _, _, _, _} = Instruction, State) ->
     replace_label(Instruction, 3, State);
 pass2_process_instruction(
+  {test, _, _, _, _, _} = Instruction, State) ->
+    replace_label(Instruction, 3, State);
+pass2_process_instruction(
   {make_fun2, {_, _, _} = MFA, _, _, _} = Instruction,
   #state{functions = Functions}) ->
     case Functions of
@@ -1058,27 +1160,6 @@ pass2_process_instruction(
   Instruction,
   _State) ->
     Instruction.
-
-replace_field_flags(Instruction, Pos) ->
-    {field_flags, FieldFlagsBitField} = element(Pos, Instruction),
-    FieldFlags = decode_field_flags(FieldFlagsBitField),
-    setelement(Pos, Instruction, {field_flags, FieldFlags}).
-
-%% The field flags, which correspond to `Var/signed', `Var/unsigned',
-%% `Var/little', `Var/big' and `Var/native' in the bitstring syntax, need to be
-%% decoded here. It's the opposite to:
-%%   https://github.com/erlang/otp/blob/OTP-24.2/lib/compiler/src/beam_asm.erl#L486-L493
-%%
-%% The field flags bit field becomes a sublist of [signed, little, native].
-decode_field_flags(0) ->
-    [];
-decode_field_flags(FieldFlags) ->
-    lists:filtermap(
-      fun
-          (little) -> (FieldFlags band 16#02) == 16#02;
-          (signed) -> (FieldFlags band 16#04) == 16#04;
-          (native) -> (FieldFlags band 16#10) == 16#10
-      end, [signed, little, native]).
 
 replace_label(
   Instruction, Pos,
