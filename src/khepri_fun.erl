@@ -1111,9 +1111,10 @@ pass2_process_instruction(
   {loop_rec, _, _} = Instruction, State) ->
     replace_label(Instruction, 2, State);
 pass2_process_instruction(
-  {select_val, _, _, {list, Cases}} = Instruction,
+  {Select, _, _, {list, Cases}} = Instruction,
   #state{mfa_in_progress = {Module, _, _},
-         label_map = LabelMap} = State) ->
+         label_map = LabelMap} = State)
+  when Select =:= select_val orelse Select =:= select_tuple_arity ->
     Cases1 = [case Case of
                   {f, OldLabel} ->
                       NewLabel = maps:get({Module, OldLabel}, LabelMap),

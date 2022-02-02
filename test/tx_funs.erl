@@ -126,6 +126,16 @@ allowed_case_block_test() ->
            end
        end).
 
+allowed_case_block_with_different_tuple_arities_test() ->
+    ?assertStandaloneFun(
+       begin
+           case {a, b, c} of
+               {_, _, _} -> three;
+               {_, _} ->    two;
+               {_} ->       one
+           end
+       end).
+
 allowed_binary_handling_test() ->
     ?assertStandaloneFun(
        begin
