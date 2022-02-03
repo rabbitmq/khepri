@@ -19,7 +19,8 @@
            {no_missing_calls,
             [extracting_unexported_external_function_test/0]},
            {no_match,
-            [matches_type/2]}]).
+            [matches_type/2,
+             allowed_case_block_with_different_tuple_arities_test/0]}]).
 
 -define(make_standalone_fun(Expression),
         begin
