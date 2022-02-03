@@ -597,7 +597,9 @@ pass1_process_instructions(
 pass1_process_instructions(
   [{BsGetSomething, Ctx, Dst, {u, Live}} | Rest],
   State,
-  Result) when BsGetSomething =:= bs_get_position orelse BsGetSomething =:= bs_get_tail ->
+  Result)
+  when BsGetSomething =:= bs_get_position orelse
+       BsGetSomething =:= bs_get_tail ->
     %% `beam_disasm' did not decode this instruction correctly. We need to
     %% patch it to store `Live' as an integer.
     Instruction = {BsGetSomething, Ctx, Dst, Live},
