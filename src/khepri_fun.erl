@@ -571,17 +571,38 @@ pass1_process_instructions(
     Instruction = {test, bs_start_match3, Fail, Live, [Bin], Dst},
     pass1_process_instructions([Instruction | Rest], State, Result);
 pass1_process_instructions(
-  [{test, bs_get_integer2,
+  [{bs_start_match4, Fail, {u, Live}, Src, Dst} | Rest],
+  State,
+  Result) ->
+    %% `beam_disasm' did not decode this instruction correctly. We need to
+    %% patch it to store `Live' as an integer.
+    Instruction = {bs_start_match4, Fail, Live, Src, Dst},
+    pass1_process_instructions([Instruction | Rest], State, Result);
+pass1_process_instructions(
+  [{test, BsGetSomething,
     Fail, [Ctx, Live, Size, Unit, {field_flags, FF} = FieldFlags0, Dst]}
    | Rest],
   State,
-  Result) when is_integer(FF) ->
+  Result)
+  when (BsGetSomething =:= bs_get_integer2 orelse
+        BsGetSomething =:= bs_get_binary2) andalso
+       is_integer(FF) ->
     %% `beam_disasm' did not decode this instruction correctly. We need to
     %% patch it to move `Live' before the list. We also need to decode field
     %% flags.
     FieldFlags = decode_field_flags(FieldFlags0),
-    Instruction = {test, bs_get_integer2,
+    Instruction = {test, BsGetSomething,
                    Fail, Live, [Ctx, Size, Unit, FieldFlags], Dst},
+    pass1_process_instructions([Instruction | Rest], State, Result);
+pass1_process_instructions(
+  [{BsGetSomething, Ctx, Dst, {u, Live}} | Rest],
+  State,
+  Result)
+  when BsGetSomething =:= bs_get_position orelse
+       BsGetSomething =:= bs_get_tail ->
+    %% `beam_disasm' did not decode this instruction correctly. We need to
+    %% patch it to store `Live' as an integer.
+    Instruction = {BsGetSomething, Ctx, Dst, Live},
     pass1_process_instructions([Instruction | Rest], State, Result);
 pass1_process_instructions(
   [{test, bs_match_string, Fail, [Ctx, Stride, String]} | Rest],
