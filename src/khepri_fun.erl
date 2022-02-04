@@ -313,10 +313,10 @@ handle_validation_error(
 handle_validation_error(
   Asm,
   {FailingFun,
-   {{call_only, _Arity, {f, _EntryLabel}},
+   {{Call, _Arity, {f, _EntryLabel}},
     _,
     no_bs_start_match2}},
-  Error) ->
+  Error) when Call =:= call orelse Call =:= call_only ->
     %% The register and and type cannot be determined from just the error
     %% message, so we use `accepts_match_context' as a placeholder and
     %% determine the real comment in `add_comment_to_function/7'
