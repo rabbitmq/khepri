@@ -289,7 +289,7 @@ handle_compilation_error(
          _,
          {bad_type,
           {needed, {t_tuple, _Size, _, _Fields} = NeededType},
-          {actual, any}}}}}]}],
+          {actual, any}}}}} | _Rest]}],
    []} = Error) ->
     VarInfo = {var_info, Src, [{type, NeededType}]},
     Comment = {'%', VarInfo},
@@ -305,10 +305,26 @@ handle_compilation_error(
          _,
          {bad_type,
           {needed, {t_tuple, _Size, _, _Fields} = NeededType},
-          {actual, any}}}}}]}],
+          {actual, any}}}}} | _Rest]}],
    []} = Error) ->
     VarInfo = {var_info, Src, [{type, NeededType}]},
     Comment = {'%', VarInfo},
+    add_comment_and_retry(Asm, Error, FailingFun, Comment);
+handle_compilation_error(
+  Asm,
+  {error,
+   [{_GeneratedModuleName,
+     [{_, beam_validator,
+       {FailingFun,
+        {{Call, _Arity, {f, _EntryLabel}},
+         _,
+         no_bs_start_match2}}} | _Rest]}],
+   []} = Error)
+   when Call =:= call orelse Call =:= call_only ->
+    %% The register and and type cannot be determined from just the error
+    %% message, so we use `accepts_match_context' as a placeholder and
+    %% determine the real comment in `add_comment_to_function/7'
+    Comment = accepts_match_context,
     add_comment_and_retry(Asm, Error, FailingFun, Comment);
 handle_compilation_error(Asm, Error) ->
     throw({compilation_failure, Error, Asm}).
@@ -342,6 +358,30 @@ add_comment_to_function(
     add_comment_to_function(
       Asm, Error, Rest, Name, Arity, Comment, [Function | Result]).
 
+add_comment_to_code(
+  Asm, Error,
+  [{label, _} = LabelInstruction,
+   {bs_start_match4, _Fail, _, Var, Var} = StartMatchInstruction | Rest],
+  accepts_match_context, Result) ->
+    VarInfo = {var_info, Var, [accepts_match_context]},
+    Comment = {'%', VarInfo},
+    add_comment_to_code(
+        Asm, Error, [StartMatchInstruction | Rest], Comment,
+        [LabelInstruction | Result]);
+add_comment_to_code(
+  Asm, Error,
+  [{label, _} = LabelInstruction,
+   {test, bs_start_match3, _Fail, _, [Var], _Dst} = StartMatchInstruction
+   | Rest],
+  accepts_match_context, Result) ->
+    %% Same as above, but `bs_start_match4' is a compiler optimization used
+    %% when the match is known to succeed. The `test' is used when the
+    %% compiler doesn't know if the match will succeed.
+    VarInfo = {var_info, Var, [accepts_match_context]},
+    Comment = {'%', VarInfo},
+    add_comment_to_code(
+        Asm, Error, [StartMatchInstruction | Rest], Comment,
+        [LabelInstruction | Result]);
 add_comment_to_code(
   Asm, Error,
   [{label, _} = Instruction | Rest],
