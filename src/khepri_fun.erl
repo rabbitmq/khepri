@@ -73,6 +73,7 @@
                              to_standalone_env/1,
                              to_standalone_arg/2,
                              handle_compilation_error/2,
+                             handle_validation_error/3,
                              add_comment_and_retry/4,
                              add_comment_to_function/7,
                              add_comment_to_code/5,
@@ -283,50 +284,45 @@ handle_compilation_error(
   Asm,
   {error,
    [{_GeneratedModuleName,
-     [{_, beam_validator,
-       {FailingFun,
-        {{get_tuple_element, Src, _Element, _Dst},
-         _,
-         {bad_type,
-          {needed, {t_tuple, _Size, _, _Fields} = NeededType},
-          {actual, any}}}}} | _Rest]}],
-   []} = Error) ->
-    VarInfo = {var_info, Src, [{type, NeededType}]},
-    Comment = {'%', VarInfo},
-    add_comment_and_retry(Asm, Error, FailingFun, Comment);
+     [{_, beam_validator, ValidationFailure} | _Rest]}],
+  []} = Error) ->
+    handle_validation_error(Asm, ValidationFailure, Error);
 handle_compilation_error(
   Asm,
   %% Same as above, but returned by Erlang 23's compiler instead of Erlang 24+.
   {error,
    [{_GeneratedModuleName,
-     [{beam_validator,
-       {FailingFun,
-        {{get_tuple_element, Src, _Element, _Dst},
-         _,
-         {bad_type,
-          {needed, {t_tuple, _Size, _, _Fields} = NeededType},
-          {actual, any}}}}} | _Rest]}],
-   []} = Error) ->
+     [{beam_validator, ValidationFailure} | _Rest]}],
+  []} = Error) ->
+    handle_validation_error(Asm, ValidationFailure, Error);
+handle_compilation_error(Asm, Error) ->
+    throw({compilation_failure, Error, Asm}).
+
+handle_validation_error(
+  Asm,
+  {FailingFun,
+   {{get_tuple_element, Src, _Element, _Dst},
+    _,
+    {bad_type,
+     {needed, {t_tuple, _Size, _, _Fields} = NeededType},
+     {actual, any}}}},
+  Error) ->
     VarInfo = {var_info, Src, [{type, NeededType}]},
     Comment = {'%', VarInfo},
     add_comment_and_retry(Asm, Error, FailingFun, Comment);
-handle_compilation_error(
+handle_validation_error(
   Asm,
-  {error,
-   [{_GeneratedModuleName,
-     [{_, beam_validator,
-       {FailingFun,
-        {{Call, _Arity, {f, _EntryLabel}},
-         _,
-         no_bs_start_match2}}} | _Rest]}],
-   []} = Error)
-   when Call =:= call orelse Call =:= call_only ->
+  {FailingFun,
+   {{call_only, _Arity, {f, _EntryLabel}},
+    _,
+    no_bs_start_match2}},
+  Error) ->
     %% The register and and type cannot be determined from just the error
     %% message, so we use `accepts_match_context' as a placeholder and
     %% determine the real comment in `add_comment_to_function/7'
     Comment = accepts_match_context,
     add_comment_and_retry(Asm, Error, FailingFun, Comment);
-handle_compilation_error(Asm, Error) ->
+handle_validation_error(Asm, _ValidationFailure, Error) ->
     throw({compilation_failure, Error, Asm}).
 
 add_comment_and_retry(
