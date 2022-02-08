@@ -202,6 +202,26 @@ allowed_try_catch_block_test() ->
            end
        end).
 
+call_that_will_raise(A) ->
+    try
+       1 + A
+    catch
+       error:_:Stacktrace ->
+           erlang:raise(error, "Oh no!", Stacktrace)
+    end.
+
+allowed_call_to_try_catch_function_test() ->
+    self() ! a,
+    A = receive Msg -> Msg end,
+    ?assertStandaloneFun(
+       begin
+           try
+               call_that_will_raise(A)
+           after
+               ok
+           end
+       end).
+
 allowed_catch_test() ->
     ?assertStandaloneFun(
        begin
