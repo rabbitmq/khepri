@@ -276,6 +276,8 @@ ensure_instruction_is_permitted({put_map_assoc, _, _, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted({put_tuple2, _, _}) ->
     ok;
+ensure_instruction_is_permitted(raw_raise) ->
+    ok;
 ensure_instruction_is_permitted(remove_message) ->
     throw(receiving_message_denied);
 ensure_instruction_is_permitted(return) ->
