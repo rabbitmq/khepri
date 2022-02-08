@@ -300,6 +300,12 @@ ensure_instruction_is_permitted({test_heap, _, _}) ->
     ok;
 ensure_instruction_is_permitted({trim, _, _}) ->
     ok;
+ensure_instruction_is_permitted({'try', _, _}) ->
+    ok;
+ensure_instruction_is_permitted({try_end, _}) ->
+    ok;
+ensure_instruction_is_permitted({try_case, _}) ->
+    ok;
 ensure_instruction_is_permitted(Unknown) ->
     throw({unknown_instruction, Unknown}).
 
