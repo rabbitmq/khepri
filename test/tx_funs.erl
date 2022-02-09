@@ -237,6 +237,25 @@ allowed_bs_match_date_parser_test() ->
            {<<"2022">>, <<"02">>, <<"02">>} = parse_date(<<"2022-02-02">>)
        end).
 
+parse_float(<<".", Rest/binary>>) ->
+    parse_digits(Rest);
+parse_float(Bin) -> {[], Bin}.
+
+parse_digits(Bin) -> parse_digits(Bin, []).
+
+parse_digits(
+  <<Digit/integer, Rest/binary>>,
+  Acc) when is_integer(Digit) andalso Digit >= 48 andalso Digit =< 57 ->
+    parse_digits(Rest, [Digit | Acc]);
+parse_digits(Rest, Acc) ->
+    {lists:reverse(Acc), Rest}.
+
+allowed_bs_match_digit_parser_test() ->
+    ?assertStandaloneFun(
+       begin
+           {[1, 2, 3, 4, 5], <<>>} = parse_float(<<".", 1, 2, 3, 4, 5>>)
+       end).
+
 %% The compiler determines that this clause will always match because this
 %% function is not exported and is only called with a compile-time binary
 %% matching the pattern. As a result, the instruction for this match is
