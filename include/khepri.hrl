@@ -83,10 +83,8 @@
 -record(if_not,
         {condition :: khepri_path:pattern_component()}).
 
-%% TODO: Rename to if_all_match or if_all_true?
 -record(if_all,
         {conditions = [] :: [khepri_path:pattern_component()]}).
 
-%% TODO: Rename to if_any_match or if_any_true?
 -record(if_any,
         {conditions = [] :: [khepri_path:pattern_component()]}).
