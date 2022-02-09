@@ -75,9 +75,10 @@
                              handle_compilation_error/2,
                              handle_validation_error/3,
                              add_comment_and_retry/4,
-                             add_comment_to_function/7,
+                             add_comment_to_function/5,
+                             add_comment_to_code/3,
                              add_comment_to_code/5,
-                             are_comments_conflicting/2]}).
+                             merge_comments/2]}).
 
 -type fun_info() :: #{arity => arity(),
                       env => any(),
@@ -300,28 +301,43 @@ handle_compilation_error(Asm, Error) ->
 
 handle_validation_error(
   Asm,
-  {FailingFun,
-   {{Call, _Arity, {f, _EntryLabel}},
-    _,
+  {_FailingFun,
+   {{Call, 1 = _Arity, {f, EntryLabel}},
+    _Location,
     no_bs_start_match2}},
-  Error) when Call =:= call orelse Call =:= call_only ->
-    %% The register and and type cannot be determined from just the error
-    %% message, so we use `accepts_match_context' as a placeholder and
-    %% determine the real comment in `add_comment_to_function/7'
-    Comment = accepts_match_context,
-    add_comment_and_retry(Asm, Error, FailingFun, Comment);
+  _Error) when Call =:= call orelse Call =:= call_only ->
+    %% TODO: hard-coded register
+    Comment = {'%', {var_info, {x, 0}, [accepts_match_context]}},
+    %% The first three instructions are always
+    %% - an initial label
+    %% - the func_info instruction
+    %% - the function's entry-point label
+    %% We use Location=4 to insert the type annotation immediately
+    %% after the entry-point label.
+    Location = 4,
+    add_comment_and_retry(Asm, EntryLabel, Location, Comment);
+handle_validation_error(
+  Asm,
+  {FailingFun,
+   {{bs_start_match4, _Fail, _, Var, Var},
+    Location,
+    {bad_type, {needed, NeededType}, {actual, any}}}},
+  _Error) ->
+    VarInfo = {var_info, Var, [{type, NeededType}]},
+    Comment = {'%', VarInfo},
+    add_comment_and_retry(Asm, FailingFun, Location, Comment);
 handle_validation_error(Asm, _ValidationFailure, Error) ->
     throw({compilation_failure, Error, Asm}).
 
 add_comment_and_retry(
-  Asm, Error, {GeneratedModuleName, Name, Arity} = _FailingFun, Comment) ->
+  Asm, FailingFun, Location, Comment) ->
     {GeneratedModuleName,
      Exports,
      Attributes,
      Functions,
      Labels} = Asm,
     Functions1 = add_comment_to_function(
-                   Asm, Error, Functions, Name, Arity, Comment, []),
+                 Functions, FailingFun, Location, Comment, []),
     Asm1 = {GeneratedModuleName,
             Exports,
             Attributes,
@@ -330,79 +346,39 @@ add_comment_and_retry(
     compile(Asm1).
 
 add_comment_to_function(
-  Asm, Error,
   [#function{name = Name, arity = Arity, code = Code} = Function | Rest],
-  Name, Arity, Comment, Result) ->
-    Code1 = add_comment_to_code(Asm, Error, Code, Comment, []),
+  {_GeneratedModuleName, Name, Arity},
+  Location, Comment, Result) ->
+    Code1 = add_comment_to_code(Code, Location, Comment),
     Function1 = Function#function{code = Code1},
     lists:reverse(Result) ++ [Function1 | Rest];
 add_comment_to_function(
-  Asm, Error,
-  [Function | Rest], Name, Arity, Comment, Result) ->
+  [#function{entry = EntryLabel, code = Code} = Function | Rest],
+  EntryLabel, Location, Comment, Result) ->
+    Code1 = add_comment_to_code(Code, Location, Comment),
+    Function1 = Function#function{code = Code1},
+    lists:reverse(Result) ++ [Function1 | Rest];
+add_comment_to_function(
+  [Function | Rest], FailingFun, Location, Comment, Result) ->
     add_comment_to_function(
-      Asm, Error, Rest, Name, Arity, Comment, [Function | Result]).
+      Rest, FailingFun, Location, Comment, [Function | Result]).
 
-add_comment_to_code(
-  Asm, Error,
-  [{label, _} = LabelInstruction,
-   {bs_start_match4, _Fail, _, Var, Var} = StartMatchInstruction | Rest],
-  accepts_match_context, Result) ->
-    VarInfo = {var_info, Var, [accepts_match_context]},
-    Comment = {'%', VarInfo},
-    add_comment_to_code(
-        Asm, Error, [StartMatchInstruction | Rest], Comment,
-        [LabelInstruction | Result]);
-add_comment_to_code(
-  Asm, Error,
-  [{label, _} = LabelInstruction,
-   {test, bs_start_match3, _Fail, _, [Var], _Dst} = StartMatchInstruction
-   | Rest],
-  accepts_match_context, Result) ->
-    %% Same as above, but `bs_start_match4' is a compiler optimization used
-    %% when the match is known to succeed. The `test' is used when the
-    %% compiler doesn't know if the match will succeed.
-    VarInfo = {var_info, Var, [accepts_match_context]},
-    Comment = {'%', VarInfo},
-    add_comment_to_code(
-        Asm, Error, [StartMatchInstruction | Rest], Comment,
-        [LabelInstruction | Result]);
-add_comment_to_code(
-  Asm, Error,
-  [{label, _} = Instruction | Rest],
-  Comment, Result) ->
-    add_comment_to_code(Asm, Error, Rest, Comment, [Instruction | Result]);
-add_comment_to_code(
-  Asm, Error,
-  [{func_info, _, _, _} = Instruction | Rest],
-  Comment, Result) ->
-    add_comment_to_code(Asm, Error, Rest, Comment, [Instruction | Result]);
-add_comment_to_code(
-  Asm, Error,
-  [{'%', _} = Instruction | Rest],
-  Comment, Result) ->
-    case are_comments_conflicting(Instruction, Comment) of
-        false ->
-            add_comment_to_code(
-              Asm, Error, Rest, Comment, [Instruction | Result]);
-        true ->
-            throw(
-              {conflicting_assembly_annotations,
-               Instruction, Comment, Error, Asm})
-    end;
-add_comment_to_code(
-  _Asm, _Error,
-  Rest,
-  Comment, Result) ->
-    lists:reverse(Result) ++ [Comment | Rest].
+add_comment_to_code(Code, Location, Comment) ->
+    %% The instruction counter from `beam_validator' is 1-indexed.
+    add_comment_to_code(Code, Location, Comment, 1, []).
 
-are_comments_conflicting(
-  {'%', {var_info, Register, _}},
-  {'%', {var_info, Register, _}}) ->
-    %% If we are about to generate two `var_info' comments affecting the same
-    %% register (i.e. same variable), we abort.
-    true;
-are_comments_conflicting(_Comment1, _Comment2) ->
-    false.
+add_comment_to_code(Rest, Location, Comment, Location, Result) ->
+    Comment1 = merge_comments(Comment, hd(Result)),
+    lists:reverse(Result) ++ [Comment1 | Rest];
+add_comment_to_code([Instruction | Rest], Location, Comment, Counter, Result) ->
+    add_comment_to_code(
+        Rest, Location, Comment, Counter + 1, [Instruction | Result]).
+
+merge_comments(
+  {'%', {var_info, Var, Attributes1}},
+  {'%', {var_info, Var, Attributes2}}) ->
+    {'%', {var_info, Var, Attributes1 ++ Attributes2}};
+merge_comments(Comment, _Instruction) -> Comment.
 
 -spec exec(StandaloneFun, Args) -> Ret when
       StandaloneFun :: standalone_fun(),
