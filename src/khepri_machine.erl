@@ -180,6 +180,11 @@
 %% condition on node B, then this reverse index will have a "node B => node A"
 %% entry.
 
+-type keep_while_aftermath() :: #{khepri_path:path() => node_props() | remove}.
+%% Internal index of the per-node changes which happened during a traversal.
+%% This is used when the tree is walked back up to determine the list of tree
+%% nodes to remove after some keep_while condition evaluates to false.
+
 -type operation_options() :: #{expect_specific_node => boolean(),
                                include_child_names => boolean()}.
 %% Options used in {@link find_matching_nodes/3}.
@@ -195,7 +200,9 @@
                                       keep_while_conds =>
                                       keep_while_conds_map(),
                                       keep_while_conds_revidx =>
-                                      keep_while_conds_revidx()}.
+                                      keep_while_conds_revidx(),
+                                      keep_while_aftermath =>
+                                      keep_while_aftermath()}.
 
 -type walk_down_the_tree_fun() ::
     fun((khepri_path:path(),
