@@ -301,18 +301,6 @@ handle_compilation_error(Asm, Error) ->
 handle_validation_error(
   Asm,
   {FailingFun,
-   {{get_tuple_element, Src, _Element, _Dst},
-    _,
-    {bad_type,
-     {needed, {t_tuple, _Size, _, _Fields} = NeededType},
-     {actual, any}}}},
-  Error) ->
-    VarInfo = {var_info, Src, [{type, NeededType}]},
-    Comment = {'%', VarInfo},
-    add_comment_and_retry(Asm, Error, FailingFun, Comment);
-handle_validation_error(
-  Asm,
-  {FailingFun,
    {{Call, _Arity, {f, _EntryLabel}},
     _,
     no_bs_start_match2}},
@@ -559,12 +547,15 @@ pass1_process_instructions(Instructions, State) ->
 
 %% The first group of clauses of this function patch incorrectly decoded
 %% instructions. These clauses recurse after fixing the instruction to enter
-%% the second group of clauses who.
+%% the other groups of clauses.
 %%
 %% The second group of clauses:
 %%   1. ensures the instruction is known and allowed,
 %%   2. records all calls that need their code to be copied and
 %%   3. records jump labels.
+%%
+%% The third group of clauses infers type information and match contexts
+%% and adds comments to satisfy the compiler's validator pass.
 
 %% First group.
 
@@ -717,6 +708,52 @@ pass1_process_instructions(
     State1 = ensure_instruction_is_permitted(Instruction, State),
     State2 = pass1_process_call(Module, Name, Arity, State1),
     pass1_process_instructions(Rest, State2, [Instruction | Result]);
+
+%% Third group.
+pass1_process_instructions(
+  [{get_tuple_element, Src, Element, _Dest} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    Type = {t_tuple, Element + 1, false, #{}},
+    VarInfo = {var_info, Src, [{type, Type}]},
+    Comment = {'%', VarInfo},
+    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+pass1_process_instructions(
+  [{get_map_elements, _Fail, Src, {list, _}} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    Type = {t_map, any, any},
+    VarInfo = {var_info, Src, [{type, Type}]},
+    Comment = {'%', VarInfo},
+    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+pass1_process_instructions(
+  [{put_map_assoc, _Fail, Src, _Dst, _Live, {list, _}} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    Type = {t_map, any, any},
+    VarInfo = {var_info, Src, [{type, Type}]},
+    Comment = {'%', VarInfo},
+    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+pass1_process_instructions(
+  [{bs_start_match4, _Fail, _, Var, Var} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    VarInfo = {var_info, Var, [accepts_match_context]},
+    Comment = {'%', VarInfo},
+    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+pass1_process_instructions(
+  [{test, bs_start_match3, _Fail, _, [Var], _Dst} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    VarInfo = {var_info, Var, [accepts_match_context]},
+    Comment = {'%', VarInfo},
+    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+
 pass1_process_instructions(
   [Instruction | Rest],
   State,
