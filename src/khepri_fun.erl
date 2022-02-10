@@ -77,7 +77,7 @@
                              add_comment_and_retry/4,
                              add_comment_to_function/5,
                              add_comment_to_code/3,
-                             add_comment_to_code/5,
+                             add_comment_to_code/4,
                              merge_comments/2]}).
 
 -type fun_info() :: #{arity => arity(),
@@ -303,28 +303,23 @@ handle_validation_error(
   Asm,
   {_FailingFun,
    {{Call, 1 = _Arity, {f, EntryLabel}},
-    _Location,
+    _,
     no_bs_start_match2}},
   _Error) when Call =:= call orelse Call =:= call_only ->
     %% TODO: hard-coded register
     Comment = {'%', {var_info, {x, 0}, [accepts_match_context]}},
-    %% The first three instructions are always
-    %% - an initial label
-    %% - the func_info instruction
-    %% - the function's entry-point label
-    %% We use Location=4 to insert the type annotation immediately
-    %% after the entry-point label.
-    Location = 4,
+    Location = {'after', {label, EntryLabel}},
     add_comment_and_retry(Asm, EntryLabel, Location, Comment);
 handle_validation_error(
   Asm,
   {FailingFun,
-   {{bs_start_match4, _Fail, _, Var, Var},
-    Location,
+   {{bs_start_match4, _Fail, _, Var, Var} = FailingInstruction,
+    _,
     {bad_type, {needed, NeededType}, {actual, any}}}},
   _Error) ->
     VarInfo = {var_info, Var, [{type, NeededType}]},
     Comment = {'%', VarInfo},
+    Location = {before, FailingInstruction},
     add_comment_and_retry(Asm, FailingFun, Location, Comment);
 handle_validation_error(Asm, _ValidationFailure, Error) ->
     throw({compilation_failure, Error, Asm}).
@@ -364,15 +359,23 @@ add_comment_to_function(
       Rest, FailingFun, Location, Comment, [Function | Result]).
 
 add_comment_to_code(Code, Location, Comment) ->
-    %% The instruction counter from `beam_validator' is 1-indexed.
-    add_comment_to_code(Code, Location, Comment, 1, []).
+    add_comment_to_code(Code, Location, Comment, []).
 
-add_comment_to_code(Rest, Location, Comment, Location, Result) ->
-    Comment1 = merge_comments(Comment, hd(Result)),
-    lists:reverse(Result) ++ [Comment1 | Rest];
-add_comment_to_code([Instruction | Rest], Location, Comment, Counter, Result) ->
-    add_comment_to_code(
-        Rest, Location, Comment, Counter + 1, [Instruction | Result]).
+add_comment_to_code(
+  [Instruction | Rest], {Placement, Instruction}, Comment, Result) ->
+    MaybeExistingComment = case Placement of
+                               before -> hd(Result);
+                               'after' -> hd(Rest)
+                           end,
+    Comment1 = merge_comments(Comment, MaybeExistingComment),
+    Rest1 = case Placement of
+              before -> [Comment1, Instruction | Rest];
+              'after' -> [Instruction, Comment1 | Rest]
+            end,
+    lists:reverse(Result) ++ Rest1;
+add_comment_to_code(
+  [Instruction | Rest], Location, Comment, Result) ->
+    add_comment_to_code(Rest, Location, Comment, [Instruction | Result]).
 
 merge_comments(
   {'%', {var_info, Var, Attributes1}},
