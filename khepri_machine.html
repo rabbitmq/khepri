@@ -154,6 +154,10 @@ added or removed).</p>
 <p><code>data() = any()</code></p>
 <p>  Data stored in a node's payload.</p>
 
+<h3 class="typedecl"><a name="type-event_filter">event_filter()</a></h3>
+<p><code>event_filter() = #kevf_tree{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a>, props = #{on_actions =&gt; [create | update | delete], priority =&gt; integer()}}</code></p>
+
+
 <h3 class="typedecl"><a name="type-keep_while_conds_map">keep_while_conds_map()</a></h3>
 <p><code>keep_while_conds_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></p>
 <p>  Internal index of the per-node keep_while conditions.</p>
@@ -165,11 +169,11 @@ added or removed).</p>
   entry.</p>
 
 <h3 class="typedecl"><a name="type-machine_config">machine_config()</a></h3>
-<p><code>machine_config() = #config{snapshot_interval = non_neg_integer()}</code></p>
+<p><code>machine_config() = #config{store_id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a>, snapshot_interval = non_neg_integer()}</code></p>
 <p>  Configuration record, holding read-only or rarely changing fields.</p>
 
 <h3 class="typedecl"><a name="type-node_props">node_props()</a></h3>
-<p><code>node_props() = #{data =&gt; <a href="#type-data">data()</a>, payload_version =&gt; <a href="#type-payload_version">payload_version()</a>, child_list_version =&gt; <a href="#type-child_list_version">child_list_version()</a>, child_list_length =&gt; <a href="#type-child_list_length">child_list_length()</a>, child_nodes =&gt; #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-node_id">khepri_path:node_id()</a> =&gt; <a href="#type-node_props">node_props()</a>}}</code></p>
+<p><code>node_props() = #{data =&gt; <a href="#type-data">data()</a>, sproc =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_fun.html#type-standalone_fun">khepri_fun:standalone_fun()</a>, payload_version =&gt; <a href="#type-payload_version">payload_version()</a>, child_list_version =&gt; <a href="#type-child_list_version">child_list_version()</a>, child_list_length =&gt; <a href="#type-child_list_length">child_list_length()</a>, child_nodes =&gt; #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-node_id">khepri_path:node_id()</a> =&gt; <a href="#type-node_props">node_props()</a>}}</code></p>
 <p><p>  Structure used to return properties, payload and child nodes for a specific  
 node.</p>
  
@@ -195,7 +199,7 @@ payload and child nodes.</p>
 <p>  Options used in <a docgen-rel="seemfa" docgen-href="#find_matching_nodes/3" href="#find_matching_nodes-3"><code>find_matching_nodes/3</code></a>.</p>
 
 <h3 class="typedecl"><a name="type-payload">payload()</a></h3>
-<p><code>payload() = none | #kpayload_data{data = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-data">khepri_machine:data()</a>}</code></p>
+<p><code>payload() = none | #kpayload_data{data = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-data">khepri_machine:data()</a>} | #kpayload_sproc{sproc = <a href="/home/runner/work/khepri/khepri/doc/khepri_fun.html#type-standalone_fun">khepri_fun:standalone_fun()</a>}</code></p>
 <p><p>  All types of payload stored in the nodes of the tree structure.</p>
  
   Beside the absence of payload, the only type of payload supported is data.</p>
@@ -216,12 +220,20 @@ payload and child nodes.</p>
 <p>  Stats attached to each node in the tree structure.</p>
 
 <h3 class="typedecl"><a name="type-state">state()</a></h3>
-<p><code>state() = #khepri_machine{config = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-machine_config">khepri_machine:machine_config()</a>, root = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tree_node">khepri_machine:tree_node()</a>, keep_while_conds = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_while_conds_map">khepri_machine:keep_while_conds_map()</a>, keep_while_conds_revidx = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_while_conds_revidx">khepri_machine:keep_while_conds_revidx()</a>, metrics = any()}</code></p>
+<p><code>state() = #khepri_machine{config = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-machine_config">khepri_machine:machine_config()</a>, root = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tree_node">khepri_machine:tree_node()</a>, keep_while_conds = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_while_conds_map">khepri_machine:keep_while_conds_map()</a>, keep_while_conds_revidx = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_while_conds_revidx">khepri_machine:keep_while_conds_revidx()</a>, triggers = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-trigger_id">khepri_machine:trigger_id()</a> =&gt; #{sproc := <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a>, event_filter := <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-event_filter">khepri_machine:event_filter()</a>}}, emitted_triggers = [<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-triggered">khepri_machine:triggered()</a>], metrics = #{applied_command_count =&gt; non_neg_integer()}}</code></p>
 <p>  State of this Ra state machine.</p>
 
 <h3 class="typedecl"><a name="type-tree_node">tree_node()</a></h3>
 <p><code>tree_node() = #node{stat = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-stat">khepri_machine:stat()</a>, payload = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-payload">khepri_machine:payload()</a>, child_nodes = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-component">khepri_path:component()</a> := #node{stat = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-stat">khepri_machine:stat()</a>, payload = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-payload">khepri_machine:payload()</a>, child_nodes = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-component">khepri_path:component()</a> := #node{}}}}}</code></p>
 <p>  A node in the tree structure.</p>
+
+<h3 class="typedecl"><a name="type-trigger_id">trigger_id()</a></h3>
+<p><code>trigger_id() = atom()</code></p>
+<p>  An ID to identify a registered trigger.</p>
+
+<h3 class="typedecl"><a name="type-triggered">triggered()</a></h3>
+<p><code>triggered() = #triggered{id = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-trigger_id">khepri_machine:trigger_id()</a>, event_filter = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-event_filter">khepri_machine:event_filter()</a>, sproc = <a href="/home/runner/work/khepri/khepri/doc/khepri_fun.html#type-standalone_fun">khepri_fun:standalone_fun()</a>, props = map()}</code></p>
+
 
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#put-3">put/3</a></td><td>Creates or modifies a specific tree node in the tree structure.</td></tr>
@@ -231,6 +243,10 @@ payload and child nodes.</p>
 <tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#transaction-2">transaction/2</a></td><td>Runs a transaction and returns the result.</td></tr>
 <tr><td valign="top"><a href="#transaction-3">transaction/3</a></td><td>Runs a transaction and returns the result.</td></tr>
+<tr><td valign="top"><a href="#run_sproc-3">run_sproc/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#register_trigger-4">register_trigger/4</a></td><td></td></tr>
+<tr><td valign="top"><a href="#ack_triggers_execution-2">ack_triggers_execution/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#state_enter-2">state_enter/2</a></td><td></td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -421,6 +437,32 @@ do and in which context it runs:</p>
   The result of <code>Fun</code> can be any term. That result is returned in an
   <code>{atomic, Result}</code> tuple.
  </p>
+
+<h3 class="function"><a name="run_sproc-3">run_sproc/3</a></h3>
+<div class="spec">
+<p><code>run_sproc(StoreId, PathPattern, Args) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="register_trigger-4">register_trigger/4</a></h3>
+<div class="spec">
+<p><code>register_trigger(StoredId, TriggerId, EventFilter, StoredProcPath) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoredId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>TriggerId = <a href="#type-trigger_id">trigger_id()</a></code></li><li><code>EventFilter = <a href="#type-event_filter">event_filter()</a></code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="ack_triggers_execution-2">ack_triggers_execution/2</a></h3>
+<div class="spec">
+<p><code>ack_triggers_execution(StoredId, TriggeredStoredProcs) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoredId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>TriggeredStoredProcs = [<a href="#type-triggered">triggered()</a>]</code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="state_enter-2">state_enter/2</a></h3>
+<div class="spec">
+<p><code>state_enter(StateName, Khepri_machine) -&gt; any()</code></p>
+<p></p>
+</div>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>

@@ -213,10 +213,13 @@ exists.</td></tr>
 <tr><td valign="top"><a href="#transaction-1">transaction/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#transaction-2">transaction/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#transaction-3">transaction/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#run_sproc-2">run_sproc/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#run_sproc-3">run_sproc/3</a></td><td></td></tr>
 <tr><td valign="top"><a href="#clear_store-0">clear_store/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#clear_store-1">clear_store/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#no_payload-0">no_payload/0</a></td><td>Returns <code>none</code>.</td></tr>
 <tr><td valign="top"><a href="#data_payload-1">data_payload/1</a></td><td>Returns <code>#kpayload_data{data = Term}</code>.</td></tr>
+<tr><td valign="top"><a href="#sproc_payload-1">sproc_payload/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#info-0">info/0</a></td><td></td></tr>
 <tr><td valign="top"><a href="#info-1">info/1</a></td><td></td></tr>
 </table>
@@ -689,6 +692,18 @@ Result = khepri:find(
 <p></p>
 </div>
 
+<h3 class="function"><a name="run_sproc-2">run_sproc/2</a></h3>
+<div class="spec">
+<p><code>run_sproc(Path, Args) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="run_sproc-3">run_sproc/3</a></h3>
+<div class="spec">
+<p><code>run_sproc(StoreId, Path, Args) -&gt; any()</code></p>
+<p></p>
+</div>
+
 <h3 class="function"><a name="clear_store-0">clear_store/0</a></h3>
 <div class="spec">
 <p><code>clear_store() -&gt; ok | <a href="#type-error">error()</a></code><br></p>
@@ -719,6 +734,12 @@ Result = khepri:find(
  
   This is a helper for cases where using macros is inconvenient, like in an
   Erlang shell.</p>
+
+<h3 class="function"><a name="sproc_payload-1">sproc_payload/1</a></h3>
+<div class="spec">
+<p><code>sproc_payload(Fun) -&gt; any()</code></p>
+<p></p>
+</div>
 
 <h3 class="function"><a name="info-0">info/0</a></h3>
 <div class="spec">

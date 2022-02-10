@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>Module khepri_utils</title>
+<title>Module khepri_event_handler</title>
 <link rel="stylesheet" type="text/css" href="github-markdown.css" title="EDoc">
 <link href="prism.css" rel="stylesheet" /><style>
     body {
@@ -72,54 +72,69 @@
 <div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
 <hr>
 
-<h1>Module khepri_utils</h1>
+<h1>Module khepri_event_handler</h1>
 <ul class="index"><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>
 
+<p><b>Behaviours:</b> <a href="gen_server.html"><code>gen_server</code></a>.</p>
 
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#flat_struct_to_tree-1">flat_struct_to_tree/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#display_tree-1">display_tree/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#display_tree-2">display_tree/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#display_tree-3">display_tree/3</a></td><td></td></tr>
-<tr><td valign="top"><a href="#should_collect_code_for_module-1">should_collect_code_for_module/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#format_exception-4">format_exception/4</a></td><td></td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#start_link-0">start_link/0</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_triggered_sprocs-2">handle_triggered_sprocs/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#init-1">init/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_call-3">handle_call/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_cast-2">handle_cast/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_info-2">handle_info/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#terminate-2">terminate/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#code_change-3">code_change/3</a></td><td></td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
 
-<h3 class="function"><a name="flat_struct_to_tree-1">flat_struct_to_tree/1</a></h3>
+<h3 class="function"><a name="start_link-0">start_link/0</a></h3>
 <div class="spec">
-<p><code>flat_struct_to_tree(FlatStruct::<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-node_props_map">khepri_machine:node_props_map()</a>) -&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-node_props">khepri_machine:node_props()</a></code><br></p>
+<p><code>start_link() -&gt; any()</code></p>
 <p></p>
 </div>
 
-<h3 class="function"><a name="display_tree-1">display_tree/1</a></h3>
+<h3 class="function"><a name="handle_triggered_sprocs-2">handle_triggered_sprocs/2</a></h3>
 <div class="spec">
-<p><code>display_tree(Tree::<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-node_props">khepri_machine:node_props()</a>) -&gt; ok</code><br></p>
+<p><code>handle_triggered_sprocs(StoreId, TriggeredStoredProcs) -&gt; any()</code></p>
 <p></p>
 </div>
 
-<h3 class="function"><a name="display_tree-2">display_tree/2</a></h3>
+<h3 class="function"><a name="init-1">init/1</a></h3>
 <div class="spec">
-<p><code>display_tree(Tree, Options) -&gt; any()</code></p>
+<p><code>init(X1) -&gt; any()</code></p>
 <p></p>
 </div>
 
-<h3 class="function"><a name="display_tree-3">display_tree/3</a></h3>
+<h3 class="function"><a name="handle_call-3">handle_call/3</a></h3>
 <div class="spec">
-<p><code>display_tree(X1, Prefix, Options) -&gt; any()</code></p>
+<p><code>handle_call(Request, From, State) -&gt; any()</code></p>
 <p></p>
 </div>
 
-<h3 class="function"><a name="should_collect_code_for_module-1">should_collect_code_for_module/1</a></h3>
+<h3 class="function"><a name="handle_cast-2">handle_cast/2</a></h3>
 <div class="spec">
-<p><code>should_collect_code_for_module(Module) -&gt; any()</code></p>
+<p><code>handle_cast(Request, Khepri_event_handler) -&gt; any()</code></p>
 <p></p>
 </div>
 
-<h3 class="function"><a name="format_exception-4">format_exception/4</a></h3>
+<h3 class="function"><a name="handle_info-2">handle_info/2</a></h3>
 <div class="spec">
-<p><code>format_exception(Class, Reason, Stacktrace, Options) -&gt; any()</code></p>
+<p><code>handle_info(Info, State) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="terminate-2">terminate/2</a></h3>
+<div class="spec">
+<p><code>terminate(Reason, State) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="code_change-3">code_change/3</a></h3>
+<div class="spec">
+<p><code>code_change(OldVsn, State, Extra) -&gt; any()</code></p>
 <p></p>
 </div>
 <hr>
