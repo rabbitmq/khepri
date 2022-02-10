@@ -79,12 +79,16 @@
          get/2, get/3,
          delete/2,
          transaction/2,
-         transaction/3]).
+         transaction/3,
+         run_sproc/3,
+         register_trigger/4]).
 -export([get_keep_while_conds_state/1]).
 -export([init/1,
-         apply/3]).
+         apply/3,
+         state_enter/2]).
 %% For internal user only.
--export([find_matching_nodes/3,
+-export([ack_triggers_execution/2,
+         find_matching_nodes/3,
          insert_or_update_node/4,
          delete_matching_nodes/2]).
 
@@ -119,6 +123,7 @@
 
 -type node_props() ::
     #{data => data(),
+      sproc => khepri_fun:standalone_fun(),
       payload_version => payload_version(),
       child_list_version => child_list_version(),
       child_list_length => child_list_length(),
@@ -150,7 +155,7 @@
                   child_list_version := child_list_version()}.
 %% Stats attached to each node in the tree structure.
 
--type payload() :: none | #kpayload_data{}.
+-type payload() :: none | #kpayload_data{} | #kpayload_sproc{}.
 %% All types of payload stored in the nodes of the tree structure.
 %%
 %% Beside the absence of payload, the only type of payload supported is data.
@@ -158,12 +163,23 @@
 -type tree_node() :: #node{}.
 %% A node in the tree structure.
 
+-type trigger_id() :: atom().
+%% An ID to identify a registered trigger.
+
+-type event_filter() :: #kevf_tree{}.
+
+-type triggered() :: #triggered{}.
+
 -type command() :: #put{} |
                    #delete{} |
-                   #tx{}.
+                   #tx{} |
+                   #register_trigger{} |
+                   #ack_triggered{}.
 %% Commands specific to this Ra machine.
 
--type machine_init_args() :: #{commands => [command()],
+-type machine_init_args() :: #{store_id := khepri:store_id(),
+                               snapshot_interval => non_neg_integer(),
+                               commands => [command()],
                                atom() => any()}.
 %% Structure passed to {@link init/1}.
 
@@ -180,7 +196,7 @@
 %% condition on node B, then this reverse index will have a "node B => node A"
 %% entry.
 
--type keep_while_aftermath() :: #{khepri_path:path() => node_props() | remove}.
+-type keep_while_aftermath() :: #{khepri_path:path() => node_props() | delete}.
 %% Internal index of the per-node changes which happened during a traversal.
 %% This is used when the tree is walked back up to determine the list of tree
 %% nodes to remove after some keep_while condition evaluates to false.
@@ -208,7 +224,7 @@
     fun((khepri_path:path(),
          khepri:ok(tree_node()) | error(any(), map()),
          Acc :: any()) ->
-        ok(tree_node() | keep | remove, any()) |
+        ok(tree_node() | keep | delete, any()) |
         khepri:error()).
 %% Function called to handle a node found (or an error) and used in {@link
 %% walk_down_the_tree/6}.
@@ -221,6 +237,9 @@
               stat/0,
               payload/0,
               tree_node/0,
+              trigger_id/0,
+              event_filter/0,
+              triggered/0,
               payload_version/0,
               child_list_version/0,
               child_list_length/0,
@@ -314,12 +333,22 @@ put(StoreId, PathPattern, Payload) ->
 
 put(StoreId, PathPattern, Payload, Extra) when ?IS_KHEPRI_PAYLOAD(Payload) ->
     khepri_path:ensure_is_valid(PathPattern),
+    Payload1 = prepare_payload(Payload),
     Command = #put{path = PathPattern,
-                   payload = Payload,
+                   payload = Payload1,
                    extra = Extra},
     process_command(StoreId, Command);
 put(_StoreId, PathPattern, Payload, _Extra) ->
     throw({invalid_payload, PathPattern, Payload}).
+
+prepare_payload(none = Payload) ->
+    Payload;
+prepare_payload(#kpayload_data{} = Payload) ->
+    Payload;
+prepare_payload(#kpayload_sproc{sproc = Fun} = Payload)
+  when is_function(Fun) ->
+    StandaloneFun = khepri_sproc:to_standalone_fun(Fun),
+    Payload#kpayload_sproc{sproc = StandaloneFun}.
 
 -spec get(StoreId, PathPattern) -> Result when
       StoreId :: khepri:store_id(),
@@ -485,7 +514,10 @@ transaction(_StoreId, Term, _ReadWrite) ->
 
 readonly_transaction(StoreId, Fun) when is_function(Fun, 0) ->
     Query = fun(State) ->
-                    {_State, Ret} = khepri_tx:run(State, Fun, false),
+                    %% It is a read-only transaction, therefore we assert that
+                    %% the state is unchanged and that there are no side
+                    %% effects.
+                    {State, Ret, []} = khepri_tx:run(State, Fun, false),
                     Ret
             end,
     case process_query(StoreId, Query) of
@@ -507,6 +539,47 @@ readwrite_transaction(StoreId, StandaloneFun) ->
         Ret ->
             {atomic, Ret}
     end.
+
+run_sproc(StoreId, PathPattern, Args) when is_list(Args) ->
+    Options = #{expect_specific_node => true},
+    case get(StoreId, PathPattern, Options) of
+        {ok, Result} ->
+            [Value] = maps:values(Result),
+            case Value of
+                #{sproc := StandaloneFun} ->
+                    khepri_sproc:run(StandaloneFun, Args);
+                _ ->
+                    [Path] = maps:keys(Result),
+                    throw({invalid_sproc_fun,
+                           {no_sproc, Path, Value}})
+            end;
+        Error ->
+            throw({invalid_sproc_fun, Error})
+    end.
+
+-spec register_trigger(StoredId, TriggerId, EventFilter, StoredProcPath) ->
+    Ret when
+      StoredId :: khepri:store_id(),
+      TriggerId :: trigger_id(),
+      EventFilter :: event_filter(),
+      StoredProcPath :: khepri_path:path(),
+      Ret :: ok | khepri:error().
+
+register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath) ->
+    Command = #register_trigger{id = TriggerId,
+                                sproc = StoredProcPath,
+                                event_filter = EventFilter},
+    process_command(StoreId, Command).
+
+-spec ack_triggers_execution(StoredId, TriggeredStoredProcs) ->
+    Ret when
+      StoredId :: khepri:store_id(),
+      TriggeredStoredProcs :: [triggered()],
+      Ret :: ok | khepri:error().
+
+ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
+    Command = #ack_triggered{triggered = TriggeredStoredProcs},
+    process_command(StoreId, Command).
 
 -spec get_keep_while_conds_state(StoreId) -> Ret when
       StoreId :: khepri:store_id(),
@@ -598,12 +671,13 @@ process_query(StoreId, QueryFun) ->
 -spec init(machine_init_args()) -> state().
 %% @private
 
-init(Params) ->
+init(#{store_id := StoreId} = Params) ->
     Config = case Params of
                  #{snapshot_interval := SnapshotInterval} ->
-                     #config{snapshot_interval = SnapshotInterval};
+                     #config{store_id = StoreId,
+                             snapshot_interval = SnapshotInterval};
                  _ ->
-                     #config{}
+                     #config{store_id = StoreId}
              end,
     State = #?MODULE{config = Config},
 
@@ -614,15 +688,12 @@ init(Params) ->
                        Meta = #{index => 0,
                                 term => 0,
                                 system_time => 0},
-                       case apply(Meta, Command, State1) of
-                           {S, _}    -> S;
-                           {S, _, _} -> S
-                       end
+                       {S, _, _} = apply(Meta, Command, State1),
+                       S
                end, State, Commands),
     reset_applied_command_count(State3).
 
--spec apply(Meta, Command, State) ->
-    {State, Ret} | {State, Ret, SideEffects} when
+-spec apply(Meta, Command, State) -> {State, Ret, SideEffects} when
       Meta :: ra_machine:command_meta_data(),
       Command :: command(),
       State :: state(),
@@ -652,20 +723,49 @@ apply(
               true  -> StandaloneFun
           end,
     Ret = khepri_tx:run(State, Fun, true),
+    bump_applied_command_count(Ret, Meta);
+apply(
+  Meta,
+  #register_trigger{id = TriggerId,
+                    sproc = StoredProcPath,
+                    event_filter = EventFilter},
+  #?MODULE{triggers = Triggers} = State) ->
+    StoredProcPath1 = khepri_path:realpath(StoredProcPath),
+    EventFilter1 = case EventFilter of
+                       #kevf_tree{path = Path} ->
+                           Path1 = khepri_path:realpath(Path),
+                           EventFilter#kevf_tree{path = Path1}
+                   end,
+    Triggers1 = Triggers#{TriggerId => #{sproc => StoredProcPath1,
+                                         event_filter => EventFilter1}},
+    State1 = State#?MODULE{triggers = Triggers1},
+    Ret = {State1, ok},
+    bump_applied_command_count(Ret, Meta);
+apply(
+  Meta,
+  #ack_triggered{triggered = ProcessedTriggers},
+  #?MODULE{emitted_triggers = EmittedTriggers} = State) ->
+    EmittedTriggers1 = EmittedTriggers -- ProcessedTriggers,
+    State1 = State#?MODULE{emitted_triggers = EmittedTriggers1},
+    Ret = {State1, ok},
     bump_applied_command_count(Ret, Meta).
 
--spec bump_applied_command_count({State, Ret}, Meta) ->
-    {State, Ret} | {State, Ret, SideEffects} when
+-spec bump_applied_command_count(ApplyRet, Meta) ->
+    {State, Ret, SideEffects} when
+      ApplyRet :: {State, Ret} | {State, Ret, SideEffects},
       State :: state(),
       Ret :: any(),
       Meta :: ra_machine:command_meta_data(),
       SideEffects :: ra_machine:effects().
 %% @private
 
+bump_applied_command_count({State, Result}, Meta) ->
+    bump_applied_command_count({State, Result, []}, Meta);
 bump_applied_command_count(
   {#?MODULE{config = #config{snapshot_interval = SnapshotInterval},
             metrics = Metrics} = State,
-   Result},
+   Result,
+   SideEffects},
   #{index := RaftIndex}) ->
     AppliedCmdCount0 = maps:get(applied_command_count, Metrics, 0),
     AppliedCmdCount = AppliedCmdCount0 + 1,
@@ -673,7 +773,7 @@ bump_applied_command_count(
         true ->
             Metrics1 = Metrics#{applied_command_count => AppliedCmdCount},
             State1 = State#?MODULE{metrics = Metrics1},
-            {State1, Result};
+            {State1, Result, SideEffects};
         false ->
             ?LOG_DEBUG(
                "Move release cursor after ~b commands applied "
@@ -682,13 +782,29 @@ bump_applied_command_count(
                #{domain => [khepri, ra_machine]}),
             State1 = reset_applied_command_count(State),
             ReleaseCursor = {release_cursor, RaftIndex, State1},
-            SideEffects = [ReleaseCursor],
-            {State1, Result, SideEffects}
+            SideEffects1 = [ReleaseCursor | SideEffects],
+            {State1, Result, SideEffects1}
     end.
 
 reset_applied_command_count(#?MODULE{metrics = Metrics} = State) ->
     Metrics1 = maps:remove(applied_command_count, Metrics),
     State#?MODULE{metrics = Metrics1}.
+
+state_enter(
+  leader,
+  #?MODULE{emitted_triggers = []}) ->
+    [];
+state_enter(
+  leader,
+  #?MODULE{config = #config{store_id = StoreId},
+           emitted_triggers = EmittedTriggers}) ->
+    SideEffect = {mod_call,
+                  khepri_event_handler,
+                  handle_triggered_sprocs,
+                  [StoreId, EmittedTriggers]},
+    [SideEffect];
+state_enter(_StateName, _State) ->
+    [].
 
 %% -------------------------------------------------------------------
 %% Internal functions.
@@ -781,8 +897,9 @@ gather_node_props(#node{stat = #{payload_version := DVersion,
                       Result0
               end,
     case Payload of
-        #kpayload_data{data = Data} -> Result1#{data => Data};
-        _                           -> Result1
+        #kpayload_data{data = Data}  -> Result1#{data => Data};
+        #kpayload_sproc{sproc = Fun} -> Result1#{sproc => Fun};
+        _                            -> Result1
     end.
 
 -spec to_absolute_keep_while(BasePath, KeepWhile) -> KeepWhile when
@@ -908,7 +1025,7 @@ find_matching_nodes_cb(_, {interrupted, _, _}, _, Result) ->
 -spec insert_or_update_node(
         state(), khepri_path:pattern(), payload(),
         #{keep_while => khepri_condition:keep_while()}) ->
-    {state(), result()}.
+    {state(), result()} | {state(), result(), ra_machine:effects()}.
 %% @private
 
 insert_or_update_node(
@@ -954,11 +1071,13 @@ insert_or_update_node(
     Ret1 = walk_down_the_tree(
              Root, PathPattern, specific_node,
              #{keep_while_conds => KeepWhileConds,
-               keep_while_conds_revidx => KeepWhileCondsRevIdx},
+               keep_while_conds_revidx => KeepWhileCondsRevIdx,
+               keep_while_aftermath => #{}},
              Fun, {undefined, [], #{}}),
     case Ret1 of
         {ok, Root1, #{keep_while_conds := KeepWhileConds1,
-                      keep_while_conds_revidx := KeepWhileCondsRevIdx1},
+                      keep_while_conds_revidx := KeepWhileCondsRevIdx1,
+                      keep_while_aftermath := KeepWhileAftermath},
          {updated, ResolvedPath, Ret2}} ->
             AbsKeepWhile = to_absolute_keep_while(ResolvedPath, KeepWhile),
             KeepWhileCondsRevIdx2 = update_keep_while_conds_revidx(
@@ -967,16 +1086,13 @@ insert_or_update_node(
             KeepWhileConds2 = KeepWhileConds1#{ResolvedPath => AbsKeepWhile},
             State1 = State#?MODULE{root = Root1,
                                    keep_while_conds = KeepWhileConds2,
-                                   keep_while_conds_revidx = KeepWhileCondsRevIdx2},
-            {State1, {ok, Ret2}};
-        {ok, Root1, #{keep_while_conds := KeepWhileConds1,
-                      keep_while_conds_revidx := KeepWhileCondsRevIdx1},
-         {removed, _, Ret2}} ->
-            State1 = State#?MODULE{root = Root1,
-                                   keep_while_conds = KeepWhileConds1,
-                                   keep_while_conds_revidx = KeepWhileCondsRevIdx1},
-            {State1, {ok, Ret2}};
+                                   keep_while_conds_revidx =
+                                   KeepWhileCondsRevIdx2},
+            {State2, SideEffects} = create_tree_change_side_effects(
+                                      State, State1, Ret2, KeepWhileAftermath),
+            {State2, {ok, Ret2}, SideEffects};
         Error ->
+            ?assertMatch({error, _}, Error),
             {State, Error}
     end;
 insert_or_update_node(
@@ -992,17 +1108,23 @@ insert_or_update_node(
     Ret1 = walk_down_the_tree(
              Root, PathPattern, specific_node,
              #{keep_while_conds => KeepWhileConds,
-               keep_while_conds_revidx => KeepWhileCondsRevIdx},
+               keep_while_conds_revidx => KeepWhileCondsRevIdx,
+               keep_while_aftermath => #{}},
              Fun, #{}),
     case Ret1 of
         {ok, Root1, #{keep_while_conds := KeepWhileConds1,
-                      keep_while_conds_revidx := KeepWhileCondsRevIdx1},
+                      keep_while_conds_revidx := KeepWhileCondsRevIdx1,
+                      keep_while_aftermath := KeepWhileAftermath},
          Ret2} ->
             State1 = State#?MODULE{root = Root1,
                                    keep_while_conds = KeepWhileConds1,
-                                   keep_while_conds_revidx = KeepWhileCondsRevIdx1},
-            {State1, {ok, Ret2}};
+                                   keep_while_conds_revidx =
+                                   KeepWhileCondsRevIdx1},
+            {State2, SideEffects} = create_tree_change_side_effects(
+                                      State, State1, Ret2, KeepWhileAftermath),
+            {State2, {ok, Ret2}, SideEffects};
         Error ->
+            ?assertMatch({error, _}, Error),
             {State, Error}
     end.
 
@@ -1053,7 +1175,7 @@ can_continue_update_after_node_not_found1(_) ->
     false.
 
 -spec delete_matching_nodes(state(), khepri_path:pattern()) ->
-    {state(), result()}.
+    {state(), result()} | {state(), result(), ra_machine:effects()}.
 %% @private
 
 delete_matching_nodes(
@@ -1064,15 +1186,19 @@ delete_matching_nodes(
     Ret1 = do_delete_matching_nodes(
              PathPattern, Root,
              #{keep_while_conds => KeepWhileConds,
-               keep_while_conds_revidx => KeepWhileCondsRevIdx}),
+               keep_while_conds_revidx => KeepWhileCondsRevIdx,
+               keep_while_aftermath => #{}}),
     case Ret1 of
         {ok, Root1, #{keep_while_conds := KeepWhileConds1,
-                      keep_while_conds_revidx := KeepWhileCondsRevIdx1},
+                      keep_while_conds_revidx := KeepWhileCondsRevIdx1,
+                      keep_while_aftermath := KeepWhileAftermath},
          Ret2} ->
             State1 = State#?MODULE{root = Root1,
                                    keep_while_conds = KeepWhileConds1,
                                    keep_while_conds_revidx = KeepWhileCondsRevIdx1},
-            {State1, {ok, Ret2}};
+            {State2, SideEffects} = create_tree_change_side_effects(
+                                      State, State1, Ret2, KeepWhileAftermath),
+            {State2, {ok, Ret2}, SideEffects};
         Error ->
             {State, Error}
     end.
@@ -1088,9 +1214,195 @@ delete_matching_nodes_cb([] = Path, #node{} = Node, Result) ->
     {ok, Node2, Result#{Path => NodeProps}};
 delete_matching_nodes_cb(Path, #node{} = Node, Result) ->
     NodeProps = gather_node_props(Node, #{}),
-    {ok, remove, Result#{Path => NodeProps}};
+    {ok, delete, Result#{Path => NodeProps}};
 delete_matching_nodes_cb(_, {interrupted, _, _}, Result) ->
     {ok, keep, Result}.
+
+create_tree_change_side_effects(
+  #?MODULE{triggers = Triggers} = _InitialState,
+  NewState, _Ret, _KeepWhileAftermath)
+  when Triggers =:= #{} ->
+    {NewState, []};
+create_tree_change_side_effects(
+  %% We want to consider the new state (with the updated tree), but we want
+  %% to use triggers from the initial state, in case they were updated too.
+  %% In other words, we want to evaluate triggers in the state they were at
+  %% the time the change to the tree was requested.
+  #?MODULE{triggers = Triggers,
+           emitted_triggers = EmittedTriggers} = _InitialState,
+  #?MODULE{config = #config{store_id = StoreId},
+           root = Root} = NewState,
+  Ret, KeepWhileAftermath) ->
+    %% We make a map where for each affected tree node, we indicate the type
+    %% of change.
+    Changes0 = maps:merge(Ret, KeepWhileAftermath),
+    Changes1 = maps:map(
+                 fun
+                     (_, NodeProps) when NodeProps =:= #{} -> create;
+                     (_, #{} = _NodeProps)                 -> update;
+                     (_, delete)                           -> delete
+                 end, Changes0),
+    TriggeredStoredProcs = list_triggered_sprocs(Root, Changes1, Triggers),
+
+    %% We record the list of triggered stored procedures in the state
+    %% machine's state. This is used to guaranty at-least-once execution of
+    %% the trigger: the event handler process is supposed to ack when it
+    %% executed the triggered stored procedure. If the Ra cluster changes
+    %% leader in between, we know that we need to retry the execution.
+    %%
+    %% This could lead to multiple execution of the same trigger, therefore
+    %% the stored procedure must be idempotent.
+    NewState1 = NewState#?MODULE{
+                            emitted_triggers =
+                            EmittedTriggers ++ TriggeredStoredProcs},
+
+    %% We still emit a `mod_call' effect to wake up the event handler process
+    %% so it doesn't have to poll the internal list.
+    SideEffect = {mod_call,
+                  khepri_event_handler,
+                  handle_triggered_sprocs,
+                  [StoreId, TriggeredStoredProcs]},
+    {NewState1, [SideEffect]}.
+
+list_triggered_sprocs(Root, Changes, Triggers) ->
+    TriggeredStoredProcs =
+    maps:fold(
+      fun(Path, Change, SPP) ->
+              % For each change, we evaluate each trigger.
+              maps:fold(
+                fun
+                    (TriggerId,
+                     #{sproc := StoredProcPath,
+                       event_filter :=
+                       #kevf_tree{path = PathPattern,
+                                  props = EventFilterProps} = EventFilter},
+                     SPP1) ->
+                        %% For each trigger based on a tree event:
+                        %%   1. we verify the path of the changed tree node
+                        %%      matches the monitored path pattern in the
+                        %%      event filter.
+                        %%   2. we verify the type of change matches the
+                        %%      change filter in the event filter.
+                        PathMatches = does_path_match(
+                                        Path, PathPattern, [], Root),
+                        DefaultWatchedChanges = [create, update, delete],
+                        WatchedChanges = case EventFilterProps of
+                                             #{on_actions := []} ->
+                                                 DefaultWatchedChanges;
+                                             #{on_actions := OnActions}
+                                               when is_list(OnActions) ->
+                                                 OnActions;
+                                            _ ->
+                                                 DefaultWatchedChanges
+                                         end,
+                        ChangeMatches = lists:member(Change, WatchedChanges),
+                        case PathMatches andalso ChangeMatches of
+                            true ->
+                                %% We then locate the stored procedure. If the
+                                %% path doesn't point to an existing tree
+                                %% node, or if this tree node is not a stored
+                                %% procedure, the trigger is ignored.
+                                %%
+                                %% TODO: Should we return an error or at least
+                                %% log something? This could be considered
+                                %% noise if the trigger exists regardless of
+                                %% the presence of the stored procedure on
+                                %% purpose (for instance the caller code is
+                                %% being updated).
+                                case find_stored_proc(Root, StoredProcPath) of
+                                    undefined ->
+                                        SPP1;
+                                    StoredProc ->
+                                        %% TODO: Use a record to format
+                                        %% stored procedure arguments?
+                                        EventProps = #{path => Path,
+                                                       on_action => Change},
+                                        Triggered = #triggered{
+                                                       id = TriggerId,
+                                                       event_filter =
+                                                       EventFilter,
+                                                       sproc = StoredProc,
+                                                       props = EventProps
+                                                      },
+                                        [Triggered | SPP1]
+                                end;
+                            false ->
+                                SPP1
+                        end;
+                    (_TriggerId, _Trigger, SPP1) ->
+                        SPP1
+                end, SPP, Triggers)
+      end, [], Changes),
+    sort_triggered_sprocs(TriggeredStoredProcs).
+
+does_path_match(PathRest, PathRest, _ReversedPath, _Root) ->
+    true;
+does_path_match([], _PathPatternRest, _ReversedPath, _Root) ->
+    false;
+does_path_match(_PathRest, [], _ReversedPath, _Root) ->
+    false;
+does_path_match(
+  [Component | Path], [Component | PathPattern], ReversedPath, Root)
+  when ?IS_PATH_COMPONENT(Component) ->
+    does_path_match(Path, PathPattern, [Component | ReversedPath], Root);
+does_path_match(
+  [Component | _Path], [Condition | _PathPattern], _ReversedPath, _Root)
+  when ?IS_PATH_COMPONENT(Component) andalso
+       ?IS_PATH_COMPONENT(Condition) ->
+    false;
+does_path_match(
+  [Component | Path], [Condition | PathPattern], ReversedPath, Root) ->
+    %% Query the tree node, required to evaluate the condition.
+    ReversedPath1 = [Component | ReversedPath],
+    CurrentPath = lists:reverse(ReversedPath1),
+    {ok, #{CurrentPath := Node}} = khepri_machine:find_matching_nodes(
+                                     Root,
+                                     lists:reverse([Component | ReversedPath]),
+                                     #{expect_specific_node => true}),
+    case khepri_condition:is_met(Condition, Component, Node) of
+        true       -> does_path_match(Path, PathPattern, ReversedPath1, Root);
+        {false, _} -> false
+    end.
+
+find_stored_proc(Root, StoredProcPath) ->
+    Ret = khepri_machine:find_matching_nodes(
+            Root, StoredProcPath, #{expect_specific_node => true}),
+    %% Non-existing nodes and nodes which are not stored procedures are
+    %% ignored.
+    case Ret of
+        {ok, #{StoredProcPath := #{sproc := StoredProc}}} -> StoredProc;
+        _                                                 -> undefined
+    end.
+
+sort_triggered_sprocs(TriggeredStoredProcs) ->
+    %% We first sort by priority, then by trigged ID if priorities are equal.
+    %% The priority can be any integer (even negative integers). The default
+    %% priority is 0.
+    %%
+    %% A higher priority (a greater integer) means that the triggered stored
+    %% procedure will be executed before another one with lower priority
+    %% (smaller integer).
+    %%
+    %% If the priorities are equal, a trigger with an ID earlier in
+    %% alphabetical order will be executed before another one with an ID later
+    %% in alphabetical order.
+    lists:sort(
+      fun(#triggered{id = IdA, event_filter = EventFilterA},
+          #triggered{id = IdB, event_filter = EventFilterB}) ->
+              PrioA = get_event_filter_priority(EventFilterA),
+              PrioB = get_event_filter_priority(EventFilterB),
+              if
+                  PrioA =:= PrioB -> IdA =< IdB;
+                  true            -> PrioA > PrioB
+              end
+      end,
+      TriggeredStoredProcs).
+
+get_event_filter_priority(#kevf_tree{props = #{priority := Priority}})
+  when is_integer(Priority) ->
+    Priority;
+get_event_filter_priority(_EventFilter) ->
+    0.
 
 %% -------
 
@@ -1355,9 +1667,9 @@ walk_down_the_tree1(
             StartingNode = starting_node_in_rev_parent_tree(
                              ReversedParentTree, CurrentNode),
             {ok, StartingNode, Extra, FunAcc1};
-        {ok, remove, FunAcc1} ->
+        {ok, delete, FunAcc1} ->
             walk_back_up_the_tree(
-              remove, ReversedPath, ReversedParentTree, Extra, FunAcc1);
+              delete, ReversedPath, ReversedParentTree, Extra, FunAcc1);
         {ok, #node{} = CurrentNode1, FunAcc1} ->
             walk_back_up_the_tree(
               CurrentNode1, ReversedPath, ReversedParentTree, Extra, FunAcc1);
@@ -1454,7 +1766,7 @@ interrupted_walk_down(
     ErrorTuple = {interrupted, Reason, Info1},
     case Fun(NodePath, ErrorTuple, FunAcc) of
         {ok, ToDo, FunAcc1}
-          when ToDo =:= keep orelse ToDo =:= remove ->
+          when ToDo =:= keep orelse ToDo =:= delete ->
             ?assertNotEqual([], ReversedParentTree),
             StartingNode = starting_node_in_rev_parent_tree(
                              ReversedParentTree),
@@ -1524,7 +1836,7 @@ squash_version_bumps(
     CurrentNode#node{stat = Stat1}.
 
 -spec walk_back_up_the_tree(
-        tree_node() | remove, khepri_path:path(),
+        tree_node() | delete, khepri_path:path(),
         [tree_node() | {tree_node(), child_created}],
         walk_down_the_tree_extra(),
         any()) ->
@@ -1537,22 +1849,22 @@ walk_back_up_the_tree(
       Child, ReversedPath, ReversedParentTree, Extra, #{}, FunAcc).
 
 -spec walk_back_up_the_tree(
-        tree_node() | remove, khepri_path:path(),
+        tree_node() | delete, khepri_path:path(),
         [tree_node() | {tree_node(), child_created}],
         walk_down_the_tree_extra(),
-        #{khepri_path:path() => tree_node() | remove},
+        #{khepri_path:path() => tree_node() | delete},
         any()) ->
     ok(tree_node(), walk_down_the_tree_extra(), any()).
 %% @private
 
 walk_back_up_the_tree(
-  remove,
+  delete,
   [ChildName | ReversedPath] = WholeReversedPath,
   [ParentNode | ReversedParentTree], Extra, KeepWhileAftermath, FunAcc) ->
     %% Evaluate keep_while of nodes which depended on ChildName (it is
     %% removed) at the end of walk_back_up_the_tree().
     Path = lists:reverse(WholeReversedPath),
-    KeepWhileAftermath1 = KeepWhileAftermath#{Path => remove},
+    KeepWhileAftermath1 = KeepWhileAftermath#{Path => delete},
 
     %% Evaluate keep_while of parent node on itself right now (its child_count
     %% has changed).
@@ -1625,7 +1937,7 @@ handle_keep_while_for_parent_update(
             %% own keep_while condition. keep_while conditions for nodes
             %% depending on this one will be evaluated with the recursion.
             walk_back_up_the_tree(
-              remove, ReversedPath, ReversedParentTree,
+              delete, ReversedPath, ReversedParentTree,
               Extra, KeepWhileAftermath, FunAcc)
     end.
 
@@ -1633,11 +1945,11 @@ merge_keep_while_aftermath(Extra, KeepWhileAftermath) ->
     OldKWA = maps:get(keep_while_aftermath, Extra, #{}),
     NewKWA = maps:fold(
                fun
-                   (Path, remove, KWA1) ->
-                       KWA1#{Path => remove};
+                   (Path, delete, KWA1) ->
+                       KWA1#{Path => delete};
                    (Path, NodeProps, KWA1) ->
                        case KWA1 of
-                           #{Path := remove} -> KWA1;
+                           #{Path := delete} -> KWA1;
                            _                 -> KWA1#{Path => NodeProps}
                        end
                end, OldKWA, KeepWhileAftermath),
@@ -1662,7 +1974,7 @@ handle_keep_while_aftermath(
     {KeepWhileConds1,
      KeepWhileCondsRevIdx1} = maps:fold(
                             fun
-                                (RemovedPath, remove, {KW, KWRevIdx}) ->
+                                (RemovedPath, delete, {KW, KWRevIdx}) ->
                                     KW1 = maps:remove(RemovedPath, KW),
                                     KWRevIdx1 = update_keep_while_conds_revidx(
                                                   KW, KWRevIdx,
@@ -1672,19 +1984,18 @@ handle_keep_while_aftermath(
                                     Acc
                             end, {KeepWhileConds, KeepWhileCondsRevIdx},
                             KeepWhileAftermath),
-    Extra1 = maps:remove(keep_while_aftermath, Extra),
-    Extra2 = Extra1#{keep_while_conds => KeepWhileConds1,
-                     keep_while_conds_revidx => KeepWhileCondsRevIdx1},
+    Extra1 = Extra#{keep_while_conds => KeepWhileConds1,
+                    keep_while_conds_revidx => KeepWhileCondsRevIdx1},
 
     ToRemove1 = filter_and_sort_paths_to_remove(ToRemove, KeepWhileAftermath),
-    remove_expired_nodes(ToRemove1, Root, Extra2, FunAcc).
+    remove_expired_nodes(ToRemove1, Root, Extra1, FunAcc).
 
 eval_keep_while_conditions(
   KeepWhileAftermath, KeepWhileConds, KeepWhileCondsRevIdx, Root) ->
     %% KeepWhileAftermath lists all nodes which were modified or removed. We
     %% want to transform that into a list of nodes to remove.
     %%
-    %% Those marked as `remove' in KeepWhileAftermath are already gone. We
+    %% Those marked as `delete' in KeepWhileAftermath are already gone. We
     %% need to find the nodes which depended on them, i.e. their keep_while
     %% condition is not met anymore. Note that removed nodes' child nodes are
     %% gone as well and must be handled (they are not specified in
@@ -1742,7 +2053,7 @@ eval_keep_while_conditions_after_removal(
               KeepWhile = maps:get(Watcher, KeepWhileConds),
               case are_keep_while_conditions_met(Root, KeepWhile) of
                   true       -> ToRemove1;
-                  {false, _} -> ToRemove1#{Watcher => remove}
+                  {false, _} -> ToRemove1#{Watcher => delete}
               end
       end, ToRemove, Watchers).
 
@@ -1758,11 +2069,11 @@ filter_and_sort_paths_to_remove(ToRemove, KeepWhileAftermath) ->
     Paths2 = lists:foldl(
                fun(Path, Map) ->
                        case KeepWhileAftermath of
-                           #{Path := remove} ->
+                           #{Path := delete} ->
                                Map;
                            _ ->
                                case is_parent_being_removed(Path, Map) of
-                                   false -> Map#{Path => remove};
+                                   false -> Map#{Path => delete};
                                    true  -> Map
                                end
                        end

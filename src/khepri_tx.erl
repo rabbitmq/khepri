@@ -97,10 +97,15 @@ put(PathPattern, Payload) ->
 put(PathPattern, Payload, Extra) when ?IS_KHEPRI_PAYLOAD(Payload) ->
     ensure_path_pattern_is_valid(PathPattern),
     ensure_updates_are_allowed(),
-    State = get_tx_state(),
-    {NewState, Result} = khepri_machine:insert_or_update_node(
-                           State, PathPattern, Payload, Extra),
-    set_tx_state(NewState),
+    {State, SideEffects} = get_tx_state(),
+    Ret = khepri_machine:insert_or_update_node(
+            State, PathPattern, Payload, Extra),
+    case Ret of
+        {NewState, Result, NewSideEffects} ->
+            set_tx_state(NewState, SideEffects ++ NewSideEffects);
+        {NewState, Result} ->
+            set_tx_state(NewState, SideEffects)
+    end,
     Result;
 put(PathPattern, Payload, _Extra) ->
     abort({invalid_payload, PathPattern, Payload}).
@@ -110,7 +115,7 @@ get(PathPattern) ->
 
 get(PathPattern, Options) ->
     ensure_path_pattern_is_valid(PathPattern),
-    #khepri_machine{root = Root} = get_tx_state(),
+    {#khepri_machine{root = Root}, _SideEffects} = get_tx_state(),
     khepri_machine:find_matching_nodes(Root, PathPattern, Options).
 
 -spec exists(Path) -> Exists when
@@ -148,10 +153,14 @@ find(Path, Condition) ->
 delete(PathPattern) ->
     ensure_path_pattern_is_valid(PathPattern),
     ensure_updates_are_allowed(),
-    State = get_tx_state(),
-    {NewState, Result} = khepri_machine:delete_matching_nodes(
-                           State, PathPattern),
-    set_tx_state(NewState),
+    {State, SideEffects} = get_tx_state(),
+    Ret = khepri_machine:delete_matching_nodes(State, PathPattern),
+    case Ret of
+        {NewState, Result, NewSideEffects} ->
+            set_tx_state(NewState, SideEffects ++ NewSideEffects);
+        {NewState, Result} ->
+            set_tx_state(NewState, SideEffects)
+    end,
     Result.
 
 -spec abort(Reason) -> no_return() when
@@ -163,8 +172,11 @@ abort(Reason) ->
 -spec is_transaction() -> boolean().
 
 is_transaction() ->
-    State = erlang:get(?TX_STATE_KEY),
-    is_record(State, khepri_machine).
+    StateAndSideEffects = erlang:get(?TX_STATE_KEY),
+    case StateAndSideEffects of
+        {#khepri_machine{}, _SideEffects} -> true;
+        _                                 -> false
+    end.
 
 -spec to_standalone_fun(Fun, ReadWrite) -> StandaloneFun | no_return() when
       Fun :: fun(),
@@ -184,8 +196,6 @@ to_standalone_fun(Fun, ReadWrite)
     try
         khepri_fun:to_standalone_fun(Fun, Options)
     catch
-        throw:readonly_tx_fun_detected ->
-            Fun;
         throw:Error ->
             throw({invalid_tx_fun, Error})
     end;
@@ -314,7 +324,7 @@ ensure_instruction_is_permitted(Unknown) ->
     throw({unknown_instruction, Unknown}).
 
 should_process_function(Module, Name, Arity, FromModule) ->
-    ShouldCollect = should_collect_code_for_module(Module),
+    ShouldCollect = khepri_utils:should_collect_code_for_module(Module),
     case ShouldCollect of
         true ->
             case Module of
@@ -333,46 +343,6 @@ should_process_function(Module, Name, Arity, FromModule) ->
         false ->
             ensure_call_is_valid(Module, Name, Arity),
             false
-    end.
-
-should_collect_code_for_module(Module) ->
-    Modules = get_list_of_module_to_skip(),
-    not maps:is_key(Module, Modules).
-
-get_list_of_module_to_skip() ->
-    Key = {?MODULE, skipped_modules_in_code_collection},
-    case persistent_term:get(Key, undefined) of
-        Modules when Modules =/= undefined ->
-            Modules;
-        undefined ->
-            InitialModules = #{erlang => true},
-            Applications = [erts,
-                            kernel,
-                            stdlib,
-                            mnesia,
-                            sasl,
-                            ssl,
-                            khepri],
-            Modules = lists:foldl(
-                        fun(App, Modules0) ->
-                                _ = application:load(App),
-                                case application:get_key(App, modules) of
-                                    {ok, Mods} ->
-                                        lists:foldl(
-                                          fun(Mod, Modules1) ->
-                                                  Modules1#{Mod => true}
-                                          end, Modules0, Mods);
-                                    undefined ->
-                                        Modules0
-                                end
-                        end, InitialModules, Applications),
-            persistent_term:put(Key, Modules),
-
-            %% Applications which were not loaded before this function are not
-            %% unloaded now: we have no way to determine if another process
-            %% could have loaded them in parallel.
-
-            Modules
     end.
 
 ensure_call_is_valid(Module, Name, Arity) ->
@@ -535,49 +505,54 @@ is_standalone_fun_still_needed(#{calls := Calls}, auto) ->
       State :: khepri_machine:state(),
       Fun :: tx_fun(),
       AllowUpdates :: boolean(),
-      Ret :: {khepri_machine:state(), tx_fun_result() | Exception},
+      Ret :: {State, tx_fun_result() | Exception, SideEffects},
       Exception :: {exception, Class, Reason, Stacktrace},
       Class :: error | exit | throw,
       Reason :: any(),
-      Stacktrace :: list().
+      Stacktrace :: list(),
+      SideEffects :: ra_machine:effects().
 %% @private
 
 run(State, Fun, AllowUpdates) ->
+    SideEffects = [],
     TxProps = #{allow_updates => AllowUpdates},
-    NoState = erlang:put(?TX_STATE_KEY, State),
+    NoState = erlang:put(?TX_STATE_KEY, {State, SideEffects}),
     NoProps = erlang:put(?TX_PROPS, TxProps),
     ?assertEqual(undefined, NoState),
     ?assertEqual(undefined, NoProps),
     try
         Ret = Fun(),
 
-        NewState = erlang:erase(?TX_STATE_KEY),
+        {NewState, NewSideEffects} = erlang:erase(?TX_STATE_KEY),
         NewTxProps = erlang:erase(?TX_PROPS),
         ?assert(is_record(NewState, khepri_machine)),
         ?assertEqual(TxProps, NewTxProps),
-        {NewState, Ret}
+        {NewState, Ret, NewSideEffects}
     catch
         Class:Reason:Stacktrace ->
             _ = erlang:erase(?TX_STATE_KEY),
             _ = erlang:erase(?TX_PROPS),
             Exception = {exception, Class, Reason, Stacktrace},
-            {State, Exception}
+            {State, Exception, []}
     end.
 
--spec get_tx_state() -> State when
-      State :: khepri_machine:state().
+-spec get_tx_state() -> {State, SideEffects} when
+      State :: khepri_machine:state(),
+      SideEffects :: ra_machine:effects().
 %% @private
 
 get_tx_state() ->
-    #khepri_machine{} = State = erlang:get(?TX_STATE_KEY),
-    State.
+    StateAndSideEffects =
+    {#khepri_machine{}, _SideEffects} = erlang:get(?TX_STATE_KEY),
+    StateAndSideEffects.
 
--spec set_tx_state(State) -> ok when
-      State :: khepri_machine:state().
+-spec set_tx_state(State, SideEffects) -> ok when
+      State :: khepri_machine:state(),
+      SideEffects :: ra_machine:effects().
 %% @private
 
-set_tx_state(#khepri_machine{} = NewState) ->
-     _ = erlang:put(?TX_STATE_KEY, NewState),
+set_tx_state(#khepri_machine{} = NewState, SideEffects) ->
+     _ = erlang:put(?TX_STATE_KEY, {NewState, SideEffects}),
      ok.
 
 -spec get_tx_props() -> TxProps when

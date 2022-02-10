@@ -30,6 +30,19 @@
 
 -record(tx, {'fun' :: khepri_fun:standalone_fun()}).
 
+-record(register_trigger, {id :: khepri_machine:trigger_id(),
+                           event_filter :: khepri_machine:event_filter(),
+                           sproc :: khepri_path:path()}).
+
+-record(ack_triggered, {triggered :: [khepri_machine:triggered()]}).
+
+-record(triggered, {id :: khepri_machine:trigger_id(),
+                    %% TODO: Do we need a ref to distinguish multiple
+                    %% instances of the same trigger?
+                    event_filter :: khepri_machine:event_filter(),
+                    sproc :: khepri_fun:standalone_fun(),
+                    props = #{} :: map()}).
+
 %% Structure representing an anonymous function "extracted" as a compiled
 %% module for storage.
 -record(standalone_fun, {module :: module(),

@@ -86,6 +86,7 @@
 -include_lib("kernel/include/logger.hrl").
 
 -include("include/khepri.hrl").
+-include("src/internal.hrl").
 
 -export([start/0,
          start/1,
@@ -116,11 +117,13 @@
          find/2, find/3,
 
          transaction/1, transaction/2, transaction/3,
+         run_sproc/2, run_sproc/3,
 
          clear_store/0, clear_store/1,
 
          no_payload/0,
          data_payload/1,
+         sproc_payload/1,
 
          info/0,
          info/1]).
@@ -173,10 +176,15 @@ start(RaSystem) ->
     {ok, store_id()} | {error, any()}.
 
 start(RaSystem, ClusterName, FriendlyName) ->
-    case ensure_started(RaSystem, ClusterName, FriendlyName) of
-        ok ->
-            ok = remember_store_id(ClusterName),
-            {ok, ClusterName};
+    case application:ensure_all_started(khepri) of
+        {ok, _} ->
+            case ensure_started(RaSystem, ClusterName, FriendlyName) of
+                ok ->
+                    ok = remember_store_id(ClusterName),
+                    {ok, ClusterName};
+                Error ->
+                    Error
+            end;
         Error ->
             Error
     end.
@@ -438,7 +446,7 @@ make_ra_server_config(ClusterName, FriendlyName, Member, Members) ->
       friendly_name => FriendlyName,
       initial_members => Members,
       log_init_args => #{uid => UId},
-      machine => {module, khepri_machine, #{}}}.
+      machine => {module, khepri_machine, #{store_id => ClusterName}}}.
 
 -define(PT_STORE_IDS, {khepri, store_ids}).
 
@@ -631,6 +639,11 @@ compare_and_swap(StoreId, Path, DataPattern, Data) ->
 %%
 %% @private
 
+do_put(StoreId, Path, Fun) when is_function(Fun) ->
+    case khepri_machine:put(StoreId, Path, #kpayload_sproc{sproc = Fun}) of
+        {ok, _} -> ok;
+        Error   -> Error
+    end;
 do_put(StoreId, Path, Data) ->
     case khepri_machine:put(StoreId, Path, #kpayload_data{data = Data}) of
         {ok, _} -> ok;
@@ -956,6 +969,12 @@ transaction(Fun, ReadWrite) when is_function(Fun) ->
 transaction(StoreId, Fun, ReadWrite) ->
     khepri_machine:transaction(StoreId, Fun, ReadWrite).
 
+run_sproc(Path, Args) ->
+    run_sproc(?DEFAULT_RA_CLUSTER_NAME, Path, Args).
+
+run_sproc(StoreId, Path, Args) ->
+    khepri_machine:run_sproc(StoreId, Path, Args).
+
 -spec clear_store() -> ok | error().
 
 clear_store() ->
@@ -985,6 +1004,11 @@ no_payload() ->
 
 data_payload(Term) ->
     #kpayload_data{data = Term}.
+
+sproc_payload(Fun) when is_function(Fun) ->
+    #kpayload_sproc{sproc = Fun};
+sproc_payload(#standalone_fun{} = Fun) ->
+    #kpayload_sproc{sproc = Fun}.
 
 %% -------------------------------------------------------------------
 %% Public helpers.
