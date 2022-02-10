@@ -198,6 +198,10 @@ ensure_instruction_is_permitted({allocate_zero, _, _}) ->
     ok;
 ensure_instruction_is_permitted({allocate_heap, _, _, _}) ->
     ok;
+ensure_instruction_is_permitted({apply, _}) ->
+    throw(dynamic_apply_denied);
+ensure_instruction_is_permitted({apply_last, _, _}) ->
+    throw(dynamic_apply_denied);
 ensure_instruction_is_permitted({badmatch, _}) ->
     ok;
 ensure_instruction_is_permitted({bif, Bif, _, Args, _}) ->

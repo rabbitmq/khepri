@@ -465,6 +465,21 @@ denied_erlang_send_3_test() ->
        {invalid_tx_fun, {call_denied, {erlang, send, 3}}},
        _ = erlang:send(list_to_pid("<0.0.0>"), msg, [nosuspend])).
 
+%% `apply_last' instruction is used when the apply is the last call
+%% in the function.
+denied_apply_last_test() ->
+    self() ! erlang,
+    Module = receive Msg -> Msg end,
+    ?assertToFunThrow(
+       {invalid_tx_fun, dynamic_apply_denied},
+       _ = Module:now()).
+denied_apply_test() ->
+    self() ! erlang,
+    Module = receive Msg -> Msg end,
+    ?assertToFunThrow(
+       {invalid_tx_fun, dynamic_apply_denied},
+       c = hd(Module:tl([[a, b], c]))).
+
 allowed_dict_api_test() ->
     ?assertStandaloneFun(
        begin
