@@ -11,6 +11,7 @@
          get_lambda/0,
          %% We export this one just to try to prevent inlining.
          hash_term/1,
+         crashing_fun/0,
          make_record/1,
          outer_function/2]).
 
@@ -24,6 +25,9 @@ get_lambda() ->
 
 hash_term(Term) ->
     erlang:phash2(Term).
+
+crashing_fun() ->
+    throw("Expected crash").
 
 -record(my_record, {function}).
 

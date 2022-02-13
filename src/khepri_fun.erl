@@ -95,6 +95,27 @@
 -type beam_instr() :: atom() | tuple().
 -type label() :: pos_integer().
 
+%% The following records are used to store the decoded "Line" beam chunk. They
+%% are used while processing `line' instructions to restore the correct
+%% location. This is needed so that exception stacktraces point to real
+%% locations in source files.
+
+-record(lines, {item_count,
+                items = [],
+                name_count,
+                names = [],
+                location_size}).
+
+-record(line, {name_index,
+               location}).
+
+%% The following record is also linked to the decoding of the "Line" beam
+%% chunk.
+
+-record(tag, {tag,
+              size,
+              word_value}).
+
 %% -------------------------------------------------------------------
 %% Taken from lib/compiler/src/beam_disasm.hrl,
 %% commit 7b3ffa5bb72a2ba84b07fb8a98d755216e78fa79
@@ -109,6 +130,15 @@
                     compile_info    = [] :: [beam_lib:compinfo_entry()],
                     code            = [] :: [#function{}]}).
 %% -------------------------------------------------------------------
+
+-record(beam_file_ext, {module               :: module(),
+                        labeled_exports = [] :: [beam_lib:labeled_entry()],
+                        attributes      = [] :: [beam_lib:attrib_entry()],
+                        compile_info    = [] :: [beam_lib:compinfo_entry()],
+                        code            = [] :: [#function{}],
+                        %% Added in this module to stored the decoded "Line"
+                        %% chunk.
+                        lines                :: #lines{} | undefined}).
 
 -type ensure_instruction_is_permitted_fun() ::
 fun((Instruction :: beam_instr()) -> ok).
@@ -197,6 +227,7 @@ fun((#{calls := #{Call :: mfa() => true},
                 all_calls = #{} :: #{mfa() => true},
                 functions = #{} :: #{mfa() => #function{}},
 
+                lines_in_progress :: #lines{} | undefined,
                 mfa_in_progress :: mfa() | undefined,
                 function_in_progress :: atom() | undefined,
                 next_label = 1 :: label(),
@@ -789,13 +820,34 @@ pass1_process_instructions(
     LabelMap1 = LabelMap#{LabelKey => NewLabel},
     State1 = State#state{next_label = NewLabel + 1,
                          label_map = LabelMap1},
-    pass1_process_instructions(Rest, State1, [Instruction | Result]);
+    %% `beam_disasm' seems to put `line' before `label', but the compiler is
+    %% not pleased with that. Let's make sure the `label' appears first in the
+    %% final assembly form.
+    Result1 = case Result of
+                  [{line, _} = Line | R] -> [Line, Instruction | R];
+                  _                      -> [Instruction | Result]
+              end,
+    pass1_process_instructions(Rest, State1, Result1);
 pass1_process_instructions(
-  [{line, _} | Rest],
-  State,
+  [{line, Index} | Rest],
+  #state{lines_in_progress = Lines} = State,
   Result) ->
-    %% Drop this instruction.
-    pass1_process_instructions(Rest, State, Result);
+    case Lines of
+        #lines{items = Items, names = Names} ->
+            %% We could decode the "Line" beam chunk which contains the mapping
+            %% between `Index' in the instruction decoded by `beam_disasm' and
+            %% the actual location (filename + line number). Therefore we can
+            %% generate the correct `line' instruction.
+            #line{name_index = NameIndex,
+                  location = Location} = lists:nth(Index + 1, Items),
+            Name = lists:nth(NameIndex + 1, Names),
+            Line = {line, [{location, Name, Location}]},
+            pass1_process_instructions(Rest, State, [Line | Result]);
+        undefined ->
+            %% Drop this instruction as we don't have the "Line" beam chunk to
+            %% decode it.
+            pass1_process_instructions(Rest, State, Result)
+    end;
 pass1_process_instructions(
   [{make_fun2, {Module, Name, Arity}, _, _, _} = Instruction | Rest],
   State,
@@ -924,10 +976,13 @@ lookup_function(
     %% There here, we compile the abstract form and extract the assembly from
     %% the compiled beam. This allows to use the rest of `khepri_fun'
     %% unmodified.
-    #beam_file{code = Code} = erl_eval_fun_to_asm(Module, Name, Arity, Env),
+    %%
+    %% FIXME: Can we compile to assembly form using 'S' instead?
+    #beam_file_ext{code = Code} = erl_eval_fun_to_asm(
+                                    Module, Name, Arity, Env),
     {lookup_function1(Code, Name, Arity), State};
 lookup_function(Module, Name, Arity, State) ->
-    {#beam_file{code = Code}, State1} = disassemble_module(Module, State),
+    {#beam_file_ext{code = Code}, State1} = disassemble_module(Module, State),
     {lookup_function1(Code, Name, Arity), State1}.
 
 lookup_function1(
@@ -948,7 +1003,7 @@ lookup_function1(
       Name :: atom(),
       Arity :: arity(),
       Env :: any(),
-      BeamFileRecord :: #beam_file{}.
+      BeamFileRecord :: #beam_file_ext{}.
 %% @private
 
 erl_eval_fun_to_asm(Module, Name, Arity, [{Bindings, _, _, Clauses}])
@@ -980,7 +1035,7 @@ erl_eval_fun_to_asm(Module, Name, Arity, [{Bindings, _, _, Clauses}])
 -spec disassemble_module(Module, State) -> {BeamFileRecord, State} when
       Module :: module(),
       State :: #state{},
-      BeamFileRecord :: #beam_file{}.
+      BeamFileRecord :: #beam_file_ext{}.
 
 -define(ASM_CACHE_KEY(Module, Checksum),
         {?MODULE, asm_cache, Module, Checksum}).
@@ -988,22 +1043,26 @@ erl_eval_fun_to_asm(Module, Name, Arity, [{Bindings, _, _, Clauses}])
 disassemble_module(Module, #state{checksums = Checksums} = State) ->
     case Checksums of
         #{Module := Checksum} ->
-            {BeamFileRecord, Checksum} = disassemble_module1(
-                                           Module, Checksum),
-            {BeamFileRecord, State};
+            {#beam_file_ext{lines = Lines} = BeamFileRecord,
+             Checksum} = disassemble_module1(Module, Checksum),
+
+            State1 = State#state{lines_in_progress = Lines},
+            {BeamFileRecord, State1};
         _ ->
-            {BeamFileRecord, Checksum} = disassemble_module1(
-                                           Module, undefined),
+            {#beam_file_ext{lines = Lines} = BeamFileRecord,
+             Checksum} = disassemble_module1(Module, undefined),
             ?assert(is_binary(Checksum)),
+
             Checksums1 = Checksums#{Module => Checksum},
-            State1 = State#state{checksums = Checksums1},
+            State1 = State#state{checksums = Checksums1,
+                                 lines_in_progress = Lines},
             {BeamFileRecord, State1}
     end.
 
 disassemble_module1(Module, Checksum) when is_binary(Checksum) ->
     Key = ?ASM_CACHE_KEY(Module, Checksum),
     case persistent_term:get(Key, undefined) of
-        #beam_file{} = BeamFileRecord ->
+        #beam_file_ext{} = BeamFileRecord ->
             {BeamFileRecord, Checksum};
         undefined ->
             {Module, Beam, _} = get_object_code(Module),
@@ -1033,12 +1092,162 @@ get_object_code(Module) ->
 
 do_disassemble_and_cache(Module, Checksum, Beam) ->
     Key = ?ASM_CACHE_KEY(Module, Checksum),
-    BeamFileRecord = do_disassemble(Beam),
-    persistent_term:put(Key, BeamFileRecord),
-    BeamFileRecord.
+    BeamFileRecordExt = do_disassemble(Beam),
+    persistent_term:put(Key, BeamFileRecordExt),
+    BeamFileRecordExt.
 
 do_disassemble(Beam) ->
-    beam_disasm:file(Beam).
+    BeamFileRecord = beam_disasm:file(Beam),
+    #beam_file{
+       module = Module,
+       labeled_exports = LabeledExports,
+       attributes = Attributes,
+       compile_info = CompileInfo,
+       code = Code} = BeamFileRecord,
+    Lines = decode_line_chunk(Module, Beam),
+    BeamFileRecordExt = #beam_file_ext{
+                           module = Module,
+                           labeled_exports = LabeledExports,
+                           attributes = Attributes,
+                           compile_info = CompileInfo,
+                           code = Code,
+                           lines = Lines},
+    BeamFileRecordExt.
+
+%% The "Line" beam chunk decoding is based on the equivalent C code in ERTS.
+%% See: erts/emulator/beam/beam_file.c, parse_line_chunk().
+%%
+%% The opposite encoding function is inside the compiler.
+%% See: compiler/src/beam_asm.erl, build_line_table().
+
+decode_line_chunk(Module, Beam) ->
+    case beam_lib:chunks(Beam, ["Line"]) of
+        {ok, {Module, [{"Line", Chunk}]}} ->
+            decode_line_chunk_version(Module, Chunk);
+        _ ->
+            undefined
+    end.
+
+decode_line_chunk_version(
+  Module,
+  <<Version:32/integer,
+    Rest/binary>>)
+  when Version =:= 0 ->
+    %% The original C code makes an assertion that the version is 0, thus the
+    %% guard expression above.
+    decode_line_chunk_counts_and_flags(Module, Rest).
+
+decode_line_chunk_counts_and_flags(
+  Module,
+  <<_Flags:32/integer,
+    _InstrCount:32/integer,
+    ItemCount:32/integer,
+    NameCount:32/integer,
+    Rest/binary>>) ->
+    UndefinedLocation = #line{name_index = 0,
+                              location = 0},
+    ModuleFilename = atom_to_list(Module) ++ ".erl",
+    LocationSize = if
+                       NameCount > 0 -> 4;
+                       true          -> 2
+                   end,
+    Lines = #lines{item_count = ItemCount + 1,
+                   items = [UndefinedLocation],
+                   name_count = NameCount + 1,
+                   names = [ModuleFilename],
+                   location_size = LocationSize},
+    decode_line_chunk_items(Rest, 1, 0, Lines).
+
+decode_line_chunk_items(
+  Rest, I, NameIndex,
+  #lines{item_count = ItemCount,
+         items = Items,
+         location_size = LocationSize} = Lines)
+  when I < ItemCount ->
+    {Tag, Rest1} = read_tagged(Rest),
+    case Tag of
+        #tag{tag = tag_a, word_value = WordValue} ->
+            NameIndex1 = WordValue,
+            decode_line_chunk_items(Rest1, I, NameIndex1, Lines);
+        #tag{tag = tag_i, size = 0, word_value = WordValue}
+          when WordValue >= 0 ->
+            LocationSize1 = if
+                                WordValue > 16#FFFF -> 4;
+                                true                -> LocationSize
+                            end,
+            Item = #line{name_index = NameIndex,
+                         location = WordValue},
+            Lines1 = Lines#lines{items = Items ++ [Item],
+                                 location_size = LocationSize1},
+            decode_line_chunk_items(Rest1, I + 1, NameIndex, Lines1)
+    end;
+decode_line_chunk_items(
+  Rest, I, _NameIndex,
+  #lines{item_count = ItemCount} = Lines) when I =:= ItemCount ->
+    decode_line_chunk_names(Rest, 1, Lines).
+
+decode_line_chunk_names(
+  <<NameLength:16/integer, Name:NameLength/binary, Rest/binary>>,
+  I,
+  #lines{name_count = NameCount,
+         names = Names} = Lines)
+  when I < NameCount ->
+    Name1 = unicode:characters_to_list(Name),
+    Names1 = Names ++ [Name1],
+    Lines1 = Lines#lines{names = Names1},
+    decode_line_chunk_names(Rest, I + 1, Lines1);
+decode_line_chunk_names(<<>>, I, #lines{name_count = NameCount} = Lines)
+  when I =:= NameCount ->
+    Lines.
+
+%% See: erts/emulator/beam/beam_file.c, beamreader_read_tagged().
+
+read_tagged(
+  <<LenCode:8/unsigned-integer,
+    Rest/binary>>) ->
+    Tag = decode_tag(LenCode band 16#07),
+    if
+        LenCode band 16#08 =:= 0 ->
+            WordValue = LenCode bsr 4,
+            Size = 0,
+            {#tag{tag = Tag,
+                  word_value = WordValue,
+                  size = Size},
+             Rest};
+        LenCode band 16#10 =:= 0 ->
+            <<ExtraByte:8/unsigned-integer, Rest1/binary>> = Rest,
+            WordValue = ((LenCode bsr 5) bsl 8) bor ExtraByte,
+            Size = 0,
+            {#tag{tag = Tag,
+                  word_value = WordValue,
+                  size = Size},
+             Rest1};
+        true ->
+            %LenCode1 = LenCode bsr 5,
+            %{Count, Rest1} = if
+            %                     LenCode < 7 ->
+            %                         SizeBase = 2,
+            %                         {LenCode + SizeBse, Rest};
+            %                     true ->
+            %                         SizeBase = 9,
+            %                         {#{tag = tag_u,
+            %                            word_value = UnpackedSize},
+            %                          R1} = read_tagged(Rest),
+            %                         {UnpackedSize + SizeBase, R1}
+            %                 end,
+            %<<Data:Count/binary, Rest2/binary>> = Rest1,
+            %WordValue = unpack_varint(Data, Count),
+            throw("Not implemented")
+    end.
+
+decode_tag(0) -> tag_u;
+decode_tag(1) -> tag_i;
+decode_tag(2) -> tag_a;
+decode_tag(3) -> tag_x;
+decode_tag(4) -> tag_y;
+decode_tag(5) -> tag_f;
+decode_tag(6) -> tag_h;
+decode_tag(7) -> tag_z.
 
 %% The field flags, which correspond to `Var/signed', `Var/unsigned',
 %% `Var/little', `Var/big' and `Var/native' in the bitstring syntax, need to
