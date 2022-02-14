@@ -362,17 +362,25 @@ add_comment_to_code(Code, Location, Comment) ->
     add_comment_to_code(Code, Location, Comment, []).
 
 add_comment_to_code(
-  [Instruction | Rest], {Placement, Instruction}, Comment, Result) ->
-    MaybeExistingComment = case Placement of
-                               before -> hd(Result);
-                               'after' -> hd(Rest)
-                           end,
-    Comment1 = merge_comments(Comment, MaybeExistingComment),
-    Rest1 = case Placement of
-              before -> [Comment1, Instruction | Rest];
-              'after' -> [Instruction, Comment1 | Rest]
-            end,
-    lists:reverse(Result) ++ Rest1;
+  [Instruction | Rest], {before, Instruction},
+  {'%', {var_info, Var, _}} = Comment, Result) ->
+    case Result of
+        [{'%', {var_info, Var, _}} = ExistingComment |  Result1] ->
+            Comment1 = merge_comments(Comment, ExistingComment),
+            lists:reverse(Result1) ++ [Comment1, Instruction | Rest];
+        _ ->
+            lists:reverse(Result) ++ [Comment, Instruction | Rest]
+    end;
+add_comment_to_code(
+  [Instruction | Rest], {'after', Instruction},
+  {'%', {var_info, Var, _}} = Comment, Result) ->
+    case Rest of
+        [{'%', {var_info, Var, _}} = ExistingComment |  Rest1] ->
+            Comment1 = merge_comments(Comment, ExistingComment),
+            lists:reverse(Result) ++ [Instruction, Comment1 | Rest1];
+        _ ->
+            lists:reverse(Result) ++ [Instruction, Comment | Rest]
+    end;
 add_comment_to_code(
   [Instruction | Rest], Location, Comment, Result) ->
     add_comment_to_code(Rest, Location, Comment, [Instruction | Result]).
