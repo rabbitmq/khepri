@@ -74,7 +74,7 @@
                              to_standalone_arg/2,
                              handle_compilation_error/2,
                              handle_validation_error/3,
-                             add_comment_and_retry/4,
+                             add_comment_and_retry/5,
                              add_comment_to_function/5,
                              add_comment_to_code/3,
                              add_comment_to_code/4,
@@ -305,40 +305,45 @@ handle_validation_error(
    {{Call, 1 = _Arity, {f, EntryLabel}},
     _,
     no_bs_start_match2}},
-  _Error) when Call =:= call orelse Call =:= call_only ->
+  Error) when Call =:= call orelse Call =:= call_only ->
     %% TODO: hard-coded register
     Comment = {'%', {var_info, {x, 0}, [accepts_match_context]}},
     Location = {'after', {label, EntryLabel}},
-    add_comment_and_retry(Asm, EntryLabel, Location, Comment);
+    add_comment_and_retry(Asm, Error, EntryLabel, Location, Comment);
 handle_validation_error(
   Asm,
   {FailingFun,
    {{bs_start_match4, _Fail, _, Var, Var} = FailingInstruction,
     _,
     {bad_type, {needed, NeededType}, {actual, any}}}},
-  _Error) ->
+  Error) ->
     VarInfo = {var_info, Var, [{type, NeededType}]},
     Comment = {'%', VarInfo},
     Location = {before, FailingInstruction},
-    add_comment_and_retry(Asm, FailingFun, Location, Comment);
+    add_comment_and_retry(Asm, Error, FailingFun, Location, Comment);
 handle_validation_error(Asm, _ValidationFailure, Error) ->
     throw({compilation_failure, Error, Asm}).
 
 add_comment_and_retry(
-  Asm, FailingFun, Location, Comment) ->
+  Asm, Error, FailingFun, Location, Comment) ->
     {GeneratedModuleName,
      Exports,
      Attributes,
      Functions,
      Labels} = Asm,
-    Functions1 = add_comment_to_function(
-                 Functions, FailingFun, Location, Comment, []),
-    Asm1 = {GeneratedModuleName,
-            Exports,
-            Attributes,
-            Functions1,
-            Labels},
-    compile(Asm1).
+    try
+        Functions1 = add_comment_to_function(
+                     Functions, FailingFun, Location, Comment, []),
+        Asm1 = {GeneratedModuleName,
+                Exports,
+                Attributes,
+                Functions1,
+                Labels},
+        compile(Asm1)
+    catch
+        throw:duplicate_annotations ->
+            throw({compilation_failure, Error, Asm})
+    end.
 
 add_comment_to_function(
   [#function{name = Name, arity = Arity, code = Code} = Function | Rest],
@@ -385,6 +390,7 @@ add_comment_to_code(
   [Instruction | Rest], Location, Comment, Result) ->
     add_comment_to_code(Rest, Location, Comment, [Instruction | Result]).
 
+merge_comments(Comment, Comment) -> throw(duplicate_annotations);
 merge_comments(
   {'%', {var_info, Var, Attributes1}},
   {'%', {var_info, Var, Attributes2}}) ->
