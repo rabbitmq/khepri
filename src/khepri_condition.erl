@@ -7,7 +7,9 @@
 
 %% @doc Condition support.
 %%
-%% Conditions can be used in path patterns and `keep_while' conditions.
+%% Conditions can be used in path patterns and `keep_while' conditions. They
+%% allow to point to a specific node only if conditions are met, or to match
+%% several tree nodes with a single path pattern.
 %%
 %% A condition is an Erlang record defining a specific property. Some of them
 %% have arguments to further define the condition.
@@ -215,6 +217,7 @@
                      if_not() |
                      if_all() |
                      if_any().
+%% All supported conditions.
 
 -type condition_using_regex() :: if_name_matches() |
                                  if_path_matches().
@@ -223,6 +226,9 @@
                                          if_child_list_length().
 
 -type keep_while() :: #{khepri_path:path() => condition()}.
+%% An association between a path and a condition. As long as the condition
+%% evalutes to true, the tree node is kept. Once the condition evalutes to
+%% false, the tree node is deleted.
 
 -export([compile/1,
          applies_to_grandchildren/1,
@@ -240,6 +246,21 @@
 
 -spec compile(Condition) -> Condition when
       Condition :: khepri_path:pattern_component().
+%% @doc Preprocess properties inside some conditions to make them more
+%% efficient.
+%%
+%% An example is the regular expression inside an {@link if_name_matches()}
+%% condition.
+%%
+%% Conditions are also optimized if possible. An example is the replacement of
+%% an {@link if_all()} condition and all its sub-conditions if one of them is
+%% a specific node name. In this case, it is replaced by the node name
+%% directly.
+%%
+%% @param Condition the condition to compile.
+%%
+%% @returns the same condition with all its properties preprocessed.
+%%
 %% @private
 
 compile(#if_name_matches{regex = any} = Cond) ->
@@ -270,9 +291,13 @@ compile(Cond) ->
 
 -spec optimize_if_all_conditions([condition()]) -> [condition()].
 %% @private
+%% @hidden
 
 optimize_if_all_conditions(Conds) ->
     optimize_if_all_conditions(Conds, []).
+
+%% @private
+%% @hidden
 
 optimize_if_all_conditions([ChildName | Rest], Result)
   when ?IS_PATH_COMPONENT(ChildName) ->
@@ -288,11 +313,17 @@ optimize_if_all_conditions([], Result) ->
 
 -spec optimize_if_any_conditions([condition()]) -> [condition()].
 %% @private
+%% @hidden
 
 optimize_if_any_conditions(Conds) ->
     Conds.
 
 -spec applies_to_grandchildren(condition()) -> boolean().
+%% @doc Returns true if a condition should be evaluted against child nodes in
+%% addition to the current node.
+%%
+%% An example is the {@link if_path_matches()} condition.
+%%
 %% @private
 
 applies_to_grandchildren(#if_path_matches{}) ->
@@ -313,6 +344,15 @@ applies_to_grandchildren(_) ->
       IsMet :: true | IsNotMet1 | IsNotMet2,
       IsNotMet1 :: {false, khepri_path:pattern_component()},
       IsNotMet2 :: {false, {condition(), any()}}.
+%% @doc Returns true if the given condition is met when evaluated against the
+%% given tree node name and properties.
+%%
+%% @param Condition the condition to evaluate.
+%% @param PathOrChildName the path or child name to consider.
+%% @param Child the properties or the tree node.
+%%
+%% @returns true if the condition is met, false otherwise.
+%%
 %% @private
 
 is_met(Condition, Path, Child) when ?IS_PATH(Path) ->
@@ -413,9 +453,14 @@ is_met(#if_any{conditions = Conds} = IfAnyCond, ChildName, Child) ->
 is_met(Cond, _, _) ->
     {false, Cond}.
 
--spec term_matches(khepri_machine:payload(), ets:comp_match_spec()) ->
-    boolean().
+-spec term_matches(Term, MatchSpec) -> Matches when
+      Term :: khepri_machine:data(),
+      MatchSpec :: ets:comp_match_spec(),
+      Matches :: boolean().
+%% @doc Returns true if the given match spec matches the given match term.
+%%
 %% @private
+%% @hidden
 
 term_matches(Term, MatchSpec) ->
     case ets:match_spec_run([Term], MatchSpec) of
@@ -423,19 +468,24 @@ term_matches(Term, MatchSpec) ->
         _       -> false
     end.
 
--spec eval_regex(
-        condition_using_regex(),
-        any | iodata() | unicode:charlist(),
-        {ok, re_mp()} | {error, {string(), non_neg_integer()}} | undefined,
-        atom() | iodata() | unicode:charlist()) ->
-    true |
-    {false, condition_using_regex()} |
-    {false, {condition_using_regex(),
-             {error,
-              match_limit |
-              match_limit_recursion |
-              {string(), non_neg_integer()}}}}.
+-spec eval_regex(Condition, SourceRegex, CompiledRegex, Value) -> Ret when
+      Condition :: condition_using_regex(),
+      SourceRegex :: any | iodata() | unicode:charlist(),
+      CompiledRegex :: {ok, re_mp()} |
+                       {error, {string(), non_neg_integer()}} |
+                       undefined,
+      Value :: atom() | iodata() | unicode:charlist(),
+      Ret :: true |
+             {false, condition_using_regex()} |
+             {false, {condition_using_regex(),
+                      {error,
+                       match_limit |
+                       match_limit_recursion |
+                       {string(), non_neg_integer()}}}}.
+%% @doc Returns true if the given regular expression matches the given string.
+%%
 %% @private
+%% @hidden
 
 eval_regex(_Cond, any, _CompiledRegex, _Value) ->
     true;
@@ -461,6 +511,7 @@ eval_regex(Cond, SourceRegex, undefined, Value) ->
       ValueB :: non_neg_integer() | comparison_op(non_neg_integer()),
       Equal :: true | {false, condition_using_comparison_op()}.
 %% @private
+%% @hidden
 
 compare_numerical_values(Cond, ValueA, ValueB) ->
     case compare_numerical_values(ValueA, ValueB) of
@@ -473,6 +524,7 @@ compare_numerical_values(Cond, ValueA, ValueB) ->
       ValueB :: non_neg_integer() | comparison_op(non_neg_integer()),
       Equal :: boolean().
 %% @private
+%% @hidden
 
 compare_numerical_values(Value,  Value)        -> true;
 compare_numerical_values(Value,  {eq, Value})  -> true;
@@ -486,6 +538,16 @@ compare_numerical_values(_, _)                 -> false.
 -spec is_valid(Condition) -> IsValid when
       Condition :: khepri_path:pattern_component(),
       IsValid :: true | {false, khepri_path:pattern_component()}.
+%% @doc Returns true if the condition's properties are valid.
+%%
+%% For instance, the function verifies that {@link if_node_exists()} takes a
+%% boolean().
+%%
+%% @param Condition the condition to verify.
+%%
+%% @returns true if the condition's properties are valid, false otherwise.
+%%
+%% @private
 
 is_valid(Component) when ?IS_PATH_COMPONENT(Component) ->
     true;

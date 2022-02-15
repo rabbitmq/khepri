@@ -58,7 +58,8 @@
 
 -include("src/internal.hrl").
 
--export([to_standalone_fun/2,
+-export([to_standalone_fun/1,
+         to_standalone_fun/2,
          exec/2]).
 
 %% FIXME: compile:forms/2 is incorrectly specified and doesn't accept
@@ -67,6 +68,7 @@
 %% The following basically disable Dialyzer for this module unfortunately...
 %% This can be removed once we start using Erlang 25 to run Dialyzer.
 -dialyzer({nowarn_function, [compile/1,
+                             to_standalone_fun/1,
                              to_standalone_fun/2,
                              to_standalone_fun1/2,
                              to_standalone_fun2/2,
@@ -107,22 +109,80 @@
 %% -------------------------------------------------------------------
 
 -type ensure_instruction_is_permitted_fun() ::
-fun((beam_instr()) -> ok).
+fun((Instruction :: beam_instr()) -> ok).
+%% Function which evaluates the given instruction and returns `ok' if it is
+%% permitted, throws an exception otherwise.
+%%
+%% Example:
+%%
+%% ```
+%% Fun = fun
+%%           ({jump, _})    -> ok;
+%%           ({move, _, _}) -> ok;
+%%           ({trim, _, _}) -> ok;
+%%           (Unknown)      -> throw({unknown_instruction, Unknown})
+%%       end.
+%% '''
 
 -type should_process_function_fun() ::
-fun((module(), atom(), arity(), module()) -> boolean()).
+fun((Module :: module(),
+     Function :: atom(),
+     Arity :: arity(),
+     FromModule :: module()) -> ShouldProcess :: boolean()).
+%% Function which returns true if a called function should be extracted and
+%% followed, false otherwise.
+%%
+%% `Module', `Function' and `Arity' qualify the function being called.
+%%
+%% `FromModule' indicates the module performing the call. This is useful to
+%% distinguish local calls (`FromModule' == `Module') from remote calls.
+%%
+%% Example:
+%%
+%% ```
+%% Fun = fun(Module, Name, Arity, FromModule) ->
+%%               Module =:= FromModule orelse
+%%               erlang:function_exported(Module, Name, Arity)
+%%       end.
+%% '''
 
 -type is_standalone_fun_still_needed_fun() ::
-fun((#{calls := #{mfa() => true},
-       errors := [any()]}) -> boolean()).
+fun((#{calls := #{Call :: mfa() => true},
+       errors := [Error :: any()]}) -> IsNeeded :: boolean()).
+%% Function which evaluates if the extracted function is still relevant in the
+%% end. It returns true if it is, false otherwise.
+%%
+%% It takes a map with the following members:
+%% <ul>
+%% <li>`calls', a map of all the calls performed by the extracted code (only
+%% the key is useful, the value is always true).</li>
+%% <li>`errors', a list of errors collected during the extraction.</li>
+%% </ul>
 
 -type standalone_fun() :: #standalone_fun{} | fun().
+%% The result of an extraction, as returned by {@link to_standalone_fun/2}.
+%%
+%% It can be stored, passed between processes and Erlang nodes. To execute the
+%% extracted function, simply call {@link exec/2} which works like {@link
+%% erlang:apply/2}.
+
 -type options() :: #{ensure_instruction_is_permitted =>
                      ensure_instruction_is_permitted_fun(),
                      should_process_function =>
                      should_process_function_fun(),
                      is_standalone_fun_still_needed =>
                      is_standalone_fun_still_needed_fun()}.
+%% Options to tune the extraction of an anonymous function.
+%%
+%% <ul>
+%% <li>`ensure_instruction_is_permitted': a function which evaluates if an
+%% instruction is permitted or not.</li>
+%% <li>`should_process_function': a function which returns if a called module
+%% and function should be extracted as well or left alone.</li>
+%% <li>`is_standalone_fun_still_needed': a function which returns if, after
+%% the extraction is finished, the extracted function is still needed in
+%% comparison to keeping the initial anonymous function.</li>
+%% </ul>
 
 -export_type([standalone_fun/0,
               options/0]).
@@ -149,10 +209,35 @@ fun((#{calls := #{mfa() => true},
                 [#function{}],
                 label()}.
 
+-spec to_standalone_fun(Fun) -> StandaloneFun when
+      Fun :: fun(),
+      StandaloneFun :: standalone_fun().
+%% @doc Extracts the given anonymous function
+%%
+%% This is the same as:
+%% ```
+%% khepri_fun:to_standalone_fun(Fun, #{}).
+%% '''
+%%
+%% @param Fun the anonymous function to extract
+%%
+%% @returns a standalone function record or the same anonymous function if no
+%% extraction was needed.
+
+to_standalone_fun(Fun) ->
+    to_standalone_fun(Fun, #{}).
+
 -spec to_standalone_fun(Fun, Options) -> StandaloneFun when
       Fun :: fun(),
       Options :: options(),
       StandaloneFun :: standalone_fun().
+%% @doc Extracts the given anonymous function
+%%
+%% @param Fun the anonymous function to extract
+%% @param Options a map of options
+%%
+%% @returns a standalone function record or the same anonymous function if no
+%% extraction was needed.
 
 to_standalone_fun(Fun, Options) ->
     {StandaloneFun, _State} = to_standalone_fun1(Fun, Options),
@@ -163,6 +248,8 @@ to_standalone_fun(Fun, Options) ->
       Options :: options(),
       StandaloneFun :: standalone_fun(),
       State :: #state{}.
+%% @private
+%% @hidden
 
 to_standalone_fun1(Fun, Options) ->
     Info = maps:from_list(erlang:fun_info(Fun)),
@@ -178,6 +265,8 @@ to_standalone_fun1(Fun, Options) ->
       Fun :: fun(),
       State :: #state{},
       StandaloneFun :: standalone_fun().
+%% @private
+%% @hidden
 
 to_standalone_fun2(
   Fun,
@@ -384,6 +473,18 @@ are_comments_conflicting(_Comment1, _Comment2) ->
       StandaloneFun :: standalone_fun(),
       Args :: [any()],
       Ret :: any().
+%% @doc Executes a previously extracted anonymous function.
+%%
+%% This is the equivalent of {@link erlang:apply/2} but it supports extracted
+%% anonymous functions.
+%%
+%% The list of `Args' must match the arity of the anonymous function.
+%%
+%% @param StandaloneFun the extracted function as returned by {@link
+%% to_standalone_fun/2}.
+%% @param Args the list of arguments to pass to the extracted function.
+%%
+%% @returns the return value of the extracted function.
 
 exec(
   #standalone_fun{module = Module,

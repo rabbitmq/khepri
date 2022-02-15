@@ -5,6 +5,8 @@
 %% Copyright (c) 2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
+%% @hidden
+
 -module(khepri_app).
 -behaviour(application).
 

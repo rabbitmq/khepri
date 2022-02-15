@@ -155,7 +155,11 @@
                   child_list_version := child_list_version()}.
 %% Stats attached to each node in the tree structure.
 
--type payload() :: none | #kpayload_data{} | #kpayload_sproc{}.
+-type payload_data() :: #kpayload_data{}.
+
+-type payload_sproc() :: #kpayload_sproc{}.
+
+-type payload() :: none | payload_data() | payload_sproc().
 %% All types of payload stored in the nodes of the tree structure.
 %%
 %% Beside the absence of payload, the only type of payload supported is data.
@@ -166,7 +170,9 @@
 -type trigger_id() :: atom().
 %% An ID to identify a registered trigger.
 
--type event_filter() :: #kevf_tree{}.
+-type event_filter_tree() :: #kevf_tree{}.
+
+-type event_filter() :: event_filter_tree().
 
 -type triggered() :: #triggered{}.
 
@@ -236,9 +242,12 @@
 -export_type([data/0,
               stat/0,
               payload/0,
+              payload_data/0,
+              payload_sproc/0,
               tree_node/0,
               trigger_id/0,
               event_filter/0,
+              event_filter_tree/0,
               triggered/0,
               payload_version/0,
               child_list_version/0,
@@ -540,6 +549,23 @@ readwrite_transaction(StoreId, StandaloneFun) ->
             {atomic, Ret}
     end.
 
+-spec run_sproc(StoreId, PathPattern, Args) -> Ret when
+  StoreId :: khepri:store_id(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: [any()],
+      Ret :: any().
+%% @doc Executes a stored procedure.
+%%
+%% The stored procedure is executed in the context of the caller of {@link
+%% run_sproc/3}.
+%%
+%% @param StoreId the name of the Ra cluster.
+%% @param PathPattern the path to the stored procedure.
+%% @param Args the list of args to pass to the stored procedure; its length
+%% must be equal to the stored procedure arity.
+%%
+%% @returns the return value of the stored procedure.
+
 run_sproc(StoreId, PathPattern, Args) when is_list(Args) ->
     Options = #{expect_specific_node => true},
     case get(StoreId, PathPattern, Options) of
@@ -557,13 +583,48 @@ run_sproc(StoreId, PathPattern, Args) when is_list(Args) ->
             throw({invalid_sproc_fun, Error})
     end.
 
--spec register_trigger(StoredId, TriggerId, EventFilter, StoredProcPath) ->
+-spec register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath) ->
     Ret when
-      StoredId :: khepri:store_id(),
+      StoreId :: khepri:store_id(),
       TriggerId :: trigger_id(),
       EventFilter :: event_filter(),
       StoredProcPath :: khepri_path:path(),
       Ret :: ok | khepri:error().
+%% @doc Registers a trigger.
+%%
+%% A trigger is based on an event filter. It associates an event with a stored
+%% procedure. When an event matching the event filter is emitted, the stored
+%% procedure is executed. Here is an example of an event filter:
+%%
+%% ```
+%% EventFilter = #kevf_tree{path = [stock, wood, <<"oak">>],  %% Required
+%%                          props = #{on_actions => [delete], %% Optional
+%%                                    priority => 10}},       %% Optional
+%% '''
+%%
+%% The stored procedure is expected to accept a single argument. This argument
+%% is a map containing the event properties. Here is an example:
+%%
+%% ```
+%% my_stored_procedure(Props) ->
+%%     #{path := Path},
+%%       on_action => Action} = Props.
+%% '''
+%%
+%% The stored procedure is executed on the leader's Erlang node.
+%%
+%% It is guarantied to run at least once. It could be executed multiple times
+%% if the Ra leader changes, therefore the stored procedure must be
+%% idempotent.
+%%
+%% @param StoreId the name of the Ra cluster.
+%% @param TriggerId the name of the trigger.
+%% @param EventFilter the event filter used to associate an event with a stored
+%% procedure.
+%% @param StoredProcPath the path to the stored procedure to execute when the
+%% corresponding event occurs.
+%%
+%% @returns `ok' if the trigger was registered, an "error" tuple otherwise.
 
 register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath) ->
     Command = #register_trigger{id = TriggerId,
@@ -571,11 +632,17 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath) ->
                                 event_filter = EventFilter},
     process_command(StoreId, Command).
 
--spec ack_triggers_execution(StoredId, TriggeredStoredProcs) ->
+-spec ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
     Ret when
-      StoredId :: khepri:store_id(),
+      StoreId :: khepri:store_id(),
       TriggeredStoredProcs :: [triggered()],
       Ret :: ok | khepri:error().
+%% @doc Acknowledges the execution of a trigger.
+%%
+%% This is part of a mechanism to ensure that a trigger is executed at least
+%% once.
+%%
+%% @private
 
 ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
     Command = #ack_triggered{triggered = TriggeredStoredProcs},
@@ -789,6 +856,8 @@ bump_applied_command_count(
 reset_applied_command_count(#?MODULE{metrics = Metrics} = State) ->
     Metrics1 = maps:remove(applied_command_count, Metrics),
     State#?MODULE{metrics = Metrics1}.
+
+%% @private
 
 state_enter(
   leader,

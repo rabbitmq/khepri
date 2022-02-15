@@ -5,11 +5,12 @@
 %% Copyright (c) 2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
+%% @hidden
+
 -module(khepri_event_handler).
 -behaviour(gen_server).
 
 -include_lib("kernel/include/logger.hrl").
-%-include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
