@@ -406,7 +406,7 @@ handle_compilation_error(
   {error,
    [{_GeneratedModuleName,
      [{_, beam_validator, ValidationFailure} | _Rest]}],
-  []} = Error) ->
+   []} = Error) ->
     handle_validation_error(Asm, ValidationFailure, Error);
 handle_compilation_error(
   Asm,
@@ -414,7 +414,7 @@ handle_compilation_error(
   {error,
    [{_GeneratedModuleName,
      [{beam_validator, ValidationFailure} | _Rest]}],
-  []} = Error) ->
+   []} = Error) ->
     handle_validation_error(Asm, ValidationFailure, Error);
 handle_compilation_error(Asm, Error) ->
     throw({compilation_failure, Error, Asm}).
@@ -426,8 +426,10 @@ handle_validation_error(
     _,
     no_bs_start_match2}},
   Error) when Call =:= call orelse Call =:= call_only ->
-    %% TODO: hard-coded register
-    Comment = {'%', {var_info, {x, 0}, [accepts_match_context]}},
+    %% FIXME: We currently hard-code the register to annotate because we don't
+    %% have an immediate way to tell which one should be annotated.
+    Register = {x, 0},
+    Comment = {'%', {var_info, Register, [accepts_match_context]}},
     Location = {'after', {label, EntryLabel}},
     add_comment_and_retry(Asm, Error, EntryLabel, Location, Comment);
 handle_validation_error(
@@ -453,7 +455,7 @@ add_comment_and_retry(
      Labels} = Asm,
     try
         Functions1 = add_comment_to_function(
-                     Functions, FailingFun, Location, Comment, []),
+                       Functions, FailingFun, Location, Comment, []),
         Asm1 = {GeneratedModuleName,
                 Exports,
                 Attributes,
@@ -510,12 +512,14 @@ add_comment_to_code(
   [Instruction | Rest], Location, Comment, Result) ->
     add_comment_to_code(Rest, Location, Comment, [Instruction | Result]).
 
-merge_comments(Comment, Comment) -> throw(duplicate_annotations);
+merge_comments(Comment, Comment) ->
+    throw(duplicate_annotations);
 merge_comments(
   {'%', {var_info, Var, Attributes1}},
   {'%', {var_info, Var, Attributes2}}) ->
     {'%', {var_info, Var, Attributes1 ++ Attributes2}};
-merge_comments(Comment, _Instruction) -> Comment.
+merge_comments(Comment, _Instruction) ->
+    Comment.
 
 -spec exec(StandaloneFun, Args) -> Ret when
       StandaloneFun :: standalone_fun(),
