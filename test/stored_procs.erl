@@ -117,3 +117,36 @@ execute_crashing_sproc_test_() ->
             khepri_machine:run_sproc(
               ?FUNCTION_NAME, StoredProcPath, []))}]
       }]}.
+
+crashing_sproc_stacktrace_test_() ->
+    {ok, Cwd} = file:get_cwd(),
+    File1 = filename:join([Cwd, "test/mod_used_for_transactions.erl"]),
+    File2 = filename:join([Cwd, "test/stored_procs.erl"]),
+    StoredProcPath = [sproc],
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [{"Storing a procedure",
+         ?_assertMatch(
+            {ok, _},
+            khepri_machine:put(
+              ?FUNCTION_NAME, StoredProcPath,
+              #kpayload_sproc{
+                 sproc = fun mod_used_for_transactions:crashing_fun/0}))},
+
+        {"Execute the stored procedure",
+         ?_assertMatch(
+            {throw,
+             "Expected crash",
+             [{_GeneratedModuleName, run,0, [{file, File1}, {line, _}]},
+              {stored_procs, _, _, [{file, File2}, {line, _}]}
+              | _]},
+            try
+                khepri_machine:run_sproc(
+                  ?FUNCTION_NAME, StoredProcPath, [])
+            catch
+                Class:Reason:Stacktrace ->
+                    {Class, Reason, Stacktrace}
+            end)}]
+      }]}.
