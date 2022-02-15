@@ -163,6 +163,48 @@ Because of the nature of the Raft consensus algorithm, transactions are not
 allowed to have side effects or take non-deterministic inputs such as the node
 name or the current date & time.
 
+### Triggers
+
+Khepri supports *stored procedures* and *triggers*. They allow to store code in
+the database itself and automatically execute it after some event occurs.
+
+1.  Store an anonymous function in the tree:
+
+    ```erlang
+    StoredProcPath = [path, to, stored_procedure],
+
+    Fun = fun(Props) ->
+              #{path := Path},
+                on_action => Action} = Props
+          end,
+
+    khepri_machine:put(
+      StoreId,
+      StoredProcPath,
+      #kpayload_sproc{sproc = Fun}))}.
+    ```
+
+2.  Register a trigger using an event filter:
+
+    ```erlang
+    EventFilter = #kevf_tree{path = [stock, wood, <<"oak">>]},
+
+    ok = khepri_machine:register_trigger(
+           StoreId,
+           TriggerId,
+           EventFilter,
+           StoredProcPath))}.
+    ```
+
+In the example above, as soon as the `[stock, wood, <<"oak">>]` node is
+created, updated or deleted, the anonymous function will be executed.
+
+The function is executed at least once on the Ra leader's Erlang node. It may
+be executed multiple times if the leader changes and thus should be idempotent.
+
+Unlike transaction functions, stored procedures may have whatever side effects
+they want.
+
 ## How to build
 
 ### Build
@@ -183,5 +225,5 @@ rebar3 edoc
 rebar3 xref
 rebar3 eunit
 rebar3 proper
-rebar3 dialyzer
+rebar3 as test dialyzer
 ```
