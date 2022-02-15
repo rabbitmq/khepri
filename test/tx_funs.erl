@@ -15,12 +15,15 @@
 
 -dialyzer([{no_return, [allowed_khepri_tx_api_test/0,
                         allowed_erlang_expressions_test/0,
-                        allowed_erlang_module_api_test/0]},
+                        allowed_erlang_module_api_test/0,
+                        allowed_bs_match_accepts_match_context_test/0]},
            {no_missing_calls,
             [extracting_unexported_external_function_test/0]},
            {no_match,
             [matches_type/2,
-             allowed_case_block_with_different_tuple_arities_test/0]}]).
+             allowed_case_block_with_different_tuple_arities_test/0,
+             trim_leading_dash3/2,
+             allowed_bs_match_accepts_match_context_test/0]}]).
 
 -define(make_standalone_fun(Expression),
         begin
@@ -252,6 +255,54 @@ allowed_bs_match_date_parser_test() ->
     ?assertStandaloneFun(
        begin
            {<<"2022">>, <<"02">>, <<"02">>} = parse_date(<<"2022-02-02">>)
+       end).
+
+parse_float(<<".", Rest/binary>>) ->
+    parse_digits(Rest);
+parse_float(Bin) -> {[], Bin}.
+
+parse_digits(Bin) -> parse_digits(Bin, []).
+
+parse_digits(
+  <<Digit/integer, Rest/binary>>,
+  Acc) when is_integer(Digit) andalso Digit >= 48 andalso Digit =< 57 ->
+    parse_digits(Rest, [Digit | Acc]);
+parse_digits(Rest, Acc) ->
+    {lists:reverse(Acc), Rest}.
+
+allowed_bs_match_digit_parser_test() ->
+    ?assertStandaloneFun(
+       begin
+           {[1, 2, 3, 4, 5], <<>>} = parse_float(<<".", 1, 2, 3, 4, 5>>)
+       end).
+
+%% The compiler determines that this clause will always match because this
+%% function is not exported and is only called with a compile-time binary
+%% matching the pattern. As a result, the instruction for this match is
+%% `bs_start_match4'
+trim_leading_dash1(<<$-, Rest/binary>>) -> trim_leading_dash1(Rest);
+trim_leading_dash1(Binary)              -> Binary.
+
+%% This is the same function but we'll give it a non-binary argument in
+%% the test case to avoid the `bs_start_match4' optimization. Instead
+%% the compiler uses a `{test,bs_start_match3,..}` instruction.
+trim_leading_dash2(<<$-, Rest/binary>>) -> trim_leading_dash2(Rest);
+trim_leading_dash2(Binary)              -> Binary.
+
+%% Again, effectively the same function but to fix compilation for this
+%% case we need to determine the correct arity to mark as accepting
+%% a match context, so we should test a case where the binary match
+%% is done in another argument.
+trim_leading_dash3(Arg, <<$-, Rest/binary>>) -> trim_leading_dash3(Arg, Rest);
+trim_leading_dash3(_Arg, Binary)             -> Binary.
+
+allowed_bs_match_accepts_match_context_test() ->
+    ?assertStandaloneFun(
+       begin
+           <<"5">> = trim_leading_dash1(<<"-5">>),
+           <<"5">> = trim_leading_dash2(<<"-5">>),
+           <<"5">> = trim_leading_dash2("-5"),
+           <<"5">> = trim_leading_dash3([], "-5")
        end).
 
 denied_receive_block_test() ->

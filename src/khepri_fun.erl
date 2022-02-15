@@ -75,10 +75,12 @@
                              to_standalone_env/1,
                              to_standalone_arg/2,
                              handle_compilation_error/2,
-                             add_comment_and_retry/4,
-                             add_comment_to_function/7,
-                             add_comment_to_code/5,
-                             are_comments_conflicting/2]}).
+                             handle_validation_error/3,
+                             add_comment_and_retry/5,
+                             add_comment_to_function/5,
+                             add_comment_to_code/3,
+                             add_comment_to_code/4,
+                             merge_comments/2]}).
 
 -type fun_info() :: #{arity => arity(),
                       env => any(),
@@ -372,102 +374,117 @@ handle_compilation_error(
   Asm,
   {error,
    [{_GeneratedModuleName,
-     [{_, beam_validator,
-       {FailingFun,
-        {{get_tuple_element, Src, _Element, _Dst},
-         _,
-         {bad_type,
-          {needed, {t_tuple, _Size, _, _Fields} = NeededType},
-          {actual, any}}}}}]}],
-   []} = Error) ->
-    VarInfo = {var_info, Src, [{type, NeededType}]},
-    Comment = {'%', VarInfo},
-    add_comment_and_retry(Asm, Error, FailingFun, Comment);
+     [{_, beam_validator, ValidationFailure} | _Rest]}],
+  []} = Error) ->
+    handle_validation_error(Asm, ValidationFailure, Error);
 handle_compilation_error(
   Asm,
   %% Same as above, but returned by Erlang 23's compiler instead of Erlang 24+.
   {error,
    [{_GeneratedModuleName,
-     [{beam_validator,
-       {FailingFun,
-        {{get_tuple_element, Src, _Element, _Dst},
-         _,
-         {bad_type,
-          {needed, {t_tuple, _Size, _, _Fields} = NeededType},
-          {actual, any}}}}}]}],
-   []} = Error) ->
-    VarInfo = {var_info, Src, [{type, NeededType}]},
-    Comment = {'%', VarInfo},
-    add_comment_and_retry(Asm, Error, FailingFun, Comment);
+     [{beam_validator, ValidationFailure} | _Rest]}],
+  []} = Error) ->
+    handle_validation_error(Asm, ValidationFailure, Error);
 handle_compilation_error(Asm, Error) ->
     throw({compilation_failure, Error, Asm}).
 
+handle_validation_error(
+  Asm,
+  {_FailingFun,
+   {{Call, 1 = _Arity, {f, EntryLabel}},
+    _,
+    no_bs_start_match2}},
+  Error) when Call =:= call orelse Call =:= call_only ->
+    %% TODO: hard-coded register
+    Comment = {'%', {var_info, {x, 0}, [accepts_match_context]}},
+    Location = {'after', {label, EntryLabel}},
+    add_comment_and_retry(Asm, Error, EntryLabel, Location, Comment);
+handle_validation_error(
+  Asm,
+  {FailingFun,
+   {{bs_start_match4, _Fail, _, Var, Var} = FailingInstruction,
+    _,
+    {bad_type, {needed, NeededType}, {actual, any}}}},
+  Error) ->
+    VarInfo = {var_info, Var, [{type, NeededType}]},
+    Comment = {'%', VarInfo},
+    Location = {before, FailingInstruction},
+    add_comment_and_retry(Asm, Error, FailingFun, Location, Comment);
+handle_validation_error(Asm, _ValidationFailure, Error) ->
+    throw({compilation_failure, Error, Asm}).
+
 add_comment_and_retry(
-  Asm, Error, {GeneratedModuleName, Name, Arity} = _FailingFun, Comment) ->
+  Asm, Error, FailingFun, Location, Comment) ->
     {GeneratedModuleName,
      Exports,
      Attributes,
      Functions,
      Labels} = Asm,
-    Functions1 = add_comment_to_function(
-                   Asm, Error, Functions, Name, Arity, Comment, []),
-    Asm1 = {GeneratedModuleName,
-            Exports,
-            Attributes,
-            Functions1,
-            Labels},
-    compile(Asm1).
+    try
+        Functions1 = add_comment_to_function(
+                     Functions, FailingFun, Location, Comment, []),
+        Asm1 = {GeneratedModuleName,
+                Exports,
+                Attributes,
+                Functions1,
+                Labels},
+        compile(Asm1)
+    catch
+        throw:duplicate_annotations ->
+            throw({compilation_failure, Error, Asm})
+    end.
 
 add_comment_to_function(
-  Asm, Error,
   [#function{name = Name, arity = Arity, code = Code} = Function | Rest],
-  Name, Arity, Comment, Result) ->
-    Code1 = add_comment_to_code(Asm, Error, Code, Comment, []),
+  {_GeneratedModuleName, Name, Arity},
+  Location, Comment, Result) ->
+    Code1 = add_comment_to_code(Code, Location, Comment),
     Function1 = Function#function{code = Code1},
     lists:reverse(Result) ++ [Function1 | Rest];
 add_comment_to_function(
-  Asm, Error,
-  [Function | Rest], Name, Arity, Comment, Result) ->
+  [#function{entry = EntryLabel, code = Code} = Function | Rest],
+  EntryLabel, Location, Comment, Result) ->
+    Code1 = add_comment_to_code(Code, Location, Comment),
+    Function1 = Function#function{code = Code1},
+    lists:reverse(Result) ++ [Function1 | Rest];
+add_comment_to_function(
+  [Function | Rest], FailingFun, Location, Comment, Result) ->
     add_comment_to_function(
-      Asm, Error, Rest, Name, Arity, Comment, [Function | Result]).
+      Rest, FailingFun, Location, Comment, [Function | Result]).
+
+add_comment_to_code(Code, Location, Comment) ->
+    add_comment_to_code(Code, Location, Comment, []).
 
 add_comment_to_code(
-  Asm, Error,
-  [{label, _} = Instruction | Rest],
-  Comment, Result) ->
-    add_comment_to_code(Asm, Error, Rest, Comment, [Instruction | Result]);
-add_comment_to_code(
-  Asm, Error,
-  [{func_info, _, _, _} = Instruction | Rest],
-  Comment, Result) ->
-    add_comment_to_code(Asm, Error, Rest, Comment, [Instruction | Result]);
-add_comment_to_code(
-  Asm, Error,
-  [{'%', _} = Instruction | Rest],
-  Comment, Result) ->
-    case are_comments_conflicting(Instruction, Comment) of
-        false ->
-            add_comment_to_code(
-              Asm, Error, Rest, Comment, [Instruction | Result]);
-        true ->
-            throw(
-              {conflicting_assembly_annotations,
-               Instruction, Comment, Error, Asm})
+  [Instruction | Rest], {before, Instruction},
+  {'%', {var_info, Var, _}} = Comment, Result) ->
+    case Result of
+        [{'%', {var_info, Var, _}} = ExistingComment |  Result1] ->
+            Comment1 = merge_comments(Comment, ExistingComment),
+            lists:reverse(Result1) ++ [Comment1, Instruction | Rest];
+        _ ->
+            lists:reverse(Result) ++ [Comment, Instruction | Rest]
     end;
 add_comment_to_code(
-  _Asm, _Error,
-  Rest,
-  Comment, Result) ->
-    lists:reverse(Result) ++ [Comment | Rest].
+  [Instruction | Rest], {'after', Instruction},
+  {'%', {var_info, Var, _}} = Comment, Result) ->
+    case Rest of
+        [{'%', {var_info, Var, _}} = ExistingComment |  Rest1] ->
+            Comment1 = merge_comments(Comment, ExistingComment),
+            lists:reverse(Result) ++ [Instruction, Comment1 | Rest1];
+        _ ->
+            lists:reverse(Result) ++ [Instruction, Comment | Rest]
+    end;
+add_comment_to_code(
+  [Instruction | Rest], Location, Comment, Result) ->
+    add_comment_to_code(Rest, Location, Comment, [Instruction | Result]).
 
-are_comments_conflicting(
-  {'%', {var_info, Register, _}},
-  {'%', {var_info, Register, _}}) ->
-    %% If we are about to generate two `var_info' comments affecting the same
-    %% register (i.e. same variable), we abort.
-    true;
-are_comments_conflicting(_Comment1, _Comment2) ->
-    false.
+merge_comments(Comment, Comment) -> throw(duplicate_annotations);
+merge_comments(
+  {'%', {var_info, Var, Attributes1}},
+  {'%', {var_info, Var, Attributes2}}) ->
+    {'%', {var_info, Var, Attributes1 ++ Attributes2}};
+merge_comments(Comment, _Instruction) -> Comment.
 
 -spec exec(StandaloneFun, Args) -> Ret when
       StandaloneFun :: standalone_fun(),
@@ -624,12 +641,15 @@ pass1_process_instructions(Instructions, State) ->
 
 %% The first group of clauses of this function patch incorrectly decoded
 %% instructions. These clauses recurse after fixing the instruction to enter
-%% the second group of clauses who.
+%% the other groups of clauses.
 %%
 %% The second group of clauses:
 %%   1. ensures the instruction is known and allowed,
 %%   2. records all calls that need their code to be copied and
 %%   3. records jump labels.
+%%
+%% The third group of clauses infers type information and match contexts
+%% and adds comments to satisfy the compiler's validator pass.
 
 %% First group.
 
@@ -790,6 +810,52 @@ pass1_process_instructions(
     State1 = ensure_instruction_is_permitted(Instruction, State),
     State2 = pass1_process_call(Module, Name, Arity, State1),
     pass1_process_instructions(Rest, State2, [Instruction | Result]);
+
+%% Third group.
+pass1_process_instructions(
+  [{get_tuple_element, Src, Element, _Dest} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    Type = {t_tuple, Element + 1, false, #{}},
+    VarInfo = {var_info, Src, [{type, Type}]},
+    Comment = {'%', VarInfo},
+    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+pass1_process_instructions(
+  [{get_map_elements, _Fail, Src, {list, _}} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    Type = {t_map, any, any},
+    VarInfo = {var_info, Src, [{type, Type}]},
+    Comment = {'%', VarInfo},
+    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+pass1_process_instructions(
+  [{put_map_assoc, _Fail, Src, _Dst, _Live, {list, _}} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    Type = {t_map, any, any},
+    VarInfo = {var_info, Src, [{type, Type}]},
+    Comment = {'%', VarInfo},
+    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+pass1_process_instructions(
+  [{bs_start_match4, _Fail, _, Var, Var} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    VarInfo = {var_info, Var, [accepts_match_context]},
+    Comment = {'%', VarInfo},
+    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+pass1_process_instructions(
+  [{test, bs_start_match3, _Fail, _, [Var], _Dst} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    VarInfo = {var_info, Var, [accepts_match_context]},
+    Comment = {'%', VarInfo},
+    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+
 pass1_process_instructions(
   [Instruction | Rest],
   State,
