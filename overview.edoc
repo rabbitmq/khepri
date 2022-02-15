@@ -25,8 +25,8 @@ reader to the modules' documentation for more details.
 
 == Why Khepri? ==
 
-This started as an experiment to replace how data other than message bodies are
-stored in the <a href="https://www.rabbitmq.com/">RabbitMQ messaging
+This started as an experiment to replace how data (other than message bodies)
+are stored in the <a href="https://www.rabbitmq.com/">RabbitMQ messaging
 broker</a>. Before Khepri, those data were stored and replicated to cluster
 members using Mnesia.
 
@@ -85,14 +85,15 @@ khepri_path:node_id()}).
 
 === Payload ===
 
-A tree node may or may not have a payload. Khepri currently supports a single
-type of payload, the <em>data payload</em>. More payload types may be added in
-the future.
+A tree node may or may not have a payload. Khepri supports two types of
+payload, the <em>data payload</em> and the <em>stored procedure payload</em>.
+More payload types may be added in the future.
 
 Payloads are represented using macros or helper functions:
 <ul>
 <li>`none' and {@link khepri:no_payload/0}</li>
 <li>`#kpayload_data{data = Term}' and {@link khepri:data_payload/1}</li>
+<li>`#kpayload_sproc{sproc = Fun}' and {@link khepri:sproc_payload/1}</li>
 </ul>
 
 Functions in {@link khepri_machine} have no assumption on the type of the
@@ -100,7 +101,7 @@ payload because they are a low-level API. Therefore, it must be specified
 explicitly using the macros or helper functions mentionned above.
 
 Most functions in {@link khepri}, being a higher-level API, target more
-specific use cases and assume a particular type of payload.
+specific use cases and detect the type of payload.
 
 === Properties ===
 
@@ -140,7 +141,7 @@ For instance:
 %% Matches all varieties of wood in the stock:
 PathPattern = [stock, wood, #if_node_matches{regex = any}].
 
-%% Matches the supplied of oak if there is an active order:
+%% Matches the supplier of oak if there is an active order:
 PathPattern = [order,
                wood,
                #if_all{conditions = [
@@ -219,9 +220,9 @@ The low-level API provides just a handful of primitives. More advanced or
 specific use cases may need to rely on that low-level API.
 
 ```
-%% Unlike the high-level API's `khepri:insert/2' function, this low-level %
+%% Unlike the high-level API's `khepri:insert/2' function, this low-level
 %% insert returns whatever it replaced (if anything). In this case, there was
-%% nothing before, so the returned value is pretty empty.
+%% nothing before, so the returned value is empty.
 Ret1 = khepri_machine:put(
          StoreId, [stock, wood, <<"lime tree">>],
          #kpayload_data{data = 150}),
@@ -246,8 +247,8 @@ Ret3 = khepri_machine:delete(StoreId, [stock, wood, <<"lime tree">>]),
 
 === Stores ===
 
-It is possible to have multiple database instances running on the same node or
-cluster.
+It is possible to have multiple database instances running on the same Erlang
+node or cluster.
 
 By default, Khepri starts a default store, based on Ra's default system.
 
@@ -289,12 +290,12 @@ apply all Ra commands from an initial state to be on the same page as other
 existing instances.
 
 Likewise, if for any reason, one of the Khepri state machine instance looses
-the connection to other members and can't apply Ra commands, then the link
+the connection to other members and can't apply Ra commands, then when the link
 comes back, it has to catch up.
 
 All this means that the code to modify the state of the state machines (i.e.
-the tree) needs to run on all instances, possibly not a the same time, and give
-the exact same result everywhere.
+the tree) needs to run on all instances, possibly not at the same time, and
+give the exact same result everywhere.
 
 === The problem with anonymous functions ===
 
@@ -318,8 +319,9 @@ presence of the initial anonymous function's module.
 
 Here is what they do in more details:
 <ol>
-<li>The assembly code of the module hosting the anonymous function is extracted</li>
-<li>The anynmous function code is located inside that assembly code</li>
+<li>The assembly code of the module hosting the anonymous function is
+extracted.</li>
+<li>The anonymous function code is located inside that assembly code.</li>
 <li>The code is analyzed to determine:
 <ul>
 <li>that it does not perform any forbidden operations (sending or receving
@@ -328,7 +330,175 @@ etc.)</li>
 <li>what other functions it calls</li>
 </ul></li>
 <li>Based on the listed function calls, the same steps are repeated for all of
-them (extract, verify, list calls)</li>
+them (extract, verify, list calls).</li>
 <li>Once all the assembly code to have a standalone anonymous function is
-collected, an Erlang module is generated based</li>
+collected, an Erlang module is generated.</li>
 </ol>
+
+=== How to handle side effects? ===
+
+The consequence of the above constraints is that a transaction function can't
+depend on anything else than the tree and it can't have any side effects
+outside of the changes to the tree nodes.
+
+If the transaction needs to have side effects, there are two options:
+<ul>
+<li>Perform any side effects after the transaction.</li>
+<li>Use {@link khepri_machine:put/3} with {@link
+khepri_condition:if_payload_version()} conditions in the path and retry if the
+put fails because the version changed in between.</li>
+</ul>
+
+Here is an example of the second option:
+
+```
+Path = [stock, wood, <<"lime tree">>],
+{ok, #{Path := #{data = Term,
+                 payload_version = PayloadVersion}}} =
+  khepri_machine:get(StoredId, Path),
+
+%% Do anything with `Term` that depend on external factors and could have side
+%% effects.
+Term1 = do_something_with_side_effects(Term),
+
+PathPattern = [stock,
+               wood,
+               #if_all{
+                 conditions = [
+                   <<"lime tree">>,
+                   #if_payload_version{version = PayloadVersion}]}],
+Payload = #kpayload_data{data = Term1},
+case khepri_machine:put(StoredId, PathPattern, Payload) of
+    {ok, _} ->
+        ok; %% `Term1` was stored successfully.
+    {error, {mismatching_node, _}} ->
+        loop() %% Restart the whole function to read/modify/write again.
+end.
+'''
+
+== Stored procedures and triggers ==
+
+=== Triggering a function after some event ===
+
+It is possible to associate events with an anonymous function to trigger its
+execution when something happens. This is what is usually called a
+<em>trigger</em> in databases and Khepri supports this feature.
+
+Currently, Khepri supports a single type of event, <em>tree changes</em>. This
+event is emitted whenever a tree node is being created, updated or deleted.
+
+Here is a summary of what happens when such an event is emitted:
+<ol>
+<li>Khepri looks up any <em>event filters</em> which could match the emitted
+event.</li>
+<li>If one or more event filters are found, their corresponding stored
+procedures are executed.</li>
+</ol>
+
+The indicated stored procedure must have been stored in the tree first.
+
+=== Storing an anonymous function ===
+
+This is possible to store an anonymous function as the payload of a tree node
+using the {@link khepri_machine:payload_sproc()} record:
+
+```
+khepri_machine:put(
+  StoreId,
+  StoredProcPath,
+  #kpayload_sproc{sproc = fun() -> do_something() end}))}.
+'''
+
+The `StoredProcPath' can be <a href="#Addressing_a_tree_node">any path in the
+tree</a>.
+
+Unlike transaction functions, a stored procedure has no restrictions on what
+it is allowed to do. Therefore, a stored procedure can send or receive
+messages, read or write from a disk, generate random numbers and so on.
+
+A stored procedure can accept any numbers of arguments too.
+
+It is possible to execute a stored procedure directly without configuring any
+triggers. To execute a stored procedure, you can call {@link
+khepri_machine:run_sproc/3}. Here is an example:
+
+```
+Ret = khepri_machine:run_sproc(
+        StoreId,
+        StoredProcPath,
+        [] = _Args).
+'''
+
+This works exactly like {@link erlang:apply/2}. The list of arguments passed
+to {@link khepri_machine:run_sproc/3} must correspond to the stored procedure
+arity.
+
+=== Configuring a trigger ===
+
+Khepri uses <em>event filters</em> to associate a type of events with a stored
+procedure. Khepri supports tree changes events and thus only supports a single
+event filter called {@link khepri_machine:event_filter_tree()}.
+
+An event filter is registered using {@link khepri_machine:register_trigger/4}:
+
+```
+EventFilter = #kevf_tree{path = [stock, wood, <<"oak">>],  %% Required
+                         props = #{on_actions => [delete], %% Optional
+                                   priority => 10}},       %% Optional
+
+ok = khepri_machine:register_trigger(
+       StoreId,
+       TriggerId,
+       EventFilter,
+       StoredProcPath))}.
+'''
+
+In this example, the {@link khepri_machine:event_filter_tree()} record only
+requires the path to monitor. The path can be any path pattern and thus can
+have conditions to monitor several nodes at once.
+
+The `on_actions' property is optional. By default the event filter matches all
+tree changes (`create', `update' or `delete').
+
+The `priority' property is also optional and defaults to 0. When several event
+filters match a given event, they are sorted by priority (a greater integer
+means the event filter will be considered first), then by `TriggerId' in
+alphabetical order.
+
+Neither the monitored path nor the stored procedure (pointed to by
+`StoredProcPath') need to exist when the event filter is registered. If the
+stored procedure doesn't exist when an event occurs, the event filter is
+simply ignored. A stored procedure can change after an event filter is
+registered as well.
+
+The stored procedure used for a trigger must accept a single argument, a map
+containing properties of the emitted event:
+
+```
+my_stored_procedure(Props) ->
+    #{path := Path},
+      on_action => Action} = Props.
+'''
+
+`Path' is the path to the tree node created, updated or deleted.
+
+`Action' is the nature of the change (`create', `update' or `delete').
+
+The return value of this stored procedure is ignored in the context of a
+trigger.
+
+=== Execution guaranties ===
+
+The stored procedure associated with a trigger (event filter) is executed on
+the Ra leader node.
+
+If the stored procedure throws an exception, it is logged and there is no
+retry.
+
+There is an internal ack mechanism to make sure the stored procedure is
+executed at least once. Therefore, if the Ra leader changes before the
+execution of the stored procedure could be confirmed to the Khepri state
+machine, the execution will be retried on the new Ra leader.
+
+This means that the stored procedure could be executed multiple times. There
+it is important it is idempotent.

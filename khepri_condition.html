@@ -73,12 +73,14 @@
 <hr>
 
 <h1>Module khepri_condition</h1>
-<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Condition support.
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li></ul>Condition support.
 
 
 <h2><a name="description">Description</a></h2><p>Condition support.</p>
  
-  <p>Conditions can be used in path patterns and <code>keep_while</code> conditions.</p>
+  <p>Conditions can be used in path patterns and <code>keep_while</code> conditions. They  
+allow to point to a specific node only if conditions are met, or to match  
+several tree nodes with a single path pattern.</p>
  
   <p>A condition is an Erlang record defining a specific property. Some of them  
 have arguments to further define the condition.</p>
@@ -93,7 +95,7 @@ have arguments to further define the condition.</p>
 
 <h3 class="typedecl"><a name="type-condition">condition()</a></h3>
 <p><code>condition() = <a href="#type-if_name_matches">if_name_matches()</a> | <a href="#type-if_path_matches">if_path_matches()</a> | <a href="#type-if_has_data">if_has_data()</a> | <a href="#type-if_data_matches">if_data_matches()</a> | <a href="#type-if_node_exists">if_node_exists()</a> | <a href="#type-if_payload_version">if_payload_version()</a> | <a href="#type-if_child_list_version">if_child_list_version()</a> | <a href="#type-if_child_list_length">if_child_list_length()</a> | <a href="#type-if_not">if_not()</a> | <a href="#type-if_all">if_all()</a> | <a href="#type-if_any">if_any()</a></code></p>
-
+<p>  All supported conditions.</p>
 
 <h3 class="typedecl"><a name="type-if_all">if_all()</a></h3>
 <p><code>if_all() = #if_all{conditions = [<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a>]}</code></p>
@@ -262,24 +264,13 @@ corresponds to the expected value.</p>
 
 <h3 class="typedecl"><a name="type-keep_while">keep_while()</a></h3>
 <p><code>keep_while() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; <a href="#type-condition">condition()</a>}</code></p>
-
+<p>  An association between a path and a condition. As long as the condition
+  evalutes to true, the tree node is kept. Once the condition evalutes to
+  false, the tree node is deleted.</p>
 
 <h3 class="typedecl"><a name="type-re_mp">re_mp()</a></h3>
 <p><code>re_mp() = tuple()</code></p>
 
-
-<h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#is_valid-1">is_valid/1</a></td><td></td></tr>
-</table>
-
-<h2><a name="functions">Function Details</a></h2>
-
-<h3 class="function"><a name="is_valid-1">is_valid/1</a></h3>
-<div class="spec">
-<p><code>is_valid(Condition) -&gt; IsValid</code>
-<ul class="definitions"><li><code>Condition = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a></code></li><li><code>IsValid = true | {false, <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a>}</code></li></ul></p>
-<p></p>
-</div>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>

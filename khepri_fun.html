@@ -128,45 +128,121 @@ to older runtimes.</p>
 
 
 <h3 class="typedecl"><a name="type-ensure_instruction_is_permitted_fun">ensure_instruction_is_permitted_fun()</a></h3>
-<p><code>ensure_instruction_is_permitted_fun() = fun((<a href="#type-beam_instr">beam_instr()</a>) -&gt; ok)</code></p>
-
+<p><code>ensure_instruction_is_permitted_fun() = fun((Instruction::<a href="#type-beam_instr">beam_instr()</a>) -&gt; ok)</code></p>
+<p><p>  Function which evaluates the given instruction and returns <code>ok</code> if it is  
+permitted, throws an exception otherwise.</p>
+ 
+  <p>Example:</p>
+ 
+  <pre><code>Fun = fun
+          ({jump, _})    -&gt; ok;
+          ({move, _, _}) -&gt; ok;
+          ({trim, _, _}) -&gt; ok;
+          (Unknown)      -&gt; throw({unknown_instruction, Unknown})
+      end.</code></pre></p>
 
 <h3 class="typedecl"><a name="type-is_standalone_fun_still_needed_fun">is_standalone_fun_still_needed_fun()</a></h3>
-<p><code>is_standalone_fun_still_needed_fun() = fun((#{calls := #{mfa() =&gt; true}, errors := [any()]}) -&gt; boolean())</code></p>
-
+<p><code>is_standalone_fun_still_needed_fun() = fun((#{calls := #{Call::mfa() =&gt; true}, errors := [Error::any()]}) -&gt; IsNeeded::boolean())</code></p>
+<p><p>  Function which evaluates if the extracted function is still relevant in the  
+end. It returns true if it is, false otherwise.</p>
+ 
+  It takes a map with the following members:
+  <ul>
+  <li><code>calls</code>, a map of all the calls performed by the extracted code (only
+  the key is useful, the value is always true).</li>
+  <li><code>errors</code>, a list of errors collected during the extraction.</li>
+  </ul></p>
 
 <h3 class="typedecl"><a name="type-options">options()</a></h3>
 <p><code>options() = #{ensure_instruction_is_permitted =&gt; <a href="#type-ensure_instruction_is_permitted_fun">ensure_instruction_is_permitted_fun()</a>, should_process_function =&gt; <a href="#type-should_process_function_fun">should_process_function_fun()</a>, is_standalone_fun_still_needed =&gt; <a href="#type-is_standalone_fun_still_needed_fun">is_standalone_fun_still_needed_fun()</a>}</code></p>
-
+<p><p>  Options to tune the extraction of an anonymous function.</p>
+ 
+  <ul>
+  <li><code>ensure_instruction_is_permitted</code>: a function which evaluates if an
+  instruction is permitted or not.</li>
+  <li><code>should_process_function</code>: a function which returns if a called module
+  and function should be extracted as well or left alone.</li>
+  <li><code>is_standalone_fun_still_needed</code>: a function which returns if, after
+  the extraction is finished, the extracted function is still needed in
+  comparison to keeping the initial anonymous function.</li>
+  </ul></p>
 
 <h3 class="typedecl"><a name="type-should_process_function_fun">should_process_function_fun()</a></h3>
-<p><code>should_process_function_fun() = fun((module(), atom(), arity(), module()) -&gt; boolean())</code></p>
-
+<p><code>should_process_function_fun() = fun((Module::module(), Function::atom(), Arity::arity(), FromModule::module()) -&gt; ShouldProcess::boolean())</code></p>
+<p><p>  Function which returns true if a called function should be extracted and  
+followed, false otherwise.</p>
+ 
+  <p><code>Module</code>, <code>Function</code> and <code>Arity</code> qualify the function being called.</p>
+ 
+  <p><code>FromModule</code> indicates the module performing the call. This is useful to
+  distinguish local calls (<code>FromModule</code> == <code>Module</code>) from remote calls.</p>
+ 
+  <p>Example:</p>
+ 
+  <pre><code>Fun = fun(Module, Name, Arity, FromModule) -&gt;
+              Module =:= FromModule orelse
+              erlang:function_exported(Module, Name, Arity)
+      end.</code></pre></p>
 
 <h3 class="typedecl"><a name="type-standalone_fun">standalone_fun()</a></h3>
 <p><code>standalone_fun() = #standalone_fun{module = module(), beam = binary(), arity = arity(), env = list()} | function()</code></p>
-
+<p><p>  The result of an extraction, as returned by <a docgen-rel="seemfa" docgen-href="#to_standalone_fun/2" href="#to_standalone_fun-2"><code>to_standalone_fun/2</code></a>.</p>
+ 
+  It can be stored, passed between processes and Erlang nodes. To execute the
+  extracted function, simply call <a docgen-rel="seemfa" docgen-href="#exec/2" href="#exec-2"><code>exec/2</code></a> which works like <a docgen-rel="seemfa" docgen-href="erlang#apply/2" href="erlang.html#apply-2"><code>erlang:apply/2</code></a>.</p>
 
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#to_standalone_fun-2">to_standalone_fun/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#exec-2">exec/2</a></td><td></td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#to_standalone_fun-1">to_standalone_fun/1</a></td><td>Extracts the given anonymous function.</td></tr>
+<tr><td valign="top"><a href="#to_standalone_fun-2">to_standalone_fun/2</a></td><td>Extracts the given anonymous function.</td></tr>
+<tr><td valign="top"><a href="#exec-2">exec/2</a></td><td>Executes a previously extracted anonymous function.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="to_standalone_fun-1">to_standalone_fun/1</a></h3>
+<div class="spec">
+<p><code>to_standalone_fun(Fun) -&gt; StandaloneFun</code>
+<ul class="definitions"><li><code>Fun = function()</code></li><li><code>StandaloneFun = <a href="#type-standalone_fun">standalone_fun()</a></code></li></ul></p>
+<p><code>Fun</code>: the anonymous function to extract
+ <br>
+</p>
+<p>returns: a standalone function record or the same anonymous function if no
+  extraction was needed.</p>
+</div><p><p>Extracts the given anonymous function</p>
+ 
+  This is the same as:
+  <pre><code>khepri_fun:to_standalone_fun(Fun, #{}).</code></pre>
+ </p>
 
 <h3 class="function"><a name="to_standalone_fun-2">to_standalone_fun/2</a></h3>
 <div class="spec">
 <p><code>to_standalone_fun(Fun, Options) -&gt; StandaloneFun</code>
 <ul class="definitions"><li><code>Fun = function()</code></li><li><code>Options = <a href="#type-options">options()</a></code></li><li><code>StandaloneFun = <a href="#type-standalone_fun">standalone_fun()</a></code></li></ul></p>
-<p></p>
-</div>
+<p><code>Fun</code>: the anonymous function to extract<br>
+<code>Options</code>: a map of options
+ <br>
+</p>
+<p>returns: a standalone function record or the same anonymous function if no
+  extraction was needed.</p>
+</div><p>Extracts the given anonymous function
+ </p>
 
 <h3 class="function"><a name="exec-2">exec/2</a></h3>
 <div class="spec">
 <p><code>exec(StandaloneFun, Args) -&gt; Ret</code>
 <ul class="definitions"><li><code>StandaloneFun = <a href="#type-standalone_fun">standalone_fun()</a></code></li><li><code>Args = [any()]</code></li><li><code>Ret = any()</code></li></ul></p>
-<p></p>
-</div>
+<p><code>StandaloneFun</code>: the extracted function as returned by <a docgen-rel="seemfa" docgen-href="#to_standalone_fun/2" href="#to_standalone_fun-2"><code>to_standalone_fun/2</code></a>.<br>
+<code>Args</code>: the list of arguments to pass to the extracted function.
+ <br>
+</p>
+<p>returns: the return value of the extracted function.</p>
+</div><p><p>Executes a previously extracted anonymous function.</p>
+ 
+  <p>This is the equivalent of <a docgen-rel="seemfa" docgen-href="erlang#apply/2" href="erlang.html#apply-2"><code>erlang:apply/2</code></a> but it supports extracted  
+anonymous functions.</p>
+ 
+  The list of <code>Args</code> must match the arity of the anonymous function.
+ </p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>

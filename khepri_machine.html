@@ -155,7 +155,11 @@ added or removed).</p>
 <p>  Data stored in a node's payload.</p>
 
 <h3 class="typedecl"><a name="type-event_filter">event_filter()</a></h3>
-<p><code>event_filter() = #kevf_tree{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a>, props = #{on_actions =&gt; [create | update | delete], priority =&gt; integer()}}</code></p>
+<p><code>event_filter() = <a href="#type-event_filter_tree">event_filter_tree()</a></code></p>
+
+
+<h3 class="typedecl"><a name="type-event_filter_tree">event_filter_tree()</a></h3>
+<p><code>event_filter_tree() = #kevf_tree{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a>, props = #{on_actions =&gt; [create | update | delete], priority =&gt; integer()}}</code></p>
 
 
 <h3 class="typedecl"><a name="type-keep_while_conds_map">keep_while_conds_map()</a></h3>
@@ -199,10 +203,18 @@ payload and child nodes.</p>
 <p>  Options used in <a docgen-rel="seemfa" docgen-href="#find_matching_nodes/3" href="#find_matching_nodes-3"><code>find_matching_nodes/3</code></a>.</p>
 
 <h3 class="typedecl"><a name="type-payload">payload()</a></h3>
-<p><code>payload() = none | #kpayload_data{data = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-data">khepri_machine:data()</a>} | #kpayload_sproc{sproc = <a href="/home/runner/work/khepri/khepri/doc/khepri_fun.html#type-standalone_fun">khepri_fun:standalone_fun()</a>}</code></p>
+<p><code>payload() = none | <a href="#type-payload_data">payload_data()</a> | <a href="#type-payload_sproc">payload_sproc()</a></code></p>
 <p><p>  All types of payload stored in the nodes of the tree structure.</p>
  
   Beside the absence of payload, the only type of payload supported is data.</p>
+
+<h3 class="typedecl"><a name="type-payload_data">payload_data()</a></h3>
+<p><code>payload_data() = #kpayload_data{data = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-data">khepri_machine:data()</a>}</code></p>
+
+
+<h3 class="typedecl"><a name="type-payload_sproc">payload_sproc()</a></h3>
+<p><code>payload_sproc() = #kpayload_sproc{sproc = <a href="/home/runner/work/khepri/khepri/doc/khepri_fun.html#type-standalone_fun">khepri_fun:standalone_fun()</a>}</code></p>
+
 
 <h3 class="typedecl"><a name="type-payload_version">payload_version()</a></h3>
 <p><code>payload_version() = pos_integer()</code></p>
@@ -243,10 +255,8 @@ payload and child nodes.</p>
 <tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#transaction-2">transaction/2</a></td><td>Runs a transaction and returns the result.</td></tr>
 <tr><td valign="top"><a href="#transaction-3">transaction/3</a></td><td>Runs a transaction and returns the result.</td></tr>
-<tr><td valign="top"><a href="#run_sproc-3">run_sproc/3</a></td><td></td></tr>
-<tr><td valign="top"><a href="#register_trigger-4">register_trigger/4</a></td><td></td></tr>
-<tr><td valign="top"><a href="#ack_triggers_execution-2">ack_triggers_execution/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#state_enter-2">state_enter/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#run_sproc-3">run_sproc/3</a></td><td>Executes a stored procedure.</td></tr>
+<tr><td valign="top"><a href="#register_trigger-4">register_trigger/4</a></td><td>Registers a trigger.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -440,29 +450,56 @@ do and in which context it runs:</p>
 
 <h3 class="function"><a name="run_sproc-3">run_sproc/3</a></h3>
 <div class="spec">
-<p><code>run_sproc(StoreId, PathPattern, Args) -&gt; any()</code></p>
-<p></p>
-</div>
+<p><code>run_sproc(StoreId, PathPattern, Args) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Args = [any()]</code></li><li><code>Ret = any()</code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<code>PathPattern</code>: the path to the stored procedure.<br>
+<code>Args</code>: the list of args to pass to the stored procedure; its length
+  must be equal to the stored procedure arity.
+ <br>
+</p>
+<p>returns: the return value of the stored procedure.</p>
+</div><p><p>Executes a stored procedure.</p>
+ 
+  The stored procedure is executed in the context of the caller of <a docgen-rel="seemfa" docgen-href="#run_sproc/3" href="#run_sproc-3"><code>run_sproc/3</code></a>.
+ </p>
 
 <h3 class="function"><a name="register_trigger-4">register_trigger/4</a></h3>
 <div class="spec">
-<p><code>register_trigger(StoredId, TriggerId, EventFilter, StoredProcPath) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoredId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>TriggerId = <a href="#type-trigger_id">trigger_id()</a></code></li><li><code>EventFilter = <a href="#type-event_filter">event_filter()</a></code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
-<p></p>
-</div>
-
-<h3 class="function"><a name="ack_triggers_execution-2">ack_triggers_execution/2</a></h3>
-<div class="spec">
-<p><code>ack_triggers_execution(StoredId, TriggeredStoredProcs) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoredId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>TriggeredStoredProcs = [<a href="#type-triggered">triggered()</a>]</code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
-<p></p>
-</div>
-
-<h3 class="function"><a name="state_enter-2">state_enter/2</a></h3>
-<div class="spec">
-<p><code>state_enter(StateName, Khepri_machine) -&gt; any()</code></p>
-<p></p>
-</div>
+<p><code>register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>TriggerId = <a href="#type-trigger_id">trigger_id()</a></code></li><li><code>EventFilter = <a href="#type-event_filter">event_filter()</a></code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<code>TriggerId</code>: the name of the trigger.<br>
+<code>EventFilter</code>: the event filter used to associate an event with a stored
+  procedure.<br>
+<code>StoredProcPath</code>: the path to the stored procedure to execute when the
+  corresponding event occurs.
+ <br>
+</p>
+<p>returns: <code>ok</code> if the trigger was registered, an "error" tuple otherwise.</p>
+</div><p><p>Registers a trigger.</p>
+ 
+  <p>A trigger is based on an event filter. It associates an event with a stored  
+procedure. When an event matching the event filter is emitted, the stored  
+procedure is executed. Here is an example of an event filter:</p>
+ 
+  <pre><code>EventFilter = #kevf_tree{path = [stock, wood, &lt;&lt;"oak"&gt;&gt;],  %% Required
+                         props = #{on_actions =&gt; [delete], %% Optional
+                                   priority =&gt; 10}},       %% Optional</code></pre>
+ 
+  <p>The stored procedure is expected to accept a single argument. This argument  
+is a map containing the event properties. Here is an example:</p>
+ 
+  <pre><code>my_stored_procedure(Props) -&gt;
+    #{path := Path},
+      on_action =&gt; Action} = Props.</code></pre>
+ 
+  <p>The stored procedure is executed on the leader's Erlang node.</p>
+ 
+  It is guarantied to run at least once. It could be executed multiple times
+  if the Ra leader changes, therefore the stored procedure must be
+  idempotent.
+ </p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
