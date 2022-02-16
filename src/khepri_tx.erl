@@ -440,6 +440,7 @@ is_remote_call_valid(erlang, md5_final, _) -> true;
 is_remote_call_valid(erlang, md5_init, _) -> true;
 is_remote_call_valid(erlang, md5_update, _) -> true;
 is_remote_call_valid(erlang, min, _) -> true;
+is_remote_call_valid(erlang, 'not', _) -> true;
 is_remote_call_valid(erlang, phash2, _) -> true;
 is_remote_call_valid(erlang, pid_to_list, _) -> true;
 is_remote_call_valid(erlang, raise, _) -> true;
