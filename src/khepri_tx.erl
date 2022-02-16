@@ -260,6 +260,8 @@ ensure_instruction_is_permitted({gc_bif, Bif, _, Arity, _, _}) ->
     ensure_bif_is_valid(Bif, Arity);
 ensure_instruction_is_permitted({get_hd, _, _}) ->
     ok;
+ensure_instruction_is_permitted({get_tl, _, _}) ->
+    ok;
 ensure_instruction_is_permitted({get_tuple_element, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted({get_map_elements, _, _, _}) ->
