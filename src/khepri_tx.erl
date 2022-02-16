@@ -298,6 +298,8 @@ ensure_instruction_is_permitted(return) ->
     ok;
 ensure_instruction_is_permitted(send) ->
     throw(sending_message_denied);
+ensure_instruction_is_permitted({select_tuple_arity, _, _, {list, _}}) ->
+    ok;
 ensure_instruction_is_permitted({select_val, _, _, {list, _}}) ->
     ok;
 ensure_instruction_is_permitted({set_tuple_element, _, _, _}) ->
