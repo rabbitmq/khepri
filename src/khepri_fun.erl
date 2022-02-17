@@ -62,6 +62,10 @@
          to_standalone_fun/2,
          exec/2]).
 
+-ifdef(TEST).
+-export([decode_line_chunk/2]).
+-endif.
+
 %% FIXME: compile:forms/2 is incorrectly specified and doesn't accept
 %% assembly. This breaks compile/1 and causes a cascade of errors.
 %%
@@ -114,7 +118,8 @@
 
 -record(tag, {tag,
               size,
-              word_value}).
+              word_value,
+              ptr_value}).
 
 %% -------------------------------------------------------------------
 %% Taken from lib/compiler/src/beam_disasm.hrl,
@@ -1108,7 +1113,7 @@ do_disassemble(Beam) ->
        attributes = Attributes,
        compile_info = CompileInfo,
        code = Code} = BeamFileRecord,
-    Lines = decode_line_chunk(Module, Beam),
+    Lines = get_and_decode_line_chunk(Module, Beam),
     BeamFileRecordExt = #beam_file_ext{
                            module = Module,
                            labeled_exports = LabeledExports,
@@ -1124,13 +1129,26 @@ do_disassemble(Beam) ->
 %% The opposite encoding function is inside the compiler.
 %% See: compiler/src/beam_asm.erl, build_line_table().
 
-decode_line_chunk(Module, Beam) ->
+-define(CHAR_BIT, 8).
+-define(sizeof_Sint16, 2).
+-define(sizeof_Sint32, 4).
+-define(sizeof_SWord, 4).
+
+%% See erts/emulator/beam/big.h
+%% Here, we assume a 64bit architecture with 4-byte integers.
+-define(_IS_SSMALL32(X), true).
+-define(IS_SSMALL(X), ?_IS_SSMALL32(X)).
+
+get_and_decode_line_chunk(Module, Beam) ->
     case beam_lib:chunks(Beam, ["Line"]) of
         {ok, {Module, [{"Line", Chunk}]}} ->
-            decode_line_chunk_version(Module, Chunk);
+            decode_line_chunk(Module, Chunk);
         _ ->
             undefined
     end.
+
+decode_line_chunk(Module, Chunk) ->
+    decode_line_chunk_version(Module, Chunk).
 
 decode_line_chunk_version(
   Module,
@@ -1151,16 +1169,20 @@ decode_line_chunk_counts_and_flags(
     UndefinedLocation = #line{name_index = 0,
                               location = 0},
     ModuleFilename = atom_to_list(Module) ++ ".erl",
+    NameCount1 = NameCount + 1,
+    ItemCount1 = ItemCount + 1,
     LocationSize = if
-                       NameCount > 0 -> 4;
-                       true          -> 2
+                       NameCount1 > 1 -> ?sizeof_Sint32;
+                       true           -> ?sizeof_Sint16
                    end,
-    Lines = #lines{item_count = ItemCount + 1,
+    Lines = #lines{item_count = ItemCount1,
                    items = [UndefinedLocation],
-                   name_count = NameCount + 1,
+                   name_count = NameCount1,
                    names = [ModuleFilename],
                    location_size = LocationSize},
-    decode_line_chunk_items(Rest, 1, 0, Lines).
+    NameIndex = 0,
+    I = 1,
+    decode_line_chunk_items(Rest, I, NameIndex, Lines).
 
 decode_line_chunk_items(
   Rest, I, NameIndex,
@@ -1176,7 +1198,7 @@ decode_line_chunk_items(
         #tag{tag = tag_i, size = 0, word_value = WordValue}
           when WordValue >= 0 ->
             LocationSize1 = if
-                                WordValue > 16#FFFF -> 4;
+                                WordValue > 16#FFFF -> ?sizeof_Sint32;
                                 true                -> LocationSize
                             end,
             Item = #line{name_index = NameIndex,
@@ -1227,21 +1249,42 @@ read_tagged(
                   size = Size},
              Rest1};
         true ->
-            %LenCode1 = LenCode bsr 5,
-            %{Count, Rest1} = if
-            %                     LenCode < 7 ->
-            %                         SizeBase = 2,
-            %                         {LenCode + SizeBse, Rest};
-            %                     true ->
-            %                         SizeBase = 9,
-            %                         {#{tag = tag_u,
-            %                            word_value = UnpackedSize},
-            %                          R1} = read_tagged(Rest),
-            %                         {UnpackedSize + SizeBase, R1}
-            %                 end,
-            %<<Data:Count/binary, Rest2/binary>> = Rest1,
-            %WordValue = unpack_varint(Data, Count),
-            throw("Not implemented")
+            LenCode1 = LenCode bsr 5,
+            {Count, Rest1} = if
+                                 LenCode1 < 7 ->
+                                     SizeBase = 2,
+                                     {LenCode1 + SizeBase, Rest};
+                                 true ->
+                                     SizeBase = 9,
+                                     {#tag{tag = tag_u,
+                                           word_value = UnpackedSize},
+                                      R1} = read_tagged(Rest),
+                                     {UnpackedSize + SizeBase, R1}
+                             end,
+            <<Data:Count/binary, Rest2/binary>> = Rest1,
+            case unpack_varint(Count, Data) of
+                WordValue when is_integer(WordValue) andalso Tag =:= tag_i ->
+                    Shift = ?CHAR_BIT * (?sizeof_SWord - Count),
+                    SignExtendedValue = (WordValue bsl Shift) bsr Shift,
+                    if
+                        %% This first clause is true at compile-time.
+                        ?IS_SSMALL(SignExtendedValue) ->
+                            {#tag{tag = Tag,
+                                  word_value = SignExtendedValue,
+                                  size = 0},
+                             Rest2}
+                    end;
+                WordValue when is_integer(WordValue) andalso WordValue >= 0 ->
+                    {#tag{tag = Tag,
+                          word_value = WordValue,
+                          size = 0},
+                     Rest2};
+                false ->
+                    {#tag{tag = tag_o,
+                          ptr_value = Data,
+                          size = Count},
+                     Rest2}
+            end
     end.
 
 decode_tag(0) -> tag_u;
@@ -1252,6 +1295,19 @@ decode_tag(4) -> tag_y;
 decode_tag(5) -> tag_f;
 decode_tag(6) -> tag_h;
 decode_tag(7) -> tag_z.
+
+unpack_varint(Size, Data) ->
+    if
+        Size =< ?sizeof_SWord -> do_unpack_varint(0, Size, Data, 0);
+        true                  -> false
+    end.
+
+do_unpack_varint(I, Size, <<Byte:8/unsigned-integer, Rest/binary>>, Res)
+  when I < Size ->
+    Res1 = (Byte bsl (Size - I - 1) * ?CHAR_BIT) bor Res,
+    do_unpack_varint(I + 1, Size, Rest, Res1);
+do_unpack_varint(I, I = _Size, <<>> = _Rest, Res) ->
+    Res.
 
 %% The field flags, which correspond to `Var/signed', `Var/unsigned',
 %% `Var/little', `Var/big' and `Var/native' in the bitstring syntax, need to
