@@ -305,6 +305,28 @@ allowed_bs_match_accepts_match_context_test() ->
            <<"5">> = trim_leading_dash3([], "-5")
        end).
 
+make_tuple([A]) ->
+    {a, A};
+make_tuple([A, B]) ->
+    {b, A, B};
+make_tuple([_, B, C]) ->
+    {c, B, C}.
+
+handle_tuple(Tuple) when is_tuple(Tuple) ->
+    case Tuple of
+        {a, _}    -> true;
+        {b, _, _} -> false;
+        {c, _, _} -> false
+    end.
+
+select_tuple_arity_var_info_test() ->
+    Nodes = nodes(),
+    ?assertStandaloneFun(
+       begin
+           Tuple = make_tuple(Nodes),
+           handle_tuple(Tuple)
+       end).
+
 denied_receive_block_test() ->
     ?assertToFunThrow(
        {invalid_tx_fun, receiving_message_denied},

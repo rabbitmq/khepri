@@ -883,6 +883,15 @@ pass1_process_instructions(
     Comment = {'%', VarInfo},
     pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
 pass1_process_instructions(
+  [{select_tuple_arity, Src, _, _} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    Type = {t_tuple, 0, false, #{}},
+    VarInfo = {var_info, Src, [{type, Type}]},
+    Comment = {'%', VarInfo},
+    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+pass1_process_instructions(
   [{get_map_elements, _Fail, Src, {list, _}} = Instruction | Rest],
   State,
   Result) ->
