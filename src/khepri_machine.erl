@@ -183,11 +183,38 @@ put(StoreId, PathPattern, Payload, Extra, Options)
 put(_StoreId, PathPattern, Payload, _Extra, _Options) ->
     throw({invalid_payload, PathPattern, Payload}).
 
--spec get(StoreId, PathPattern, Options) -> Result when
-      StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
-      Options :: khepri:query_options(),
-      Result :: khepri:result().
+
+lookup_in_ets(StoreId, PathPattern) ->
+    try
+        ets:lookup(khepri_cache_owner:name(StoreId), PathPattern)
+    catch
+        _:_ ->
+            []
+    end.
+
+erase_cache(StoreId, Path) ->
+    delete_from_ets(StoreId, Path).
+
+store_in_cache(StoreId, Path, none) ->
+    delete_from_ets(StoreId, Path);
+store_in_cache(StoreId, Path, Data) ->
+    case maps:values(Data) of
+        [#{data := _}] ->
+            case lists:all(fun(C) ->
+                                   ?IS_PATH_COMPONENT(C)
+                           end, Path) of
+                true ->
+                    ets:insert(khepri_cache_owner:name(StoreId), {Path, Data});
+                false ->
+                    ok
+            end;
+        _ ->
+            ok
+    end.
+
+delete_from_ets(StoreId, Path) ->
+    ets:delete(khepri_cache_owner:name(StoreId), Path).
+
 %% @doc Returns all tree nodes matching the path pattern.
 %%
 %% @param StoreId the name of the Ra cluster.
@@ -200,10 +227,24 @@ put(_StoreId, PathPattern, Payload, _Extra, _Options) ->
 get(StoreId, PathPattern, Options) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
-    Query = fun(#?MODULE{root = Root}) ->
-                    find_matching_nodes(Root, PathPattern1, Options)
-            end,
-    process_query(StoreId, Query, Options).
+    case lookup_in_ets(StoreId, PathPattern) of
+        [{_, Map}] ->
+            {ok, Map};
+        _ ->
+            Query = fun(#?MODULE{root = Root}) ->
+                            find_matching_nodes(Root, PathPattern1, Options)
+                    end,
+            case process_query(StoreId, Query, Options) of
+                {ok, Map} = Result ->
+                    case maps:size(Map) of
+                        0 -> ok;
+                        _ -> store_in_cache(StoreId, PathPattern, Map)
+                    end,
+                    Result;
+                Result ->
+                    Result
+            end
+    end.
 
 -spec count(StoreId, PathPattern, Options) -> Result when
       StoreId :: khepri:store_id(),
@@ -804,6 +845,7 @@ clear_cache(StoreId) ->
 
 init(#{store_id := StoreId,
        member := Member} = Params) ->
+    khepri_cache_owner:new_store(StoreId),
     Config = case Params of
                  #{snapshot_interval := SnapshotInterval} ->
                      #config{store_id = StoreId,
@@ -1234,7 +1276,8 @@ find_matching_nodes_cb(_, {interrupted, _, _}, _, Result) ->
 insert_or_update_node(
   #?MODULE{root = Root,
            keep_while_conds = KeepWhileConds,
-           keep_while_conds_revidx = KeepWhileCondsRevIdx} = State,
+           keep_while_conds_revidx = KeepWhileCondsRevIdx,
+           config = #config{store_id = StoreId}} = State,
   PathPattern, Payload,
   #{keep_while := KeepWhile}) ->
     Fun = fun(Path, Node, {_, _, Result}) ->
@@ -1291,6 +1334,7 @@ insert_or_update_node(
                                    keep_while_conds = KeepWhileConds2,
                                    keep_while_conds_revidx =
                                    KeepWhileCondsRevIdx2},
+            erase_cache(StoreId, PathPattern),
             {State2, SideEffects} = create_tree_change_side_effects(
                                       State, State1, Ret2, KeepWhileAftermath),
             {State2, {ok, Ret2}, SideEffects};
@@ -1387,7 +1431,8 @@ can_continue_update_after_node_not_found1(_) ->
 delete_matching_nodes(
   #?MODULE{root = Root,
            keep_while_conds = KeepWhileConds,
-           keep_while_conds_revidx = KeepWhileCondsRevIdx} = State,
+           keep_while_conds_revidx = KeepWhileCondsRevIdx,
+           config = #config{store_id = StoreId}} = State,
   PathPattern) ->
     Ret1 = do_delete_matching_nodes(
              PathPattern, Root,
@@ -1404,6 +1449,7 @@ delete_matching_nodes(
                                    keep_while_conds_revidx = KeepWhileCondsRevIdx1},
             {State2, SideEffects} = create_tree_change_side_effects(
                                       State, State1, Ret2, KeepWhileAftermath),
+            erase_cache(StoreId, PathPattern),
             {State2, {ok, Ret2}, SideEffects};
         Error ->
             {State, Error}

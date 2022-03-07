@@ -21,5 +21,8 @@ init(_) ->
     EventHandlerSpec = #{id => event_handler,
                          start => {khepri_event_handler, start_link, []},
                          type => worker},
-    ChildSpecs = [EventHandlerSpec],
+    CacheOwner = #{id => khepri_cache_owner,
+                   start => {khepri_cache_owner, start_link, []},
+                   type => worker},
+    ChildSpecs = [EventHandlerSpec, CacheOwner],
     {ok, {SupFlags, ChildSpecs}}.
