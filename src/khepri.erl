@@ -469,7 +469,7 @@ get_store_ids() ->
 %% @private
 
 forget_store_ids() ->
-    _ = persistent_term:get(?PT_STORE_IDS),
+    _ = persistent_term:erase(?PT_STORE_IDS),
     ok.
 
 %% -------------------------------------------------------------------

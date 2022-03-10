@@ -20,7 +20,7 @@ start(normal, []) ->
 stop(_) ->
     StoreIds = khepri:get_store_ids(),
     lists:foreach(
-      fun(StoreId) -> khepri_machine:clear_cached_leader(StoreId) end,
+      fun(StoreId) -> khepri_machine:clear_cache(StoreId) end,
       StoreIds),
     khepri:forget_store_ids(),
     ok.

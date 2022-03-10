@@ -55,8 +55,8 @@
 %%
 %% == Transactional queries and updates ==
 %%
-%% Transactions are handled by {@link transaction/2} and {@link
-%% transaction/3}.
+%% Transactions are handled by {@link transaction/2}, {@link transaction/3}
+%% and {@link transaction/4}.
 %%
 %% Both functions take an anonymous function. See {@link khepri_tx} for more
 %% details about those functions and in particular their restrictions.
@@ -80,6 +80,7 @@
          delete/2,
          transaction/2,
          transaction/3,
+         transaction/4,
          run_sproc/3,
          register_trigger/4]).
 -export([get_keep_while_conds_state/1]).
@@ -87,7 +88,7 @@
          apply/3,
          state_enter/2]).
 %% For internal use only.
--export([clear_cached_leader/1,
+-export([clear_cache/1,
          ack_triggers_execution/2,
          find_matching_nodes/3,
          insert_or_update_node/4,
@@ -97,7 +98,9 @@
 -export([are_keep_while_conditions_met/2,
          get_root/1,
          get_keep_while_conds/1,
-         get_keep_while_conds_revidx/1]).
+         get_keep_while_conds_revidx/1,
+         get_cached_leader/1,
+         get_last_consistent_call_atomics/1]).
 -endif.
 
 -compile({no_auto_import, [apply/3]}).
@@ -209,14 +212,41 @@
 %% nodes to remove after some keep_while condition evaluates to false.
 
 -type operation_options() :: #{expect_specific_node => boolean(),
-                               include_child_names => boolean()}.
-%% Options used in {@link find_matching_nodes/3}.
+                               include_child_names => boolean(),
+                               favor => consistency | compromise | low_latency
+                              }.
+%% Options used in queries.
+%%
+%% <ul>
+%% <li>`expect_specific_node' indicates if the path is expected to point to a
+%% specific tree node or could match many nodes.</li>
+%% <li>`include_child_names' indicates if child names should be included in
+%% the returned node properties map.</li>
+%% <li>`favor' indicates where to put the cursor between freshness of the
+%% returned data and low latency of queries:
+%% <ul>
+%% <li>`consistent' means that a "consistent query" will be used in Ra. It
+%% will return the most up-to-date piece of data the cluster agreed on. Note
+%% that it could block and eventually time out if there is no quorum in the Ra
+%% cluster.</li>
+%% <li>`compromise' performs "leader queries" most of the time to reduce
+%% latency, but uses "consistent queries" every 10 seconds to verify that the
+%% cluster is healthy on a regular basis. It should be faster but may block
+%% and time out like `consistent' and still return slightly out-of-date
+%% data.</li>
+%% <li>`low_latency' means that "local queries" are used exclusively. They are
+%% the fastest and have the lowest latency. However, the returned data is
+%% whatever the local Ra server has. It could be out-of-date if it has
+%% troubles keeping up with the Ra cluster. The chance of blocking and timing
+%% out is very small.</li>
+%% </ul></li>
+%% </ul>
 
 -type state() :: #?MODULE{}.
 %% State of this Ra state machine.
 
 -type query_fun() :: fun((state()) -> any()).
-%% Function representing a query and used {@link process_query/2}.
+%% Function representing a query and used {@link process_query/3}.
 
 -type walk_down_the_tree_extra() :: #{include_root_props =>
                                       boolean(),
@@ -411,7 +441,7 @@ get(StoreId, PathPattern, Options) ->
     Query = fun(#?MODULE{root = Root}) ->
                     find_matching_nodes(Root, PathPattern, Options)
             end,
-    process_query(StoreId, Query).
+    process_query(StoreId, Query, Options).
 
 -spec delete(StoreId, PathPattern) -> Result when
       StoreId :: khepri:store_id(),
@@ -456,17 +486,35 @@ delete(StoreId, PathPattern) ->
 %% @doc Runs a transaction and returns the result.
 %%
 %% Calling this function is the same as calling
-%% `transaction(StoreId, Fun, auto)'.
+%% `transaction(StoreId, Fun, auto, #{})'.
 %%
-%% @see transaction/3.
+%% @see transaction/4.
 
 transaction(StoreId, Fun) ->
-    transaction(StoreId, Fun, auto).
+    transaction(StoreId, Fun, auto, #{}).
 
--spec transaction(StoreId, Fun, ReadWrite) -> Ret when
+-spec transaction(StoreId, Fun, ReadWrite | Options) -> Ret when
       StoreId :: khepri:store_id(),
       Fun :: khepri_tx:tx_fun(),
       ReadWrite :: ro | rw | auto,
+      Options :: operation_options(),
+      Ret :: Atomic | Aborted,
+      Atomic :: {atomic, khepri_tx:tx_fun_result()},
+      Aborted :: khepri_tx:tx_abort().
+%% @doc Runs a transaction and returns the result.
+%%
+%% @see transaction/4.
+
+transaction(StoreId, Fun, ReadWrite) when is_atom(ReadWrite) ->
+    transaction(StoreId, Fun, ReadWrite, #{});
+transaction(StoreId, Fun, Options) when is_map(Options) ->
+    transaction(StoreId, Fun, auto, Options).
+
+-spec transaction(StoreId, Fun, ReadWrite, Options) -> Ret when
+      StoreId :: khepri:store_id(),
+      Fun :: khepri_tx:tx_fun(),
+      ReadWrite :: ro | rw | auto,
+      Options :: operation_options(),
       Ret :: Atomic | Aborted,
       Atomic :: {atomic, khepri_tx:tx_fun_result()},
       Aborted :: khepri_tx:tx_abort().
@@ -495,6 +543,10 @@ transaction(StoreId, Fun) ->
 %% `ReadWrite' to false.</li>
 %% </ul>
 %%
+%% `Options' is only relevant for read-only transactions (including audetected
+%% read-only ones). It is useful to indicate where to put the cursor between
+%% freshness of the data and low latency.
+%%
 %% The result of `Fun' can be any term. That result is returned in an
 %% `{atomic, Result}' tuple.
 %%
@@ -504,25 +556,27 @@ transaction(StoreId, Fun) ->
 %% @returns `{atomic, Result}' with the return value of `Fun', or `{aborted,
 %% Reason}' if the anonymous function was aborted.
 
-transaction(StoreId, Fun, auto = ReadWrite) when is_function(Fun, 0) ->
-    case khepri_tx:to_standalone_fun(Fun, auto = ReadWrite) of
+transaction(StoreId, Fun, auto = ReadWrite, Options)
+  when is_function(Fun, 0) ->
+    case khepri_tx:to_standalone_fun(Fun, ReadWrite) of
         #standalone_fun{} = StandaloneFun ->
             readwrite_transaction(StoreId, StandaloneFun);
         _ ->
-            readonly_transaction(StoreId, Fun)
+            readonly_transaction(StoreId, Fun, Options)
     end;
-transaction(StoreId, Fun, rw = ReadWrite) when is_function(Fun, 0) ->
+transaction(StoreId, Fun, rw = ReadWrite, _Options)
+  when is_function(Fun, 0) ->
     StandaloneFun = khepri_tx:to_standalone_fun(Fun, ReadWrite),
     readwrite_transaction(StoreId, StandaloneFun);
-transaction(StoreId, Fun, ro) when is_function(Fun, 0) ->
-    readonly_transaction(StoreId, Fun);
-transaction(_StoreId, Fun, _ReadWrite) when is_function(Fun) ->
+transaction(StoreId, Fun, ro, Options) when is_function(Fun, 0) ->
+    readonly_transaction(StoreId, Fun, Options);
+transaction(_StoreId, Fun, _ReadWrite, _Options) when is_function(Fun) ->
     {arity, Arity} = erlang:fun_info(Fun, arity),
     throw({invalid_tx_fun, {requires_args, Arity}});
-transaction(_StoreId, Term, _ReadWrite) ->
+transaction(_StoreId, Term, _ReadWrite, _Options) ->
     throw({invalid_tx_fun, Term}).
 
-readonly_transaction(StoreId, Fun) when is_function(Fun, 0) ->
+readonly_transaction(StoreId, Fun, Options) when is_function(Fun, 0) ->
     Query = fun(State) ->
                     %% It is a read-only transaction, therefore we assert that
                     %% the state is unchanged and that there are no side
@@ -530,7 +584,7 @@ readonly_transaction(StoreId, Fun) when is_function(Fun, 0) ->
                     {State, Ret, []} = khepri_tx:run(State, Fun, false),
                     Ret
             end,
-    case process_query(StoreId, Query) of
+    case process_query(StoreId, Query, Options) of
         {exception, _, {aborted, _} = Aborted, _} ->
             Aborted;
         {exception, Class, Reason, Stacktrace} ->
@@ -667,7 +721,7 @@ get_keep_while_conds_state(StoreId) ->
     Query = fun(#?MODULE{keep_while_conds = KeepWhileConds}) ->
                     {ok, KeepWhileConds}
             end,
-    process_query(StoreId, Query).
+    process_query(StoreId, Query, #{favor => consistency}).
 
 -spec process_command(StoreId, Command) -> Ret when
       StoreId :: khepri:store_id(),
@@ -693,6 +747,7 @@ process_command(StoreId, Command) ->
             case ra:process_command(LeaderId, Command) of
                 {ok, Ret, NewLeaderId} ->
                     cache_leader_if_changed(StoreId, LeaderId, NewLeaderId),
+                    just_did_consistent_call(StoreId),
                     Ret;
                 {timeout, _} = Timeout ->
                     {error, Timeout};
@@ -703,9 +758,10 @@ process_command(StoreId, Command) ->
             {error, ra_leader_unknown}
     end.
 
--spec process_query(StoreId, QueryFun) -> Ret when
+-spec process_query(StoreId, QueryFun, Options) -> Ret when
       StoreId :: khepri:store_id(),
       QueryFun :: query_fun(),
+      Options :: operation_options(),
       Ret :: any().
 %% @doc Processes a query which is by the Ra leader.
 %%
@@ -721,22 +777,74 @@ process_command(StoreId, Command) ->
 %%
 %% @private
 
-process_query(StoreId, QueryFun) ->
+process_query(StoreId, QueryFun, Options) ->
+    QueryType = select_query_type(StoreId, Options),
+    case QueryType of
+        local -> process_local_query(StoreId, QueryFun);
+        _     -> process_non_local_query(StoreId, QueryFun, QueryType)
+    end.
+
+-spec process_local_query(StoreId, QueryFun) -> Ret when
+      StoreId :: khepri:store_id(),
+      QueryFun :: query_fun(),
+      Ret :: any().
+
+process_local_query(StoreId, QueryFun) ->
+    LocalServerId = {StoreId, node()},
+    Ret = ra:local_query(LocalServerId, QueryFun),
+    process_query_response(StoreId, undefined, local, Ret).
+
+-spec process_non_local_query(StoreId, QueryFun, QueryType) -> Ret when
+      StoreId :: khepri:store_id(),
+      QueryFun :: query_fun(),
+      QueryType :: leader | consistent,
+      Ret :: any().
+
+process_non_local_query(StoreId, QueryFun, QueryType)
+  when QueryType =:= leader orelse
+       QueryType =:= consistent ->
     case get_leader(StoreId) of
         LeaderId when LeaderId =/= undefined ->
-            %% TODO: Leader vs. consistent?
-            case ra:leader_query(LeaderId, QueryFun) of
-                {ok, {_RaIndex, Ret}, NewLeaderId} ->
-                    cache_leader_if_changed(StoreId, LeaderId, NewLeaderId),
-                    Ret;
-                {timeout, _} = Timeout ->
-                    {error, Timeout};
-                {error, _} = Error ->
-                    Error
-            end;
+            Ret = case QueryType of
+                      leader     -> ra:leader_query(LeaderId, QueryFun);
+                      consistent -> ra:consistent_query(LeaderId, QueryFun)
+                  end,
+            %% TODO: If the consistent query times out in the context of
+            %% `QueryType=compromise`, should we retry with a local query to
+            %% never block the query and let the caller continue?
+            process_query_response(StoreId, LeaderId, QueryType, Ret);
         undefined ->
             {error, ra_leader_unknown}
     end.
+
+-spec process_query_response(StoreId, LeaderId, QueryType, Response) ->
+    Ret when
+      StoreId :: khepri:store_id(),
+      LeaderId :: ra:server_id() | undefined,
+      QueryType :: local | leader | consistent,
+      Response :: {ok, {RaIndex, any()}, NewLeaderId} |
+                  {ok, any(), NewLeaderId} |
+                  {error, any()} |
+                  {timeout, ra:server_id()},
+      RaIndex :: ra:index(),
+      NewLeaderId :: ra:server_id(),
+      Ret :: any().
+
+process_query_response(
+  StoreId, LeaderId, consistent, {ok, Ret, NewLeaderId}) ->
+    cache_leader_if_changed(StoreId, LeaderId, NewLeaderId),
+    just_did_consistent_call(StoreId),
+    Ret;
+process_query_response(
+  StoreId, LeaderId, _QueryType, {ok, {_RaIndex, Ret}, NewLeaderId}) ->
+    cache_leader_if_changed(StoreId, LeaderId, NewLeaderId),
+    Ret;
+process_query_response(
+  _StoreId, _LeaderId, _QueryType, {timeout, _} = Timeout) ->
+    {error, Timeout};
+process_query_response(
+  _StoreId, _LeaderId, _QueryType, {error, _} = Error) ->
+    Error.
 
 %% Cache the Ra leader ID to avoid command/query redirections from a follower
 %% to the leader. The leader ID is returned after each command or query. If we
@@ -750,7 +858,7 @@ process_query(StoreId, QueryFun) ->
       LeaderId :: ra:server_id().
 
 get_leader(StoreId) ->
-    case persistent_term:get(?RA_LEADER_CACHE_KEY(StoreId), undefined) of
+    case get_cached_leader(StoreId) of
         LeaderId when LeaderId =/= undefined ->
             LeaderId;
         undefined ->
@@ -763,6 +871,15 @@ get_leader(StoreId) ->
                     undefined
             end
     end.
+
+-spec get_cached_leader(StoreId) -> Ret when
+      StoreId :: khepri:store_id(),
+      Ret :: LeaderId | undefined,
+      LeaderId :: ra:server_id().
+
+get_cached_leader(StoreId) ->
+    Key = ?RA_LEADER_CACHE_KEY(StoreId),
+    persistent_term:get(Key, undefined).
 
 -spec cache_leader(StoreId, LeaderId) -> ok when
       StoreId :: khepri:store_id(),
@@ -778,17 +895,102 @@ cache_leader(StoreId, LeaderId) ->
 
 cache_leader_if_changed(_StoreId, LeaderId, LeaderId) ->
     ok;
+cache_leader_if_changed(StoreId, undefined, NewLeaderId) ->
+    case persistent_term:get(?RA_LEADER_CACHE_KEY(StoreId), undefined) of
+        LeaderId when LeaderId =/= undefined ->
+            cache_leader_if_changed(StoreId, LeaderId, NewLeaderId);
+        undefined ->
+            cache_leader(StoreId, NewLeaderId)
+    end;
 cache_leader_if_changed(StoreId, _OldLeaderId, NewLeaderId) ->
     cache_leader(StoreId, NewLeaderId).
 
--spec clear_cached_leader(StoreId) -> ok when
-      StoreId :: khepri:store_id().
-%% @doc Clears the cached leader ID for the given `StoreId'.
+-spec select_query_type(StoreId, Options) -> QueryType when
+      StoreId :: khepri:store_id(),
+      Options :: operation_options(),
+      QueryType :: local | leader | consistent.
+%% @doc Selects the query type depending on what the caller favors.
 %%
 %% @private
 
-clear_cached_leader(StoreId) ->
+select_query_type(StoreId, #{favor := Favor}) ->
+    do_select_query_type(StoreId, Favor);
+select_query_type(StoreId, _Options) ->
+    do_select_query_type(StoreId, compromise).
+
+-define(
+   LAST_CONSISTENT_CALL_TS_REF(StoreId),
+   {khepri, last_consistent_call_ts_ref, StoreId}).
+
+do_select_query_type(_StoreId, consistency) ->
+    consistent;
+do_select_query_type(_StoreId, low_latency) ->
+    local;
+do_select_query_type(StoreId, compromise) ->
+    Key = ?LAST_CONSISTENT_CALL_TS_REF(StoreId),
+    Idx = 1,
+    case persistent_term:get(Key, undefined) of
+        AtomicsRef when AtomicsRef =/= undefined ->
+            %% We verify when was the last time we did a command or a
+            %% consistent query (i.e. we made sure there was an active leader
+            %% in a cluster with a quorum of active members).
+            %%
+            %% If the last one was more than 10 seconds ago, we force a
+            %% consistent query to verify the cluster health at the same time.
+            %% Otherwise, we select a leader query which is a good balance
+            %% between freshness and latency.
+            Last = atomics:get(AtomicsRef, Idx),
+            Now = erlang:system_time(second),
+            ConsistentAgainAfter = application:get_env(
+                                     khepri,
+                                     consistent_query_interval_in_compromise,
+                                     10),
+            if
+                Now - Last < ConsistentAgainAfter -> leader;
+                true                              -> consistent
+            end;
+        undefined ->
+            consistent
+    end.
+
+just_did_consistent_call(StoreId) ->
+    %% We record the timestamp of the successful command or consistent query
+    %% which just returned. This timestamp is used in the `compromise' query
+    %% strategy to perform a consistent query from time to time, and leader
+    %% queries the rest of the time.
+    %%
+    %% We store the system time as seconds in an `atomics' structure. The
+    %% reference of that structure is stored in a persistent term. We don't
+    %% store the timestamp directly in a persistent term because it is not
+    %% suited for frequent writes. This way, we store the `atomics' reference
+    %% once and update the `atomics' afterwards.
+    Idx = 1,
+    AtomicsRef = case get_last_consistent_call_atomics(StoreId) of
+                     Ref when Ref =/= undefined ->
+                         Ref;
+                     undefined ->
+                         Key = ?LAST_CONSISTENT_CALL_TS_REF(StoreId),
+                         Ref = atomics:new(1, []),
+                         persistent_term:put(Key, Ref),
+                         Ref
+                 end,
+    Now = erlang:system_time(second),
+    ok = atomics:put(AtomicsRef, Idx, Now),
+    ok.
+
+get_last_consistent_call_atomics(StoreId) ->
+    Key = ?LAST_CONSISTENT_CALL_TS_REF(StoreId),
+    persistent_term:get(Key, undefined).
+
+-spec clear_cache(StoreId) -> ok when
+      StoreId :: khepri:store_id().
+%% @doc Clears the cached data for the given `StoreId'.
+%%
+%% @private
+
+clear_cache(StoreId) ->
     _ = persistent_term:erase(?RA_LEADER_CACHE_KEY(StoreId)),
+    _ = persistent_term:erase(?LAST_CONSISTENT_CALL_TS_REF(StoreId)),
     ok.
 
 %% -------------------------------------------------------------------
