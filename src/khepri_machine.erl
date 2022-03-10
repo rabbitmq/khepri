@@ -86,8 +86,9 @@
 -export([init/1,
          apply/3,
          state_enter/2]).
-%% For internal user only.
--export([ack_triggers_execution/2,
+%% For internal use only.
+-export([clear_cached_leader/1,
+         ack_triggers_execution/2,
          find_matching_nodes/3,
          insert_or_update_node/4,
          delete_matching_nodes/2]).
@@ -687,16 +688,19 @@ get_keep_while_conds_state(StoreId) ->
 %% @private
 
 process_command(StoreId, Command) ->
-    %% StoreId is the same as Ra's cluster name.
-    case ra_leaderboard:lookup_leader(StoreId) of
-        undefined ->
-            {error, ra_leader_unknown};
-        LeaderId ->
+    case get_leader(StoreId) of
+        LeaderId when LeaderId =/= undefined ->
             case ra:process_command(LeaderId, Command) of
-                {ok, Ret, _LeaderId}   -> Ret;
-                {timeout, _} = Timeout -> {error, Timeout};
-                {error, _} = Error     -> Error
-            end
+                {ok, Ret, NewLeaderId} ->
+                    cache_leader_if_changed(StoreId, LeaderId, NewLeaderId),
+                    Ret;
+                {timeout, _} = Timeout ->
+                    {error, Timeout};
+                {error, _} = Error ->
+                    Error
+            end;
+        undefined ->
+            {error, ra_leader_unknown}
     end.
 
 -spec process_query(StoreId, QueryFun) -> Ret when
@@ -718,18 +722,74 @@ process_command(StoreId, Command) ->
 %% @private
 
 process_query(StoreId, QueryFun) ->
-    %% StoreId is the same as Ra's cluster name.
-    case ra_leaderboard:lookup_leader(StoreId) of
-        undefined ->
-            {error, ra_leader_unknown};
-        LeaderId ->
+    case get_leader(StoreId) of
+        LeaderId when LeaderId =/= undefined ->
             %% TODO: Leader vs. consistent?
             case ra:leader_query(LeaderId, QueryFun) of
-                {ok, {_RaIndex, Ret}, _} -> Ret;
-                {timeout, _} = Timeout   -> {error, Timeout};
-                {error, _} = Error       -> Error
+                {ok, {_RaIndex, Ret}, NewLeaderId} ->
+                    cache_leader_if_changed(StoreId, LeaderId, NewLeaderId),
+                    Ret;
+                {timeout, _} = Timeout ->
+                    {error, Timeout};
+                {error, _} = Error ->
+                    Error
+            end;
+        undefined ->
+            {error, ra_leader_unknown}
+    end.
+
+%% Cache the Ra leader ID to avoid command/query redirections from a follower
+%% to the leader. The leader ID is returned after each command or query. If we
+%% don't know it yet, ask Ra what the leader ID is.
+
+-define(RA_LEADER_CACHE_KEY(StoreId), {khepri, ra_leader_cache, StoreId}).
+
+-spec get_leader(StoreId) -> Ret when
+      StoreId :: khepri:store_id(),
+      Ret :: LeaderId | undefined,
+      LeaderId :: ra:server_id().
+
+get_leader(StoreId) ->
+    case persistent_term:get(?RA_LEADER_CACHE_KEY(StoreId), undefined) of
+        LeaderId when LeaderId =/= undefined ->
+            LeaderId;
+        undefined ->
+            %% StoreId is the same as Ra's cluster name.
+            case ra_leaderboard:lookup_leader(StoreId) of
+                LeaderId when LeaderId =/= undefined ->
+                    cache_leader(StoreId, LeaderId),
+                    LeaderId;
+                undefined ->
+                    undefined
             end
     end.
+
+-spec cache_leader(StoreId, LeaderId) -> ok when
+      StoreId :: khepri:store_id(),
+      LeaderId :: ra:server_id().
+
+cache_leader(StoreId, LeaderId) ->
+    ok = persistent_term:put(?RA_LEADER_CACHE_KEY(StoreId), LeaderId).
+
+-spec cache_leader_if_changed(StoreId, LeaderId, NewLeaderId) -> ok when
+      StoreId :: khepri:store_id(),
+      LeaderId :: ra:server_id(),
+      NewLeaderId :: ra:server_id().
+
+cache_leader_if_changed(_StoreId, LeaderId, LeaderId) ->
+    ok;
+cache_leader_if_changed(StoreId, _OldLeaderId, NewLeaderId) ->
+    cache_leader(StoreId, NewLeaderId).
+
+-spec clear_cached_leader(StoreId) -> ok when
+      StoreId :: khepri:store_id().
+%% @doc Clears the cached leader ID for the given `StoreId'.
+%%
+%% @private
+
+clear_cached_leader(StoreId) ->
+    _ = persistent_term:erase(?RA_LEADER_CACHE_KEY(StoreId)),
+    ok.
 
 %% -------------------------------------------------------------------
 %% ra_machine callbacks.

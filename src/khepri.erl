@@ -127,6 +127,8 @@
 
          info/0,
          info/1]).
+%% For internal use only.
+-export([forget_store_ids/0]).
 
 -compile({no_auto_import, [get/2]}).
 
@@ -460,6 +462,15 @@ remember_store_id(ClusterName) ->
 
 get_store_ids() ->
     maps:keys(persistent_term:get(?PT_STORE_IDS, #{})).
+
+-spec forget_store_ids() -> ok.
+%% @doc Clears the remembered store IDs.
+%%
+%% @private
+
+forget_store_ids() ->
+    _ = persistent_term:get(?PT_STORE_IDS),
+    ok.
 
 %% -------------------------------------------------------------------
 %% Data manipulation.
