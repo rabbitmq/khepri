@@ -227,3 +227,10 @@ rebar3 eunit
 rebar3 proper
 rebar3 as test dialyzer
 ```
+
+## Copyright and License
+
+(c) 2021-2022, VMware Inc or its affiliates.
+
+Double licensed under the ASL2 and MPL2.0.
+See [LICENSE](./LICENSE) for details.
