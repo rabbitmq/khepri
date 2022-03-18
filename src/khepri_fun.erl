@@ -440,7 +440,7 @@ handle_validation_error(
      _Attributes,
      Functions,
      _Labels} = Asm,
-    #function{code = Instructions} = lookup_function1(Functions, Name, Arity),
+    #function{code = Instructions} = find_function(Functions, Name, Arity),
     Comments = find_comments_in_branch(Instructions, CallIndex),
     Location = {'after', {label, EntryLabel}},
     add_comments_and_retry(Asm, Error, EntryLabel, Location, Comments);
@@ -1057,6 +1057,8 @@ pass1_process_call(
       Arity :: non_neg_integer() | undefined,
       State :: #state{},
       Function :: #function{}.
+%% Looks up the function from the given module with the given arity (if
+%% defined), disassembling the module if necessary
 
 lookup_function(
   erl_eval = Module, Name, _Arity,
@@ -1077,25 +1079,31 @@ lookup_function(
     %% unmodified.
     %%
     %% FIXME: Can we compile to assembly form using 'S' instead?
-    #beam_file_ext{code = Code} = erl_eval_fun_to_asm(
-                                    Module, Name, Arity, Env),
-    {lookup_function1(Code, Name, Arity), State};
+    #beam_file_ext{code = Functions} = erl_eval_fun_to_asm(
+                                         Module, Name, Arity, Env),
+    {find_function(Functions, Name, Arity), State};
 lookup_function(Module, Name, Arity, State) ->
-    {#beam_file_ext{code = Code}, State1} = disassemble_module(Module, State),
-    {lookup_function1(Code, Name, Arity), State1}.
+    {#beam_file_ext{code = Functions}, State1} = disassemble_module(Module, State),
+    {find_function(Functions, Name, Arity), State1}.
 
-lookup_function1(
+-spec find_function([Function], Name, Arity) -> Function when
+      Function :: #function{},
+      Name :: atom(),
+      Arity :: non_neg_integer() | undefined.
+%% Finds a function in a list of functions by its name and arity
+
+find_function(
   [#function{name = Name, arity = Arity} = Function | _],
   Name, Arity) when is_integer(Arity) ->
     Function;
-lookup_function1(
+find_function(
   [#function{name = Name} = Function | _],
   Name, undefined) ->
     Function;
-lookup_function1(
+find_function(
   [_ | Rest],
   Name, Arity) ->
-    lookup_function1(Rest, Name, Arity).
+    find_function(Rest, Name, Arity).
 
 -spec erl_eval_fun_to_asm(Module, Name, Arity, Env) -> BeamFileRecord when
       Module :: module(),
