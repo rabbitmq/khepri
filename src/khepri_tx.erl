@@ -225,6 +225,8 @@ ensure_instruction_is_permitted({bs_append, _, _, _, _, _, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted({bs_init2, _, _, _, _, _, _}) ->
     ok;
+ensure_instruction_is_permitted({bs_init_bits, _, _, _, _, _, _}) ->
+    ok;
 ensure_instruction_is_permitted({BsPutSomething, _, _, _, _, _})
   when BsPutSomething =:= bs_put_binary orelse
        BsPutSomething =:= bs_put_integer ->
