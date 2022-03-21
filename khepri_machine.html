@@ -127,7 +127,8 @@ paths.</p>
  
   <h3><a name="Transactional_queries_and_updates">Transactional queries and updates</a></h3>
  
-  <p>Transactions are handled by <a docgen-rel="seemfa" docgen-href="#transaction/2" href="#transaction-2"><code>transaction/2</code></a> and <a docgen-rel="seemfa" docgen-href="#transaction/3" href="#transaction-3"><code>transaction/3</code></a>.</p>
+  <p>Transactions are handled by <a docgen-rel="seemfa" docgen-href="#transaction/2" href="#transaction-2"><code>transaction/2</code></a>, <a docgen-rel="seemfa" docgen-href="#transaction/3" href="#transaction-3"><code>transaction/3</code></a>
+  and <a docgen-rel="seemfa" docgen-href="#transaction/4" href="#transaction-4"><code>transaction/4</code></a>.</p>
  
   <p>Both functions take an anonymous function. See <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> for more  
 details about those functions and in particular their restrictions.</p>
@@ -199,8 +200,33 @@ payload and child nodes.</p>
   This structure is used in the return value of all commands and queries.</p>
 
 <h3 class="typedecl"><a name="type-operation_options">operation_options()</a></h3>
-<p><code>operation_options() = #{expect_specific_node =&gt; boolean(), include_child_names =&gt; boolean()}</code></p>
-<p>  Options used in <a docgen-rel="seemfa" docgen-href="#find_matching_nodes/3" href="#find_matching_nodes-3"><code>find_matching_nodes/3</code></a>.</p>
+<p><code>operation_options() = #{expect_specific_node =&gt; boolean(), include_child_names =&gt; boolean(), favor =&gt; consistency | compromise | low_latency}</code></p>
+<p><p>  Options used in queries.</p>
+ 
+  <ul>
+  <li><code>expect_specific_node</code> indicates if the path is expected to point to a
+  specific tree node or could match many nodes.</li>
+  <li><code>include_child_names</code> indicates if child names should be included in
+  the returned node properties map.</li>
+  <li><code>favor</code> indicates where to put the cursor between freshness of the
+  returned data and low latency of queries:
+  <ul>
+  <li><code>consistent</code> means that a "consistent query" will be used in Ra. It
+  will return the most up-to-date piece of data the cluster agreed on. Note
+  that it could block and eventually time out if there is no quorum in the Ra
+  cluster.</li>
+  <li><code>compromise</code> performs "leader queries" most of the time to reduce
+  latency, but uses "consistent queries" every 10 seconds to verify that the
+  cluster is healthy on a regular basis. It should be faster but may block
+  and time out like <code>consistent</code> and still return slightly out-of-date
+  data.</li>
+  <li><code>low_latency</code> means that "local queries" are used exclusively. They are
+  the fastest and have the lowest latency. However, the returned data is
+  whatever the local Ra server has. It could be out-of-date if it has
+  troubles keeping up with the Ra cluster. The chance of blocking and timing
+  out is very small.</li>
+  </ul></li>
+  </ul></p>
 
 <h3 class="typedecl"><a name="type-payload">payload()</a></h3>
 <p><code>payload() = none | <a href="#type-payload_data">payload_data()</a> | <a href="#type-payload_sproc">payload_sproc()</a></code></p>
@@ -255,6 +281,7 @@ payload and child nodes.</p>
 <tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#transaction-2">transaction/2</a></td><td>Runs a transaction and returns the result.</td></tr>
 <tr><td valign="top"><a href="#transaction-3">transaction/3</a></td><td>Runs a transaction and returns the result.</td></tr>
+<tr><td valign="top"><a href="#transaction-4">transaction/4</a></td><td>Runs a transaction and returns the result.</td></tr>
 <tr><td valign="top"><a href="#run_sproc-3">run_sproc/3</a></td><td>Executes a stored procedure.</td></tr>
 <tr><td valign="top"><a href="#register_trigger-4">register_trigger/4</a></td><td>Registers a trigger.</td></tr>
 </table>
@@ -405,14 +432,23 @@ Result = khepri_machine:delete(ra_cluster_name, [foo, bar]),
 </div><p><p>Runs a transaction and returns the result.</p>
  
   Calling this function is the same as calling
-  <code>transaction(StoreId, Fun, auto)</code>.
+  <code>transaction(StoreId, Fun, auto, #{})</code>.
  </p>
-<p><b>See also:</b> <a href="#transaction-3">transaction/3</a>.</p>
+<p><b>See also:</b> <a href="#transaction-4">transaction/4</a>.</p>
 
 <h3 class="function"><a name="transaction-3">transaction/3</a></h3>
 <div class="spec">
-<p><code>transaction(StoreId, Fun, ReadWrite) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
+<p><code>transaction(StoreId, Fun, ReadWrite::ReadWrite | Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="#type-operation_options">operation_options()</a></code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
+<p></p>
+</div><p>Runs a transaction and returns the result.
+ </p>
+<p><b>See also:</b> <a href="#transaction-4">transaction/4</a>.</p>
+
+<h3 class="function"><a name="transaction-4">transaction/4</a></h3>
+<div class="spec">
+<p><code>transaction(StoreId, Fun, ReadWrite, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="#type-operation_options">operation_options()</a></code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>Fun</code>: an arbitrary anonymous function.
  <br>
@@ -443,6 +479,10 @@ do and in which context it runs:</p>
   setting <code>ReadWrite</code> to true. Otherwise, this is the equivalent of setting
   <code>ReadWrite</code> to false.</li>
   </ul>
+ 
+  <p><code>Options</code> is only relevant for read-only transactions (including audetected  
+read-only ones). It is useful to indicate where to put the cursor between  
+freshness of the data and low latency.</p>
  
   The result of <code>Fun</code> can be any term. That result is returned in an
   <code>{atomic, Result}</code> tuple.
