@@ -345,6 +345,15 @@ allowed_bs_match_test() ->
            matches_type(queue, proplists:get_value('apply-to', List))
        end).
 
+encode_integer(Length) ->
+    <<Length:7/integer>>.
+
+allowed_bitstring_init_test() ->
+    ?assertStandaloneFun(
+        begin
+            <<25:7/integer>> = encode_integer(25)
+        end).
+
 parse_date(
     <<Year:4/bytes, $-, Month:2/bytes, $-, Day:2/bytes, _Rest/binary>>) ->
     {Year, Month, Day}.

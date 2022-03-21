@@ -791,10 +791,11 @@ pass1_process_instructions(
     Instruction = decode_field_flags(Instruction0, 8),
     pass1_process_instructions([Instruction | Rest], State, Result);
 pass1_process_instructions(
-  [{bs_init2, _, _, _, _, {field_flags, FF}, _} = Instruction0 | Rest],
+  [{BsInit, _, _, _, _, {field_flags, FF}, _} = Instruction0 | Rest],
   State,
   Result)
-  when is_integer(FF) ->
+  when (BsInit =:= bs_init2 orelse BsInit =:= bs_init_bits) andalso
+       is_integer(FF) ->
     %% `beam_disasm' did not decode this instruction's field flags.
     Instruction = decode_field_flags(Instruction0, 6),
     pass1_process_instructions([Instruction | Rest], State, Result);
