@@ -11,10 +11,16 @@
          cleanup/1]).
 
 setup(Testcase) ->
-    {ok, _} = application:ensure_all_started(ra),
+    _ = logger:set_primary_config(level, warning),
+    {ok, _} = application:ensure_all_started(khepri),
+    ok = application:set_env(
+           khepri,
+           consistent_query_interval_in_compromise,
+           2),
+
     RaSystem = Testcase,
     StoreDir = store_dir_name(RaSystem),
-    remove_store_dir(StoreDir),
+    _ = remove_store_dir(StoreDir),
     Default = ra_system:default_config(),
     RaSystemConfig = Default#{name => RaSystem,
                               data_dir => StoreDir,
@@ -27,6 +33,7 @@ setup(Testcase) ->
                               RaSystem,
                               Testcase,
                               atom_to_list(Testcase)),
+            ok = khepri_machine:clear_cache(StoreId),
             #{ra_system => RaSystem,
               ra_system_pid => RaSystemPid,
               store_dir => StoreDir,
@@ -43,6 +50,7 @@ cleanup(#{ra_system := RaSystem,
     _ = supervisor:terminate_child(ra_systems_sup, RaSystem),
     _ = supervisor:delete_child(ra_systems_sup, RaSystem),
     _ = remove_store_dir(StoreDir),
+    ok = khepri_machine:clear_cache(StoreId),
     ok.
 
 store_dir_name(RaSystem) ->
