@@ -482,6 +482,14 @@ type_inference_for_test_arity_instruction_test() ->
             <<0:1>> = encode_frame(BinaryFrame)
         end).
 
+bit_string_comprehension_expression_test() ->
+    Data = crypto:strong_rand_bytes(128),
+    <<Mask:32/integer>> = crypto:strong_rand_bytes(4),
+    ?assertStandaloneFun(
+        begin
+            <<<<(Part bxor Mask):32/integer>> || <<Part:32/integer>> <= Data>>
+        end).
+
 denied_receive_block_test() ->
     ?assertToFunThrow(
        {invalid_tx_fun, receiving_message_denied},
