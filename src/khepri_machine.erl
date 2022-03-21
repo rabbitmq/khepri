@@ -28,26 +28,28 @@
 %%
 %% The API provides the following three functions:
 %% <ul>
-%% <li>{@link get/2} and {@link get/3}: returns all tree node matching the given
-%% path pattern.</li>
-%% <li>{@link put/3} and {@link put/4}: updates a single specific tree node.</li>
-%% <li>{@link delete/2}: removes all tree node matching the given path
-%% pattern.</li>
+%% <li>{@link get/2} and {@link get/3}: returns all tree node matching the
+%% given path pattern.</li>
+%% <li>{@link put/3}, {@link put/4} and {@link put/5}: updates a single
+%% specific tree node.</li>
+%% <li>{@link delete/2}, {@link delete/3}: removes all tree node matching the
+%% given path pattern.</li>
 %% </ul>
 %%
 %% All functions take a native path pattern. They do not accept Unix-like
 %% paths.
 %%
-%% All functions return one of these tuples:
+%% All functions, except asynchronous puts, deletes and R/W transactions,
+%% return one of these tuples:
 %% <ul>
 %% <li>`{ok, NodePropsMap}' where `NodePropsMap' is a {@link
 %% node_props_map/0}:
 %% <ul>
 %% <li>The map returned by {@link get/2}, {@link get/3} and {@link delete/2}
 %% contains one entry per node matching the path pattern.</li>
-%% <li>The map returned by {@link put/3} and {@link put/4} contains a single
-%% entry if the modified node existed before the update, or no entry if it
-%% didn't.</li>
+%% <li>The map returned by {@link put/3}, {@link put/4} and {@link put/5}
+%% contains a single entry if the modified node existed before the update, or
+%% no entry if it didn't.</li>
 %% </ul></li>
 %% <li>`{error, Reason}' if an error occured. In the case, no modifications to
 %% the tree was performed.</li>
@@ -75,12 +77,10 @@
 -include("src/internal.hrl").
 -include("src/khepri_machine.hrl").
 
--export([put/3, put/4,
+-export([put/3, put/4, put/5,
          get/2, get/3,
-         delete/2,
-         transaction/2,
-         transaction/3,
-         transaction/4,
+         delete/2, delete/3,
+         transaction/2, transaction/3, transaction/4,
          run_sproc/3,
          register_trigger/4]).
 -export([get_keep_while_conds_state/1]).
@@ -153,7 +153,7 @@
 
 -type result() :: khepri:ok(node_props_map()) |
                   khepri:error().
-%% Return value of a command or query.
+%% Return value of a query or synchronous command.
 
 -type stat() :: #{payload_version := payload_version(),
                   child_list_version := child_list_version()}.
@@ -211,19 +211,35 @@
 %% This is used when the tree is walked back up to determine the list of tree
 %% nodes to remove after some keep_while condition evaluates to false.
 
--type operation_options() :: #{expect_specific_node => boolean(),
-                               include_child_names => boolean(),
-                               favor => consistency | compromise | low_latency
-                              }.
-%% Options used in queries.
+-type ra_server_command_priority() :: normal | low.
+%% Redefines `ra_server:command_priority()' while there is no release of Ra
+%% defining it.
+
+-type async_option() :: boolean() |
+                        ra_server:command_correlation() |
+                        ra_server_command_priority() |
+                        {ra_server:command_correlation(),
+                         ra_server_command_priority()}.
+%% Option to indicate if the command should be synchronous or asynchronous.
 %%
+%% Values are:
 %% <ul>
-%% <li>`expect_specific_node' indicates if the path is expected to point to a
-%% specific tree node or could match many nodes.</li>
-%% <li>`include_child_names' indicates if child names should be included in
-%% the returned node properties map.</li>
-%% <li>`favor' indicates where to put the cursor between freshness of the
-%% returned data and low latency of queries:
+%% <li>`true' to perform an asynchronous low-priority command without a
+%% correlation ID.</li>
+%% <li>`false' to perform a synchronous command.</li>
+%% <li>A correlation ID to perform an asynchronous low-priority command with
+%% that correlation ID.</li>
+%% <li>A priority to perform an asynchronous command with the specified
+%% priority but without a correlation ID.</li>
+%% <li>A combination of a correlation ID and a priority to perform an
+%% asynchronous command with the specified parameters.</li>
+%% </ul>
+
+-type favor_option() :: consistency | compromise | low_latency.
+%% Option to indicate where to put the cursor between freshness of the
+%% returned data and low latency of queries.
+%%
+%% Values are:
 %% <ul>
 %% <li>`consistent' means that a "consistent query" will be used in Ra. It
 %% will return the most up-to-date piece of data the cluster agreed on. Note
@@ -239,7 +255,31 @@
 %% whatever the local Ra server has. It could be out-of-date if it has
 %% troubles keeping up with the Ra cluster. The chance of blocking and timing
 %% out is very small.</li>
-%% </ul></li>
+%% </ul>
+
+-type command_options() :: #{async => async_option()}.
+%% Options used in commands.
+%%
+%% Commands are {@link put/5}, {@link delete/3} and read-write {@link
+%% transaction/4}.
+%%
+%% <ul>
+%% <li>`async' indicates the synchronous or asynchronous nature of the
+%% command; see {@link async_option()}.</li>
+%% </ul>
+
+-type query_options() :: #{expect_specific_node => boolean(),
+                           include_child_names => boolean(),
+                           favor => favor_option()}.
+%% Options used in queries.
+%%
+%% <ul>
+%% <li>`expect_specific_node' indicates if the path is expected to point to a
+%% specific tree node or could match many nodes.</li>
+%% <li>`include_child_names' indicates if child names should be included in
+%% the returned node properties map.</li>
+%% <li>`favor' indicates where to put the cursor between freshness of the
+%% returned data and low latency of queries; see {@link favor_option()}.</li>
 %% </ul>
 
 -type state() :: #?MODULE{}.
@@ -286,7 +326,10 @@
               node_props/0,
               node_props_map/0,
               result/0,
-              operation_options/0]).
+              async_option/0,
+              favor_option/0,
+              command_options/0,
+              query_options/0]).
 -export_type([state/0,
               machine_config/0,
               keep_while_conds_map/0,
@@ -303,23 +346,43 @@
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Payload :: payload(),
-      Result :: result().
+      Result :: result() | NoRetIfAsync,
+      NoRetIfAsync :: ok.
 %% @doc Creates or modifies a specific tree node in the tree structure.
 %%
 %% Calling this function is the same as calling
-%% `put(StoreId, PathPattern, Payload, #{})'.
+%% `put(StoreId, PathPattern, Payload, #{}, #{})'.
 %%
-%% @see put/4.
+%% @see put/5.
 
 put(StoreId, PathPattern, Payload) ->
-    put(StoreId, PathPattern, Payload, #{}).
+    put(StoreId, PathPattern, Payload, #{}, #{}).
 
--spec put(StoreId, PathPattern, Payload, Extra) -> Result when
+-spec put(StoreId, PathPattern, Payload, Extra | Options) -> Result when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Payload :: payload(),
       Extra :: #{keep_while => keep_while_conds_map()},
-      Result :: result().
+      Options :: command_options(),
+      Result :: result() | NoRetIfAsync,
+      NoRetIfAsync :: ok.
+%% @doc Creates or modifies a specific tree node in the tree structure.
+%%
+%% @see put/5.
+
+put(StoreId, PathPattern, Payload, #{keep_while := _} = Extra) ->
+    put(StoreId, PathPattern, Payload, Extra, #{});
+put(StoreId, PathPattern, Payload, Options) ->
+    put(StoreId, PathPattern, Payload, #{}, Options).
+
+-spec put(StoreId, PathPattern, Payload, Extra, Options) -> Result when
+      StoreId :: khepri:store_id(),
+      PathPattern :: khepri_path:pattern(),
+      Payload :: payload(),
+      Extra :: #{keep_while => keep_while_conds_map()},
+      Options :: command_options(),
+      Result :: result() | NoRetIfAsync,
+      NoRetIfAsync :: ok.
 %% @doc Creates or modifies a specific tree node in the tree structure.
 %%
 %% The path or path pattern must target a specific tree node.
@@ -369,16 +432,20 @@ put(StoreId, PathPattern, Payload) ->
 %% @param Payload the payload to put in the specified node.
 %% @param Extra extra options such as `keep_while' conditions.
 %%
-%% @returns an "ok" tuple with a map with one entry, or an "error" tuple.
+%% @returns in the case of a synchronous put, an "ok" tuple with a map with one
+%% entry, or an "error" tuple; in the case of an asynchronous put, always `ok'
+%% (the actual return value may be sent by a message if a correlation ID was
+%% specified).
 
-put(StoreId, PathPattern, Payload, Extra) when ?IS_KHEPRI_PAYLOAD(Payload) ->
+put(StoreId, PathPattern, Payload, Extra, Options)
+  when ?IS_KHEPRI_PAYLOAD(Payload) ->
     khepri_path:ensure_is_valid(PathPattern),
     Payload1 = prepare_payload(Payload),
     Command = #put{path = PathPattern,
                    payload = Payload1,
                    extra = Extra},
-    process_command(StoreId, Command);
-put(_StoreId, PathPattern, Payload, _Extra) ->
+    process_command(StoreId, Command, Options);
+put(_StoreId, PathPattern, Payload, _Extra, _Options) ->
     throw({invalid_payload, PathPattern, Payload}).
 
 prepare_payload(none = Payload) ->
@@ -407,7 +474,7 @@ get(StoreId, PathPattern) ->
 -spec get(StoreId, PathPattern, Options) -> Result when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Options :: operation_options(),
+      Options :: query_options(),
       Result :: result().
 %% @doc Returns all tree nodes matching the path pattern.
 %%
@@ -446,7 +513,24 @@ get(StoreId, PathPattern, Options) ->
 -spec delete(StoreId, PathPattern) -> Result when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Result :: result().
+      Result :: result() | NoRetIfAsync,
+      NoRetIfAsync :: ok.
+%% @doc Deletes all tree nodes matching the path pattern.
+%%
+%% Calling this function is the same as calling
+%% `delete(StoreId, PathPattern, #{})'.
+%%
+%% @see delete/3.
+
+delete(StoreId, PathPattern) ->
+    delete(StoreId, PathPattern, #{}).
+
+-spec delete(StoreId, PathPattern, Options) -> Result when
+      StoreId :: khepri:store_id(),
+      PathPattern :: khepri_path:pattern(),
+      Options :: command_options(),
+      Result :: result() | NoRetIfAsync,
+      NoRetIfAsync :: ok.
 %% @doc Deletes all tree nodes matching the path pattern.
 %%
 %% The returned structure in the "ok" tuple will have a key corresponding to
@@ -469,20 +553,23 @@ get(StoreId, PathPattern, Options) ->
 %% @param PathPattern the path (or path pattern) to match against the nodes to
 %%        delete.
 %%
-%% @returns an "ok" tuple with a map with zero, one or more entries, or an
-%% "error" tuple.
+%% @returns in the case of a synchrnous delete, an "ok" tuple with a map with
+%% zero, one or more entries, or an "error" tuple; in the case of an
+%% asynchronous delete, always `ok' (the actual return value may be sent by a
+%% message if a correlation ID was specified).
 
-delete(StoreId, PathPattern) ->
+delete(StoreId, PathPattern, Options) ->
     khepri_path:ensure_is_valid(PathPattern),
     Command = #delete{path = PathPattern},
-    process_command(StoreId, Command).
+    process_command(StoreId, Command, Options).
 
 -spec transaction(StoreId, Fun) -> Ret when
       StoreId :: khepri:store_id(),
       Fun :: khepri_tx:tx_fun(),
-      Ret :: Atomic | Aborted,
+      Ret :: Atomic | Aborted | NoRetIfAsync,
       Atomic :: {atomic, khepri_tx:tx_fun_result()},
-      Aborted :: khepri_tx:tx_abort().
+      Aborted :: khepri_tx:tx_abort(),
+      NoRetIfAsync :: ok.
 %% @doc Runs a transaction and returns the result.
 %%
 %% Calling this function is the same as calling
@@ -497,10 +584,11 @@ transaction(StoreId, Fun) ->
       StoreId :: khepri:store_id(),
       Fun :: khepri_tx:tx_fun(),
       ReadWrite :: ro | rw | auto,
-      Options :: operation_options(),
-      Ret :: Atomic | Aborted,
+      Options :: command_options() | query_options(),
+      Ret :: Atomic | Aborted | NoRetIfAsync,
       Atomic :: {atomic, khepri_tx:tx_fun_result()},
-      Aborted :: khepri_tx:tx_abort().
+      Aborted :: khepri_tx:tx_abort(),
+      NoRetIfAsync :: ok.
 %% @doc Runs a transaction and returns the result.
 %%
 %% @see transaction/4.
@@ -514,10 +602,11 @@ transaction(StoreId, Fun, Options) when is_map(Options) ->
       StoreId :: khepri:store_id(),
       Fun :: khepri_tx:tx_fun(),
       ReadWrite :: ro | rw | auto,
-      Options :: operation_options(),
-      Ret :: Atomic | Aborted,
+      Options :: command_options() | query_options(),
+      Ret :: Atomic | Aborted | NoRetIfAsync,
       Atomic :: {atomic, khepri_tx:tx_fun_result()},
-      Aborted :: khepri_tx:tx_abort().
+      Aborted :: khepri_tx:tx_abort(),
+      NoRetIfAsync :: ok.
 %% @doc Runs a transaction and returns the result.
 %%
 %% `Fun' is an arbitrary anonymous function which takes no arguments.
@@ -543,9 +632,8 @@ transaction(StoreId, Fun, Options) when is_map(Options) ->
 %% `ReadWrite' to false.</li>
 %% </ul>
 %%
-%% `Options' is only relevant for read-only transactions (including audetected
-%% read-only ones). It is useful to indicate where to put the cursor between
-%% freshness of the data and low latency.
+%% `Options' is relevant for both read-only and read-write transactions
+%% (including audetected ones). Note that both types expect different options.
 %%
 %% The result of `Fun' can be any term. That result is returned in an
 %% `{atomic, Result}' tuple.
@@ -553,21 +641,24 @@ transaction(StoreId, Fun, Options) when is_map(Options) ->
 %% @param StoreId the name of the Ra cluster.
 %% @param Fun an arbitrary anonymous function.
 %%
-%% @returns `{atomic, Result}' with the return value of `Fun', or `{aborted,
-%% Reason}' if the anonymous function was aborted.
+%% @returns in the case of a synchronous transaction, `{atomic, Result}' where
+%% `Result' is the return value of `Fun', or `{aborted, Reason}' if the
+%% anonymous function was aborted; in the case of an asynchronous transaction,
+%% always `ok' (the actual return value may be sent by a message if a
+%% correlation ID was specified).
 
 transaction(StoreId, Fun, auto = ReadWrite, Options)
   when is_function(Fun, 0) ->
     case khepri_tx:to_standalone_fun(Fun, ReadWrite) of
         #standalone_fun{} = StandaloneFun ->
-            readwrite_transaction(StoreId, StandaloneFun);
+            readwrite_transaction(StoreId, StandaloneFun, Options);
         _ ->
             readonly_transaction(StoreId, Fun, Options)
     end;
-transaction(StoreId, Fun, rw = ReadWrite, _Options)
+transaction(StoreId, Fun, rw = ReadWrite, Options)
   when is_function(Fun, 0) ->
     StandaloneFun = khepri_tx:to_standalone_fun(Fun, ReadWrite),
-    readwrite_transaction(StoreId, StandaloneFun);
+    readwrite_transaction(StoreId, StandaloneFun, Options);
 transaction(StoreId, Fun, ro, Options) when is_function(Fun, 0) ->
     readonly_transaction(StoreId, Fun, Options);
 transaction(_StoreId, Fun, _ReadWrite, _Options) when is_function(Fun) ->
@@ -575,6 +666,14 @@ transaction(_StoreId, Fun, _ReadWrite, _Options) when is_function(Fun) ->
     throw({invalid_tx_fun, {requires_args, Arity}});
 transaction(_StoreId, Term, _ReadWrite, _Options) ->
     throw({invalid_tx_fun, Term}).
+
+-spec readonly_transaction(StoreId, Fun, Options) -> Ret when
+      StoreId :: khepri:store_id(),
+      Fun :: khepri_tx:tx_fun(),
+      Options :: query_options(),
+      Ret :: Atomic | Aborted,
+      Atomic :: {atomic, khepri_tx:tx_fun_result()},
+      Aborted :: khepri_tx:tx_abort().
 
 readonly_transaction(StoreId, Fun, Options) when is_function(Fun, 0) ->
     Query = fun(State) ->
@@ -593,19 +692,34 @@ readonly_transaction(StoreId, Fun, Options) when is_function(Fun, 0) ->
             {atomic, Ret}
     end.
 
-readwrite_transaction(StoreId, StandaloneFun) ->
+-spec readwrite_transaction(StoreId, Fun, Options) -> Ret when
+      StoreId :: khepri:store_id(),
+      Fun :: khepri_fun:standalone_fun(),
+      Options :: command_options(),
+      Ret :: Atomic | Aborted | NoRetIfAsync,
+      Atomic :: {atomic, khepri_tx:tx_fun_result()},
+      Aborted :: khepri_tx:tx_abort(),
+      NoRetIfAsync :: ok.
+
+readwrite_transaction(StoreId, StandaloneFun, Options) ->
     Command = #tx{'fun' = StandaloneFun},
-    case process_command(StoreId, Command) of
+    case process_command(StoreId, Command, Options) of
         {exception, _, {aborted, _} = Aborted, _} ->
             Aborted;
         {exception, Class, Reason, Stacktrace} ->
             erlang:raise(Class, Reason, Stacktrace);
+        ok = Ret ->
+            CommandType = select_command_type(Options),
+            case CommandType of
+                sync          -> {atomic, Ret};
+                {async, _, _} -> Ret
+            end;
         Ret ->
             {atomic, Ret}
     end.
 
 -spec run_sproc(StoreId, PathPattern, Args) -> Ret when
-  StoreId :: khepri:store_id(),
+      StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Args :: [any()],
       Ret :: any().
@@ -685,7 +799,7 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath) ->
     Command = #register_trigger{id = TriggerId,
                                 sproc = StoredProcPath,
                                 event_filter = EventFilter},
-    process_command(StoreId, Command).
+    process_command(StoreId, Command, #{}).
 
 -spec ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
     Ret when
@@ -701,7 +815,7 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath) ->
 
 ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
     Command = #ack_triggered{triggered = TriggeredStoredProcs},
-    process_command(StoreId, Command).
+    process_command(StoreId, Command, #{}).
 
 -spec get_keep_while_conds_state(StoreId) -> Ret when
       StoreId :: khepri:store_id(),
@@ -723,9 +837,10 @@ get_keep_while_conds_state(StoreId) ->
             end,
     process_query(StoreId, Query, #{favor => consistency}).
 
--spec process_command(StoreId, Command) -> Ret when
+-spec process_command(StoreId, Command, Options) -> Ret when
       StoreId :: khepri:store_id(),
       Command :: command(),
+      Options :: command_options(),
       Ret :: any().
 %% @doc Processes a command which is appended to the Ra log and processed by
 %% this state machine code.
@@ -741,12 +856,23 @@ get_keep_while_conds_state(StoreId) ->
 %%
 %% @private
 
-process_command(StoreId, Command) ->
+process_command(StoreId, Command, Options) ->
+    CommandType = select_command_type(Options),
+    case CommandType of
+        sync ->
+            process_sync_command(StoreId, Command);
+        {async, Correlation, Priority} ->
+            process_async_command(
+              StoreId, Command, Correlation, Priority)
+    end.
+
+process_sync_command(StoreId, Command) ->
     case get_leader(StoreId) of
         LeaderId when LeaderId =/= undefined ->
             case ra:process_command(LeaderId, Command) of
                 {ok, Ret, NewLeaderId} ->
-                    cache_leader_if_changed(StoreId, LeaderId, NewLeaderId),
+                    cache_leader_if_changed(
+                      StoreId, LeaderId, NewLeaderId),
                     just_did_consistent_call(StoreId),
                     Ret;
                 {timeout, _} = Timeout ->
@@ -758,10 +884,47 @@ process_command(StoreId, Command) ->
             {error, ra_leader_unknown}
     end.
 
+process_async_command(StoreId, Command, Correlation, Priority) ->
+    LocalServerId = {StoreId, node()},
+    ra:pipeline_command(LocalServerId, Command, Correlation, Priority).
+
+-spec select_command_type(Options) -> CommandType when
+      Options :: command_options(),
+      CommandType :: sync | {async, Correlation, Priority},
+      Correlation :: ra_server:command_correlation(),
+      Priority :: ra_server_command_priority().
+%% @doc Selects the command type depending on what the caller wants.
+%%
+%% @private
+
+-define(DEFAULT_RA_COMMAND_CORRELATION, no_correlation).
+-define(DEFAULT_RA_COMMAND_PRIORITY, low).
+-define(IS_RA_COMMAND_CORRELATION(Correlation),
+        (is_integer(Correlation) orelse is_reference(Correlation))).
+-define(IS_RA_COMMAND_PRIORITY(Priority),
+        (Priority =:= normal orelse Priority =:= low)).
+
+select_command_type(Options) when not is_map_key(async, Options) ->
+    sync;
+select_command_type(#{async := false}) ->
+    sync;
+select_command_type(#{async := true}) ->
+    {async, ?DEFAULT_RA_COMMAND_CORRELATION, ?DEFAULT_RA_COMMAND_PRIORITY};
+select_command_type(#{async := Correlation})
+  when ?IS_RA_COMMAND_CORRELATION(Correlation) ->
+    {async, Correlation, ?DEFAULT_RA_COMMAND_PRIORITY};
+select_command_type(#{async := Priority})
+  when ?IS_RA_COMMAND_PRIORITY(Priority) ->
+    {async, ?DEFAULT_RA_COMMAND_CORRELATION, Priority};
+select_command_type(#{async := {Correlation, Priority}})
+  when ?IS_RA_COMMAND_CORRELATION(Correlation) andalso
+       ?IS_RA_COMMAND_PRIORITY(Priority) ->
+    {async, Correlation, Priority}.
+
 -spec process_query(StoreId, QueryFun, Options) -> Ret when
       StoreId :: khepri:store_id(),
       QueryFun :: query_fun(),
-      Options :: operation_options(),
+      Options :: query_options(),
       Ret :: any().
 %% @doc Processes a query which is by the Ra leader.
 %%
@@ -907,7 +1070,7 @@ cache_leader_if_changed(StoreId, _OldLeaderId, NewLeaderId) ->
 
 -spec select_query_type(StoreId, Options) -> QueryType when
       StoreId :: khepri:store_id(),
-      Options :: operation_options(),
+      Options :: query_options(),
       QueryType :: local | leader | consistent.
 %% @doc Selects the query type depending on what the caller favors.
 %%
@@ -922,10 +1085,6 @@ select_query_type(StoreId, _Options) ->
    LAST_CONSISTENT_CALL_TS_REF(StoreId),
    {khepri, last_consistent_call_ts_ref, StoreId}).
 
-do_select_query_type(_StoreId, consistency) ->
-    consistent;
-do_select_query_type(_StoreId, low_latency) ->
-    local;
 do_select_query_type(StoreId, compromise) ->
     Key = ?LAST_CONSISTENT_CALL_TS_REF(StoreId),
     Idx = 1,
@@ -951,7 +1110,11 @@ do_select_query_type(StoreId, compromise) ->
             end;
         undefined ->
             consistent
-    end.
+    end;
+do_select_query_type(_StoreId, consistency) ->
+    consistent;
+do_select_query_type(_StoreId, low_latency) ->
+    local.
 
 just_did_consistent_call(StoreId) ->
     %% We record the timestamp of the successful command or consistent query
@@ -1210,14 +1373,14 @@ remove_node_child_nodes(
     Stat1 = Stat#{child_list_version => CVersion + 1},
     Node#node{stat = Stat1, child_nodes = #{}}.
 
--spec gather_node_props(tree_node(), operation_options()) ->
+-spec gather_node_props(tree_node(), command_options() | query_options()) ->
     node_props().
 
 gather_node_props(#node{stat = #{payload_version := DVersion,
-                                     child_list_version := CVersion},
-                            payload = Payload,
-                            child_nodes = Children},
-                      Options) ->
+                                 child_list_version := CVersion},
+                        payload = Payload,
+                        child_nodes = Children},
+                  Options) ->
     Result0 = #{payload_version => DVersion,
                 child_list_version => CVersion,
                 child_list_length => maps:size(Children)},
@@ -1319,7 +1482,7 @@ update_keep_while_conds_revidx(
 -spec find_matching_nodes(
         tree_node(),
         khepri_path:pattern(),
-        operation_options()) ->
+        query_options()) ->
     result().
 %% @private
 
