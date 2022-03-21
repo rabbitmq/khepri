@@ -547,8 +547,26 @@ executed at least once. Therefore, if the Ra leader changes before the
 execution of the stored procedure could be confirmed to the Khepri state
 machine, the execution will be retried on the new Ra leader.</p>
 
-This means that the stored procedure could be executed multiple times. There
-it is important it is idempotent.
+<p>This means that the stored procedure could be executed multiple times.
+Therefore it is important it is idempotent.</p>
+
+<h4><a name="Differences_with_triggers_in_RDBMS">Differences with triggers in RDBMS</a></h4>
+
+<p>As described earlier, the rationale for triggers in Khepri is that sometimes,
+one needs to execute some code with side effects (e.g. sending a message to a
+process) after a record was modified in the database. This can't happen in a
+transaction because side effects are forbiden. The caller could handle that
+after he modifies the record, but the record could be indirectly modified
+(deleted) as a consequence of another record being modified or deleted. In
+this case, the caller can't do anything.</p>
+
+<p>Because of the freedom they need, <strong>triggers are not allowed to mess
+with the database directly</strong>. In other words, they must go through the
+regular Khepri API like any caller. Triggers do not have any privileges or
+blanket approvals to tamper with the data.</p>
+
+So even though Khepri uses the same naming than many RDBMS, triggers in Khepri
+can't have unexpected consequences.
 
 <hr>
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
