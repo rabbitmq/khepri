@@ -276,6 +276,33 @@ allowed_bs_match_digit_parser_test() ->
            {[1, 2, 3, 4, 5], <<>>} = parse_float(<<".", 1, 2, 3, 4, 5>>)
        end).
 
+%% This set of parse_float, parse_digits, etc. is the same as the above
+%% functions and test case, except that the intermediary function
+%% `parse_digits/2' introduces new bindings that change the arity, to
+%% ensure we are not hard-coding an arity.
+parse_float2(<<".", Rest/binary>>) ->
+    parse_digits2([], Rest);
+parse_float2(Bin) -> {[], Bin}.
+
+parse_digits2(Foo, Bin) ->
+    parse_digits2(Foo, [], Bin).
+
+parse_digits2(Foo, Bar, Bin) ->
+    parse_digits2(Foo, Bar, Bin, []).
+
+parse_digits2(
+  Foo, Bar, <<Digit/integer, Rest/binary>>, Acc)
+  when is_integer(Digit) andalso Digit >= 48 andalso Digit =< 57 ->
+    parse_digits2(Foo, Bar, Rest, [Digit | Acc]);
+parse_digits2(_Foo, _Bar, Rest, Acc) ->
+    {lists:reverse(Acc), Rest}.
+
+allowed_bs_match_digit_parser2_test() ->
+    ?assertStandaloneFun(
+       begin
+           {[1, 2, 3, 4, 5], <<>>} = parse_float2(<<".", 1, 2, 3, 4, 5>>)
+       end).
+
 %% The compiler determines that this clause will always match because this
 %% function is not exported and is only called with a compile-time binary
 %% matching the pattern. As a result, the instruction for this match is
