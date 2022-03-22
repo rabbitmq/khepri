@@ -354,6 +354,27 @@ select_tuple_arity_var_info_test() ->
            handle_tuple(Tuple)
        end).
 
+encode_frame(Frame)
+    when is_tuple(Frame) andalso
+        (element(1, Frame) =:= text orelse
+         element(1, Frame) =:= binary) ->
+    <<(encode_fin(Frame))/bitstring>>.
+
+encode_fin({text, false})   -> <<0:1/integer>>;
+encode_fin({binary, false}) -> <<0:1/integer>>;
+encode_fin(_)               -> <<1:1/integer>>.
+
+type_inference_for_test_arity_instruction_test() ->
+    self() ! {text, false},
+    TextFrame = receive TextMsg -> TextMsg end,
+    self() ! {binary, true},
+    BinaryFrame = receive BinaryMsg -> BinaryMsg end,
+    ?assertStandaloneFun(
+        begin
+            <<0:0>> = encode_frame(TextFrame),
+            <<0:1>> = encode_frame(BinaryFrame)
+        end).
+
 denied_receive_block_test() ->
     ?assertToFunThrow(
        {invalid_tx_fun, receiving_message_denied},

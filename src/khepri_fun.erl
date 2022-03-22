@@ -1006,6 +1006,15 @@ pass1_process_instructions(
     VarInfo = {var_info, Var, [accepts_match_context]},
     Comment = {'%', VarInfo},
     pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+pass1_process_instructions(
+  [{test, test_arity, _Fail, [Var, Arity]} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    Type = {t_tuple, Arity, false, #{}},
+    VarInfo = {var_info, Var, [{type, Type}]},
+    Comment = {'%', VarInfo},
+    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
 
 pass1_process_instructions(
   [Instruction | Rest],
@@ -1620,6 +1629,9 @@ pass2_process_instruction(
         _ ->
             Instruction
     end;
+pass2_process_instruction(
+  {bif, _, _, _, _} = Instruction, State) ->
+    replace_label(Instruction, 3, State);
 pass2_process_instruction(
   {bs_add, _, _, _} = Instruction, State) ->
     replace_label(Instruction, 2, State);
