@@ -212,6 +212,8 @@ ensure_instruction_is_permitted({apply, _}) ->
     throw(dynamic_apply_denied);
 ensure_instruction_is_permitted({apply_last, _, _}) ->
     throw(dynamic_apply_denied);
+ensure_instruction_is_permitted({arithfbif, _, _, _, _}) ->
+    ok;
 ensure_instruction_is_permitted({badmatch, _}) ->
     ok;
 ensure_instruction_is_permitted({bif, Bif, _, Args, _}) ->
@@ -255,6 +257,14 @@ ensure_instruction_is_permitted({catch_end, _}) ->
 ensure_instruction_is_permitted({deallocate, _}) ->
     ok;
 ensure_instruction_is_permitted({func_info, _, _, _}) ->
+    ok;
+ensure_instruction_is_permitted({fconv, _, _}) ->
+    ok;
+ensure_instruction_is_permitted(fclearerror) ->
+    ok;
+ensure_instruction_is_permitted({fcheckerror, _}) ->
+    ok;
+ensure_instruction_is_permitted({fmove, _, _}) ->
     ok;
 ensure_instruction_is_permitted({gc_bif, Bif, _, Arity, _, _}) ->
     ensure_bif_is_valid(Bif, Arity);
@@ -409,6 +419,11 @@ is_remote_call_valid(erlang, element, _) -> true;
 is_remote_call_valid(erlang, error, _) -> true;
 is_remote_call_valid(erlang, exit, _) -> true;
 is_remote_call_valid(erlang, external_size, _) -> true;
+is_remote_call_valid(erlang, fadd, _) -> true;
+is_remote_call_valid(erlang, fdiv, _) -> true;
+is_remote_call_valid(erlang, fmul, _) -> true;
+is_remote_call_valid(erlang, fnegate, _) -> true;
+is_remote_call_valid(erlang, fsub, _) -> true;
 is_remote_call_valid(erlang, float, _) -> true;
 is_remote_call_valid(erlang, float_to_binary, _) -> true;
 is_remote_call_valid(erlang, float_to_list, _) -> true;

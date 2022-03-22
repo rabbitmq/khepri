@@ -79,6 +79,10 @@ allowed_erlang_expressions_multiply_test() ->
     Three = mask(3),
     ?assertStandaloneFun(Three * 2).
 
+allowed_erlang_expressions_divide_test() ->
+    Six = mask(6),
+    ?assertStandaloneFun(Six / 2).
+
 allowed_erlang_expressions_integer_division_test() ->
     Six = mask(6),
     ?assertStandaloneFun(Six div 2).
@@ -192,6 +196,13 @@ allowed_erlang_expressions_map_update_test() ->
         begin
             M = #{a => b},
             M#{a => b}
+        end).
+
+allowed_erlang_expressions_float_arithmetic_test() ->
+    One = mask(1.0),
+    ?assertStandaloneFun(
+        begin
+            One / 2.0 + One * 6.0 - 3.0 + -(One + 1.0)
         end).
 
 allowed_erlang_types_test() ->

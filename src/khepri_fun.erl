@@ -775,6 +775,14 @@ pass1_process_instructions(Instructions, State) ->
 %% First group.
 
 pass1_process_instructions(
+  [{arithfbif, Operation, Fail, Args, Dst} | Rest],
+  State,
+  Result) ->
+    %% `beam_disasm` did not decode this instruction correctly. `arithfbif'
+    %% should be translated into a `bif'.
+    Instruction = {bif, Operation, Fail, Args, Dst},
+    pass1_process_instructions([Instruction | Rest], State, Result);
+pass1_process_instructions(
   [{bs_append, _, _, _, _, _, _, {field_flags, FF}, _} = Instruction0 | Rest],
   State,
   Result)
@@ -1631,6 +1639,9 @@ pass2_process_instruction(
     end;
 pass2_process_instruction(
   {bif, _, _, _, _} = Instruction, State) ->
+    replace_label(Instruction, 3, State);
+pass2_process_instruction(
+  {arithfbif, _, _, _, _} = Instruction, State) ->
     replace_label(Instruction, 3, State);
 pass2_process_instruction(
   {bs_add, _, _, _} = Instruction, State) ->
