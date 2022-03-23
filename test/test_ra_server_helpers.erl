@@ -46,11 +46,11 @@ cleanup(#{ra_system := RaSystem,
           store_dir := StoreDir,
           store_id := StoreId}) ->
     ServerIds = khepri:members(StoreId),
+    _ = application:stop(khepri),
     _ = ra:delete_cluster(ServerIds),
     _ = supervisor:terminate_child(ra_systems_sup, RaSystem),
     _ = supervisor:delete_child(ra_systems_sup, RaSystem),
     _ = remove_store_dir(StoreDir),
-    ok = khepri_machine:clear_cache(StoreId),
     ok.
 
 store_dir_name(RaSystem) ->

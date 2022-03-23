@@ -754,7 +754,7 @@ get(Path) ->
       Result :: khepri_machine:result();
 (PathPattern, Options) -> Result when
       PathPattern :: khepri_path:pattern() | string(),
-      Options :: khepri_machine:operation_options(),
+      Options :: khepri_machine:query_options(),
       Result :: khepri_machine:result().
 %% @doc Returns all tree nodes matching the path pattern.
 %%
@@ -776,7 +776,7 @@ get(Path, Options) when is_map(Options) ->
 -spec get(StoreId, PathPattern, Options) -> Result when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern() | string(),
-      Options :: khepri_machine:operation_options(),
+      Options :: khepri_machine:query_options(),
       Result :: khepri_machine:result().
 %% @doc Returns all tree nodes matching the path pattern.
 %%
