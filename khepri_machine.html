@@ -141,7 +141,7 @@ details about those functions and in particular their restrictions.</p>
 <h2><a name="types">Data Types</a></h2>
 
 <h3 class="typedecl"><a name="type-async_option">async_option()</a></h3>
-<p><code>async_option() = boolean() | <a href="/home/runner/work/khepri/ra/doc/ra_server.html#type-command_correlation">ra_server:command_correlation()</a> | <a href="#type-ra_server_command_priority">ra_server_command_priority()</a> | {<a href="/home/runner/work/khepri/ra/doc/ra_server.html#type-command_correlation">ra_server:command_correlation()</a>, <a href="#type-ra_server_command_priority">ra_server_command_priority()</a>}</code></p>
+<p><code>async_option() = boolean() | <a href="/home/runner/work/khepri/ra/doc/ra_server.html#type-command_correlation">ra_server:command_correlation()</a> | <a href="/home/runner/work/khepri/ra/doc/ra_server.html#type-command_priority">ra_server:command_priority()</a> | {<a href="/home/runner/work/khepri/ra/doc/ra_server.html#type-command_correlation">ra_server:command_correlation()</a>, <a href="/home/runner/work/khepri/ra/doc/ra_server.html#type-command_priority">ra_server:command_priority()</a>}</code></p>
 <p><p>  Option to indicate if the command should be synchronous or asynchronous.</p>
  
   Values are:
@@ -285,11 +285,6 @@ payload and child nodes.</p>
   <li><code>favor</code> indicates where to put the cursor between freshness of the
   returned data and low latency of queries; see <a docgen-rel="seetype" docgen-href="#favor_option/0" href="#type-favor_option"><code>favor_option()</code></a>.</li>
   </ul></p>
-
-<h3 class="typedecl"><a name="type-ra_server_command_priority">ra_server_command_priority()</a></h3>
-<p><code>ra_server_command_priority() = normal | low</code></p>
-<p>  Redefines <code>ra_server:command_priority()</code> while there is no release of Ra
-  defining it.</p>
 
 <h3 class="typedecl"><a name="type-result">result()</a></h3>
 <p><code>result() = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(<a href="#type-node_props_map">node_props_map()</a>) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></p>
