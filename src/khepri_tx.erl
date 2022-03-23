@@ -212,6 +212,8 @@ ensure_instruction_is_permitted({apply, _}) ->
     throw(dynamic_apply_denied);
 ensure_instruction_is_permitted({apply_last, _, _}) ->
     throw(dynamic_apply_denied);
+ensure_instruction_is_permitted({arithfbif, _, _, _, _}) ->
+    ok;
 ensure_instruction_is_permitted({badmatch, _}) ->
     ok;
 ensure_instruction_is_permitted({bif, Bif, _, Args, _}) ->
@@ -255,6 +257,14 @@ ensure_instruction_is_permitted({catch_end, _}) ->
 ensure_instruction_is_permitted({deallocate, _}) ->
     ok;
 ensure_instruction_is_permitted({func_info, _, _, _}) ->
+    ok;
+ensure_instruction_is_permitted({fconv, _, _}) ->
+    ok;
+ensure_instruction_is_permitted(fclearerror) ->
+    ok;
+ensure_instruction_is_permitted({fcheckerror, _}) ->
+    ok;
+ensure_instruction_is_permitted({fmove, _, _}) ->
     ok;
 ensure_instruction_is_permitted({gc_bif, Bif, _, Arity, _, _}) ->
     ensure_bif_is_valid(Bif, Arity);
@@ -382,8 +392,10 @@ is_remote_call_valid(erlang, abs, _) -> true;
 is_remote_call_valid(erlang, adler32, _) -> true;
 is_remote_call_valid(erlang, adler32_combine, _) -> true;
 is_remote_call_valid(erlang, append_element, _) -> true;
+is_remote_call_valid(erlang, 'and', _) -> true;
 is_remote_call_valid(erlang, atom_to_binary, _) -> true;
 is_remote_call_valid(erlang, atom_to_list, _) -> true;
+is_remote_call_valid(erlang, 'band', _) -> true;
 is_remote_call_valid(erlang, binary_part, _) -> true;
 is_remote_call_valid(erlang, binary_to_atom, _) -> true;
 is_remote_call_valid(erlang, binary_to_float, _) -> true;
@@ -392,15 +404,26 @@ is_remote_call_valid(erlang, binary_to_list, _) -> true;
 is_remote_call_valid(erlang, binary_to_term, _) -> true;
 is_remote_call_valid(erlang, bit_size, _) -> true;
 is_remote_call_valid(erlang, bitstring_to_list, _) -> true;
+is_remote_call_valid(erlang, 'bnot', _) -> true;
+is_remote_call_valid(erlang, 'bor', _) -> true;
+is_remote_call_valid(erlang, 'bsl', _) -> true;
+is_remote_call_valid(erlang, 'bsr', _) -> true;
+is_remote_call_valid(erlang, 'bxor', _) -> true;
 is_remote_call_valid(erlang, byte_size, _) -> true;
 is_remote_call_valid(erlang, ceil, _) -> true;
 is_remote_call_valid(erlang, crc32, _) -> true;
 is_remote_call_valid(erlang, crc32_combine, _) -> true;
 is_remote_call_valid(erlang, delete_element, _) -> true;
+is_remote_call_valid(erlang, 'div', _) -> true;
 is_remote_call_valid(erlang, element, _) -> true;
 is_remote_call_valid(erlang, error, _) -> true;
 is_remote_call_valid(erlang, exit, _) -> true;
 is_remote_call_valid(erlang, external_size, _) -> true;
+is_remote_call_valid(erlang, fadd, _) -> true;
+is_remote_call_valid(erlang, fdiv, _) -> true;
+is_remote_call_valid(erlang, fmul, _) -> true;
+is_remote_call_valid(erlang, fnegate, _) -> true;
+is_remote_call_valid(erlang, fsub, _) -> true;
 is_remote_call_valid(erlang, float, _) -> true;
 is_remote_call_valid(erlang, float_to_binary, _) -> true;
 is_remote_call_valid(erlang, float_to_list, _) -> true;
@@ -443,9 +466,11 @@ is_remote_call_valid(erlang, md5_init, _) -> true;
 is_remote_call_valid(erlang, md5_update, _) -> true;
 is_remote_call_valid(erlang, min, _) -> true;
 is_remote_call_valid(erlang, 'not', _) -> true;
+is_remote_call_valid(erlang, 'or', _) -> true;
 is_remote_call_valid(erlang, phash2, _) -> true;
 is_remote_call_valid(erlang, pid_to_list, _) -> true;
 is_remote_call_valid(erlang, raise, _) -> true;
+is_remote_call_valid(erlang, 'rem', _) -> true;
 is_remote_call_valid(erlang, round, _) -> true;
 is_remote_call_valid(erlang, setelement, _) -> true;
 is_remote_call_valid(erlang, size, _) -> true;
@@ -458,9 +483,12 @@ is_remote_call_valid(erlang, throw, _) -> true;
 is_remote_call_valid(erlang, tl, _) -> true;
 is_remote_call_valid(erlang, tuple_size, _) -> true;
 is_remote_call_valid(erlang, tuple_to_list, _) -> true;
+is_remote_call_valid(erlang, 'xor', _) -> true;
 is_remote_call_valid(erlang, '++', _) -> true;
 is_remote_call_valid(erlang, '--', _) -> true;
 is_remote_call_valid(erlang, '+', _) -> true;
+is_remote_call_valid(erlang, '-', _) -> true;
+is_remote_call_valid(erlang, '*', _) -> true;
 is_remote_call_valid(erlang, '>=', _) -> true;
 is_remote_call_valid(erlang, '=<', _) -> true;
 is_remote_call_valid(erlang, '>', _) -> true;

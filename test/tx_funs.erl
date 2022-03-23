@@ -14,7 +14,6 @@
 -include("src/khepri_machine.hrl").
 
 -dialyzer([{no_return, [allowed_khepri_tx_api_test/0,
-                        allowed_erlang_expressions_test/0,
                         allowed_erlang_module_api_test/0,
                         allowed_bs_match_accepts_match_context_test/0]},
            {no_missing_calls,
@@ -36,6 +35,13 @@
 
 -define(assertToFunThrow(Expected, Expression),
         ?assertThrow(Expected, ?make_standalone_fun(Expression))).
+
+%% The compiler is smart enough to optimize away many instructions by
+%% inspecting types and values. `mask/1' confuses the compiler by sending
+%% and receiving the value.
+mask(Value) ->
+    self() ! Value,
+    receive Msg -> Msg end.
 
 noop_ok_test() ->
     ?assertStandaloneFun(ok).
@@ -61,51 +67,143 @@ denied_khepri_tx_run_3_test() ->
        {invalid_tx_fun, {call_denied, {khepri_tx, run, 3}}},
        _ = khepri_tx:run(#khepri_machine{}, fun() -> ok end, true)).
 
-allowed_erlang_expressions_test() ->
+allowed_erlang_expressions_add_test() ->
+    One = mask(1),
+    ?assertStandaloneFun(One + 2).
+
+allowed_erlang_expressions_subtract_test() ->
+    One = mask(1),
+    ?assertStandaloneFun(One - 2).
+
+allowed_erlang_expressions_multiply_test() ->
+    Three = mask(3),
+    ?assertStandaloneFun(Three * 2).
+
+allowed_erlang_expressions_divide_test() ->
+    Six = mask(6),
+    ?assertStandaloneFun(Six / 2).
+
+allowed_erlang_expressions_integer_division_test() ->
+    Six = mask(6),
+    ?assertStandaloneFun(Six div 2).
+
+allowed_erlang_expressions_remainder_test() ->
+    Seven = mask(7),
+    ?assertStandaloneFun(Seven rem 2).
+
+allowed_erlang_expressions_bnot_test() ->
+    One = mask(1),
+    ?assertStandaloneFun(bnot One).
+
+allowed_erlang_expressions_band_test() ->
+    One = mask(1),
+    ?assertStandaloneFun(One band One).
+
+allowed_erlang_expressions_bor_test() ->
+    One = mask(1),
+    ?assertStandaloneFun(One bor One).
+
+allowed_erlang_expressions_bxor_test() ->
+    One = mask(1),
+    ?assertStandaloneFun(One bxor One).
+
+allowed_erlang_expressions_bsl_test() ->
+    One = mask(1),
+    ?assertStandaloneFun(One bsl One).
+
+allowed_erlang_expressions_bsr_test() ->
+    One = mask(1),
+    ?assertStandaloneFun(One bsr One).
+
+allowed_erlang_expressions_equals_test() ->
+    One = mask(1),
+    ?assertStandaloneFun(One == One).
+
+allowed_erlang_expressions_not_equals_test() ->
+    One = mask(1),
+    ?assertStandaloneFun(One /= One).
+
+allowed_erlang_expressions_strict_equals_test() ->
+    One = mask(1),
+    OneFloat = mask(1.0),
+    ?assertStandaloneFun(One =:= OneFloat).
+
+allowed_erlang_expressions_strict_not_equals_test() ->
+    One = mask(1),
+    OneFloat = mask(1.0),
+    ?assertStandaloneFun(One =/= OneFloat).
+
+allowed_erlang_expressions_greater_than_test() ->
+    One = mask(1),
+    ?assertStandaloneFun(One > One).
+
+allowed_erlang_expressions_greater_than_or_equal_to_test() ->
+    One = mask(1),
+    ?assertStandaloneFun(One >= One).
+
+allowed_erlang_expressions_less_than_test() ->
+    One = mask(1),
+    ?assertStandaloneFun(One < One).
+
+allowed_erlang_expressions_less_than_or_equal_to_test() ->
+    One = mask(1),
+    ?assertStandaloneFun(One =< One).
+
+allowed_erlang_expressions_not_test() ->
+    True = mask(true),
+    ?assertStandaloneFun(not True).
+
+allowed_erlang_expressions_and_test() ->
+    True = mask(true),
+    ?assertStandaloneFun(True and True).
+
+allowed_erlang_expressions_or_test() ->
+    True = mask(true),
+    ?assertStandaloneFun(True or True).
+
+allowed_erlang_expressions_xor_test() ->
+    True = mask(true),
+    ?assertStandaloneFun(True xor True).
+
+allowed_erlang_expressions_andalso_test() ->
+    True = mask(true),
+    ?assertStandaloneFun(True andalso True).
+
+allowed_erlang_expressions_orelse_test() ->
+    True = mask(true),
+    ?assertStandaloneFun(True orelse True).
+
+allowed_erlang_expressions_list_concat_test() ->
+    List = mask([a]),
+    ?assertStandaloneFun(List ++ List).
+
+allowed_erlang_expressions_list_difference_test() ->
+    List = mask([a]),
+    ?assertStandaloneFun(List -- List).
+
+allowed_erlang_expressions_map_literal_test() ->
+    ?assertStandaloneFun(#{a => b}).
+
+allowed_erlang_expressions_map_destructure_test() ->
     ?assertStandaloneFun(
-       begin
-           _Var = 1,
+        begin
+            M = #{a => b},
+            #{a := _} = M
+        end).
 
-           _ = + 1,
+allowed_erlang_expressions_map_update_test() ->
+    ?assertStandaloneFun(
+        begin
+            M = #{a => b},
+            M#{a => b}
+        end).
 
-           _ = 1 + 1,
-           _ = 1 - 1,
-           _ = 1 * 1,
-           _ = 1 / 1,
-           _ = 1 div 1,
-           _ = 1 rem 1,
-
-           _ = bnot 1,
-           _ = 1 band 1,
-           _ = 1 bor 1,
-           _ = 1 bxor 1,
-           _ = 1 bsl 1,
-           _ = 1 bsr 1,
-
-           _ = 1 == 1,
-           _ = 1 /= 1,
-           _ = 1 =:= 1,
-           _ = 1 =/= 1,
-           _ = 1 > 1,
-           _ = 1 >= 1,
-           _ = 1 < 1,
-           _ = 1 =< 1,
-
-           _ = not true,
-           _ = true and false,
-           _ = true or false,
-           _ = true xor false,
-
-           _ = true andalso true,
-           _ = true orelse true,
-
-           _ = [a] ++ [b],
-           _ = [a] -- [b],
-
-           M = #{a => b},
-           #{a := _} = M,
-           _ = M#{a => c}
-       end).
+allowed_erlang_expressions_float_arithmetic_test() ->
+    One = mask(1.0),
+    ?assertStandaloneFun(
+        begin
+            One / 2.0 + One * 6.0 - 3.0 + -(One + 1.0)
+        end).
 
 allowed_erlang_types_test() ->
     ?assertStandaloneFun(
