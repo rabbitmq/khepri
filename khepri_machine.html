@@ -101,25 +101,27 @@ corresponds to the name of the Ra cluster Khepri was started with.</p>
  
   The API provides the following three functions:
   <ul>
-  <li><a docgen-rel="seemfa" docgen-href="#get/2" href="#get-2"><code>get/2</code></a> and <a docgen-rel="seemfa" docgen-href="#get/3" href="#get-3"><code>get/3</code></a>: returns all tree node matching the given
-  path pattern.</li>
-  <li><a docgen-rel="seemfa" docgen-href="#put/3" href="#put-3"><code>put/3</code></a> and <a docgen-rel="seemfa" docgen-href="#put/4" href="#put-4"><code>put/4</code></a>: updates a single specific tree node.</li>
-  <li><a docgen-rel="seemfa" docgen-href="#delete/2" href="#delete-2"><code>delete/2</code></a>: removes all tree node matching the given path
-  pattern.</li>
+  <li><a docgen-rel="seemfa" docgen-href="#get/2" href="#get-2"><code>get/2</code></a> and <a docgen-rel="seemfa" docgen-href="#get/3" href="#get-3"><code>get/3</code></a>: returns all tree node matching the
+  given path pattern.</li>
+  <li><a docgen-rel="seemfa" docgen-href="#put/3" href="#put-3"><code>put/3</code></a>, <a docgen-rel="seemfa" docgen-href="#put/4" href="#put-4"><code>put/4</code></a> and <a docgen-rel="seemfa" docgen-href="#put/5" href="#put-5"><code>put/5</code></a>: updates a single
+  specific tree node.</li>
+  <li><a docgen-rel="seemfa" docgen-href="#delete/2" href="#delete-2"><code>delete/2</code></a>, <a docgen-rel="seemfa" docgen-href="#delete/3" href="#delete-3"><code>delete/3</code></a>: removes all tree node matching the
+  given path pattern.</li>
   </ul>
  
   <p>All functions take a native path pattern. They do not accept Unix-like  
 paths.</p>
  
-  All functions return one of these tuples:
+  All functions, except asynchronous puts, deletes and R/W transactions,
+  return one of these tuples:
   <ul>
   <li><code>{ok, NodePropsMap}</code> where <code>NodePropsMap</code> is a <a docgen-rel="seemfa" docgen-href="#node_props_map/0" href="#node_props_map-0"><code>node_props_map/0</code></a>:
   <ul>
   <li>The map returned by <a docgen-rel="seemfa" docgen-href="#get/2" href="#get-2"><code>get/2</code></a>, <a docgen-rel="seemfa" docgen-href="#get/3" href="#get-3"><code>get/3</code></a> and <a docgen-rel="seemfa" docgen-href="#delete/2" href="#delete-2"><code>delete/2</code></a>
   contains one entry per node matching the path pattern.</li>
-  <li>The map returned by <a docgen-rel="seemfa" docgen-href="#put/3" href="#put-3"><code>put/3</code></a> and <a docgen-rel="seemfa" docgen-href="#put/4" href="#put-4"><code>put/4</code></a> contains a single
-  entry if the modified node existed before the update, or no entry if it
-  didn't.</li>
+  <li>The map returned by <a docgen-rel="seemfa" docgen-href="#put/3" href="#put-3"><code>put/3</code></a>, <a docgen-rel="seemfa" docgen-href="#put/4" href="#put-4"><code>put/4</code></a> and <a docgen-rel="seemfa" docgen-href="#put/5" href="#put-5"><code>put/5</code></a>
+  contains a single entry if the modified node existed before the update, or
+  no entry if it didn't.</li>
   </ul></li>
   <li><code>{error, Reason}</code> if an error occured. In the case, no modifications to
   the tree was performed.</li>
@@ -138,6 +140,23 @@ details about those functions and in particular their restrictions.</p>
   returns.
 <h2><a name="types">Data Types</a></h2>
 
+<h3 class="typedecl"><a name="type-async_option">async_option()</a></h3>
+<p><code>async_option() = boolean() | <a href="/home/runner/work/khepri/ra/doc/ra_server.html#type-command_correlation">ra_server:command_correlation()</a> | <a href="#type-ra_server_command_priority">ra_server_command_priority()</a> | {<a href="/home/runner/work/khepri/ra/doc/ra_server.html#type-command_correlation">ra_server:command_correlation()</a>, <a href="#type-ra_server_command_priority">ra_server_command_priority()</a>}</code></p>
+<p><p>  Option to indicate if the command should be synchronous or asynchronous.</p>
+ 
+  Values are:
+  <ul>
+  <li><code>true</code> to perform an asynchronous low-priority command without a
+  correlation ID.</li>
+  <li><code>false</code> to perform a synchronous command.</li>
+  <li>A correlation ID to perform an asynchronous low-priority command with
+  that correlation ID.</li>
+  <li>A priority to perform an asynchronous command with the specified
+  priority but without a correlation ID.</li>
+  <li>A combination of a correlation ID and a priority to perform an
+  asynchronous command with the specified parameters.</li>
+  </ul></p>
+
 <h3 class="typedecl"><a name="type-child_list_length">child_list_length()</a></h3>
 <p><code>child_list_length() = non_neg_integer()</code></p>
 <p>  Number of direct child nodes under a tree node.</p>
@@ -151,6 +170,17 @@ added or removed).</p>
   by 1 each time a child is added or removed. Changes made to existing nodes
   are not reflected in this version.</p>
 
+<h3 class="typedecl"><a name="type-command_options">command_options()</a></h3>
+<p><code>command_options() = #{async =&gt; <a href="#type-async_option">async_option()</a>}</code></p>
+<p><p>  Options used in commands.</p>
+ 
+  <p>Commands are <a docgen-rel="seemfa" docgen-href="#put/5" href="#put-5"><code>put/5</code></a>, <a docgen-rel="seemfa" docgen-href="#delete/3" href="#delete-3"><code>delete/3</code></a> and read-write <a docgen-rel="seemfa" docgen-href="#transaction/4" href="#transaction-4"><code>transaction/4</code></a>.</p>
+ 
+  <ul>
+  <li><code>async</code> indicates the synchronous or asynchronous nature of the
+  command; see <a docgen-rel="seetype" docgen-href="#async_option/0" href="#type-async_option"><code>async_option()</code></a>.</li>
+  </ul></p>
+
 <h3 class="typedecl"><a name="type-data">data()</a></h3>
 <p><code>data() = any()</code></p>
 <p>  Data stored in a node's payload.</p>
@@ -162,6 +192,29 @@ added or removed).</p>
 <h3 class="typedecl"><a name="type-event_filter_tree">event_filter_tree()</a></h3>
 <p><code>event_filter_tree() = #kevf_tree{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a>, props = #{on_actions =&gt; [create | update | delete], priority =&gt; integer()}}</code></p>
 
+
+<h3 class="typedecl"><a name="type-favor_option">favor_option()</a></h3>
+<p><code>favor_option() = consistency | compromise | low_latency</code></p>
+<p><p>  Option to indicate where to put the cursor between freshness of the  
+returned data and low latency of queries.</p>
+ 
+  Values are:
+  <ul>
+  <li><code>consistent</code> means that a "consistent query" will be used in Ra. It
+  will return the most up-to-date piece of data the cluster agreed on. Note
+  that it could block and eventually time out if there is no quorum in the Ra
+  cluster.</li>
+  <li><code>compromise</code> performs "leader queries" most of the time to reduce
+  latency, but uses "consistent queries" every 10 seconds to verify that the
+  cluster is healthy on a regular basis. It should be faster but may block
+  and time out like <code>consistent</code> and still return slightly out-of-date
+  data.</li>
+  <li><code>low_latency</code> means that "local queries" are used exclusively. They are
+  the fastest and have the lowest latency. However, the returned data is
+  whatever the local Ra server has. It could be out-of-date if it has
+  troubles keeping up with the Ra cluster. The chance of blocking and timing
+  out is very small.</li>
+  </ul></p>
 
 <h3 class="typedecl"><a name="type-keep_while_conds_map">keep_while_conds_map()</a></h3>
 <p><code>keep_while_conds_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></p>
@@ -199,35 +252,6 @@ payload and child nodes.</p>
  
   This structure is used in the return value of all commands and queries.</p>
 
-<h3 class="typedecl"><a name="type-operation_options">operation_options()</a></h3>
-<p><code>operation_options() = #{expect_specific_node =&gt; boolean(), include_child_names =&gt; boolean(), favor =&gt; consistency | compromise | low_latency}</code></p>
-<p><p>  Options used in queries.</p>
- 
-  <ul>
-  <li><code>expect_specific_node</code> indicates if the path is expected to point to a
-  specific tree node or could match many nodes.</li>
-  <li><code>include_child_names</code> indicates if child names should be included in
-  the returned node properties map.</li>
-  <li><code>favor</code> indicates where to put the cursor between freshness of the
-  returned data and low latency of queries:
-  <ul>
-  <li><code>consistent</code> means that a "consistent query" will be used in Ra. It
-  will return the most up-to-date piece of data the cluster agreed on. Note
-  that it could block and eventually time out if there is no quorum in the Ra
-  cluster.</li>
-  <li><code>compromise</code> performs "leader queries" most of the time to reduce
-  latency, but uses "consistent queries" every 10 seconds to verify that the
-  cluster is healthy on a regular basis. It should be faster but may block
-  and time out like <code>consistent</code> and still return slightly out-of-date
-  data.</li>
-  <li><code>low_latency</code> means that "local queries" are used exclusively. They are
-  the fastest and have the lowest latency. However, the returned data is
-  whatever the local Ra server has. It could be out-of-date if it has
-  troubles keeping up with the Ra cluster. The chance of blocking and timing
-  out is very small.</li>
-  </ul></li>
-  </ul></p>
-
 <h3 class="typedecl"><a name="type-payload">payload()</a></h3>
 <p><code>payload() = none | <a href="#type-payload_data">payload_data()</a> | <a href="#type-payload_sproc">payload_sproc()</a></code></p>
 <p><p>  All types of payload stored in the nodes of the tree structure.</p>
@@ -249,9 +273,27 @@ payload and child nodes.</p>
   The payload version starts at 1 when a node is created. It is increased by 1
   each time the payload is added, modified or removed.</p>
 
+<h3 class="typedecl"><a name="type-query_options">query_options()</a></h3>
+<p><code>query_options() = #{expect_specific_node =&gt; boolean(), include_child_names =&gt; boolean(), favor =&gt; <a href="#type-favor_option">favor_option()</a>}</code></p>
+<p><p>  Options used in queries.</p>
+ 
+  <ul>
+  <li><code>expect_specific_node</code> indicates if the path is expected to point to a
+  specific tree node or could match many nodes.</li>
+  <li><code>include_child_names</code> indicates if child names should be included in
+  the returned node properties map.</li>
+  <li><code>favor</code> indicates where to put the cursor between freshness of the
+  returned data and low latency of queries; see <a docgen-rel="seetype" docgen-href="#favor_option/0" href="#type-favor_option"><code>favor_option()</code></a>.</li>
+  </ul></p>
+
+<h3 class="typedecl"><a name="type-ra_server_command_priority">ra_server_command_priority()</a></h3>
+<p><code>ra_server_command_priority() = normal | low</code></p>
+<p>  Redefines <code>ra_server:command_priority()</code> while there is no release of Ra
+  defining it.</p>
+
 <h3 class="typedecl"><a name="type-result">result()</a></h3>
 <p><code>result() = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(<a href="#type-node_props_map">node_props_map()</a>) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></p>
-<p>  Return value of a command or query.</p>
+<p>  Return value of a query or synchronous command.</p>
 
 <h3 class="typedecl"><a name="type-stat">stat()</a></h3>
 <p><code>stat() = #{payload_version := <a href="#type-payload_version">payload_version()</a>, child_list_version := <a href="#type-child_list_version">child_list_version()</a>}</code></p>
@@ -276,9 +318,11 @@ payload and child nodes.</p>
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#put-3">put/3</a></td><td>Creates or modifies a specific tree node in the tree structure.</td></tr>
 <tr><td valign="top"><a href="#put-4">put/4</a></td><td>Creates or modifies a specific tree node in the tree structure.</td></tr>
+<tr><td valign="top"><a href="#put-5">put/5</a></td><td>Creates or modifies a specific tree node in the tree structure.</td></tr>
 <tr><td valign="top"><a href="#get-2">get/2</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#get-3">get/3</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#delete-3">delete/3</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#transaction-2">transaction/2</a></td><td>Runs a transaction and returns the result.</td></tr>
 <tr><td valign="top"><a href="#transaction-3">transaction/3</a></td><td>Runs a transaction and returns the result.</td></tr>
 <tr><td valign="top"><a href="#transaction-4">transaction/4</a></td><td>Runs a transaction and returns the result.</td></tr>
@@ -291,19 +335,28 @@ payload and child nodes.</p>
 <h3 class="function"><a name="put-3">put/3</a></h3>
 <div class="spec">
 <p><code>put(StoreId, PathPattern, Payload) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Payload = <a href="#type-payload">payload()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Payload = <a href="#type-payload">payload()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p></p>
 </div><p><p>Creates or modifies a specific tree node in the tree structure.</p>
  
   Calling this function is the same as calling
-  <code>put(StoreId, PathPattern, Payload, #{})</code>.
+  <code>put(StoreId, PathPattern, Payload, #{}, #{})</code>.
  </p>
-<p><b>See also:</b> <a href="#put-4">put/4</a>.</p>
+<p><b>See also:</b> <a href="#put-5">put/5</a>.</p>
 
 <h3 class="function"><a name="put-4">put/4</a></h3>
 <div class="spec">
-<p><code>put(StoreId, PathPattern, Payload, Extra) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Payload = <a href="#type-payload">payload()</a></code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<p><code>put(StoreId, PathPattern, Payload, Extra::Extra | Options) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Payload = <a href="#type-payload">payload()</a></code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<p></p>
+</div><p>Creates or modifies a specific tree node in the tree structure.
+ </p>
+<p><b>See also:</b> <a href="#put-5">put/5</a>.</p>
+
+<h3 class="function"><a name="put-5">put/5</a></h3>
+<div class="spec">
+<p><code>put(StoreId, PathPattern, Payload, Extra, Options) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Payload = <a href="#type-payload">payload()</a></code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
@@ -311,7 +364,10 @@ payload and child nodes.</p>
 <code>Extra</code>: extra options such as <code>keep_while</code> conditions.
  <br>
 </p>
-<p>returns: an "ok" tuple with a map with one entry, or an "error" tuple.</p>
+<p>returns: in the case of a synchronous put, an "ok" tuple with a map with one
+  entry, or an "error" tuple; in the case of an asynchronous put, always <code>ok</code>
+  (the actual return value may be sent by a message if a correlation ID was
+  specified).</p>
 </div><p><p>Creates or modifies a specific tree node in the tree structure.</p>
  
   <p>The path or path pattern must target a specific tree node.</p>
@@ -369,7 +425,7 @@ Result = khepri_machine:put(
 <h3 class="function"><a name="get-3">get/3</a></h3>
 <div class="spec">
 <p><code>get(StoreId, PathPattern, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-operation_options">operation_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to match against the nodes to
          retrieve.<br>
@@ -399,14 +455,28 @@ Result = khepri_machine:get(ra_cluster_name, [foo, bar]),
 <h3 class="function"><a name="delete-2">delete/2</a></h3>
 <div class="spec">
 <p><code>delete(StoreId, PathPattern) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<p></p>
+</div><p><p>Deletes all tree nodes matching the path pattern.</p>
+ 
+  Calling this function is the same as calling
+  <code>delete(StoreId, PathPattern, #{})</code>.
+ </p>
+<p><b>See also:</b> <a href="#delete-3">delete/3</a>.</p>
+
+<h3 class="function"><a name="delete-3">delete/3</a></h3>
+<div class="spec">
+<p><code>delete(StoreId, PathPattern, Options) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to match against the nodes to
          delete.
  <br>
 </p>
-<p>returns: an "ok" tuple with a map with zero, one or more entries, or an
-  "error" tuple.</p>
+<p>returns: in the case of a synchrnous delete, an "ok" tuple with a map with
+  zero, one or more entries, or an "error" tuple; in the case of an
+  asynchronous delete, always <code>ok</code> (the actual return value may be sent by a
+  message if a correlation ID was specified).</p>
 </div><p><p>Deletes all tree nodes matching the path pattern.</p>
  
   <p>The returned structure in the "ok" tuple will have a key corresponding to  
@@ -427,7 +497,7 @@ Result = khepri_machine:delete(ra_cluster_name, [foo, bar]),
 <h3 class="function"><a name="transaction-2">transaction/2</a></h3>
 <div class="spec">
 <p><code>transaction(StoreId, Fun) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>Ret = Atomic | Aborted | NoRetIfAsync</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p></p>
 </div><p><p>Runs a transaction and returns the result.</p>
  
@@ -439,7 +509,7 @@ Result = khepri_machine:delete(ra_cluster_name, [foo, bar]),
 <h3 class="function"><a name="transaction-3">transaction/3</a></h3>
 <div class="spec">
 <p><code>transaction(StoreId, Fun, ReadWrite::ReadWrite | Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="#type-operation_options">operation_options()</a></code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="#type-command_options">command_options()</a> | <a href="#type-query_options">query_options()</a></code></li><li><code>Ret = Atomic | Aborted | NoRetIfAsync</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p></p>
 </div><p>Runs a transaction and returns the result.
  </p>
@@ -448,13 +518,16 @@ Result = khepri_machine:delete(ra_cluster_name, [foo, bar]),
 <h3 class="function"><a name="transaction-4">transaction/4</a></h3>
 <div class="spec">
 <p><code>transaction(StoreId, Fun, ReadWrite, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="#type-operation_options">operation_options()</a></code></li><li><code>Ret = Atomic | Aborted</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="#type-command_options">command_options()</a> | <a href="#type-query_options">query_options()</a></code></li><li><code>Ret = Atomic | Aborted | NoRetIfAsync</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>Fun</code>: an arbitrary anonymous function.
  <br>
 </p>
-<p>returns: <code>{atomic, Result}</code> with the return value of <code>Fun</code>, or <code>{aborted,
-  Reason}</code> if the anonymous function was aborted.</p>
+<p>returns: in the case of a synchronous transaction, <code>{atomic, Result}</code> where
+  <code>Result</code> is the return value of <code>Fun</code>, or <code>{aborted, Reason}</code> if the
+  anonymous function was aborted; in the case of an asynchronous transaction,
+  always <code>ok</code> (the actual return value may be sent by a message if a
+  correlation ID was specified).</p>
 </div><p><p>Runs a transaction and returns the result.</p>
  
   <p><code>Fun</code> is an arbitrary anonymous function which takes no arguments.</p>
@@ -480,9 +553,8 @@ do and in which context it runs:</p>
   <code>ReadWrite</code> to false.</li>
   </ul>
  
-  <p><code>Options</code> is only relevant for read-only transactions (including audetected  
-read-only ones). It is useful to indicate where to put the cursor between  
-freshness of the data and low latency.</p>
+  <p><code>Options</code> is relevant for both read-only and read-write transactions  
+(including audetected ones). Note that both types expect different options.</p>
  
   The result of <code>Fun</code> can be any term. That result is returned in an
   <code>{atomic, Result}</code> tuple.
