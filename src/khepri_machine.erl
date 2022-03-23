@@ -211,15 +211,11 @@
 %% This is used when the tree is walked back up to determine the list of tree
 %% nodes to remove after some keep_while condition evaluates to false.
 
--type ra_server_command_priority() :: normal | low.
-%% Redefines `ra_server:command_priority()' while there is no release of Ra
-%% defining it.
-
 -type async_option() :: boolean() |
                         ra_server:command_correlation() |
-                        ra_server_command_priority() |
+                        ra_server:command_priority() |
                         {ra_server:command_correlation(),
-                         ra_server_command_priority()}.
+                         ra_server:command_priority()}.
 %% Option to indicate if the command should be synchronous or asynchronous.
 %%
 %% Values are:
@@ -892,7 +888,7 @@ process_async_command(StoreId, Command, Correlation, Priority) ->
       Options :: command_options(),
       CommandType :: sync | {async, Correlation, Priority},
       Correlation :: ra_server:command_correlation(),
-      Priority :: ra_server_command_priority().
+      Priority :: ra_server:command_priority().
 %% @doc Selects the command type depending on what the caller wants.
 %%
 %% @private
