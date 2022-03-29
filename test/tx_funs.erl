@@ -345,6 +345,15 @@ allowed_bs_match_test() ->
            matches_type(queue, proplists:get_value('apply-to', List))
        end).
 
+encode_integer(Length) ->
+    <<Length:7/integer>>.
+
+allowed_bitstring_init_test() ->
+    ?assertStandaloneFun(
+        begin
+            <<25:7/integer>> = encode_integer(25)
+        end).
+
 parse_date(
     <<Year:4/bytes, $-, Month:2/bytes, $-, Day:2/bytes, _Rest/binary>>) ->
     {Year, Month, Day}.
@@ -471,6 +480,14 @@ type_inference_for_test_arity_instruction_test() ->
         begin
             <<0:0>> = encode_frame(TextFrame),
             <<0:1>> = encode_frame(BinaryFrame)
+        end).
+
+bit_string_comprehension_expression_test() ->
+    Data = crypto:strong_rand_bytes(128),
+    <<Mask:32/integer>> = crypto:strong_rand_bytes(4),
+    ?assertStandaloneFun(
+        begin
+            <<<<(Part bxor Mask):32/integer>> || <<Part:32/integer>> <= Data>>
         end).
 
 denied_receive_block_test() ->
