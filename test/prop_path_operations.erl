@@ -45,22 +45,11 @@ path_component() ->
               ?THIS_NODE, ?PARENT_NODE]).
 
 atom_component() ->
-    %% We discard any atom-based component which can't be used in a string
-    %% path or will be converted to a pattern.
-    ?SUCHTHAT(
-       Atom,
-       ?LET(AtomString,
-            non_empty(
-              list(
-                elements([integer(0, 41),
-                          integer(43, 46),
-                          integer(48, 255)]))),
-            list_to_atom(AtomString)),
-       Atom =/= '.' andalso Atom =/= '..').
+    atom().
 
 binary_component() ->
     %% We discard any binary-based component which will be converted to a
     %% pattern.
     ?SUCHTHAT(Binary,
-              binary(),
+              non_empty(binary()),
               string:chr(binary_to_list(Binary), $*) =:= 0).

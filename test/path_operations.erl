@@ -17,110 +17,105 @@
 
 root_path_from_string_test() ->
     ?assertEqual([], khepri_path:from_string("")),
-    ?assertEqual([], khepri_path:from_string("/")).
+    ?assertEqual([], khepri_path:from_string("/")),
+    ?assertEqual([], khepri_path:from_string([?ROOT_NODE])).
 
 path_with_one_component_from_string_test() ->
-    ?assertEqual([foo], khepri_path:from_string("/foo")).
+    ?assertEqual([foo], khepri_path:from_string("/:foo")),
+    ?assertEqual([foo], khepri_path:from_string([foo])),
+    ?assertEqual([foo], khepri_path:from_string([?ROOT_NODE, foo])),
+    ?assertEqual(
+       [?THIS_NODE, foo], khepri_path:from_string(":foo")),
+    ?assertEqual(
+       [?THIS_NODE, foo], khepri_path:from_string([?THIS_NODE, foo])).
 
 path_with_multiple_components_from_string_test() ->
     ?assertEqual(
        [foo, bar, baz],
-       khepri_path:from_string("/foo/bar/baz")).
+       khepri_path:from_string("/:foo/:bar/:baz")),
+    ?assertEqual(
+       [foo, bar, baz],
+       khepri_path:from_string([foo, bar, baz])),
+    ?assertEqual(
+       [foo, bar, baz],
+       khepri_path:from_string([?ROOT_NODE, foo, bar, baz])).
 
 unprefixed_relative_path_from_string_test() ->
     ?assertEqual(
        [?THIS_NODE, foo, bar, baz],
-       khepri_path:from_string("foo/bar/baz")).
+       khepri_path:from_string(":foo/:bar/:baz")).
 
 relative_path_prefixed_with_dot_from_string_test() ->
     ?assertEqual(
        [?THIS_NODE, foo, bar, baz],
-       khepri_path:from_string("./foo/bar/baz")),
+       khepri_path:from_string("./:foo/:bar/:baz")),
     ?assertEqual(
-       khepri_path:from_string("foo/bar/baz"),
-       khepri_path:from_string("./foo/bar/baz")).
+       [?THIS_NODE, foo, bar, baz],
+       khepri_path:from_string([?THIS_NODE, foo, bar, baz])),
+    ?assertEqual(
+       khepri_path:from_string(":foo/:bar/:baz"),
+       khepri_path:from_string("./:foo/:bar/:baz")).
 
 relative_path_prefixed_with_dot_dot_from_string_test() ->
     ?assertEqual(
        [?PARENT_NODE, foo, bar, baz],
-       khepri_path:from_string("../foo/bar/baz")).
+       khepri_path:from_string("../:foo/:bar/:baz")),
+    ?assertEqual(
+       [?PARENT_NODE, foo, bar, baz],
+       khepri_path:from_string([?PARENT_NODE, foo, bar, baz])).
 
 path_with_star_from_string_test() ->
     ?assertEqual(
        [foo, ?STAR],
-       khepri_path:from_string([?ROOT_NODE, foo, ?STAR])),
+       khepri_path:from_string("/:foo/*")),
     ?assertEqual(
        [foo, ?STAR],
-       khepri_path:from_string("/foo/*")).
+       khepri_path:from_string([foo, ?STAR])).
 
 path_with_star_star_from_string_test() ->
     ?assertEqual(
        [foo, ?STAR_STAR],
-       khepri_path:from_string("/foo/**")).
+       khepri_path:from_string("/:foo/**")),
+    ?assertEqual(
+       [foo, ?STAR_STAR],
+       khepri_path:from_string([foo, ?STAR_STAR])).
 
 path_with_binary_from_string_test() ->
     ?assertEqual(
-       ['<atom>'],
-       khepri_path:from_string("/<atom>")),
-    ?assertEqual(
        [<<"binary">>],
-       khepri_path:from_string("/<<binary>>")),
+       khepri_path:from_string("/binary")),
     ?assertEqual(
-       [<<"<binary>">>],
-       khepri_path:from_string("/<<<binary>>>")),
+       [?THIS_NODE, <<"binary">>],
+       khepri_path:from_string("binary")).
+
+path_with_percent_encoding_test() ->
     ?assertEqual(
-       ['<<atom'],
-       khepri_path:from_string("/<<atom")),
+       ['at/om'],
+       khepri_path:from_string("/:at%2Fom")),
     ?assertEqual(
        [<<"bin/ary">>],
-       khepri_path:from_string("/<<bin/ary>>")),
-    ?assertEqual(
-       [<<"bin/ary">>, atom],
-       khepri_path:from_string("/<<bin/ary>>/atom")).
+       khepri_path:from_string("/bin%2Fary")).
 
 path_with_consecutive_slashes_from_string_test() ->
     ?assertEqual(
        [foo, bar],
-       khepri_path:from_string("////foo////bar")).
+       khepri_path:from_string("////:foo////:bar")).
 
 path_with_trailing_slashes_from_string_test() ->
     ?assertEqual(
        [foo, bar],
-       khepri_path:from_string("/foo/bar/")),
+       khepri_path:from_string("/:foo/:bar/")),
     ?assertEqual(
        [foo, bar],
-       khepri_path:from_string("/foo/bar////")).
+       khepri_path:from_string("/:foo/:bar////")).
 
 path_with_whitespaces_from_string_test() ->
     ?assertEqual(
        ['foo  ', '  bar'],
+       khepri_path:from_string("/:foo  /:  bar")),
+    ?assertEqual(
+       [<<"foo  ">>, <<"  bar">>],
        khepri_path:from_string("/foo  /  bar")).
-
-from_string_on_path_test() ->
-    ?assertEqual(
-       [foo, bar],
-       khepri_path:from_string([foo, bar])),
-    ?assertEqual(
-       [?THIS_NODE, foo, bar],
-       khepri_path:from_string([?THIS_NODE, foo, bar])).
-
-from_string_on_string_test() ->
-    ?assertEqual(
-       [foo, bar],
-       khepri_path:from_string("/foo/bar")).
-
-from_string_on_relative_string_test() ->
-    ?assertEqual(
-       [?THIS_NODE, foo, bar],
-       khepri_path:from_string("foo/bar")),
-    ?assertEqual(
-       [?THIS_NODE, foo, bar],
-       khepri_path:from_string("./foo/bar")).
-
-from_string_on_empty_string_test() ->
-    ?assertEqual(
-       [],
-       khepri_path:from_string("")).
 
 special_chars_from_string_test() ->
     ?assertEqual(
@@ -129,6 +124,9 @@ special_chars_from_string_test() ->
     ?assertEqual(
        [?THIS_NODE],
        khepri_path:from_string(".")),
+    ?assertEqual(
+       [?THIS_NODE],
+       khepri_path:from_string("/.")),
     ?assertEqual(
        [?PARENT_NODE],
        khepri_path:from_string("^")),
@@ -152,10 +150,18 @@ glob_pattern_from_string_test() ->
 %% -------------------------------------------------------------------
 
 atom_component_to_string_test() ->
-    ?assertEqual("foo", khepri_path:component_to_string(foo)).
+    ?assertEqual(":foo", khepri_path:component_to_string(foo)),
+    ?assertEqual(":", khepri_path:component_to_string('')),
+    ?assertEqual(":%2E", khepri_path:component_to_string('.')),
+    ?assertEqual(":%2E.", khepri_path:component_to_string('..')),
+    ?assertEqual(":%2F", khepri_path:component_to_string('/')).
 
 binary_component_to_string_test() ->
-    ?assertEqual("<<foo>>", khepri_path:component_to_string(<<"foo">>)).
+    ?assertEqual("foo", khepri_path:component_to_string(<<"foo">>)),
+    ?assertThrow(unsupported, khepri_path:component_to_string(<<>>)),
+    ?assertEqual("%2E", khepri_path:component_to_string(<<".">>)),
+    ?assertEqual("%2E.", khepri_path:component_to_string(<<"..">>)),
+    ?assertEqual("%2F", khepri_path:component_to_string(<<"/">>)).
 
 root_component_to_string_test() ->
     ?assertEqual("/", khepri_path:component_to_string(?ROOT_NODE)).
@@ -174,37 +180,37 @@ root_path_to_string_test() ->
     ?assertEqual("/", khepri_path:to_string([])).
 
 path_with_one_component_to_string_test() ->
-    ?assertEqual("/foo", khepri_path:to_string([foo])).
+    ?assertEqual("/:foo", khepri_path:to_string([foo])).
 
 path_with_multiple_components_to_string_test() ->
     ?assertEqual(
-       "/foo/bar/baz",
+       "/:foo/:bar/:baz",
        khepri_path:to_string([foo, bar, baz])).
 
 path_with_explicit_root_to_string_test() ->
     ?assertEqual(
-       "/foo/bar/baz",
+       "/:foo/:bar/:baz",
        khepri_path:to_string([?ROOT_NODE, foo, bar, baz])).
 
 unprefixed_relative_path_to_string_test() ->
     ?assertEqual(
-       "foo/bar/baz",
+       ":foo/:bar/:baz",
        khepri_path:to_string([?THIS_NODE, foo, bar, baz])).
 
 relative_path_prefixed_with_dot_dot_to_string_test() ->
     ?assertEqual(
-       "../foo/bar/baz",
+       "../:foo/:bar/:baz",
        khepri_path:to_string([?PARENT_NODE, foo, bar, baz])).
 
 path_with_binary_to_string_test() ->
     ?assertEqual(
-       "/<<binary>>",
+       "/binary",
        khepri_path:to_string([<<"binary">>])),
     ?assertEqual(
-       "/<<bin/ary>>",
+       "/bin%2Fary",
        khepri_path:to_string([<<"bin/ary">>])),
     ?assertEqual(
-       "/<<bin/ary>>/atom",
+       "/bin%2Fary/:atom",
        khepri_path:to_string([<<"bin/ary">>, atom])).
 
 %% -------------------------------------------------------------------
