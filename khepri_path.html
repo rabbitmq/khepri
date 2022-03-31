@@ -129,10 +129,8 @@ UnixPath = "/stock/wood/oak".</code></pre>
 
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#from_string-1">from_string/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#component_from_string-1">component_from_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#maybe_from_string-1">maybe_from_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#to_string-1">to_string/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#component_to_string-1">component_to_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#combine_with_conditions-2">combine_with_conditions/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#targets_specific_node-1">targets_specific_node/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_valid-1">is_valid/1</a></td><td></td></tr>
@@ -146,13 +144,8 @@ UnixPath = "/stock/wood/oak".</code></pre>
 
 <h3 class="function"><a name="from_string-1">from_string/1</a></h3>
 <div class="spec">
-<p><code>from_string(PathString::string()) -&gt; <a href="#type-pattern">pattern()</a></code><br></p>
-<p></p>
-</div>
-
-<h3 class="function"><a name="component_from_string-1">component_from_string/1</a></h3>
-<div class="spec">
-<p><code>component_from_string(Component::string()) -&gt; <a href="#type-pattern_component">pattern_component()</a></code><br></p>
+<p><code>from_string(MaybeString) -&gt; PathPattern</code>
+<ul class="definitions"><li><code>MaybeString = string() | <a href="#type-pattern">pattern()</a></code></li><li><code>PathPattern = <a href="#type-pattern">pattern()</a></code></li></ul></p>
 <p></p>
 </div>
 
@@ -165,12 +158,6 @@ UnixPath = "/stock/wood/oak".</code></pre>
 <h3 class="function"><a name="to_string-1">to_string/1</a></h3>
 <div class="spec">
 <p><code>to_string(Path::<a href="#type-path">path()</a>) -&gt; string()</code><br></p>
-<p></p>
-</div>
-
-<h3 class="function"><a name="component_to_string-1">component_to_string/1</a></h3>
-<div class="spec">
-<p><code>component_to_string(Component::<a href="#type-component">component()</a>) -&gt; string()</code><br></p>
 <p></p>
 </div>
 
