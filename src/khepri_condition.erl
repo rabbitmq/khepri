@@ -551,8 +551,6 @@ compare_numerical_values(_, _)                 -> false.
 
 is_valid(Component) when ?IS_PATH_COMPONENT(Component) ->
     true;
-is_valid(?THIS_NODE) ->
-    true;
 is_valid(#if_node_exists{exists = Exists}) ->
     is_boolean(Exists);
 is_valid(#if_name_matches{}) ->
