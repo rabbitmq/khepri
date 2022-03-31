@@ -86,13 +86,14 @@ use_an_invalid_path_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertThrow(
-         {invalid_path, not_a_list},
+         {invalid_path, #{path := not_a_list}},
          khepri_machine:put(
            ?FUNCTION_NAME,
            not_a_list,
            none)),
       ?_assertThrow(
-         {invalid_path, "not_a_component"},
+         {invalid_path, #{path := ["not_a_component"],
+                          tail := ["not_a_component"]}},
          khepri_machine:put(
            ?FUNCTION_NAME,
            ["not_a_component"],

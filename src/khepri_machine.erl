@@ -435,9 +435,10 @@ put(StoreId, PathPattern, Payload, Options) ->
 
 put(StoreId, PathPattern, Payload, Extra, Options)
   when ?IS_KHEPRI_PAYLOAD(Payload) ->
-    khepri_path:ensure_is_valid(PathPattern),
+    PathPattern1 = khepri_path:from_string(PathPattern),
+    khepri_path:ensure_is_valid(PathPattern1),
     Payload1 = prepare_payload(Payload),
-    Command = #put{path = PathPattern,
+    Command = #put{path = PathPattern1,
                    payload = Payload1,
                    extra = Extra},
     process_command(StoreId, Command, Options);
@@ -500,9 +501,10 @@ get(StoreId, PathPattern) ->
 %% "error" tuple.
 
 get(StoreId, PathPattern, Options) ->
-    khepri_path:ensure_is_valid(PathPattern),
+    PathPattern1 = khepri_path:from_string(PathPattern),
+    khepri_path:ensure_is_valid(PathPattern1),
     Query = fun(#?MODULE{root = Root}) ->
-                    find_matching_nodes(Root, PathPattern, Options)
+                    find_matching_nodes(Root, PathPattern1, Options)
             end,
     process_query(StoreId, Query, Options).
 
@@ -555,8 +557,9 @@ delete(StoreId, PathPattern) ->
 %% message if a correlation ID was specified).
 
 delete(StoreId, PathPattern, Options) ->
-    khepri_path:ensure_is_valid(PathPattern),
-    Command = #delete{path = PathPattern},
+    PathPattern1 = khepri_path:from_string(PathPattern),
+    khepri_path:ensure_is_valid(PathPattern1),
+    Command = #delete{path = PathPattern1},
     process_command(StoreId, Command, Options).
 
 -spec transaction(StoreId, Fun) -> Ret when
