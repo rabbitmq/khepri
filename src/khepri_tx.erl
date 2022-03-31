@@ -95,11 +95,11 @@ put(PathPattern, Payload) ->
 %% @doc Creates or modifies a specific tree node in the tree structure.
 
 put(PathPattern, Payload, Extra) when ?IS_KHEPRI_PAYLOAD(Payload) ->
-    ensure_path_pattern_is_valid(PathPattern),
     ensure_updates_are_allowed(),
+    PathPattern1 = path_from_string(PathPattern),
     {State, SideEffects} = get_tx_state(),
     Ret = khepri_machine:insert_or_update_node(
-            State, PathPattern, Payload, Extra),
+            State, PathPattern1, Payload, Extra),
     case Ret of
         {NewState, Result, NewSideEffects} ->
             set_tx_state(NewState, SideEffects ++ NewSideEffects);
@@ -114,9 +114,9 @@ get(PathPattern) ->
     get(PathPattern, #{}).
 
 get(PathPattern, Options) ->
-    ensure_path_pattern_is_valid(PathPattern),
+    PathPattern1 = path_from_string(PathPattern),
     {#khepri_machine{root = Root}, _SideEffects} = get_tx_state(),
-    khepri_machine:find_matching_nodes(Root, PathPattern, Options).
+    khepri_machine:find_matching_nodes(Root, PathPattern1, Options).
 
 -spec exists(Path) -> Exists when
       Path :: khepri_path:pattern(),
@@ -151,10 +151,10 @@ find(Path, Condition) ->
     get(Path1).
 
 delete(PathPattern) ->
-    ensure_path_pattern_is_valid(PathPattern),
     ensure_updates_are_allowed(),
+    PathPattern1 = path_from_string(PathPattern),
     {State, SideEffects} = get_tx_state(),
-    Ret = khepri_machine:delete_matching_nodes(State, PathPattern),
+    Ret = khepri_machine:delete_matching_nodes(State, PathPattern1),
     case Ret of
         {NewState, Result, NewSideEffects} ->
             set_tx_state(NewState, SideEffects ++ NewSideEffects);
@@ -602,13 +602,22 @@ set_tx_state(#khepri_machine{} = NewState, SideEffects) ->
 get_tx_props() ->
     erlang:get(?TX_PROPS).
 
--spec ensure_path_pattern_is_valid(PathPattern) -> ok | no_return() when
+-spec path_from_string(PathPattern) -> PathPattern | no_return() when
       PathPattern :: khepri_path:pattern().
+%% @doc Converts a string to a path (if necessary) and validates it.
+%%
+%% This is the same as calling {@link khepri_path:from_string/1} then {@link
+%% khepri_path:is_valid/1}, but the exception is caught to abort the
+%% transaction instead.
 
-ensure_path_pattern_is_valid(PathPattern) ->
-    case khepri_path:is_valid(PathPattern) of
-        true          -> ok;
-        {false, Path} -> abort({invalid_path, Path})
+path_from_string(PathPattern) ->
+    try
+        PathPattern1 = khepri_path:from_string(PathPattern),
+        khepri_path:ensure_is_valid(PathPattern1),
+        PathPattern1
+    catch
+        throw:{invalid_path, _} = Reason ->
+            abort(Reason)
     end.
 
 -spec ensure_updates_are_allowed() -> ok | no_return().

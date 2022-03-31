@@ -699,7 +699,7 @@ use_an_invalid_path_in_tx_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {aborted, {invalid_path, not_a_list}},
+         {aborted, {invalid_path, #{path => not_a_list}}},
          begin
              Fun = fun() ->
                            khepri_tx:put(not_a_list, none)
@@ -707,7 +707,8 @@ use_an_invalid_path_in_tx_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun)
          end),
       ?_assertEqual(
-         {aborted, {invalid_path, "not_a_component"}},
+         {aborted, {invalid_path, #{path => ["not_a_component"],
+                                    tail => ["not_a_component"]}}},
          begin
              Fun = fun() ->
                            khepri_tx:put(["not_a_component"], none)

@@ -12,45 +12,6 @@
 -include("include/khepri.hrl").
 
 %% -------------------------------------------------------------------
-%% Path component parsing.
-%% -------------------------------------------------------------------
-
-atom_component_from_string_test() ->
-    ?assertEqual(foo, khepri_path:component_from_string("foo")),
-    ?assertEqual('<foo>', khepri_path:component_from_string("<foo>")),
-    ?assertEqual('<<foo', khepri_path:component_from_string("<<foo")).
-
-binary_component_from_string_test() ->
-    ?assertEqual(<<"foo">>, khepri_path:component_from_string("<<foo>>")),
-    ?assertEqual(<<"<foo>">>, khepri_path:component_from_string("<<<foo>>>")).
-
-root_component_from_string_test() ->
-    ?assertEqual(?ROOT_NODE, khepri_path:component_from_string("/")).
-
-dot_component_from_string_test() ->
-    ?assertEqual(?THIS_NODE, khepri_path:component_from_string(".")).
-
-dot_dot_component_from_string_test() ->
-    ?assertEqual(?PARENT_NODE, khepri_path:component_from_string("..")).
-
-star_component_from_string_test() ->
-    ?assertEqual(?STAR, khepri_path:component_from_string("*")).
-
-star_star_component_from_string_test() ->
-    ?assertEqual(?STAR_STAR, khepri_path:component_from_string("**")).
-
-glob_pattern_component_from_string_test() ->
-    ?assertEqual(
-       #if_name_matches{regex = "^foo.*$"},
-       khepri_path:component_from_string("foo*")),
-    ?assertEqual(
-       #if_name_matches{regex = "^.*foo.*$"},
-       khepri_path:component_from_string("*foo*")),
-    ?assertEqual(
-       #if_name_matches{regex = "^.*foo.*bar.*$"},
-       khepri_path:component_from_string("*foo*bar*")).
-
-%% -------------------------------------------------------------------
 %% Entire path parsing.
 %% -------------------------------------------------------------------
 
@@ -87,6 +48,9 @@ relative_path_prefixed_with_dot_dot_from_string_test() ->
 path_with_star_from_string_test() ->
     ?assertEqual(
        [foo, ?STAR],
+       khepri_path:from_string([?ROOT_NODE, foo, ?STAR])),
+    ?assertEqual(
+       [foo, ?STAR],
        khepri_path:from_string("/foo/*")).
 
 path_with_star_star_from_string_test() ->
@@ -96,8 +60,17 @@ path_with_star_star_from_string_test() ->
 
 path_with_binary_from_string_test() ->
     ?assertEqual(
+       ['<atom>'],
+       khepri_path:from_string("/<atom>")),
+    ?assertEqual(
        [<<"binary">>],
        khepri_path:from_string("/<<binary>>")),
+    ?assertEqual(
+       [<<"<binary>">>],
+       khepri_path:from_string("/<<<binary>>>")),
+    ?assertEqual(
+       ['<<atom'],
+       khepri_path:from_string("/<<atom")),
     ?assertEqual(
        [<<"bin/ary">>],
        khepri_path:from_string("/<<bin/ary>>")),
@@ -123,45 +96,56 @@ path_with_whitespaces_from_string_test() ->
        ['foo  ', '  bar'],
        khepri_path:from_string("/foo  /  bar")).
 
-maybe_from_string_on_path_test() ->
+from_string_on_path_test() ->
     ?assertEqual(
        [foo, bar],
-       khepri_path:maybe_from_string([foo, bar])),
+       khepri_path:from_string([foo, bar])),
     ?assertEqual(
        [?THIS_NODE, foo, bar],
-       khepri_path:maybe_from_string([?THIS_NODE, foo, bar])).
+       khepri_path:from_string([?THIS_NODE, foo, bar])).
 
-maybe_from_string_on_string_test() ->
+from_string_on_string_test() ->
     ?assertEqual(
        [foo, bar],
-       khepri_path:maybe_from_string("/foo/bar")).
+       khepri_path:from_string("/foo/bar")).
 
-maybe_from_string_on_relative_string_test() ->
+from_string_on_relative_string_test() ->
     ?assertEqual(
        [?THIS_NODE, foo, bar],
-       khepri_path:maybe_from_string("foo/bar")),
+       khepri_path:from_string("foo/bar")),
     ?assertEqual(
        [?THIS_NODE, foo, bar],
-       khepri_path:maybe_from_string("./foo/bar")).
+       khepri_path:from_string("./foo/bar")).
 
-maybe_from_string_on_empty_string_test() ->
+from_string_on_empty_string_test() ->
     ?assertEqual(
        [],
-       khepri_path:maybe_from_string("")).
+       khepri_path:from_string("")).
 
-maybe_special_chars_from_string_test() ->
+special_chars_from_string_test() ->
     ?assertEqual(
        [],
-       khepri_path:maybe_from_string("/")),
+       khepri_path:from_string("/")),
     ?assertEqual(
        [?THIS_NODE],
-       khepri_path:maybe_from_string(".")),
+       khepri_path:from_string(".")),
     ?assertEqual(
        [?PARENT_NODE],
-       khepri_path:maybe_from_string("^")),
+       khepri_path:from_string("^")),
     ?assertEqual(
        [?PARENT_NODE],
-       khepri_path:maybe_from_string("..")).
+       khepri_path:from_string("..")).
+
+glob_pattern_from_string_test() ->
+    ?assertEqual(
+       [#if_name_matches{regex = "^foo.*$"}],
+       khepri_path:from_string("/foo*")),
+    ?assertEqual(
+       [#if_name_matches{regex = "^.*foo.*$"}],
+       khepri_path:from_string("/*foo*")),
+    ?assertEqual(
+       [#if_name_matches{regex = "^.*foo.*bar.*$"}],
+       khepri_path:from_string("/*foo*bar*")).
 
 %% -------------------------------------------------------------------
 %% Path component serializing.
