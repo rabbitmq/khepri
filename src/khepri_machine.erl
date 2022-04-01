@@ -340,7 +340,7 @@
 
 -spec put(StoreId, PathPattern, Payload) -> Result when
       StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
+      PathPattern :: khepri_path:pattern() | string(),
       Payload :: payload(),
       Result :: result() | NoRetIfAsync,
       NoRetIfAsync :: ok.
@@ -356,7 +356,7 @@ put(StoreId, PathPattern, Payload) ->
 
 -spec put(StoreId, PathPattern, Payload, Extra | Options) -> Result when
       StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
+      PathPattern :: khepri_path:pattern() | string(),
       Payload :: payload(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
@@ -373,7 +373,7 @@ put(StoreId, PathPattern, Payload, Options) ->
 
 -spec put(StoreId, PathPattern, Payload, Extra, Options) -> Result when
       StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
+      PathPattern :: khepri_path:pattern() | string(),
       Payload :: payload(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
@@ -456,7 +456,7 @@ prepare_payload(#kpayload_sproc{sproc = Fun} = Payload)
 
 -spec get(StoreId, PathPattern) -> Result when
       StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
+      PathPattern :: khepri_path:pattern() | string(),
       Result :: result().
 %% @doc Returns all tree nodes matching the path pattern.
 %%
@@ -470,7 +470,7 @@ get(StoreId, PathPattern) ->
 
 -spec get(StoreId, PathPattern, Options) -> Result when
       StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
+      PathPattern :: khepri_path:pattern() | string(),
       Options :: query_options(),
       Result :: result().
 %% @doc Returns all tree nodes matching the path pattern.
@@ -510,7 +510,7 @@ get(StoreId, PathPattern, Options) ->
 
 -spec delete(StoreId, PathPattern) -> Result when
       StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
+      PathPattern :: khepri_path:pattern() | string(),
       Result :: result() | NoRetIfAsync,
       NoRetIfAsync :: ok.
 %% @doc Deletes all tree nodes matching the path pattern.
@@ -525,7 +525,7 @@ delete(StoreId, PathPattern) ->
 
 -spec delete(StoreId, PathPattern, Options) -> Result when
       StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
+      PathPattern :: khepri_path:pattern() | string(),
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
       NoRetIfAsync :: ok.
@@ -719,7 +719,7 @@ readwrite_transaction(StoreId, StandaloneFun, Options) ->
 
 -spec run_sproc(StoreId, PathPattern, Args) -> Ret when
       StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
+      PathPattern :: khepri_path:pattern() | string(),
       Args :: [any()],
       Ret :: any().
 %% @doc Executes a stored procedure.
