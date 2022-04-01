@@ -340,7 +340,7 @@ applies_to_grandchildren(_) ->
 -spec is_met(Condition, PathOrChildName, Child) -> IsMet when
       Condition :: khepri_path:pattern_component(),
       PathOrChildName :: khepri_path:path() | khepri_path:component(),
-      Child :: khepri_machine:tree_node() | khepri_machine:node_props(),
+      Child :: khepri_machine:tree_node() | khepri:node_props(),
       IsMet :: true | IsNotMet1 | IsNotMet2,
       IsNotMet1 :: {false, khepri_path:pattern_component()},
       IsNotMet2 :: {false, {condition(), any()}}.
@@ -454,7 +454,7 @@ is_met(Cond, _, _) ->
     {false, Cond}.
 
 -spec term_matches(Term, MatchSpec) -> Matches when
-      Term :: khepri_machine:data(),
+      Term :: khepri:data(),
       MatchSpec :: ets:comp_match_spec(),
       Matches :: boolean().
 %% @doc Returns true if the given match spec matches the given match term.

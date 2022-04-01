@@ -18,7 +18,7 @@ delete_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{}},
          khepri:delete(?FUNCTION_NAME, [foo])),
       ?_assertEqual(
          {ok, #{}},
@@ -29,10 +29,13 @@ delete_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{data => foo_value,
+                           payload_version => 1,
+                           child_list_version => 1,
+                           child_list_length => 0}}},
          khepri:delete(?FUNCTION_NAME, [foo])),
       ?_assertEqual(
          {ok, #{}},
@@ -43,7 +46,7 @@ delete_non_existing_node_with_condition_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{}},
          khepri:delete(?FUNCTION_NAME, [#if_name_matches{regex = "foo"}])),
       ?_assertEqual(
          {ok, #{}},
@@ -54,10 +57,13 @@ delete_existing_node_with_condition_true_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{data => foo_value,
+                           payload_version => 1,
+                           child_list_version => 1,
+                           child_list_length => 0}}},
          khepri:delete(?FUNCTION_NAME, [#if_name_matches{regex = "foo"}])),
       ?_assertEqual(
          {ok, #{}},
@@ -68,10 +74,10 @@ delete_existing_node_with_condition_false_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
-         ok,
+         {ok, #{}},
          khepri:delete(?FUNCTION_NAME, [#if_name_matches{regex = "bar"}])),
       ?_assertEqual(
          {ok, #{[foo] => #{data => foo_value,
@@ -85,10 +91,10 @@ clear_store_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo, bar] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
       ?_assertEqual(
-         ok,
+         {ok, #{[baz] => #{}}},
          khepri:create(?FUNCTION_NAME, [baz], baz_value)),
       ?_assertEqual(
          {ok, #{[] => #{payload_version => 1,
@@ -106,8 +112,15 @@ clear_store_test_() ->
                            child_list_version => 1,
                            child_list_length => 0}}},
          khepri:get(?FUNCTION_NAME, [?STAR_STAR])),
+      %% FIXME: SHould it return child nodes of `/:foo'?
       ?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{payload_version => 1,
+                           child_list_version => 1,
+                           child_list_length => 1},
+                [baz] => #{data => baz_value,
+                           payload_version => 1,
+                           child_list_version => 1,
+                           child_list_length => 0}}},
          khepri:clear_store(?FUNCTION_NAME)),
       ?_assertEqual(
          {ok, #{[] => #{payload_version => 1,

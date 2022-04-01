@@ -37,10 +37,11 @@
 %% Payload types.
 %% -------------------------------------------------------------------
 
--record(kpayload_data, {data :: khepri_machine:data()}).
+-define(NO_PAYLOAD, '$__NO_PAYLOAD__').
+-record(kpayload_data, {data :: khepri:data()}).
 -record(kpayload_sproc, {sproc :: khepri_fun:standalone_fun()}).
 
--define(IS_KHEPRI_PAYLOAD(Payload), (Payload =:= none orelse
+-define(IS_KHEPRI_PAYLOAD(Payload), (Payload =:= ?NO_PAYLOAD orelse
                                      is_record(Payload, kpayload_data) orelse
                                      is_record(Payload, kpayload_sproc))).
 
@@ -73,14 +74,14 @@
         {exists = true :: boolean()}).
 
 -record(if_payload_version,
-        {version = 0 :: khepri_machine:payload_version() |
+        {version = 0 :: khepri:payload_version() |
                         khepri_condition:comparison_op(
-                          khepri_machine:payload_version())}).
+                          khepri:payload_version())}).
 
 -record(if_child_list_version,
-        {version = 0 :: khepri_machine:child_list_version() |
+        {version = 0 :: khepri:child_list_version() |
                         khepri_condition:comparison_op(
-                          khepri_machine:child_list_version())}).
+                          khepri:child_list_version())}).
 
 -record(if_child_list_length,
         {count = 0 :: non_neg_integer() |
@@ -105,3 +106,6 @@
 %-record(kevf_process, {pid :: pid(),
 %                       props = #{} :: #{on_reason => ets:match_pattern(),
 %                                        priority => integer()}}).
+
+-define(IS_KHEPRI_EVENT_FILTER(EventFilter),
+        (is_record(EventFilter, kevf_tree))).

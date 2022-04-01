@@ -5,7 +5,7 @@
 %% Copyright (c) 2021-2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
-%% @doc Anonymous function extraction API.
+%% @doc Anonymous function extraction private API.
 %%
 %% This module is responsible for extracting the code of an anonymous function.
 %% The goal is to be able to store the extracted function and execute it later,
@@ -50,13 +50,17 @@
 %% abstract code (i.e. after parsing but before compilation) is available in
 %% the `env'. We compile that abstract code and extract the assembly from that
 %% compiled beam.
+%%
+%% This module is private. The documentation is still visible because it may
+%% help understand some implementation details. However, this module should
+%% never be called directly outside of Khepri.
 
 -module(khepri_fun).
 
 -include_lib("kernel/include/logger.hrl").
 -include_lib("stdlib/include/assert.hrl").
 
--include("src/internal.hrl").
+-include("src/khepri_fun.hrl").
 
 -export([to_standalone_fun/1,
          to_standalone_fun/2,

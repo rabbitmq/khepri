@@ -89,10 +89,6 @@ khepri:insert([emails, <<"alice">>], "alice@example.org").
 khepri:insert("/:emails/alice", "alice@example.org").
 ```
 
-The `khepri` module provides the "simple API". It has several functions to
-cover the most common uses. For advanced uses, using the `khepri_machine`
-module directly is preferred.
-
 ### Read data back
 
 To get Alice's email address back, **query** the same path:
@@ -178,7 +174,7 @@ the database itself and automatically execute it after some event occurs.
                 on_action => Action} = Props
           end,
 
-    khepri_machine:put(
+    khepri:put(
       StoreId,
       StoredProcPath,
       #kpayload_sproc{sproc = Fun}))}.
@@ -189,7 +185,7 @@ the database itself and automatically execute it after some event occurs.
     ```erlang
     EventFilter = #kevf_tree{path = [stock, wood, <<"oak">>]},
 
-    ok = khepri_machine:register_trigger(
+    ok = khepri:register_trigger(
            StoreId,
            TriggerId,
            EventFilter,

@@ -598,7 +598,7 @@ clear_payload_in_an_existing_node_test() ->
                                commands => Commands}),
 
     Command = #put{path = [foo],
-                   payload = none},
+                   payload = ?NO_PAYLOAD},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -612,7 +612,7 @@ clear_payload_in_an_existing_node_test() ->
             #node{
                stat = #{payload_version => 2,
                         child_list_version => 1},
-               payload = none}}},
+               payload = ?NO_PAYLOAD}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => value,
                                    payload_version => 1,
@@ -630,21 +630,21 @@ put_command_bumps_applied_command_count_test() ->
     ?assertEqual(#{}, S0#khepri_machine.metrics),
 
     Command1 = #put{path = [bar],
-                    payload = none},
+                    payload = ?NO_PAYLOAD},
     {S1, _, SE1} = khepri_machine:apply(?META, Command1, S0),
 
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual([], SE1),
 
     Command2 = #put{path = [baz],
-                    payload = none},
+                    payload = ?NO_PAYLOAD},
     {S2, _, SE2} = khepri_machine:apply(?META, Command2, S1),
 
     ?assertEqual(#{applied_command_count => 2}, S2#khepri_machine.metrics),
     ?assertEqual([], SE2),
 
     Command3 = #put{path = [qux],
-                    payload = none},
+                    payload = ?NO_PAYLOAD},
     Meta = ?META,
     {S3, _, SE3} = khepri_machine:apply(Meta, Command3, S2),
 

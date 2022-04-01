@@ -23,7 +23,7 @@ insert_a_node_test_() ->
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
          {ok, #{[foo] => #{}}},
-         khepri_machine:put(
+         khepri:put(
            ?FUNCTION_NAME, [foo], #kpayload_data{data = foo_value}))]}.
 
 query_a_node_test_() ->
@@ -36,9 +36,9 @@ query_a_node_test_() ->
                            child_list_version => 1,
                            child_list_length => 0}}},
          begin
-             _ = khepri_machine:put(
+             _ = khepri:put(
                    ?FUNCTION_NAME, [foo], #kpayload_data{data = foo_value}),
-             khepri_machine:get(?FUNCTION_NAME, [foo])
+             khepri:get(?FUNCTION_NAME, [foo])
          end)]}.
 
 delete_a_node_test_() ->
@@ -53,15 +53,15 @@ delete_a_node_test_() ->
                               child_list_version => 1,
                               child_list_length => 0}}},
             begin
-                _ = khepri_machine:put(
+                _ = khepri:put(
                       ?FUNCTION_NAME, [foo],
                       #kpayload_data{data = foo_value}),
-                khepri_machine:delete(?FUNCTION_NAME, [foo])
+                khepri:delete(?FUNCTION_NAME, [foo])
             end)},
         {"Checking the deleted key is gone",
          ?_assertEqual(
             {ok, #{}},
-            khepri_machine:get(?FUNCTION_NAME, [foo]))}]}
+            khepri:get(?FUNCTION_NAME, [foo]))}]}
      ]}.
 
 query_keep_while_conds_state_test_() ->
@@ -73,7 +73,7 @@ query_keep_while_conds_state_test_() ->
          {ok, #{[foo] =>
                 #{[foo] => #if_child_list_length{count = {gt, 0}}}}},
          begin
-             _ = khepri_machine:put(
+             _ = khepri:put(
                    ?FUNCTION_NAME,
                    [foo],
                    #kpayload_data{data = foo_value},
@@ -87,17 +87,17 @@ use_an_invalid_path_test_() ->
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertThrow(
          {invalid_path, #{path := not_a_list}},
-         khepri_machine:put(
+         khepri:put(
            ?FUNCTION_NAME,
            not_a_list,
-           none)),
+           ?NO_PAYLOAD)),
       ?_assertThrow(
          {invalid_path, #{path := ["not_a_component"],
                           tail := ["not_a_component"]}},
-         khepri_machine:put(
+         khepri:put(
            ?FUNCTION_NAME,
            ["not_a_component"],
-           none))]}.
+           ?NO_PAYLOAD))]}.
 
 use_an_invalid_payload_test_() ->
     {setup,
@@ -108,10 +108,12 @@ use_an_invalid_payload_test_() ->
          khepri_machine:put(
            ?FUNCTION_NAME,
            [foo],
-           invalid_payload)),
+           invalid_payload,
+           #{}, #{})),
       ?_assertThrow(
          {invalid_payload, [foo], {invalid_payload, in_a_tuple}},
          khepri_machine:put(
            ?FUNCTION_NAME,
            [foo],
-           {invalid_payload, in_a_tuple}))]}.
+           {invalid_payload, in_a_tuple},
+           #{}, #{}))]}.

@@ -29,7 +29,7 @@ favor_compromise_in_get_test_() ->
 
              ?assertEqual(
                 {ok, #{}},
-                khepri_machine:get(
+                khepri:get(
                   ?FUNCTION_NAME, [foo], #{favor => compromise})),
 
              ?assertEqual(
@@ -44,7 +44,7 @@ favor_compromise_in_get_test_() ->
 
              ?assertEqual(
                 {ok, #{}},
-                khepri_machine:get(
+                khepri:get(
                   ?FUNCTION_NAME, [foo], #{favor => compromise})),
 
              ?assertEqual(
@@ -57,7 +57,7 @@ favor_compromise_in_get_test_() ->
 
              ?assertEqual(
                 {ok, #{}},
-                khepri_machine:get(
+                khepri:get(
                   ?FUNCTION_NAME, [foo], #{favor => compromise})),
 
              ?assertEqual(
@@ -86,7 +86,7 @@ favor_consistency_in_get_test_() ->
 
              ?assertEqual(
                 {ok, #{}},
-                khepri_machine:get(
+                khepri:get(
                   ?FUNCTION_NAME, [foo], #{favor => consistency})),
 
              ?assertEqual(
@@ -101,7 +101,7 @@ favor_consistency_in_get_test_() ->
 
              ?assertEqual(
                 {ok, #{}},
-                khepri_machine:get(
+                khepri:get(
                   ?FUNCTION_NAME, [foo], #{favor => consistency})),
 
              ?assertEqual(
@@ -130,7 +130,7 @@ favor_low_latency_in_get_test_() ->
 
              ?assertEqual(
                 {ok, #{}},
-                khepri_machine:get(
+                khepri:get(
                   ?FUNCTION_NAME, [foo], #{favor => low_latency})),
 
              ?assertEqual(
@@ -143,7 +143,7 @@ favor_low_latency_in_get_test_() ->
 
              ?assertEqual(
                 {ok, #{}},
-                khepri_machine:get(
+                khepri:get(
                   ?FUNCTION_NAME, [foo], #{favor => low_latency})),
 
              ?assertEqual(
@@ -176,7 +176,7 @@ favor_compromise_in_transaction_test_() ->
 
              ?assertEqual(
                 {atomic, {ok, #{}}},
-                khepri_machine:transaction(
+                khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{favor => compromise})),
 
              ?assertEqual(
@@ -191,7 +191,7 @@ favor_compromise_in_transaction_test_() ->
 
              ?assertEqual(
                 {atomic, {ok, #{}}},
-                khepri_machine:transaction(
+                khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{favor => compromise})),
 
              ?assertEqual(
@@ -204,7 +204,7 @@ favor_compromise_in_transaction_test_() ->
 
              ?assertEqual(
                 {atomic, {ok, #{}}},
-                khepri_machine:transaction(
+                khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{favor => compromise})),
 
              ?assertEqual(
@@ -235,7 +235,7 @@ favor_consistency_in_transaction_test_() ->
 
              ?assertEqual(
                 {atomic, {ok, #{}}},
-                khepri_machine:transaction(
+                khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{favor => consistency})),
 
              ?assertEqual(
@@ -250,7 +250,7 @@ favor_consistency_in_transaction_test_() ->
 
              ?assertEqual(
                 {atomic, {ok, #{}}},
-                khepri_machine:transaction(
+                khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{favor => consistency})),
 
              ?assertEqual(
@@ -281,7 +281,7 @@ favor_low_latency_in_transaction_test_() ->
 
              ?assertEqual(
                 {atomic, {ok, #{}}},
-                khepri_machine:transaction(
+                khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{favor => low_latency})),
 
              ?assertEqual(
@@ -294,7 +294,7 @@ favor_low_latency_in_transaction_test_() ->
 
              ?assertEqual(
                 {atomic, {ok, #{}}},
-                khepri_machine:transaction(
+                khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{favor => low_latency})),
 
              ?assertEqual(
