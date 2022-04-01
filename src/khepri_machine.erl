@@ -427,6 +427,7 @@ put(StoreId, PathPattern, Payload, Options) ->
 %%        modify.
 %% @param Payload the payload to put in the specified node.
 %% @param Extra extra options such as `keep_while' conditions.
+%% @param Options command options such as the command type.
 %%
 %% @returns in the case of a synchronous put, an "ok" tuple with a map with one
 %% entry, or an "error" tuple; in the case of an asynchronous put, always `ok'
@@ -550,6 +551,7 @@ delete(StoreId, PathPattern) ->
 %% @param StoreId the name of the Ra cluster.
 %% @param PathPattern the path (or path pattern) to match against the nodes to
 %%        delete.
+%% @param Options command options such as the command type.
 %%
 %% @returns in the case of a synchrnous delete, an "ok" tuple with a map with
 %% zero, one or more entries, or an "error" tuple; in the case of an
@@ -639,6 +641,7 @@ transaction(StoreId, Fun, Options) when is_map(Options) ->
 %%
 %% @param StoreId the name of the Ra cluster.
 %% @param Fun an arbitrary anonymous function.
+%% @param Options command options such as the command type.
 %%
 %% @returns in the case of a synchronous transaction, `{atomic, Result}' where
 %% `Result' is the return value of `Fun', or `{aborted, Reason}' if the
