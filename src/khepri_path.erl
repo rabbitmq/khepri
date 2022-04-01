@@ -111,6 +111,11 @@ from_string([Char, Component | _] = Rest, ReversedPath)
        (?IS_NODE_ID(Component) orelse
         ?IS_CONDITION(Component)) ->
     finalize_path(Rest, ReversedPath);
+from_string([?PARENT_NODE, $/ | _] = Rest, ReversedPath) ->
+    %% If the character used to represent the parent node in a regular path
+    %% (`^') appears alone in a path component, it's a regular path. Other
+    %% special path components may appear alone in both forms though.
+    finalize_path(Rest, ReversedPath);
 from_string([Char] = Rest, [] = ReversedPath)
   when ?IS_SPECIAL_PATH_COMPONENT(Char) ->
     finalize_path(Rest, ReversedPath);
@@ -118,12 +123,11 @@ from_string([Char] = Rest, [] = ReversedPath)
 from_string([$/ | Rest], ReversedPath) ->
     from_string(Rest, ReversedPath);
 
-from_string([$<, $< | Rest], ReversedPath) ->
-    ?assertNotEqual("", Rest),
-    parse_binary_from_string(Rest, ReversedPath);
+from_string([$: | Rest], ReversedPath) ->
+    parse_atom_from_string(Rest, ReversedPath);
 
 from_string([Char | _] = Rest, ReversedPath) when is_integer(Char) ->
-    parse_atom_from_string(Rest, ReversedPath);
+    parse_binary_from_string(Rest, ReversedPath);
 
 from_string([], ReversedPath) ->
     finalize_path([], ReversedPath);
@@ -151,6 +155,27 @@ parse_atom_from_string([] = Rest, Acc, ReversedPath) ->
 
 finalize_atom_component(Acc) ->
     Acc1 = lists:reverse(Acc),
+    Acc2 = percent_decode_string(Acc1),
+    erlang:list_to_atom(Acc2).
+
+parse_binary_from_string(Rest, ReversedPath) ->
+    parse_binary_from_string(Rest, "", ReversedPath).
+
+parse_binary_from_string([$/ | _] = Rest, Acc, ReversedPath) ->
+    Component = finalize_binary_componenent(Acc),
+    ReversedPath1 = prepend_component(Component, ReversedPath),
+    from_string(Rest, ReversedPath1);
+parse_binary_from_string([Char | Rest], Acc, ReversedPath)
+  when is_integer(Char) ->
+    Acc1 = [Char | Acc],
+    parse_binary_from_string(Rest, Acc1, ReversedPath);
+parse_binary_from_string([] = Rest, Acc, ReversedPath) ->
+    Component = finalize_binary_componenent(Acc),
+    ReversedPath1 = prepend_component(Component, ReversedPath),
+    from_string(Rest, ReversedPath1).
+
+finalize_binary_componenent(Acc) ->
+    Acc1 = lists:reverse(Acc),
     case Acc1 of
         "." ->
             ?THIS_NODE;
@@ -161,37 +186,16 @@ finalize_atom_component(Acc) ->
         "**" ->
             ?STAR_STAR;
         _ ->
-            case re:run(Acc1, "\\*", [{capture, none}]) of
+            Acc2 = percent_decode_string(Acc1),
+            case re:run(Acc2, "\\*", [{capture, none}]) of
                 match ->
                     ReOpts = [global, {return, list}],
-                    Regex = re:replace(Acc1, "\\*", ".*", ReOpts),
+                    Regex = re:replace(Acc2, "\\*", ".*", ReOpts),
                     #if_name_matches{regex = "^" ++ Regex ++ "$"};
                 nomatch ->
-                    erlang:list_to_atom(Acc1)
+                    erlang:list_to_binary(Acc2)
             end
     end.
-
-parse_binary_from_string(Rest, ReversedPath) ->
-    parse_binary_from_string(Rest, "", ReversedPath).
-
-%% If a binary contains ">>" before its, we consider them to be part of the
-%% binary's content, not the end marker.
-parse_binary_from_string([$>, $> | Rest], Acc, ReversedPath)
-  when Rest =:= "" orelse hd(Rest) =:= $/ ->
-    Component = finalize_binary_componenent(Acc),
-    ReversedPath1 = prepend_component(Component, ReversedPath),
-    from_string(Rest, ReversedPath1);
-parse_binary_from_string([Char | Rest], Acc, ReversedPath)
-  when is_integer(Char) ->
-    Acc1 = [Char | Acc],
-    parse_binary_from_string(Rest, Acc1, ReversedPath);
-parse_binary_from_string([], Acc, ReversedPath) ->
-    %% This "binary" has no end marker. We consider it an atom then.
-    parse_atom_from_string([], Acc ++ "<<", ReversedPath).
-
-finalize_binary_componenent(Acc) ->
-    Acc1 = lists:reverse(Acc),
-    erlang:list_to_binary(Acc1).
 
 prepend_component(Component, []) when ?IS_NODE_ID(Component) ->
     %% This is a relative path.
@@ -264,10 +268,50 @@ component_to_string(?THIS_NODE) ->
 component_to_string(?PARENT_NODE) ->
     "..";
 component_to_string(Component) when is_atom(Component) ->
-    atom_to_list(Component);
-component_to_string(Component) when is_binary(Component) ->
-    lists:flatten(
-      io_lib:format("<<~s>>", [Component])).
+    ":" ++ percent_encode_string(erlang:atom_to_list(Component));
+component_to_string(Component)
+  when is_binary(Component) andalso Component =/= <<>> ->
+    percent_encode_string(erlang:binary_to_list(Component));
+component_to_string(<<>>) ->
+    throw(unsupported).
+
+-define(IS_HEX(Digit), (is_integer(Digit) andalso
+                        ((Digit >= $0 andalso Digit =< $9) orelse
+                         (Digit >= $A andalso Digit =< $F) orelse
+                         (Digit >= $a andalso Digit =< $f)))).
+
+percent_decode_string(String) when is_list(String) ->
+    percent_decode_string(String, "").
+
+percent_decode_string([$%, Digit1, Digit2 | Rest], PercentDecoded)
+  when ?IS_HEX(Digit1) andalso ?IS_HEX(Digit2) ->
+    Char = erlang:list_to_integer([Digit1, Digit2], 16),
+    PercentDecoded1 = PercentDecoded ++ [Char],
+    percent_decode_string(Rest, PercentDecoded1);
+percent_decode_string([Char | Rest], PercentDecoded) ->
+    PercentDecoded1 = PercentDecoded ++ [Char],
+    percent_decode_string(Rest, PercentDecoded1);
+percent_decode_string([], PercentDecoded) ->
+    PercentDecoded.
+
+percent_encode_string(String) when is_list(String) ->
+    percent_encode_string(String, "").
+
+percent_encode_string([Char | Rest], PercentEncoded)
+  when is_integer(Char) andalso
+       ((Char >= $A andalso Char =< $Z) orelse
+        (Char >= $a andalso Char =< $z) orelse
+        (Char >= $0 andalso Char =< $9) orelse
+        (Char =:= $. andalso PercentEncoded =/= "") orelse
+        Char =:= $- orelse Char =:= $_ orelse Char =:= $~) ->
+    PercentEncoded1 = PercentEncoded ++ [Char],
+    percent_encode_string(Rest, PercentEncoded1);
+percent_encode_string([Char | Rest], PercentEncoded) ->
+    PEChar = lists:flatten(io_lib:format("%~2.16.0B", [Char])),
+    PercentEncoded1 = PercentEncoded ++ PEChar,
+    percent_encode_string(Rest, PercentEncoded1);
+percent_encode_string([], PercentEncoded) ->
+    PercentEncoded.
 
 -spec combine_with_conditions(pattern(), [khepri_condition:condition()]) ->
     pattern().
