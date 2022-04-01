@@ -63,21 +63,28 @@
          exec/2]).
 
 -ifdef(TEST).
--export([decode_line_chunk/2]).
+-export([standalone_fun_cache_key/5,
+         override_object_code/2,
+         get_object_code/1,
+         decode_line_chunk/2,
+         compile/1]).
 -endif.
 
 %% FIXME: compile:forms/2 is incorrectly specified and doesn't accept
 %% assembly. This breaks compile/1 and causes a cascade of errors.
 %%
-%% The following basically disable Dialyzer for this module unfortunately...
+%% The following basically disables Dialyzer for this module unfortunately...
 %% This can be removed once we start using Erlang 25 to run Dialyzer.
 -dialyzer({nowarn_function, [compile/1,
                              to_standalone_fun/1,
                              to_standalone_fun/2,
                              to_standalone_fun1/2,
                              to_standalone_fun2/2,
+                             to_standalone_fun3/2,
                              to_standalone_env/1,
                              to_standalone_arg/2,
+                             standalone_fun_cache_key/1,
+                             cache_standalone_fun/2,
                              handle_compilation_error/2,
                              handle_validation_error/3,
                              add_comments_and_retry/5,
@@ -310,7 +317,28 @@ to_standalone_fun1(Fun, Options) ->
 %% @private
 %% @hidden
 
-to_standalone_fun2(
+to_standalone_fun2(Fun, State) ->
+    case get_cached_standalone_fun(State) of
+        #standalone_fun{} = StandaloneFunWithoutEnv ->
+            %% We need to set the environment for this specific call of the
+            %% anonymous function in the returned `#standalone_fun{}'.
+            {Env, State1} = to_standalone_env(State),
+            StandaloneFun = StandaloneFunWithoutEnv#standalone_fun{env = Env},
+            {StandaloneFun, State1};
+        fun_kept ->
+            {Fun, State};
+        undefined ->
+            to_standalone_fun3(Fun, State)
+    end.
+
+-spec to_standalone_fun3(Fun, State) -> {StandaloneFun, State} when
+      Fun :: fun(),
+      State :: #state{},
+      StandaloneFun :: standalone_fun().
+%% @private
+%% @hidden
+
+to_standalone_fun3(
   Fun,
   #state{fun_info = #{module := Module,
                       name := Name,
@@ -338,31 +366,7 @@ to_standalone_fun2(
         true ->
             State2 = pass1(State1),
 
-            %% Fun environment to standalone term.
-            %%
-            %% For "regular" lambdas, variables declared outside of the
-            %% function body are put in this `env'. We need to process them in
-            %% case they reference other lambdas for instance. We keep the end
-            %% result to store it alongside the generated module, but not
-            %% inside the module to avoid an increase in the number of
-            %% identical modules with different environment.
-            %%
-            %% However for `erl_eval' functions created from lambdas, the env
-            %% contains the parsed source code of the function. We don't need
-            %% to interpret it.
-            %%
-            %% TODO: `to_standalone_env()' uses `to_standalone_fun1()' to
-            %% extract and compile lambdas passed as arguments. It means they
-            %% are fully compiled even though
-            %% `is_standalone_fun_still_needed()' returns false later. This is
-            %% a waste of resources and this function can probably be split
-            %% into two parts to allow the environment to be extracted before
-            %% and compiled after, once we are sure we need to create the
-            %% final standalone fun.
-            {Env, State3} = case Module =:= erl_eval andalso Type =:= local of
-                                false -> to_standalone_env(State2);
-                                true  -> {[], State2}
-                            end,
+            {Env, State3} = to_standalone_env(State2),
 
             %% We offer one last chance to the caller to determine if a
             %% standalone function is still useful for him.
@@ -384,14 +388,175 @@ to_standalone_fun2(
                                        beam = Beam,
                                        arity = Arity,
                                        env = Env},
+                    cache_standalone_fun(State3, StandaloneFun),
                     {StandaloneFun, State3};
                 false ->
+                    cache_standalone_fun(State3, fun_kept),
                     {Fun, State3}
             end;
         false ->
             process_errors(State1),
+            cache_standalone_fun(State1, fun_kept),
             {Fun, State1}
     end.
+
+-spec standalone_fun_cache_key(State) -> Key when
+      State :: #state{},
+      Key :: {?MODULE,
+              standalone_fun_cache_key,
+              {module(), atom(), arity()},
+              binary()}.
+%% @doc Computes the standalone function cache key.
+%%
+%% To identify a standalone function in the cache, we base the key on:
+%% <ul>
+%% <li>the anonymous function's module, function name and arity</li>
+%% <li>the ckecksum of the module holding that function</li>
+%% </ul>
+%%
+%% @private
+
+standalone_fun_cache_key(
+  #state{fun_info = #{module := Module,
+                      name := Name,
+                      arity := Arity,
+                      type := local,
+                      new_uniq := Checksum},
+         options = Options}) ->
+    standalone_fun_cache_key(Module, Name, Arity, Checksum, Options);
+standalone_fun_cache_key(
+  #state{fun_info = #{module := Module,
+                      name := Name,
+                      arity := Arity,
+                      type := external},
+         options = Options}) ->
+    Checksum = Module:module_info(md5),
+    standalone_fun_cache_key(Module, Name, Arity, Checksum, Options).
+
+standalone_fun_cache_key(Module, Name, Arity, Checksum, Options) ->
+    %% We also include the options in the cache key because different options
+    %% could affect the created standalone function.
+    {?MODULE, standalone_fun_cache, {Module, Name, Arity}, Checksum, Options}.
+
+-spec get_cached_standalone_fun(State) -> Ret when
+      State :: #state{},
+      Ret :: StandaloneFun | fun_kept | undefined,
+      StandaloneFun :: standalone_fun().
+%% @doc Returns the cached standalone function if found.
+%%
+%% @returns a `standalone_fun()' if a corresponding standalone function was
+%% found in the cache, a `fun_kept' atom if the anonymous function didn't need
+%% any processing and can be used directly, or `undefined' if there is no
+%% corresponding entry in the cache.
+%%
+%% @private
+
+get_cached_standalone_fun(
+  #state{fun_info = #{module := Module}} = State)
+  when Module =/= erl_eval ->
+    Key = standalone_fun_cache_key(State),
+    case persistent_term:get(Key, undefined) of
+        #{standalone_fun := StandaloneFunWithoutEnv,
+          checksums := Checksums,
+          counters := Counters} ->
+            %% We want to make sure that all the modules used by the anonymous
+            %% function were not updated since it was stored in the cache.
+            %% Therefore, they must have the same checksums has the ones
+            %% stored in the cache. This list of modules also contain the
+            %% modules holding the callbacks in specified in `Options'.
+            %%
+            %% The checksum of the module holding the anonymous function is
+            %% already in the cache key however. Likewise for the actual
+            %% options.
+            SameModules = maps:fold(
+                            fun
+                                (Mod, Checksum, true) ->
+                                    Checksum =:= Mod:module_info(md5);
+                                (_Module, _Checksum, false) ->
+                                    false
+                            end, true, Checksums),
+
+            if
+                SameModules ->
+                    counters:add(Counters, 1, 1),
+                    StandaloneFunWithoutEnv;
+                true ->
+                    undefined
+            end;
+        #{fun_kept := true,
+          counters := Counters} ->
+            %% `fun_kept' means the anonymous function could be used directly;
+            %% i.e. there was no need to create a standalone function.
+            counters:add(Counters, 1, 1),
+            fun_kept;
+        undefined ->
+            undefined
+    end;
+get_cached_standalone_fun(_State) ->
+    %% We don't cache `erl_eval'-based anonymous functions currently.
+    %%
+    %% TODO: Can we cache them?
+    undefined.
+
+-spec cache_standalone_fun(StandaloneFun, State) -> ok when
+      StandaloneFun :: standalone_fun() | fun_kept,
+      State :: #state{}.
+%% @private
+
+cache_standalone_fun(
+  #state{checksums = Checksums, options = Options} = State,
+  StandaloneFun) ->
+    %% We include the options in the cached value. This is useful when the
+    %% callbacks change for the same anonymous function.
+    Checksums1 = maps:fold(
+                   fun
+                       (_Key, Fun, Acc) when is_function(Fun) ->
+                           Info = maps:from_list(erlang:fun_info(Fun)),
+                           #{module := Module,
+                             new_uniq := Checksum} = Info,
+                           case Acc of
+                               #{Module := KnownChecksum} ->
+                                   ?assertEqual(KnownChecksum, Checksum),
+                                   Acc;
+                               _ ->
+                                   Acc#{Module => Checksum}
+                           end;
+                       (_Key, _Value, Acc) ->
+                           Acc
+                   end, Checksums, Options),
+
+    Key = standalone_fun_cache_key(State),
+
+    %% Counters track the cache hits. They are only used by the testsuite
+    %% currently.
+    Counters = counters:new(1, [write_concurrency]),
+
+    case StandaloneFun of
+        #standalone_fun{} ->
+            %% The standalone function is stored in the cache without its
+            %% environment (the variable bindings in the anonymous function).
+            %% They are given for a specific call of this function and may
+            %% change for another call , even though the code is the same
+            %% otherwise.
+            %%
+            %% The environment is set by the caller of
+            %% `get_cached_standalone_fun()'.
+            StandaloneFunWithoutEnv = StandaloneFun#standalone_fun{env = []},
+
+            Value = #{standalone_fun => StandaloneFunWithoutEnv,
+                      checksums => Checksums1,
+                      options => Options,
+                      counters => Counters},
+
+            %% TODO: We need to add some memory management here to clear the
+            %% cache if there are many different standalone functions.
+            persistent_term:put(Key, Value);
+        fun_kept ->
+            Value = #{fun_kept => true,
+                      counters => Counters},
+            persistent_term:put(Key, Value)
+    end,
+    ok.
 
 -spec compile(Asm) -> {Module, Beam} when
       Asm :: asm(), %% FIXME: compile:forms/2 is incorrectly specified.
@@ -1217,7 +1382,26 @@ disassemble_module1(Module, undefined) ->
     BeamFileRecord = do_disassemble_and_cache(Module, Checksum, Beam),
     {BeamFileRecord, Checksum}.
 
+-ifdef(TEST).
+-define(OBJECT_CODE_KEY(Module), {?MODULE, object_code, Module}).
+
+override_object_code(Module, Beam) ->
+    Key = ?OBJECT_CODE_KEY(Module),
+    persistent_term:put(Key, Beam),
+    ok.
+
 get_object_code(Module) ->
+    Key = ?OBJECT_CODE_KEY(Module),
+    case persistent_term:get(Key, undefined) of
+        undefined -> do_get_object_code(Module);
+        Beam      -> {Module, Beam, ""}
+    end.
+-else.
+get_object_code(Module) ->
+    do_get_object_code(Module).
+-endif.
+
+do_get_object_code(Module) ->
     case code:get_object_code(Module) of
         {Module, Beam, Filename} -> {Module, Beam, Filename};
         error                    -> throw({module_not_found, Module})
@@ -1560,7 +1744,7 @@ pass2(
   #state{functions = Functions,
          next_label = NextLabel} = State) ->
     %% The module name is based on a hash of its entire code.
-    GeneratedModuleName = gen_module_name(Functions, State),
+    GeneratedModuleName = gen_module_name(State),
     State1 = State#state{generated_module_name = GeneratedModuleName},
 
     Functions1 = pass2_process_functions(Functions, State1),
@@ -1776,12 +1960,11 @@ replace_label(
             setelement(Pos, Instruction, {f, NewLabel})
     end.
 
--spec gen_module_name(Functions, State) -> Module when
-      Functions :: #{mfa() => #function{}},
+-spec gen_module_name(State) -> Module when
       State :: #state{},
       Module :: module().
 
-gen_module_name(Functions, #state{fun_info = Info}) ->
+gen_module_name(#state{fun_info = Info, functions = Functions}) ->
     #{module := Module,
       name := Name} = Info,
     Checksum = erlang:phash2(Functions),
@@ -1815,15 +1998,37 @@ gen_function_name(
 -spec to_standalone_env(State) -> {StandaloneEnv, State} when
       State :: #state{},
       StandaloneEnv :: list().
+%% @doc Converts the fun environment to a standalone term.
+%%
+%% For "regular" lambdas, variables declared outside of the function body are
+%% put in this `env'. We need to process them in case they reference other
+%% lambdas for instance. We keep the end result to store it alongside the
+%% generated module, but not inside the module to avoid an increase in the
+%% number of identical modules with different environment.
+%%
+%% However for `erl_eval' functions created from lambdas, the env contains the
+%% parsed source code of the function. We don't need to interpret it.
+%%
+%% TODO: `to_standalone_env()' uses `to_standalone_fun1()' to extract and
+%% compile lambdas passed as arguments. It means they are fully compiled even
+%% if `is_standalone_fun_still_needed()' returns false later. This is a waste
+%% of resources and this function can probably be split into two parts to
+%% allow the environment to be extracted before and compiled after, once we
+%% are sure we need to create the final standalone fun.
 
-to_standalone_env(#state{fun_info = #{env := Env},
-                         options = Options} = State) ->
+to_standalone_env(#state{fun_info = #{module := Module,
+                                      type := Type,
+                                      env := Env},
+                         options = Options} = State)
+  when Module =/= erl_eval orelse Type =/= local ->
     State1 = State#state{options = maps:remove(
                                      is_standalone_fun_still_needed,
                                      Options)},
     {Env1, State2} = to_standalone_arg(Env, State1),
     State3 = State2#state{options = Options},
-    {Env1, State3}.
+    {Env1, State3};
+to_standalone_env(State) ->
+    {[], State}.
 
 to_standalone_arg(List, State) when is_list(List) ->
     lists:foldr(
