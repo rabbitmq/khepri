@@ -122,7 +122,7 @@ The equivalent of a <em>key</em> in a key/value store is a <em>path</em>
 A path is a list of node IDs, from the root (unnamed) tree node to the target
 ({@link khepri_path:path()}). For instance:
 ```
-%% Points to "/stock/wood/oak" in the tree showed above:
+%% Points to "/:stock/:wood/oak" in the tree showed above:
 Path = [stock, wood, <<"oak">>].
 '''
 

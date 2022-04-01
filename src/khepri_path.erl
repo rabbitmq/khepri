@@ -15,7 +15,7 @@
 %%
 %% ```
 %% %% Native path.
-%% Path = [stock, wood, oak].
+%% Path = [stock, wood, <<"oak">>].
 %% '''
 %%
 %% A path may contain conditions to tune how a node is matched or to match
@@ -33,12 +33,28 @@
 %% '''
 %%
 %% To be user-friendly, Unix-like string-based paths are accepted by most
-%% functions. These <em>Unix paths</em> have the `"/path/to/node"' and is the
-%% equivalent of the `[path, to, node]' native path.
+%% functions. These <em>Unix paths</em> have the following syntax:
+%%
+%% <ul>
+%% <li>Path components are separated by a forward slash, `/'.</li>
+%% <li>Atom-based node IDs are prefixed with a `:' character: `:wood'.</li>
+%% <li>Binary-based node IDS are written as-is: `oak'.</li>
+%% <li>Atom and binaries can be percent-encoded.</li>
+%% <li>An absolute path must start with `/', otherwise it is considered a
+%% relative path</li>
+%% <li>`.' and `..' represent `?THIS_NODE' and `?PARENT_NODE'
+%% respectively</li>
+%% <li>Simple glob patterns are accepted:
+%% <ul>
+%% <li>`abc*def' is the same as `#if_name_matches{regex = "^abc.*def$"}'</li>
+%% <li>`*' is the same as `?STAR' or `#if_name_matches{regex = any}'</li>
+%% <li>`**' is the same as `?STAR_STAR' or `if_path_matches{regex = any}'</li>
+%% </ul></li>
+%% </ul>
 %%
 %% ```
 %% %% Unix path, equivalent of the first native path example.
-%% UnixPath = "/stock/wood/oak".
+%% UnixPath = "/:stock/:wood/oak".
 %% '''
 
 -module(khepri_path).

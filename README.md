@@ -83,10 +83,10 @@ Here's how to **insert** a piece of data, say, an email address of Alice:
 
 ```erlang
 %% Using a native path:
-khepri:insert([emails, alice], "alice@example.org").
+khepri:insert([emails, <<"alice">>], "alice@example.org").
 
-%% USing a Unix-like path string:
-khepri:insert("/emails/alice", "alice@example.org").
+%% Using a Unix-like path string:
+khepri:insert("/:emails/alice", "alice@example.org").
 ```
 
 The `khepri` module provides the "simple API". It has several functions to
@@ -98,10 +98,10 @@ module directly is preferred.
 To get Alice's email address back, **query** the same path:
 
 ```erlang
-Ret = khepri:get("/emails/alice"),
+Ret = khepri:get("/:emails/alice"),
 
 %% Here is the value of `Ret':
-{ok, #{[emails, alice] =>
+{ok, #{[emails, <<"alice">>] =>
        #{child_list_count => 0,
          child_list_version => 1,
          data => "alice@example.org",
@@ -119,7 +119,7 @@ them.
 To **delete** Alice's email address:
 
 ```erlang
-khepri:delete("/emails/alice").
+khepri:delete("/:emails/alice").
 ```
 
 The `emails` parent node was automatically created when the `alice` node was
