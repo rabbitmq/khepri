@@ -85,7 +85,7 @@ A path describes how to reach a node from the root node.</p>
 Erlang atoms and binaries. Example:</p>
  
   <pre><code>%% Native path.
-Path = [stock, wood, oak].</code></pre>
+Path = [stock, wood, &lt;&lt;"oak"&gt;&gt;].</code></pre>
  
   <p>A path may contain conditions to tune how a node is matched or to match
   multiple nodes at once. This is called a <em>path pattern</em>. A path
@@ -100,11 +100,27 @@ PathPattern = [stock,
                oak].</code></pre>
  
   <p>To be user-friendly, Unix-like string-based paths are accepted by most
-  functions. These <em>Unix paths</em> have the <code>"/path/to/node"</code> and is the
-  equivalent of the <code>[path, to, node]</code> native path.</p>
+  functions. These <em>Unix paths</em> have the following syntax:</p>
+ 
+  <ul>
+  <li>Path components are separated by a forward slash, <code>/</code>.</li>
+  <li>Atom-based node IDs are prefixed with a <code>:</code> character: <code>:wood</code>.</li>
+  <li>Binary-based node IDS are written as-is: <code>oak</code>.</li>
+  <li>Atom and binaries can be percent-encoded.</li>
+  <li>An absolute path must start with <code>/</code>, otherwise it is considered a
+  relative path</li>
+  <li><code>.</code> and <code>..</code> represent <code>?THIS_NODE</code> and <code>?PARENT_NODE</code>
+  respectively</li>
+  <li>Simple glob patterns are accepted:
+  <ul>
+  <li><code>abc*def</code> is the same as <code>#if_name_matches{regex = "^abc.*def$"}</code></li>
+  <li><code>*</code> is the same as <code>?STAR</code> or <code>#if_name_matches{regex = any}</code></li>
+  <li><code>**</code> is the same as <code>?STAR_STAR</code> or <code>if_path_matches{regex = any}</code></li>
+  </ul></li>
+  </ul>
  
   <pre><code>%% Unix path, equivalent of the first native path example.
-UnixPath = "/stock/wood/oak".</code></pre>
+UnixPath = "/:stock/:wood/oak".</code></pre>
 <h2><a name="types">Data Types</a></h2>
 
 <h3 class="typedecl"><a name="type-component">component()</a></h3>
