@@ -230,7 +230,9 @@ rebar3 as test dialyzer
 
 ## Copyright and License
 
-(c) 2021-2022, VMware Inc or its affiliates.
+© 2021-2022 VMware, Inc. or its affiliates.
 
-Double licensed under the ASL2 and MPL2.0.
-See [LICENSE](./LICENSE) for details.
+This work is dual-licensed under the Apache License 2.0 and the Mozilla Public
+License 2.0. You can choose between one of them if you use this work.
+
+SPDX-License-Identifier: Apache-2.0 OR MPL-2.0
