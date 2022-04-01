@@ -397,7 +397,7 @@ put(StoreId, PathPattern, Payload, Options) ->
 %% key will point to a map containing the properties and payload (if any) of
 %% the node before the modification.
 %%
-%% If the target node is created , the returned structure in the "ok" tuple
+%% If the target node is created, the returned structure in the "ok" tuple
 %% will have a single key corresponding to the path of the target node. That
 %% key will point to empty map, indicating there was no existing node (i.e.
 %% there was no properties or payload to return).
