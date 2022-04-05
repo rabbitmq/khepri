@@ -1840,10 +1840,10 @@ pass2_process_instruction(
   {bs_append, _, _, _, _, _, _, _, _} = Instruction, State) ->
     replace_label(Instruction, 2, State);
 pass2_process_instruction(
-  {bs_private_append, _, _, _, _, _, _} = Instruction, State) ->
+  {bs_init2, _, _, _, _, _, _} = Instruction, State) ->
     replace_label(Instruction, 2, State);
 pass2_process_instruction(
-  {bs_init2, _, _, _, _, _, _} = Instruction, State) ->
+  {bs_private_append, _, _, _, _, _, _} = Instruction, State) ->
     replace_label(Instruction, 2, State);
 pass2_process_instruction(
   {BsPutSomething, _, _, _, _, _} = Instruction, State)
