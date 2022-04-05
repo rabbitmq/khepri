@@ -472,6 +472,8 @@ ensure_instruction_is_permitted({bs_add, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted({bs_append, _, _, _, _, _, _, _, _}) ->
     ok;
+ensure_instruction_is_permitted({bs_create_bin, _, _, _, _, _, _}) ->
+    ok;
 ensure_instruction_is_permitted({bs_init2, _, _, _, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted({bs_init_bits, _, _, _, _, _, _}) ->
