@@ -962,6 +962,18 @@ pass1_process_instructions(
     Instruction = decode_field_flags(Instruction0, 8),
     pass1_process_instructions([Instruction | Rest], State, Result);
 pass1_process_instructions(
+  [{bs_create_bin,
+    [{{f, _} = Fail, {u, Heap}, {u, Live}, {u, Unit}, Dst, _, _N, List}]}
+   | Rest],
+  State,
+  Result) when is_list(List) ->
+    %% `beam_disasm' decoded the instruction's arguments as a tuple inside a
+    %% list. They should be part of the instruction's tuple. Also, various
+    %% arguments are not wrapped/unwrapped correctly.
+    List1 = fix_create_bin_list(List, State),
+    Instruction = {bs_create_bin, Fail, Heap, Live, Unit, Dst, {list, List1}},
+    pass1_process_instructions([Instruction | Rest], State, Result);
+pass1_process_instructions(
   [{bs_private_append, _, _, _, _, {field_flags, FF}, _} = Instruction0 | Rest],
   State,
   Result)
@@ -1673,6 +1685,33 @@ decode_field_flags({field_flags, FieldFlagsBitField}) ->
     FieldFlags = decode_field_flags(FieldFlagsBitField),
     {field_flags, FieldFlags}.
 
+fix_create_bin_list(
+  [{atom, string} = Type, Seg, Unit, Flags, {u, Offset} = _Val, Size
+   | Args],
+  #state{strings_in_progress = Strings} = State) ->
+    Seg1 = fix_integer(Seg),
+    Unit1 = fix_integer(Unit),
+    Size1 = {integer, Length} = fix_integer(Size),
+    ?assertNotEqual(undefined, Strings),
+    Binary = binary:part(Strings, {Offset, Length}),
+    Val = {string, Binary},
+    [Type, Seg1, Unit1, Flags, Val, Size1 | fix_create_bin_list(Args, State)];
+fix_create_bin_list(
+  [Type, Seg, Unit, Flags, Val, Size
+   | Args],
+  State) ->
+    Seg1 = fix_integer(Seg),
+    Unit1 = fix_integer(Unit),
+    Val1 = fix_integer(Val),
+    Size1 = fix_integer(Size),
+    [Type, Seg1, Unit1, Flags, Val1, Size1 | fix_create_bin_list(Args, State)];
+fix_create_bin_list([], _State) ->
+    [].
+
+fix_integer({u, U}) -> U;
+fix_integer({i, I}) -> {integer, I};
+fix_integer(Other)  -> Other.
+
 -spec ensure_instruction_is_permitted(Instruction, State) ->
     State when
       Instruction :: beam_instr(),
@@ -1861,6 +1900,9 @@ pass2_process_instruction(
     replace_label(Instruction, 2, State);
 pass2_process_instruction(
   {bs_append, _, _, _, _, _, _, _, _} = Instruction, State) ->
+    replace_label(Instruction, 2, State);
+pass2_process_instruction(
+  {bs_create_bin, _, _, _, _, _, _} = Instruction, State) ->
     replace_label(Instruction, 2, State);
 pass2_process_instruction(
   {bs_init2, _, _, _, _, _, _} = Instruction, State) ->
