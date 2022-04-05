@@ -1834,9 +1834,6 @@ pass2_process_instruction(
   {bif, _, _, _, _} = Instruction, State) ->
     replace_label(Instruction, 3, State);
 pass2_process_instruction(
-  {arithfbif, _, _, _, _} = Instruction, State) ->
-    replace_label(Instruction, 3, State);
-pass2_process_instruction(
   {bs_add, _, _, _} = Instruction, State) ->
     replace_label(Instruction, 2, State);
 pass2_process_instruction(
