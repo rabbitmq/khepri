@@ -1159,28 +1159,41 @@ pass1_process_instructions(
   State,
   Result) ->
     State1 = ensure_instruction_is_permitted(Instruction, State),
+    Src1 = fix_type_tagged_beam_register(Src),
+    Instruction1 = setelement(2, Instruction, Src1),
+
+    Reg = get_reg_from_type_tagged_beam_register(Src1),
     Type = {t_tuple, Element + 1, false, #{}},
-    VarInfo = {var_info, Src, [{type, Type}]},
+    VarInfo = {var_info, Reg, [{type, Type}]},
     Comment = {'%', VarInfo},
-    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+
+    pass1_process_instructions(Rest, State1, [Instruction1, Comment | Result]);
 pass1_process_instructions(
   [{select_tuple_arity, Src, _, _} = Instruction | Rest],
   State,
   Result) ->
     State1 = ensure_instruction_is_permitted(Instruction, State),
+    Src1 = fix_type_tagged_beam_register(Src),
+    Instruction1 = setelement(2, Instruction, Src1),
+
+    Reg = get_reg_from_type_tagged_beam_register(Src1),
     Type = {t_tuple, 0, false, #{}},
-    VarInfo = {var_info, Src, [{type, Type}]},
+    VarInfo = {var_info, Reg, [{type, Type}]},
     Comment = {'%', VarInfo},
-    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+    pass1_process_instructions(Rest, State1, [Instruction1, Comment | Result]);
 pass1_process_instructions(
   [{get_map_elements, _Fail, Src, {list, _}} = Instruction | Rest],
   State,
   Result) ->
     State1 = ensure_instruction_is_permitted(Instruction, State),
+    Src1 = fix_type_tagged_beam_register(Src),
+    Instruction1 = setelement(3, Instruction, Src1),
+
+    Reg = get_reg_from_type_tagged_beam_register(Src1),
     Type = {t_map, any, any},
-    VarInfo = {var_info, Src, [{type, Type}]},
+    VarInfo = {var_info, Reg, [{type, Type}]},
     Comment = {'%', VarInfo},
-    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+    pass1_process_instructions(Rest, State1, [Instruction1, Comment | Result]);
 pass1_process_instructions(
   [{put_map_assoc, _Fail, Src, _Dst, _Live, {list, _}} = Instruction | Rest],
   State,
@@ -1711,6 +1724,12 @@ fix_create_bin_list([], _State) ->
 fix_integer({u, U}) -> U;
 fix_integer({i, I}) -> {integer, I};
 fix_integer(Other)  -> Other.
+
+fix_type_tagged_beam_register({tr, Reg, {Type, _, _}}) -> {tr, Reg, Type};
+fix_type_tagged_beam_register(Other)                   -> Other.
+
+get_reg_from_type_tagged_beam_register({tr, Reg, _}) -> Reg;
+get_reg_from_type_tagged_beam_register(Reg)          -> Reg.
 
 -spec ensure_instruction_is_permitted(Instruction, State) ->
     State when
