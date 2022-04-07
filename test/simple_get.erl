@@ -65,7 +65,9 @@ get_many_nodes_test_() ->
          khepri:get(
            ?FUNCTION_NAME, [?THIS_NODE, #if_name_matches{regex = any}])),
       ?_assertEqual(
-         {error, matches_many_nodes},
+         {error,
+          {possibly_matching_many_nodes_denied,
+           #if_name_matches{regex = any}}},
          khepri:get(
            ?FUNCTION_NAME,
            [?THIS_NODE, #if_name_matches{regex = any}],

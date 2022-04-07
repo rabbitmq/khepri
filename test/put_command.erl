@@ -585,7 +585,10 @@ insert_with_a_path_matching_many_nodes_test() ->
 
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
-    ?assertEqual({error, matches_many_nodes}, Ret),
+    ?assertEqual(
+       {error,
+        {possibly_matching_many_nodes_denied, #if_name_matches{regex = any}}},
+       Ret),
     ?assertEqual([], SE).
 
 clear_payload_in_an_existing_node_test() ->

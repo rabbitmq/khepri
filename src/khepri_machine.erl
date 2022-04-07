@@ -2065,9 +2065,10 @@ walk_down_the_tree1(
             %% conditions on child nodes.
             {error, targets_dot_dot};
         false ->
-            %% TODO: Should we provide more details about the error, like the
-            %% list of matching nodes?
-            {error, matches_many_nodes}
+            %% The caller expects that the path matches a single specific node
+            %% (no matter if it exists or not), but the condition could match
+            %% several nodes.
+            {error, {possibly_matching_many_nodes_denied, Condition}}
     end;
 walk_down_the_tree1(
   #node{child_nodes = Children} = CurrentNode,
