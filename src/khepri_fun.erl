@@ -158,7 +158,8 @@
                         code            = [] :: [#function{}],
                         %% Added in this module to stored the decoded "Line"
                         %% chunk.
-                        lines                :: #lines{} | undefined}).
+                        lines                :: #lines{} | undefined,
+                        strings              :: binary() | undefined}).
 
 -type ensure_instruction_is_permitted_fun() ::
 fun((Instruction :: beam_instr()) -> ok).
@@ -248,6 +249,7 @@ fun((#{calls := #{Call :: mfa() => true},
                 functions = #{} :: #{mfa() => #function{}},
 
                 lines_in_progress :: #lines{} | undefined,
+                strings_in_progress :: binary() | undefined,
                 mfa_in_progress :: mfa() | undefined,
                 function_in_progress :: atom() | undefined,
                 next_label = 1 :: label(),
@@ -1345,19 +1347,23 @@ erl_eval_fun_to_asm(Module, Name, Arity, [{Bindings, _, _, Clauses}])
 disassemble_module(Module, #state{checksums = Checksums} = State) ->
     case Checksums of
         #{Module := Checksum} ->
-            {#beam_file_ext{lines = Lines} = BeamFileRecord,
+            {#beam_file_ext{lines = Lines,
+                            strings = Strings} = BeamFileRecord,
              Checksum} = disassemble_module1(Module, Checksum),
 
-            State1 = State#state{lines_in_progress = Lines},
+            State1 = State#state{lines_in_progress = Lines,
+                                 strings_in_progress = Strings},
             {BeamFileRecord, State1};
         _ ->
-            {#beam_file_ext{lines = Lines} = BeamFileRecord,
+            {#beam_file_ext{lines = Lines,
+                            strings = Strings} = BeamFileRecord,
              Checksum} = disassemble_module1(Module, undefined),
             ?assert(is_binary(Checksum)),
 
             Checksums1 = Checksums#{Module => Checksum},
             State1 = State#state{checksums = Checksums1,
-                                 lines_in_progress = Lines},
+                                 lines_in_progress = Lines,
+                                 strings_in_progress = Strings},
             {BeamFileRecord, State1}
     end.
 
@@ -1426,13 +1432,15 @@ do_disassemble(Beam) ->
        compile_info = CompileInfo,
        code = Code} = BeamFileRecord,
     Lines = get_and_decode_line_chunk(Module, Beam),
+    Strings = get_and_decode_string_chunk(Module, Beam),
     BeamFileRecordExt = #beam_file_ext{
                            module = Module,
                            labeled_exports = LabeledExports,
                            attributes = Attributes,
                            compile_info = CompileInfo,
                            code = Code,
-                           lines = Lines},
+                           lines = Lines,
+                           strings = Strings},
     BeamFileRecordExt.
 
 %% The "Line" beam chunk decoding is based on the equivalent C code in ERTS.
@@ -1537,6 +1545,17 @@ decode_line_chunk_names(
 decode_line_chunk_names(<<>>, I, #lines{name_count = NameCount} = Lines)
   when I =:= NameCount ->
     Lines.
+
+get_and_decode_string_chunk(Module, Beam) ->
+    case beam_lib:chunks(Beam, ["StrT"]) of
+        {ok, {Module, [{"StrT", Chunk}]}} ->
+            %% There is nothing to decode: the chunk is made of concatenated
+            %% binaries. The instruction knows the offset inside the chunk and
+            %% the length of the binary to extract.
+            Chunk;
+        _ ->
+            undefined
+    end.
 
 %% See: erts/emulator/beam/beam_file.c, beamreader_read_tagged().
 
