@@ -7,6 +7,8 @@
 
 -module(test_ra_server_helpers).
 
+-include_lib("stdlib/include/assert.hrl").
+
 -export([setup/1,
          cleanup/1]).
 
@@ -47,9 +49,16 @@ cleanup(#{ra_system := RaSystem,
           store_id := StoreId}) ->
     ServerIds = khepri:members(StoreId),
     _ = application:stop(khepri),
-    _ = ra:delete_cluster(ServerIds),
-    _ = supervisor:terminate_child(ra_systems_sup, RaSystem),
-    _ = supervisor:delete_child(ra_systems_sup, RaSystem),
+    %% FIXME: This monitoring can go away when/if the following pull request
+    %% in Ra is merged:
+    %% https://github.com/rabbitmq/ra/pull/270
+    MRefs = [erlang:monitor(process, ServerId) || ServerId <- ServerIds],
+    ?assertMatch({ok, _}, ra:delete_cluster(ServerIds)),
+    lists:foreach(
+      fun(MRef) -> receive {'DOWN', MRef, _, _, _} -> ok end end,
+      MRefs),
+    ?assertEqual(ok, supervisor:terminate_child(ra_systems_sup, RaSystem)),
+    ?assertEqual(ok, supervisor:delete_child(ra_systems_sup, RaSystem)),
     _ = remove_store_dir(StoreDir),
     ok.
 
