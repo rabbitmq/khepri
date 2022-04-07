@@ -44,7 +44,7 @@ jobs:
       - name: Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERALLS_FLAG_NAME: ${{ matrix.otp_version }}
+          COVERALLS_FLAG_NAME: Erlang/OTP ${{ matrix.otp_version }} on ${{ matrix.os }}
         run: rebar3 as test coveralls send
 
       - name: Dialyzer
