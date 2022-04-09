@@ -219,7 +219,8 @@ fun((#{calls := #{Call :: mfa() => true},
                      should_process_function =>
                      should_process_function_fun(),
                      is_standalone_fun_still_needed =>
-                     is_standalone_fun_still_needed_fun()}.
+                     is_standalone_fun_still_needed_fun(),
+                     function_cache => module()}.
 %% Options to tune the extraction of an anonymous function.
 %%
 %% <ul>
@@ -452,10 +453,11 @@ standalone_fun_cache_key(Module, Name, Arity, Checksum, Options) ->
 %% @private
 
 get_cached_standalone_fun(
-  #state{fun_info = #{module := Module}} = State)
+  #state{fun_info = #{module := Module}, options = Options} = State)
   when Module =/= erl_eval ->
     Key = standalone_fun_cache_key(State),
-    case persistent_term:get(Key, undefined) of
+    FunctionCache = maps:get(function_cache, Options, khepri_fun_cache),
+    case FunctionCache:get(Key, undefined) of
         #{standalone_fun := StandaloneFunWithoutEnv,
           checksums := Checksums,
           counters := Counters} ->
@@ -531,6 +533,8 @@ cache_standalone_fun(
     %% currently.
     Counters = counters:new(1, [write_concurrency]),
 
+    FunctionCache = maps:get(function_cache, Options, khepri_fun_cache),
+
     case StandaloneFun of
         #standalone_fun{} ->
             %% The standalone function is stored in the cache without its
@@ -550,11 +554,11 @@ cache_standalone_fun(
 
             %% TODO: We need to add some memory management here to clear the
             %% cache if there are many different standalone functions.
-            persistent_term:put(Key, Value);
+            FunctionCache:put(Key, Value);
         fun_kept ->
             Value = #{fun_kept => true,
                       counters => Counters},
-            persistent_term:put(Key, Value)
+            FunctionCache:put(Key, Value)
     end,
     ok.
 
