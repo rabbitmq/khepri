@@ -5,6 +5,9 @@
 %% Copyright (c) 2021-2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
+-define(DEFAULT_RA_CLUSTER_NAME, ?MODULE).
+-define(DEFAULT_RA_FRIENDLY_NAME, "Khepri datastore").
+
 -define(INIT_DATA_VERSION, 1).
 -define(INIT_CHILD_LIST_VERSION, 1).
 -define(INIT_NODE_STAT, #{payload_version => ?INIT_DATA_VERSION,
