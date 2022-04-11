@@ -19,8 +19,8 @@
 %% Exported for testing
 -export([clear/0]).
 
--define(CACHE, '$__ETS_LRU_CACHE__').
--define(RANKS, '$__ETS_LRU_RANKS__').
+-define(CACHE, '$__KHEPRI_FUN_CACHE__').
+-define(RANKS, '$__KHEPRI_FUN_RANKS__').
 
 -ifdef(TEST).
 -define(CAPACITY, 3).
