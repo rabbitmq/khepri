@@ -33,20 +33,20 @@ standalone_fun_is_cached_test() ->
             Module, Name, Arity, Checksum, Options),
 
     StandaloneFun1 = khepri_fun:to_standalone_fun(Fun, Options),
-    CacheEntry1 = persistent_term:get(Key, undefined),
+    CacheEntry1 = khepri_fun_cache:get(Key, undefined),
     ?assertMatch(#standalone_fun{}, StandaloneFun1),
     ?assertMatch(#{standalone_fun := StandaloneFun1}, CacheEntry1),
     #{counters := Counters} = CacheEntry1,
     ?assertEqual(0, counters:get(Counters, 1)),
 
     StandaloneFun2 = khepri_fun:to_standalone_fun(Fun, Options),
-    CacheEntry2 = persistent_term:get(Key, undefined),
+    CacheEntry2 = khepri_fun_cache:get(Key, undefined),
     ?assertEqual(StandaloneFun1, StandaloneFun2),
     ?assertEqual(CacheEntry1, CacheEntry2),
     ?assertEqual(1, counters:get(Counters, 1)),
 
     StandaloneFun3 = khepri_fun:to_standalone_fun(Fun, Options),
-    CacheEntry3 = persistent_term:get(Key, undefined),
+    CacheEntry3 = khepri_fun_cache:get(Key, undefined),
     ?assertEqual(StandaloneFun1, StandaloneFun3),
     ?assertEqual(CacheEntry1, CacheEntry3),
     ?assertEqual(2, counters:get(Counters, 1)).
@@ -65,20 +65,20 @@ kept_fun_is_cached_test() ->
             Module, Name, Arity, Checksum, Options),
 
     StandaloneFun1 = khepri_fun:to_standalone_fun(Fun, Options),
-    CacheEntry1 = persistent_term:get(Key, undefined),
+    CacheEntry1 = khepri_fun_cache:get(Key, undefined),
     ?assertEqual(Fun, StandaloneFun1),
     ?assertMatch(#{fun_kept := true}, CacheEntry1),
     #{counters := Counters} = CacheEntry1,
     ?assertEqual(0, counters:get(Counters, 1)),
 
     StandaloneFun2 = khepri_fun:to_standalone_fun(Fun, Options),
-    CacheEntry2 = persistent_term:get(Key, undefined),
+    CacheEntry2 = khepri_fun_cache:get(Key, undefined),
     ?assertEqual(StandaloneFun1, StandaloneFun2),
     ?assertEqual(CacheEntry1, CacheEntry2),
     ?assertEqual(1, counters:get(Counters, 1)),
 
     StandaloneFun3 = khepri_fun:to_standalone_fun(Fun, Options),
-    CacheEntry3 = persistent_term:get(Key, undefined),
+    CacheEntry3 = khepri_fun_cache:get(Key, undefined),
     ?assertEqual(StandaloneFun1, StandaloneFun3),
     ?assertEqual(CacheEntry1, CacheEntry3),
     ?assertEqual(2, counters:get(Counters, 1)).
@@ -153,7 +153,7 @@ modified_module_causes_cache_miss_test() ->
              Module, Name1, Arity1, Checksum1, Options),
 
     StandaloneFun1 = khepri_fun:to_standalone_fun(Fun1, Options),
-    CacheEntry1 = persistent_term:get(Key1, undefined),
+    CacheEntry1 = khepri_fun_cache:get(Key1, undefined),
     ?assertMatch(#standalone_fun{}, StandaloneFun1),
     ?assertEqual(1, khepri_fun:exec(StandaloneFun1, [])),
     #{counters := Counters1} = CacheEntry1,
@@ -179,7 +179,7 @@ modified_module_causes_cache_miss_test() ->
     ?assertNotEqual(Checksum1, Checksum2),
 
     StandaloneFun2 = khepri_fun:to_standalone_fun(Fun2, Options),
-    CacheEntry2 = persistent_term:get(Key2, undefined),
+    CacheEntry2 = khepri_fun_cache:get(Key2, undefined),
     ?assertMatch(#standalone_fun{}, StandaloneFun2),
     ?assertEqual(2, khepri_fun:exec(StandaloneFun2, [])),
     #{counters := Counters2} = CacheEntry2,
@@ -187,3 +187,51 @@ modified_module_causes_cache_miss_test() ->
 
     true = code:delete(Module),
     _ = code:purge(Module).
+
+lru_cache_evicts_least_recently_used_item_test() ->
+    %% In test mode, the cache capacity is 3.
+    khepri_fun_cache:clear(),
+    khepri_fun_cache:put(1, one),
+    khepri_fun_cache:put(2, two),
+    khepri_fun_cache:put(3, three),
+    ?assertEqual(one, khepri_fun_cache:get(1, undefined)),
+    ?assertEqual(two, khepri_fun_cache:get(2, undefined)),
+    ?assertEqual(three, khepri_fun_cache:get(3, undefined)),
+    %% 1 is evicted.
+    khepri_fun_cache:put(4, four),
+    ?assertEqual(four, khepri_fun_cache:get(4, undefined)),
+    ?assertEqual(undefined, khepri_fun_cache:get(1, undefined)),
+    ?assertEqual(two, khepri_fun_cache:get(2, undefined)),
+    %% Then 3 is evicted because 2 was just accessed.
+    khepri_fun_cache:put(5, five),
+    ?assertEqual(undefined, khepri_fun_cache:get(3, undefined)),
+    ?assertEqual(two, khepri_fun_cache:get(2, undefined)).
+
+lru_cache_updating_element_resets_rank_test() ->
+    %% Updating an existing element with a new Value resets its rank.
+    khepri_fun_cache:clear(),
+    khepri_fun_cache:put(1, one),
+    khepri_fun_cache:put(2, two),
+    khepri_fun_cache:put(3, three),
+    %% 1's rank is reset.
+    khepri_fun_cache:put(1, one_and_a_half),
+    %% 2 is evicted.
+    khepri_fun_cache:put(4, four),
+    ?assertEqual(one_and_a_half, khepri_fun_cache:get(1, undefined)),
+    ?assertEqual(undefined, khepri_fun_cache:get(2, undefined)),
+    ?assertEqual(three, khepri_fun_cache:get(3, undefined)),
+    ?assertEqual(four, khepri_fun_cache:get(4, undefined)).
+
+lru_cache_updating_element_with_same_value_does_not_reset_rank_test() ->
+    %% `put/2'-ing an element with the same Value does not reset the rank
+    khepri_fun_cache:clear(),
+    khepri_fun_cache:put(1, one),
+    khepri_fun_cache:put(2, two),
+    khepri_fun_cache:put(3, three),
+    khepri_fun_cache:put(1, one),
+    %% 1 is evicted.
+    khepri_fun_cache:put(4, four),
+    ?assertEqual(undefined, khepri_fun_cache:get(1, undefined)),
+    ?assertEqual(two, khepri_fun_cache:get(2, undefined)),
+    ?assertEqual(three, khepri_fun_cache:get(3, undefined)),
+    ?assertEqual(four, khepri_fun_cache:get(4, undefined)).

@@ -220,7 +220,7 @@ fun((#{calls := #{Call :: mfa() => true},
                      should_process_function_fun(),
                      is_standalone_fun_still_needed =>
                      is_standalone_fun_still_needed_fun(),
-                     function_cache => module()}.
+                     standalone_fun_cache => module()}.
 %% Options to tune the extraction of an anonymous function.
 %%
 %% <ul>
@@ -456,7 +456,7 @@ get_cached_standalone_fun(
   #state{fun_info = #{module := Module}, options = Options} = State)
   when Module =/= erl_eval ->
     Key = standalone_fun_cache_key(State),
-    FunctionCache = maps:get(function_cache, Options, khepri_fun_cache),
+    FunctionCache = maps:get(standalone_fun_cache, Options, khepri_fun_cache),
     case FunctionCache:get(Key, undefined) of
         #{standalone_fun := StandaloneFunWithoutEnv,
           checksums := Checksums,
@@ -533,7 +533,7 @@ cache_standalone_fun(
     %% currently.
     Counters = counters:new(1, [write_concurrency]),
 
-    FunctionCache = maps:get(function_cache, Options, khepri_fun_cache),
+    FunctionCache = maps:get(standalone_fun_cache, Options, khepri_fun_cache),
 
     case StandaloneFun of
         #standalone_fun{} ->
