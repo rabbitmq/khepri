@@ -123,7 +123,7 @@ paths.</p>
   contains a single entry if the modified node existed before the update, or
   no entry if it didn't.</li>
   </ul></li>
-  <li><code>{error, Reason}</code> if an error occured. In the case, no modifications to
+  <li><code>{error, Reason}</code> if an error occurred. In the case, no modifications to
   the tree was performed.</li>
   </ul>
  
@@ -606,7 +606,7 @@ is a map containing the event properties. Here is an example:</p>
  
   <p>The stored procedure is executed on the leader's Erlang node.</p>
  
-  It is guarantied to run at least once. It could be executed multiple times
+  It is guaranteed to run at least once. It could be executed multiple times
   if the Ra leader changes, therefore the stored procedure must be
   idempotent.
  </p>

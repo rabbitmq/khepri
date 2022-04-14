@@ -167,7 +167,7 @@ Payloads are represented using macros or helper functions:
 
 <p>Functions in <a docgen-rel="seeerl" docgen-href="khepri_machine" href="khepri_machine.html"><code>khepri_machine</code></a> have no assumption on the type of the
 payload because they are a low-level API. Therefore, it must be specified
-explicitly using the macros or helper functions mentionned above.</p>
+explicitly using the macros or helper functions mentioned above.</p>
 
 <p>Most functions in <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a>, being a higher-level API, target more
 specific use cases and detect the type of payload.</p>
@@ -198,7 +198,7 @@ pattern</em> (<a docgen-rel="seetype" docgen-href="khepri_path#pattern/0" href="
 patterns have conditions (<a docgen-rel="seetype" docgen-href="khepri_condition#condition/0" href="khepri_condition.html#type-condition"><code>khepri_condition:condition()</code></a>). Conditions allow things like:
 <ul>
 <li>checking the existence of a tree node</li>
-<li>targetting all child nodes of a tree node</li>
+<li>targeting all child nodes of a tree node</li>
 <li>matching on node IDs using a regex</li>
 <li>matching on the data payload</li>
 </ul>
@@ -383,7 +383,7 @@ extracted.</li>
 <li>The anonymous function code is located inside that assembly code.</li>
 <li>The code is analyzed to determine:
 <ul>
-<li>that it does not perform any forbidden operations (sending or receving
+<li>that it does not perform any forbidden operations (sending or receiving
 inter-process messages, use date and time, access files or network connections,
 etc.)</li>
 <li>what other functions it calls</li>
@@ -555,7 +555,7 @@ Therefore it is important it is idempotent.</p>
 <p>As described earlier, the rationale for triggers in Khepri is that sometimes,
 one needs to execute some code with side effects (e.g. sending a message to a
 process) after a record was modified in the database. This can't happen in a
-transaction because side effects are forbiden. The caller could handle that
+transaction because side effects are forbidden. The caller could handle that
 after he modifies the record, but the record could be indirectly modified
 (deleted) as a consequence of another record being modified or deleted. In
 this case, the caller can't do anything.</p>
