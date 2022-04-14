@@ -51,7 +51,7 @@
 %% contains a single entry if the modified node existed before the update, or
 %% no entry if it didn't.</li>
 %% </ul></li>
-%% <li>`{error, Reason}' if an error occured. In the case, no modifications to
+%% <li>`{error, Reason}' if an error occurred. In the case, no modifications to
 %% the tree was performed.</li>
 %% </ul>
 %%
@@ -784,7 +784,7 @@ run_sproc(StoreId, PathPattern, Args) when is_list(Args) ->
 %%
 %% The stored procedure is executed on the leader's Erlang node.
 %%
-%% It is guarantied to run at least once. It could be executed multiple times
+%% It is guaranteed to run at least once. It could be executed multiple times
 %% if the Ra leader changes, therefore the stored procedure must be
 %% idempotent.
 %%
@@ -1871,7 +1871,7 @@ find_stored_proc(Root, StoredProcPath) ->
     end.
 
 sort_triggered_sprocs(TriggeredStoredProcs) ->
-    %% We first sort by priority, then by trigged ID if priorities are equal.
+    %% We first sort by priority, then by triggered ID if priorities are equal.
     %% The priority can be any integer (even negative integers). The default
     %% priority is 0.
     %%

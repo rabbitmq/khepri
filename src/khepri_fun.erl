@@ -411,7 +411,7 @@ to_standalone_fun3(
 %% To identify a standalone function in the cache, we base the key on:
 %% <ul>
 %% <li>the anonymous function's module, function name and arity</li>
-%% <li>the ckecksum of the module holding that function</li>
+%% <li>the checksum of the module holding that function</li>
 %% </ul>
 %%
 %% @private
