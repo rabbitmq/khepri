@@ -358,7 +358,7 @@ insert_a_node_with_condition_false_on_parent_test() ->
                      condition => Compiled}}}, Ret),
     ?assertEqual([], SE).
 
-%% The #if_node_exists{} is tested explicitely in addition to the testcases
+%% The #if_node_exists{} is tested explicitly in addition to the testcases
 %% above because there is specific code to manage it when the node is not
 %% found (the generic condition evaluation code takes a node to work).
 

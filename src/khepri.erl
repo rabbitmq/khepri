@@ -301,7 +301,7 @@ start_ra_server_and_add_member(
                        ClusterName, FriendlyName, NewMember, ExistingMembers),
     ?LOG_DEBUG(
        "Adding member ~p to cluster \"~s\" with the following "
-       "configuraton:~n~p",
+       "configuration:~n~p",
        [NewMember, ClusterName, RaServerConfig],
        #{domain => [khepri, clustering]}),
     case ra:start_server(RaSystem, RaServerConfig) of
@@ -506,7 +506,7 @@ create(Path, Data) ->
 %% condition on its last component.
 %%
 %% Once the path is possibly converted to a list of node names and conditions
-%% and udpated, it calls {@link khepri_machine:put/3}.
+%% and updated, it calls {@link khepri_machine:put/3}.
 %%
 %% @returns a single "ok" atom or an "error" tuple, unlike
 %% {@link khepri_machine:put/3}.
@@ -581,7 +581,7 @@ update(Path, Data) ->
 %% condition on its last component.
 %%
 %% Once the path is possibly converted to a list of node names and conditions
-%% and udpated, it calls {@link khepri_machine:put/3}.
+%% and updated, it calls {@link khepri_machine:put/3}.
 %%
 %% @returns a single "ok" atom or an "error" tuple, unlike
 %% {@link khepri_machine:put/3}.
@@ -625,7 +625,7 @@ compare_and_swap(Path, DataPattern, Data) ->
 %% `#if_data_matches{pattern = DataPattern}' condition on its last component.
 %%
 %% Once the path is possibly converted to a list of node names and conditions
-%% and udpated, it calls {@link khepri_machine:put/3}.
+%% and updated, it calls {@link khepri_machine:put/3}.
 %%
 %% @returns a single "ok" atom or an "error" tuple, unlike
 %% {@link khepri_machine:put/3}.
@@ -684,7 +684,7 @@ clear_payload(Path) ->
 %% string. See {@link khepri_path:from_string/1}.
 %%
 %% Once the path is possibly converted to a list of node names and conditions
-%% and udpated, it calls {@link khepri_machine:put/3}.
+%% and updated, it calls {@link khepri_machine:put/3}.
 %%
 %% @returns a single "ok" atom or an "error" tuple, unlike
 %% {@link khepri_machine:put/3}.

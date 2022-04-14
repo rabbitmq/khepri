@@ -165,7 +165,7 @@
 %% '''
 
 -type if_not() :: #if_not{}.
-%% Condition. Evaluates to true if the inner condition evalutes to false.
+%% Condition. Evaluates to true if the inner condition evaluates to false.
 %%
 %% Record fields:
 %% <ul>
@@ -178,7 +178,7 @@
 %% '''
 
 -type if_all() :: #if_all{}.
-%% Condition. Evaluates to true if all inner conditions evalute to true.
+%% Condition. Evaluates to true if all inner conditions evaluate to true.
 %%
 %% Record fields:
 %% <ul>
@@ -192,7 +192,7 @@
 %% '''
 
 -type if_any() :: #if_any{}.
-%% Condition. Evaluates to true if any of the inner conditions evalute to
+%% Condition. Evaluates to true if any of the inner conditions evaluate to
 %% true.
 %%
 %% Record fields:
@@ -227,7 +227,7 @@
 
 -type keep_while() :: #{khepri_path:path() => condition()}.
 %% An association between a path and a condition. As long as the condition
-%% evalutes to true, the tree node is kept. Once the condition evalutes to
+%% evaluates to true, the tree node is kept. Once the condition evaluates to
 %% false, the tree node is deleted.
 
 -export([compile/1,
@@ -319,7 +319,7 @@ optimize_if_any_conditions(Conds) ->
     Conds.
 
 -spec applies_to_grandchildren(condition()) -> boolean().
-%% @doc Returns true if a condition should be evaluted against child nodes in
+%% @doc Returns true if a condition should be evaluated against child nodes in
 %% addition to the current node.
 %%
 %% An example is the {@link if_path_matches()} condition.
