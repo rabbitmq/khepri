@@ -21,6 +21,6 @@
          triggers = #{} ::
            #{khepri:trigger_id() =>
              #{sproc := khepri_path:path(),
-               event_filter := khepri:event_filter()}},
+               event_filter := khepri_evf:event_filter()}},
          emitted_triggers = [] :: [khepri_machine:triggered()],
          metrics = #{} :: #{applied_command_count => non_neg_integer()}}).

@@ -353,7 +353,8 @@ run_sproc(StoreId, PathPattern, Args, Options) when is_list(Args) ->
     Ret when
       StoreId :: khepri:store_id(),
       TriggerId :: khepri:trigger_id(),
-      EventFilter :: khepri:event_filter(),
+      EventFilter :: khepri_evf:event_filter() |
+                     khepri_path:pattern() | string(),
       StoredProcPath :: khepri_path:path() | string(),
       Options :: khepri:command_options(),
       Ret :: ok | khepri:error().
@@ -369,13 +370,13 @@ run_sproc(StoreId, PathPattern, Args, Options) when is_list(Args) ->
 %% @returns `ok' if the trigger was registered, an `{error, Reason}' tuple
 %% otherwise.
 
-register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options)
-  when ?IS_KHEPRI_EVENT_FILTER(EventFilter) ->
+register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
+    EventFilter1 = khepri_evf:wrap(EventFilter),
     StoredProcPath1 = khepri_path:from_string(StoredProcPath),
     khepri_path:ensure_is_valid(StoredProcPath1),
     Command = #register_trigger{id = TriggerId,
                                 sproc = StoredProcPath1,
-                                event_filter = EventFilter},
+                                event_filter = EventFilter1},
     process_command(StoreId, Command, Options).
 
 -spec ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
@@ -803,9 +804,9 @@ apply(
   #?MODULE{triggers = Triggers} = State) ->
     StoredProcPath1 = khepri_path:realpath(StoredProcPath),
     EventFilter1 = case EventFilter of
-                       #kevf_tree{path = Path} ->
+                       #evf_tree{path = Path} ->
                            Path1 = khepri_path:realpath(Path),
-                           EventFilter#kevf_tree{path = Path1}
+                           EventFilter#evf_tree{path = Path1}
                    end,
     Triggers1 = Triggers#{TriggerId => #{sproc => StoredProcPath1,
                                          event_filter => EventFilter1}},
@@ -1367,7 +1368,7 @@ list_triggered_sprocs(Root, Changes, Triggers) ->
                     (TriggerId,
                      #{sproc := StoredProcPath,
                        event_filter :=
-                       #kevf_tree{path = PathPattern,
+                       #evf_tree{path = PathPattern,
                                   props = EventFilterProps} = EventFilter},
                      SPP1) ->
                         %% For each trigger based on a tree event:
@@ -1482,20 +1483,14 @@ sort_triggered_sprocs(TriggeredStoredProcs) ->
     lists:sort(
       fun(#triggered{id = IdA, event_filter = EventFilterA},
           #triggered{id = IdB, event_filter = EventFilterB}) ->
-              PrioA = get_event_filter_priority(EventFilterA),
-              PrioB = get_event_filter_priority(EventFilterB),
+              PrioA = khepri_evf:get_priority(EventFilterA),
+              PrioB = khepri_evf:get_priority(EventFilterB),
               if
                   PrioA =:= PrioB -> IdA =< IdB;
                   true            -> PrioA > PrioB
               end
       end,
       TriggeredStoredProcs).
-
-get_event_filter_priority(#kevf_tree{props = #{priority := Priority}})
-  when is_integer(Priority) ->
-    Priority;
-get_event_filter_priority(_EventFilter) ->
-    0.
 
 %% -------
 

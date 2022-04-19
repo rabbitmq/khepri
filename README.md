@@ -178,7 +178,8 @@ the database itself and automatically execute it after some event occurs.
 2.  Register a trigger using an event filter:
 
     ```erlang
-    EventFilter = #kevf_tree{path = [stock, wood, <<"oak">>]},
+    %% A path is automatically considered a tree event filter.
+    EventFilter = [stock, wood, <<"oak">>],
 
     ok = khepri:register_trigger(
            StoreId,

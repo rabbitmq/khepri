@@ -90,7 +90,8 @@ sproc(#standalone_fun{} = Fun) ->
 -spec wrap(Payload) -> WrappedPayload when
       Payload :: payload() | khepri:data() | fun(),
       WrappedPayload :: payload().
-%% @doc Ensures the payload is wrapped in one of the internal types.
+%% @doc Automatically detects the payload type and ensures it is wrapped in
+%% one of the internal types.
 %%
 %% The internal types make sure we avoid any collision between any
 %% user-provided terms and internal structures.

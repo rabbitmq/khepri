@@ -215,10 +215,6 @@
 -type trigger_id() :: atom().
 %% An ID to identify a registered trigger.
 
--type event_filter_tree() :: #kevf_tree{}.
-
--type event_filter() :: event_filter_tree().
-
 -type async_option() :: boolean() |
                         ra_server:command_correlation() |
                         ra_server:command_priority() |
@@ -305,8 +301,6 @@
               result/0,
               keep_while_conds_map/0,
               trigger_id/0,
-              event_filter_tree/0,
-              event_filter/0,
 
               async_option/0,
               favor_option/0,
@@ -1501,7 +1495,8 @@ run_sproc(StoreId, PathPattern, Args, Options) ->
 
 -spec register_trigger(TriggerId, EventFilter, StoredProcPath) -> Ret when
       TriggerId :: trigger_id(),
-      EventFilter :: event_filter(),
+      EventFilter :: khepri_evf:event_filter() |
+                     khepri_path:pattern() | string(),
       StoredProcPath :: khepri_path:path() | string(),
       Ret :: ok | error().
 %% @doc Registers a trigger.
@@ -1519,12 +1514,14 @@ register_trigger(TriggerId, EventFilter, StoredProcPath) ->
 (StoreId, TriggerId, EventFilter, StoredProcPath) -> Ret when
       StoreId :: khepri:store_id(),
       TriggerId :: trigger_id(),
-      EventFilter :: event_filter(),
+      EventFilter :: khepri_evf:event_filter() |
+                     khepri_path:pattern() | string(),
       StoredProcPath :: khepri_path:path() | string(),
       Ret :: ok | error();
 (TriggerId, EventFilter, StoredProcPath, Options) -> Ret when
       TriggerId :: trigger_id(),
-      EventFilter :: event_filter(),
+      EventFilter :: khepri_evf:event_filter() |
+                     khepri_path:pattern() | string(),
       StoredProcPath :: khepri_path:path() | string(),
       Options :: command_options(),
       Ret :: ok | error().
@@ -1556,7 +1553,8 @@ register_trigger(TriggerId, EventFilter, StoredProcPath, Options)
     Ret when
       StoreId :: khepri:store_id(),
       TriggerId :: trigger_id(),
-      EventFilter :: event_filter(),
+      EventFilter :: khepri_evf:event_filter() |
+                     khepri_path:pattern() | string(),
       StoredProcPath :: khepri_path:path() | string(),
       Options :: command_options(),
       Ret :: ok | error().
@@ -1564,12 +1562,25 @@ register_trigger(TriggerId, EventFilter, StoredProcPath, Options)
 %%
 %% A trigger is based on an event filter. It associates an event with a stored
 %% procedure. When an event matching the event filter is emitted, the stored
-%% procedure is executed. Here is an example of an event filter:
+%% procedure is executed.
+%%
+%% The following event filters are documented by {@link
+%% khepri_evf:event_filter()}.
+%%
+%% Here are examples of event filters:
 %%
 %% ```
-%% EventFilter = #kevf_tree{path = [stock, wood, <<"oak">>],  %% Required
-%%                          props = #{on_actions => [delete], %% Optional
-%%                                    priority => 10}},       %% Optional
+%% %% An event filter can be explicitly created using the `khepri_evf'
+%% %% module. This is possible to specify properties at the same time.
+%% EventFilter = khepri_evf:tree([stock, wood, <<"oak">>], %% Required
+%%                               #{on_actions => [delete], %% Optional
+%%                                 priority => 10}).       %% Optional
+%% '''
+%% ```
+%% %% For ease of use, some terms can be automatically converted to an event
+%% %% filter. In this example, a Unix-like path can be used as a tree event
+%% %% filter.
+%% EventFilter = "/:stock/:wood/oak".
 %% '''
 %%
 %% The stored procedure is expected to accept a single argument. This argument

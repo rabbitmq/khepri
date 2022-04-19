@@ -83,17 +83,3 @@
 
 -record(if_any,
         {conditions = [] :: [khepri_path:pattern_component()]}).
-
-%% -------------------------------------------------------------------
-%% Event filtering.
-%% -------------------------------------------------------------------
-
--record(kevf_tree, {path :: khepri_path:pattern(),
-                    props = #{} :: #{on_actions => [create | update | delete],
-                                     priority => integer()}}).
-%-record(kevf_process, {pid :: pid(),
-%                       props = #{} :: #{on_reason => ets:match_pattern(),
-%                                        priority => integer()}}).
-
--define(IS_KHEPRI_EVENT_FILTER(EventFilter),
-        (is_record(EventFilter, kevf_tree))).

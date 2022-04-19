@@ -406,14 +406,21 @@ arity.
 
 Khepri uses <em>event filters</em> to associate a type of events with a stored
 procedure. Khepri supports tree changes events and thus only supports a single
-event filter called {@link khepri:event_filter_tree()}.
+event filter called {@link khepri_evf:tree_event_filter()}.
 
 An event filter is registered using {@link khepri:register_trigger/4}:
 
 ```
-EventFilter = #kevf_tree{path = [stock, wood, <<"oak">>],  %% Required
-                         props = #{on_actions => [delete], %% Optional
-                                   priority => 10}},       %% Optional
+%% An event filter can be explicitly created using the `khepri_evf'
+%% module. This is possible to specify properties at the same time.
+EventFilter = khepri_evf:tree([stock, wood, <<"oak">>], %% Required
+                              #{on_actions => [delete], %% Optional
+                                priority => 10}),       %% Optional
+
+%% For ease of use, some terms can be automatically converted to an event %
+%filter. Here, a Unix-like path could be used as a tree event % filter, though
+%it would have default properties unlike the previous line:
+EventFilter = "/:stock/:wood/oak".
 
 ok = khepri:register_trigger(
        StoreId,
@@ -422,7 +429,7 @@ ok = khepri:register_trigger(
        StoredProcPath))}.
 '''
 
-In this example, the {@link khepri:event_filter_tree()} record only
+In this example, the {@link khepri_evf:tree_event_filter()} structure only
 requires the path to monitor. The path can be any path pattern and thus can
 have conditions to monitor several nodes at once.
 

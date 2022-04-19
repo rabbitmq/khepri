@@ -24,6 +24,15 @@
                                      is_record(Payload, p_data) orelse
                                      is_record(Payload, p_sproc))).
 
+-record(evf_tree, {path :: khepri_path:pattern(),
+                   props = #{} :: khepri_evf:tree_event_filter_props()}).
+%-record(evf_process, {pid :: pid(),
+%                      props = #{} :: #{on_reason => ets:match_pattern(),
+%                                       priority => integer()}}).
+
+-define(IS_KHEPRI_EVENT_FILTER(EventFilter),
+        (is_record(EventFilter, evf_tree))).
+
 %% Structure representing each node in the tree, including the root node.
 %% TODO: Rename stat to something more correct?
 -record(node, {stat = ?INIT_NODE_STAT :: khepri_machine:stat(),
@@ -42,7 +51,7 @@
 -record(tx, {'fun' :: khepri_fun:standalone_fun()}).
 
 -record(register_trigger, {id :: khepri:trigger_id(),
-                           event_filter :: khepri:event_filter(),
+                           event_filter :: khepri_evf:event_filter(),
                            sproc :: khepri_path:path()}).
 
 -record(ack_triggered, {triggered :: [khepri_machine:triggered()]}).
@@ -50,6 +59,6 @@
 -record(triggered, {id :: khepri:trigger_id(),
                     %% TODO: Do we need a ref to distinguish multiple
                     %% instances of the same trigger?
-                    event_filter :: khepri:event_filter(),
+                    event_filter :: khepri_evf:event_filter(),
                     sproc :: khepri_fun:standalone_fun(),
                     props = #{} :: map()}).
