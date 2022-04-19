@@ -89,19 +89,14 @@ A tree node may or may not have a payload. Khepri supports two types of
 payload, the <em>data payload</em> and the <em>stored procedure payload</em>.
 More payload types may be added in the future.
 
-Payloads are represented using macros or helper functions:
+When passed to {@link khepri:put/2}, the type of the payload is autodetected.
+However if you need to prepare the payload before passing it to Khepri, you can
+use the following functions:
 <ul>
-<li>`?NO_PAYLOAD' and {@link khepri:no_payload/0}</li>
-<li>`#kpayload_data{data = Term}' and {@link khepri:data_payload/1}</li>
-<li>`#kpayload_sproc{sproc = Fun}' and {@link khepri:sproc_payload/1}</li>
+<li>{@link khepri_payload:none/0}</li>
+<li>{@link khepri_payload:data/1}</li>
+<li>{@link khepri_payload:sproc/1}</li>
 </ul>
-
-Functions in {@link khepri_machine} have no assumption on the type of the
-payload because they are a low-level API. Therefore, it must be specified
-explicitly using the macros or helper functions mentioned above.
-
-Most functions in {@link khepri}, being a higher-level API, target more
-specific use cases and detect the type of payload.
 
 === Properties ===
 
@@ -343,8 +338,7 @@ PathPattern = [stock,
                  conditions = [
                    <<"lime tree">>,
                    #if_payload_version{version = PayloadVersion}]}],
-Payload = #kpayload_data{data = Term1},
-case khepri_machine:put(StoredId, PathPattern, Payload) of
+case khepri:put(StoredId, PathPattern, Term1) of
     {ok, _} ->
         ok; %% `Term1` was stored successfully.
     {error, {mismatching_node, _}} ->
@@ -375,14 +369,13 @@ The indicated stored procedure must have been stored in the tree first.
 
 === Storing an anonymous function ===
 
-This is possible to store an anonymous function as the payload of a tree node
-using the {@link khepri_machine:payload_sproc()} record:
+This is possible to store an anonymous function as the payload of a tree node:
 
 ```
-khepri_machine:put(
+khepri:put(
   StoreId,
   StoredProcPath,
-  #kpayload_sproc{sproc = fun() -> do_something() end}))}.
+  fun() -> do_something() end).
 '''
 
 The `StoredProcPath' can be <a href="#Addressing_a_tree_node">any path in the

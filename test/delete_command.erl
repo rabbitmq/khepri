@@ -39,7 +39,7 @@ delete_non_existing_node_under_non_existing_parent_test() ->
 
 delete_existing_node_with_data_test() ->
     Commands = [#put{path = [foo],
-                     payload = #kpayload_data{data = foo_value}}],
+                     payload = khepri_payload:data(foo_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Command = #delete{path = [foo]},
@@ -61,7 +61,7 @@ delete_existing_node_with_data_test() ->
 
 delete_existing_node_with_data_using_dot_test() ->
     Commands = [#put{path = [foo],
-                     payload = #kpayload_data{data = foo_value}}],
+                     payload = khepri_payload:data(foo_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Command = #delete{path = [foo, ?THIS_NODE]},
@@ -83,7 +83,7 @@ delete_existing_node_with_data_using_dot_test() ->
 
 delete_existing_node_with_child_nodes_test() ->
     Commands = [#put{path = [foo, bar],
-                     payload = #kpayload_data{data = bar_value}}],
+                     payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Command = #delete{path = [foo]},
@@ -104,7 +104,7 @@ delete_existing_node_with_child_nodes_test() ->
 
 delete_a_node_deep_into_the_tree_test() ->
     Commands = [#put{path = [foo, bar, baz, qux],
-                     payload = #kpayload_data{data = value}}],
+                     payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Command = #delete{path = [foo, bar, baz]},
@@ -134,9 +134,9 @@ delete_a_node_deep_into_the_tree_test() ->
 
 delete_existing_node_with_condition_true_test() ->
     Commands = [#put{path = [foo],
-                     payload = #kpayload_data{data = foo_value}},
+                     payload = khepri_payload:data(foo_value)},
                 #put{path = [bar],
-                     payload = #kpayload_data{data = bar_value}}],
+                     payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Command = #delete{path = [#if_data_matches{pattern = bar_value}]},
@@ -151,7 +151,7 @@ delete_existing_node_with_condition_true_test() ->
           child_nodes =
           #{foo =>
             #node{stat = ?INIT_NODE_STAT,
-                  payload = #kpayload_data{data = foo_value}}}},
+                  payload = khepri_payload:data(foo_value)}}},
        Root),
     ?assertEqual({ok, #{[bar] => #{data => bar_value,
                                    payload_version => 1,
@@ -161,9 +161,9 @@ delete_existing_node_with_condition_true_test() ->
 
 delete_existing_node_with_condition_false_test() ->
     Commands = [#put{path = [foo],
-                     payload = #kpayload_data{data = foo_value}},
+                     payload = khepri_payload:data(foo_value)},
                 #put{path = [bar],
-                     payload = #kpayload_data{data = bar_value}}],
+                     payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Command = #delete{path = [#if_data_matches{pattern = other_value}]},
@@ -178,19 +178,19 @@ delete_existing_node_with_condition_false_test() ->
           child_nodes =
           #{foo =>
             #node{stat = ?INIT_NODE_STAT,
-                  payload = #kpayload_data{data = foo_value}},
+                  payload = khepri_payload:data(foo_value)},
             bar =>
             #node{stat = ?INIT_NODE_STAT,
-                  payload = #kpayload_data{data = bar_value}}}},
+                  payload = khepri_payload:data(bar_value)}}},
        Root),
     ?assertEqual({ok, #{}}, Ret),
     ?assertEqual([], SE).
 
 delete_existing_node_with_condition_true_using_dot_test() ->
     Commands = [#put{path = [foo],
-                     payload = #kpayload_data{data = foo_value}},
+                     payload = khepri_payload:data(foo_value)},
                 #put{path = [bar],
-                     payload = #kpayload_data{data = bar_value}}],
+                     payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Command = #delete{path =
@@ -209,7 +209,7 @@ delete_existing_node_with_condition_true_using_dot_test() ->
           child_nodes =
           #{foo =>
             #node{stat = ?INIT_NODE_STAT,
-                  payload = #kpayload_data{data = foo_value}}}},
+                  payload = khepri_payload:data(foo_value)}}},
        Root),
     ?assertEqual({ok, #{[bar] => #{data => bar_value,
                                    payload_version => 1,
@@ -219,9 +219,9 @@ delete_existing_node_with_condition_true_using_dot_test() ->
 
 delete_existing_node_with_condition_false_using_dot_test() ->
     Commands = [#put{path = [foo],
-                     payload = #kpayload_data{data = foo_value}},
+                     payload = khepri_payload:data(foo_value)},
                 #put{path = [bar],
-                     payload = #kpayload_data{data = bar_value}}],
+                     payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Command = #delete{path =
@@ -240,21 +240,21 @@ delete_existing_node_with_condition_false_using_dot_test() ->
           child_nodes =
           #{foo =>
             #node{stat = ?INIT_NODE_STAT,
-                  payload = #kpayload_data{data = foo_value}},
+                  payload = khepri_payload:data(foo_value)},
             bar =>
             #node{stat = ?INIT_NODE_STAT,
-                  payload = #kpayload_data{data = bar_value}}}},
+                  payload = khepri_payload:data(bar_value)}}},
        Root),
     ?assertEqual({ok, #{}}, Ret),
     ?assertEqual([], SE).
 
 delete_many_nodes_at_once_test() ->
     Commands = [#put{path = [foo],
-                     payload = #kpayload_data{data = foo_value}},
+                     payload = khepri_payload:data(foo_value)},
                 #put{path = [bar],
-                     payload = #kpayload_data{data = bar_value}},
+                     payload = khepri_payload:data(bar_value)},
                 #put{path = [baz],
-                     payload = #kpayload_data{data = baz_value}}],
+                     payload = khepri_payload:data(baz_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Command = #delete{path = [#if_name_matches{regex = "a"}]},
@@ -269,7 +269,7 @@ delete_many_nodes_at_once_test() ->
           child_nodes =
           #{foo =>
             #node{stat = ?INIT_NODE_STAT,
-                  payload = #kpayload_data{data = foo_value}}}},
+                  payload = khepri_payload:data(foo_value)}}},
        Root),
     ?assertEqual({ok, #{[bar] => #{data => bar_value,
                                    payload_version => 1,

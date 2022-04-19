@@ -83,7 +83,6 @@
          update/2, update/3, update/4, update/5,
          compare_and_swap/3, compare_and_swap/4, compare_and_swap/5,
          compare_and_swap/6,
-         wrap_payload/1,
 
          clear_payload/1, clear_payload/2, clear_payload/3, clear_payload/4,
          delete/1, delete/2, delete/3,
@@ -105,11 +104,6 @@
          %% Transactions; `khepri_tx' provides the API to use inside
          %% transaction functions.
          transaction/1, transaction/2, transaction/3, transaction/4,
-
-         %% Helpers.
-         no_payload/0,
-         data_payload/1,
-         sproc_payload/1,
 
          info/0,
          info/1]).
@@ -195,17 +189,6 @@
 -type result() :: khepri:ok(node_props_map()) |
                   khepri:error().
 %% Return value of a query or synchronous command.
-
--type no_payload() :: ?NO_PAYLOAD.
-
--type payload_data() :: #kpayload_data{}.
-
--type payload_sproc() :: #kpayload_sproc{}.
-
--type payload() :: no_payload() | payload_data() | payload_sproc().
-%% All types of payload stored in the nodes of the tree structure.
-%%
-%% Beside the absence of payload, the only type of payload supported is data.
 
 -type keep_while_conds_map() :: #{khepri_path:path() =>
                                   khepri_condition:keep_while()}.
@@ -320,10 +303,6 @@
               node_props/0,
               node_props_map/0,
               result/0,
-              no_payload/0,
-              payload_data/0,
-              payload_sproc/0,
-              payload/0,
               keep_while_conds_map/0,
               trigger_id/0,
               event_filter_tree/0,
@@ -413,7 +392,7 @@ get_store_ids() ->
 
 -spec put(PathPattern, Data) -> Result when
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: payload() | data() | fun(),
+      Data :: khepri_payload:payload() | data() | fun(),
       Result :: result().
 %% @doc Creates or modifies a specific tree node in the tree structure.
 %%
@@ -428,7 +407,7 @@ put(PathPattern, Data) ->
 -spec put(StoreId, PathPattern, Data) -> Result when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: payload() | data() | fun(),
+      Data :: khepri_payload:payload() | data() | fun(),
       Result :: result().
 %% @doc Creates or modifies a specific tree node in the tree structure.
 %%
@@ -443,7 +422,7 @@ put(StoreId, PathPattern, Data) ->
 -spec put(StoreId, PathPattern, Data, Extra | Options) -> Result when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: payload() | data() | fun(),
+      Data :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
@@ -463,7 +442,7 @@ put(StoreId, PathPattern, Data, Options) ->
 -spec put(StoreId, PathPattern, Data, Extra, Options) -> Result when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: payload() | data() | fun(),
+      Data :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
@@ -502,17 +481,18 @@ put(StoreId, PathPattern, Data, Options) ->
 %%
 %% The payload must be one of the following form:
 %% <ul>
-%% <li>`?NO_PAYLOAD' ({@link no_payload()}), meaning there will
-%% be no payload attached to the node and the existing payload will be
+%% <li>An explicit absense of payload ({@link khepri_payload:no_payload()}),
+%% using the marker returned by {@link khepri_payload:none/0}, meaning there
+%% will be no payload attached to the node and the existing payload will be
 %% discarded if any</li>
 %% <li>An anonymous function; it will be considered a stored procedure and will
-%% be wrapped in a {@link payload_sproc()} record</li>
-%% <li>Any other term; it will be wrapped in a {@link
-%% payload_data()} record</li>
+%% be wrapped in a {@link khepri_payload:sproc()} record</li>
+%% <li>Any other term; it will be wrapped in a {@link khepri_payload:data()}
+%% record</li>
 %% </ul>
 %%
-%% It is possible to pass one of the {@link payload()} records
-%% directly.
+%% It is possible to wrap the payload in its internal structure explicitly
+%% using the {@link khepri_payload} module directly.
 %%
 %% The `Extra' map may specify put-specific options:
 %% <ul>
@@ -540,7 +520,7 @@ put(StoreId, PathPattern, Data, Options) ->
 %% @param PathPattern the path (or path pattern) to the node to create or
 %%        modify.
 %% @param Data the Erlang term or function to store, or a {@link
-%%        payload()} record.
+%%        khepri_payload:payload()} structure.
 %% @param Extra extra options such as `keep_while' conditions.
 %% @param Options command options such as the command type.
 %%
@@ -554,7 +534,7 @@ put(StoreId, PathPattern, Data, Extra, Options) ->
 
 -spec create(PathPattern, Data) -> Result when
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: payload() | data() | fun(),
+      Data :: khepri_payload:payload() | data() | fun(),
       Result :: result().
 %% @doc Creates a specific tree node in the tree structure only if it does not
 %% exist.
@@ -570,7 +550,7 @@ create(PathPattern, Data) ->
 -spec create(StoreId, PathPattern, Data) -> Result when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: payload() | data() | fun(),
+      Data :: khepri_payload:payload() | data() | fun(),
       Result :: result().
 %% @doc Creates a specific tree node in the tree structure only if it does not
 %% exist.
@@ -586,7 +566,7 @@ create(StoreId, PathPattern, Data) ->
 -spec create(StoreId, PathPattern, Data, Extra | Options) -> Result when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: payload() | data() | fun(),
+      Data :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
@@ -607,7 +587,7 @@ create(StoreId, PathPattern, Data, Options) ->
 -spec create(StoreId, PathPattern, Data, Extra, Options) -> Result when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: payload() | data() | fun(),
+      Data :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
@@ -623,7 +603,7 @@ create(StoreId, PathPattern, Data, Options) ->
 %% @param PathPattern the path (or path pattern) to the node to create or
 %%        modify.
 %% @param Data the Erlang term or function to store, or a {@link
-%%        payload()} record.
+%%        khepri_payload:payload()} structure.
 %% @param Extra extra options such as `keep_while' conditions.
 %% @param Options command options such as the command type.
 %%
@@ -642,7 +622,7 @@ create(StoreId, PathPattern, Data, Extra, Options) ->
 
 -spec update(PathPattern, Data) -> Result when
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: payload() | data() | fun(),
+      Data :: khepri_payload:payload() | data() | fun(),
       Result :: result().
 %% @doc Updates a specific tree node in the tree structure only if it already
 %% exists.
@@ -658,7 +638,7 @@ update(PathPattern, Data) ->
 -spec update(StoreId, PathPattern, Data) -> Result when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: payload() | data() | fun(),
+      Data :: khepri_payload:payload() | data() | fun(),
       Result :: result().
 %% @doc Updates a specific tree node in the tree structure only if it already
 %% exists.
@@ -674,7 +654,7 @@ update(StoreId, PathPattern, Data) ->
 -spec update(StoreId, PathPattern, Data, Extra | Options) -> Result when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: payload() | data() | fun(),
+      Data :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
@@ -695,7 +675,7 @@ update(StoreId, PathPattern, Data, Options) ->
 -spec update(StoreId, PathPattern, Data, Extra, Options) -> Result when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: payload() | data() | fun(),
+      Data :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
@@ -711,7 +691,7 @@ update(StoreId, PathPattern, Data, Options) ->
 %% @param PathPattern the path (or path pattern) to the node to create or
 %%        modify.
 %% @param Data the Erlang term or function to store, or a {@link
-%%        payload()} record.
+%%        khepri_payload:payload()} structure.
 %% @param Extra extra options such as `keep_while' conditions.
 %% @param Options command options such as the command type.
 %%
@@ -731,7 +711,7 @@ update(StoreId, PathPattern, Data, Extra, Options) ->
 -spec compare_and_swap(PathPattern, DataPattern, Data) -> Result when
       PathPattern :: khepri_path:pattern() | string(),
       DataPattern :: ets:match_pattern(),
-      Data :: payload() | data() | fun(),
+      Data :: khepri_payload:payload() | data() | fun(),
       Result :: result().
 %% @doc Updates a specific tree node in the tree structure only if it already
 %% exists and its data matches the given `DataPattern'.
@@ -748,7 +728,7 @@ compare_and_swap(PathPattern, DataPattern, Data) ->
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern() | string(),
       DataPattern :: ets:match_pattern(),
-      Data :: payload() | data() | fun(),
+      Data :: khepri_payload:payload() | data() | fun(),
       Result :: result().
 %% @doc Updates a specific tree node in the tree structure only if it already
 %% exists and its data matches the given `DataPattern'.
@@ -767,7 +747,7 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data) ->
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern() | string(),
       DataPattern :: ets:match_pattern(),
-      Data :: payload() | data() | fun(),
+      Data :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
@@ -793,7 +773,7 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) ->
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern() | string(),
       DataPattern :: ets:match_pattern(),
-      Data :: payload() | data() | fun(),
+      Data :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
@@ -809,7 +789,7 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) ->
 %% @param PathPattern the path (or path pattern) to the node to create or
 %%        modify.
 %% @param Data the Erlang term or function to store, or a {@link
-%%        payload()} record.
+%%        khepri_payload:payload()} structure.
 %% @param Extra extra options such as `keep_while' conditions.
 %% @param Options command options such as the command type.
 %%
@@ -829,7 +809,7 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data, Extra, Options) ->
 -spec do_put(StoreId, PathPattern, Payload, Extra, Options) -> Result when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern() | string(),
-      Payload :: payload() | data() | fun(),
+      Payload :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
@@ -839,28 +819,8 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data, Extra, Options) ->
 %% @private
 
 do_put(StoreId, PathPattern, Payload, Extra, Options) ->
-    Payload1 = wrap_payload(Payload),
+    Payload1 = khepri_payload:wrap(Payload),
     khepri_machine:put(StoreId, PathPattern, Payload1, Extra, Options).
-
--spec wrap_payload(Payload) -> WrappedPayload when
-      Payload :: payload() | data() | fun(),
-      WrappedPayload :: payload().
-%% @doc Ensures the payload is wrapped in one of the internal types.
-%%
-%% The internal types make sure we avoid any collision between any
-%% user-provided terms and internal structures.
-%%
-%% @param Payload an already wrapped payload, or any term which needs to be
-%%        wrapped.
-%%
-%% @returns the wrapped payload.
-
-wrap_payload(Payload) when ?IS_KHEPRI_PAYLOAD(Payload) ->
-    Payload;
-wrap_payload(Fun) when is_function(Fun) ->
-    #kpayload_sproc{sproc = Fun};
-wrap_payload(Data) ->
-    #kpayload_data{data = Data}.
 
 -spec clear_payload(PathPattern) -> Result when
       PathPattern :: khepri_path:pattern() | string(),
@@ -917,8 +877,8 @@ clear_payload(StoreId, PathPattern, Options) ->
       NoRetIfAsync :: ok.
 %% @doc Clears the payload of a specific tree node in the tree structure.
 %%
-%% In other words, the payload is set to `?NO_PAYLOAD'. Otherwise, the
-%% behavior is that of {@link put/5}.
+%% In other words, the payload is set to {@link khepri_payload:no_payload()}.
+%% Otherwise, the behavior is that of {@link put/5}.
 %%
 %% @param StoreId the name of the Ra cluster.
 %% @param PathPattern the path (or path pattern) to the node to create or
@@ -934,7 +894,8 @@ clear_payload(StoreId, PathPattern, Options) ->
 %% @see put/5.
 
 clear_payload(StoreId, PathPattern, Extra, Options) ->
-    khepri_machine:put(StoreId, PathPattern, ?NO_PAYLOAD, Extra, Options).
+    khepri_machine:put(
+      StoreId, PathPattern, khepri_payload:none(), Extra, Options).
 
 -spec delete(PathPattern) -> Result when
       PathPattern :: khepri_path:pattern() | string(),
@@ -2010,39 +1971,6 @@ clear_store(Options) when is_map(Options) ->
 
 clear_store(StoreId, Options) ->
     delete(StoreId, [?STAR], Options).
-
--spec no_payload() -> ?NO_PAYLOAD.
-%% @doc Returns `?NO_PAYLOAD'.
-%%
-%% This is a helper for cases where using records is inconvenient, like in an
-%% Erlang shell.
-
-no_payload() ->
-    ?NO_PAYLOAD.
-
--spec data_payload(Term) -> Payload when
-      Term :: data(),
-      Payload :: #kpayload_data{}.
-%% @doc Returns `#kpayload_data{data = Term}'.
-%%
-%% This is a helper for cases where using macros is inconvenient, like in an
-%% Erlang shell.
-
-data_payload(Term) ->
-    #kpayload_data{data = Term}.
-
--spec sproc_payload(Fun) -> Payload when
-      Fun :: khepri_fun:standalone_fun() | fun(),
-      Payload :: #kpayload_sproc{}.
-%% @doc Returns `#kpayload_sproc{sproc = Fun}'.
-%%
-%% This is a helper for cases where using macros is inconvenient, like in an
-%% Erlang shell.
-
-sproc_payload(Fun) when is_function(Fun) ->
-    #kpayload_sproc{sproc = Fun};
-sproc_payload(#standalone_fun{} = Fun) ->
-    #kpayload_sproc{sproc = Fun}.
 
 %% -------------------------------------------------------------------
 %% Public helpers.

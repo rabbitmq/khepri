@@ -16,16 +16,24 @@
 -define(TX_STATE_KEY, khepri_tx_machine_state).
 -define(TX_PROPS, khepri_tx_properties).
 
+-define(NO_PAYLOAD, '$__NO_PAYLOAD__').
+-record(p_data, {data :: khepri:data()}).
+-record(p_sproc, {sproc :: khepri_fun:standalone_fun()}).
+
+-define(IS_KHEPRI_PAYLOAD(Payload), (Payload =:= ?NO_PAYLOAD orelse
+                                     is_record(Payload, p_data) orelse
+                                     is_record(Payload, p_sproc))).
+
 %% Structure representing each node in the tree, including the root node.
 %% TODO: Rename stat to something more correct?
 -record(node, {stat = ?INIT_NODE_STAT :: khepri_machine:stat(),
-               payload = ?NO_PAYLOAD :: khepri:payload(),
+               payload = ?NO_PAYLOAD :: khepri_payload:payload(),
                child_nodes = #{} :: #{khepri_path:component() := #node{}}}).
 
 %% State machine commands.
 
 -record(put, {path :: khepri_path:pattern(),
-              payload = ?NO_PAYLOAD :: khepri:payload(),
+              payload = ?NO_PAYLOAD :: khepri_payload:payload(),
               extra = #{} :: #{keep_while =>
                                khepri:keep_while_conds_map()}}).
 

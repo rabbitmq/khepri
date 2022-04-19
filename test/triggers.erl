@@ -14,7 +14,7 @@
 -include("test/helpers.hrl").
 
 event_triggers_associated_sproc_test_() ->
-    EventFilter = #kevf_tree{path = [foo]},
+    EventFilter = khepri_evf:tree([foo]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -47,7 +47,7 @@ event_triggers_associated_sproc_test_() ->
       }]}.
 
 event_using_matching_pattern_triggers_associated_sproc_test_() ->
-    EventFilter = #kevf_tree{path = [foo, #if_child_list_length{count = 0}]},
+    EventFilter = khepri_evf:tree([foo, #if_child_list_length{count = 0}]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -81,8 +81,7 @@ event_using_matching_pattern_triggers_associated_sproc_test_() ->
       }]}.
 
 event_using_non_matching_pattern1_does_not_trigger_associated_sproc_test_() ->
-    EventFilter = #kevf_tree{
-                     path = [?STAR, #if_child_list_length{count = 1}]},
+    EventFilter = khepri_evf:tree([?STAR, #if_child_list_length{count = 1}]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -116,7 +115,7 @@ event_using_non_matching_pattern1_does_not_trigger_associated_sproc_test_() ->
       }]}.
 
 event_using_non_matching_pattern2_does_not_trigger_associated_sproc_test_() ->
-    EventFilter = #kevf_tree{path = [foo]},
+    EventFilter = khepri_evf:tree([foo]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -150,7 +149,7 @@ event_using_non_matching_pattern2_does_not_trigger_associated_sproc_test_() ->
       }]}.
 
 event_using_non_matching_pattern3_does_not_trigger_associated_sproc_test_() ->
-    EventFilter = #kevf_tree{path = [foo, bar]},
+    EventFilter = khepri_evf:tree([foo, bar]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -184,7 +183,7 @@ event_using_non_matching_pattern3_does_not_trigger_associated_sproc_test_() ->
       }]}.
 
 event_does_not_trigger_unassociated_sproc_test_() ->
-    EventFilter = #kevf_tree{path = [foo]},
+    EventFilter = khepri_evf:tree([foo]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -218,7 +217,7 @@ event_does_not_trigger_unassociated_sproc_test_() ->
       }]}.
 
 event_does_not_trigger_non_existing_sproc_test_() ->
-    EventFilter = #kevf_tree{path = [foo]},
+    EventFilter = khepri_evf:tree([foo]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -252,7 +251,7 @@ event_does_not_trigger_non_existing_sproc_test_() ->
       }]}.
 
 event_does_not_trigger_data_node_test_() ->
-    EventFilter = #kevf_tree{path = [foo]},
+    EventFilter = khepri_evf:tree([foo]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -286,12 +285,9 @@ event_does_not_trigger_data_node_test_() ->
       }]}.
 
 filter_on_change_type_test_() ->
-    CreatedEventFilter = #kevf_tree{path = [foo],
-                                    props = #{on_actions => [create]}},
-    UpdatedEventFilter = #kevf_tree{path = [foo],
-                                    props = #{on_actions => [update]}},
-    DeletedEventFilter = #kevf_tree{path = [foo],
-                                    props = #{on_actions => [delete]}},
+    CreatedEventFilter = khepri_evf:tree([foo], #{on_actions => [create]}),
+    UpdatedEventFilter = khepri_evf:tree([foo], #{on_actions => [update]}),
+    DeletedEventFilter = khepri_evf:tree([foo], #{on_actions => [delete]}),
     StoredProcPath = [sproc],
     CreatedKey = {?FUNCTION_NAME, created},
     UpdatedKey = {?FUNCTION_NAME, updated},
@@ -389,7 +385,7 @@ filter_on_change_type_test_() ->
       }]}.
 
 a_buggy_sproc_does_not_crash_state_machine_test_() ->
-    EventFilter = #kevf_tree{path = [foo]},
+    EventFilter = khepri_evf:tree([foo]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -425,7 +421,7 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
             khepri:register_trigger(
               ?FUNCTION_NAME,
               bad,
-              EventFilter#kevf_tree{props = #{priority => 10}},
+              khepri_evf:set_priority(EventFilter, 10),
               StoredProcPath ++ [bad]))},
 
         {"Updating a node; should trigger the procedure",

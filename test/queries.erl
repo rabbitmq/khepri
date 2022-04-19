@@ -27,7 +27,7 @@ query_a_non_existing_node_test() ->
 
 query_an_existing_node_with_no_value_test() ->
     Commands = [#put{path = [foo, bar],
-                     payload = #kpayload_data{data = value}}],
+                     payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Root = khepri_machine:get_root(S0),
@@ -41,7 +41,7 @@ query_an_existing_node_with_no_value_test() ->
 
 query_an_existing_node_with_value_test() ->
     Commands = [#put{path = [foo, bar],
-                     payload = #kpayload_data{data = value}}],
+                     payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Root = khepri_machine:get_root(S0),
@@ -56,7 +56,7 @@ query_an_existing_node_with_value_test() ->
 
 query_a_node_with_matching_condition_test() ->
     Commands = [#put{path = [foo],
-                     payload = #kpayload_data{data = value}}],
+                     payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Root = khepri_machine:get_root(S0),
@@ -75,7 +75,7 @@ query_a_node_with_matching_condition_test() ->
 
 query_a_node_with_non_matching_condition_test() ->
     Commands = [#put{path = [foo],
-                     payload = #kpayload_data{data = value}}],
+                     payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Root = khepri_machine:get_root(S0),
@@ -91,9 +91,9 @@ query_a_node_with_non_matching_condition_test() ->
 
 query_child_nodes_of_a_specific_node_test() ->
     Commands = [#put{path = [foo, bar],
-                     payload = #kpayload_data{data = bar_value}},
+                     payload = khepri_payload:data(bar_value)},
                 #put{path = [baz],
-                     payload = #kpayload_data{data = baz_value}}],
+                     payload = khepri_payload:data(baz_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Root = khepri_machine:get_root(S0),
@@ -117,9 +117,9 @@ query_child_nodes_of_a_specific_node_test() ->
 
 query_child_nodes_of_a_specific_node_with_condition_on_leaf_test() ->
     Commands = [#put{path = [foo, bar],
-                     payload = #kpayload_data{data = bar_value}},
+                     payload = khepri_payload:data(bar_value)},
                 #put{path = [baz],
-                     payload = #kpayload_data{data = baz_value}}],
+                     payload = khepri_payload:data(baz_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Root = khepri_machine:get_root(S0),
@@ -137,13 +137,13 @@ query_child_nodes_of_a_specific_node_with_condition_on_leaf_test() ->
 
 query_many_nodes_with_condition_on_parent_test() ->
     Commands = [#put{path = [foo, bar],
-                     payload = #kpayload_data{data = bar_value}},
+                     payload = khepri_payload:data(bar_value)},
                 #put{path = [foo, youpi],
-                     payload = #kpayload_data{data = youpi_value}},
+                     payload = khepri_payload:data(youpi_value)},
                 #put{path = [baz],
-                     payload = #kpayload_data{data = baz_value}},
+                     payload = khepri_payload:data(baz_value)},
                 #put{path = [baz, pouet],
-                     payload = #kpayload_data{data = pouet_value}}],
+                     payload = khepri_payload:data(pouet_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Root = khepri_machine:get_root(S0),
@@ -166,13 +166,13 @@ query_many_nodes_with_condition_on_parent_test() ->
 
 query_many_nodes_recursively_test() ->
     Commands = [#put{path = [foo, bar],
-                     payload = #kpayload_data{data = bar_value}},
+                     payload = khepri_payload:data(bar_value)},
                 #put{path = [foo, youpi],
-                     payload = #kpayload_data{data = youpi_value}},
+                     payload = khepri_payload:data(youpi_value)},
                 #put{path = [baz],
-                     payload = #kpayload_data{data = baz_value}},
+                     payload = khepri_payload:data(baz_value)},
                 #put{path = [baz, pouet],
-                     payload = #kpayload_data{data = pouet_value}}],
+                     payload = khepri_payload:data(pouet_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Root = khepri_machine:get_root(S0),
@@ -214,13 +214,13 @@ query_many_nodes_recursively_test() ->
 
 query_many_nodes_recursively_using_regex_test() ->
     Commands = [#put{path = [foo, bar],
-                     payload = #kpayload_data{data = bar_value}},
+                     payload = khepri_payload:data(bar_value)},
                 #put{path = [foo, youpi],
-                     payload = #kpayload_data{data = youpi_value}},
+                     payload = khepri_payload:data(youpi_value)},
                 #put{path = [baz],
-                     payload = #kpayload_data{data = baz_value}},
+                     payload = khepri_payload:data(baz_value)},
                 #put{path = [baz, pouet],
-                     payload = #kpayload_data{data = pouet_value}}],
+                     payload = khepri_payload:data(pouet_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Root = khepri_machine:get_root(S0),
@@ -245,13 +245,13 @@ query_many_nodes_recursively_using_regex_test() ->
 
 query_many_nodes_recursively_with_condition_on_leaf_test() ->
     Commands = [#put{path = [foo, bar],
-                     payload = #kpayload_data{data = bar_value}},
+                     payload = khepri_payload:data(bar_value)},
                 #put{path = [foo, youpi],
-                     payload = #kpayload_data{data = youpi_value}},
+                     payload = khepri_payload:data(youpi_value)},
                 #put{path = [baz],
-                     payload = #kpayload_data{data = baz_value}},
+                     payload = khepri_payload:data(baz_value)},
                 #put{path = [baz, pouet],
-                     payload = #kpayload_data{data = pouet_value}}],
+                     payload = khepri_payload:data(pouet_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Root = khepri_machine:get_root(S0),
@@ -273,13 +273,13 @@ query_many_nodes_recursively_with_condition_on_leaf_test() ->
 
 query_many_nodes_recursively_with_condition_on_self_test() ->
     Commands = [#put{path = [foo, bar],
-                     payload = #kpayload_data{data = bar_value}},
+                     payload = khepri_payload:data(bar_value)},
                 #put{path = [foo, youpi],
-                     payload = #kpayload_data{data = youpi_value}},
+                     payload = khepri_payload:data(youpi_value)},
                 #put{path = [baz],
-                     payload = #kpayload_data{data = baz_value}},
+                     payload = khepri_payload:data(baz_value)},
                 #put{path = [baz, pouet],
-                     payload = #kpayload_data{data = pouet_value}}],
+                     payload = khepri_payload:data(pouet_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Root = khepri_machine:get_root(S0),
@@ -310,13 +310,13 @@ query_many_nodes_recursively_with_condition_on_self_test() ->
 
 query_many_nodes_recursively_with_several_star_star_test() ->
     Commands = [#put{path = [foo, bar, baz, qux],
-                     payload = #kpayload_data{data = qux_value}},
+                     payload = khepri_payload:data(qux_value)},
                 #put{path = [foo, youpi],
-                     payload = #kpayload_data{data = youpi_value}},
+                     payload = khepri_payload:data(youpi_value)},
                 #put{path = [baz],
-                     payload = #kpayload_data{data = baz_value}},
+                     payload = khepri_payload:data(baz_value)},
                 #put{path = [baz, pouet],
-                     payload = #kpayload_data{data = pouet_value}}],
+                     payload = khepri_payload:data(pouet_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Root = khepri_machine:get_root(S0),
@@ -336,7 +336,7 @@ query_many_nodes_recursively_with_several_star_star_test() ->
 
 query_a_node_using_relative_path_components_test() ->
     Commands = [#put{path = [foo, bar],
-                     payload = #kpayload_data{data = value}}],
+                     payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Root = khepri_machine:get_root(S0),
@@ -352,9 +352,9 @@ query_a_node_using_relative_path_components_test() ->
 
 include_child_names_in_query_response_test() ->
     Commands = [#put{path = [foo, bar],
-                     payload = #kpayload_data{data = bar_value}},
+                     payload = khepri_payload:data(bar_value)},
                 #put{path = [foo, quux],
-                     payload = #kpayload_data{data = quux_value}}],
+                     payload = khepri_payload:data(quux_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                commands => Commands}),
     Root = khepri_machine:get_root(S0),

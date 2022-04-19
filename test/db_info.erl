@@ -112,7 +112,7 @@ get_store_info_with_keep_while_conds_test_() ->
      [?_assertEqual(
          {ok, #{[foo] => #{}}},
          khepri:put(
-           ?FUNCTION_NAME, [foo], #kpayload_data{data = foo_value},
+           ?FUNCTION_NAME, [foo], khepri_payload:data(foo_value),
            #{keep_while => KeepWhile})),
       ?_assertEqual(
          "\n"

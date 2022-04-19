@@ -24,7 +24,7 @@ insert_a_node_test_() ->
      [?_assertEqual(
          {ok, #{[foo] => #{}}},
          khepri:put(
-           ?FUNCTION_NAME, [foo], #kpayload_data{data = foo_value}))]}.
+           ?FUNCTION_NAME, [foo], khepri_payload:data(foo_value)))]}.
 
 query_a_node_test_() ->
     {setup,
@@ -37,7 +37,7 @@ query_a_node_test_() ->
                            child_list_length => 0}}},
          begin
              _ = khepri:put(
-                   ?FUNCTION_NAME, [foo], #kpayload_data{data = foo_value}),
+                   ?FUNCTION_NAME, [foo], khepri_payload:data(foo_value)),
              khepri:get(?FUNCTION_NAME, [foo])
          end)]}.
 
@@ -55,7 +55,7 @@ delete_a_node_test_() ->
             begin
                 _ = khepri:put(
                       ?FUNCTION_NAME, [foo],
-                      #kpayload_data{data = foo_value}),
+                      khepri_payload:data(foo_value)),
                 khepri:delete(?FUNCTION_NAME, [foo])
             end)},
         {"Checking the deleted key is gone",
@@ -76,7 +76,7 @@ query_keep_while_conds_state_test_() ->
              _ = khepri:put(
                    ?FUNCTION_NAME,
                    [foo],
-                   #kpayload_data{data = foo_value},
+                   khepri_payload:data(foo_value),
                    #{keep_while => KeepWhile}),
              khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME)
          end)]}.

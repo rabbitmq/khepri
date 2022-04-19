@@ -104,7 +104,7 @@
 
 -spec put(PathPattern, Data) -> Result when
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: khepri:payload() | khepri:data(),
+      Data :: khepri_payload:payload() | khepri:data(),
       Result :: khepri:result().
 %% @doc Creates or modifies a specific tree node in the tree structure.
 
@@ -113,7 +113,7 @@ put(PathPattern, Data) ->
 
 -spec put(PathPattern, Data, Extra) -> Result when
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: khepri:payload() | khepri:data(),
+      Data :: khepri_payload:payload() | khepri:data(),
       Extra :: #{keep_while => khepri_condition:keep_while()},
       Result :: khepri:result().
 %% @doc Creates or modifies a specific tree node in the tree structure.
@@ -121,7 +121,7 @@ put(PathPattern, Data) ->
 put(PathPattern, Data, Extra) ->
     ensure_updates_are_allowed(),
     PathPattern1 = path_from_string(PathPattern),
-    Payload1 = khepri:wrap_payload(Data),
+    Payload1 = khepri_payload:wrap(Data),
     {State, SideEffects} = get_tx_state(),
     Ret = khepri_machine:insert_or_update_node(
             State, PathPattern1, Payload1, Extra),
@@ -135,7 +135,7 @@ put(PathPattern, Data, Extra) ->
 
 -spec create(PathPattern, Data) -> Result when
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: khepri:payload() | khepri:data(),
+      Data :: khepri_payload:payload() | khepri:data(),
       Result :: khepri:result().
 %% @doc Creates a specific tree node in the tree structure only if it does not
 %% exist.
@@ -145,7 +145,7 @@ create(PathPattern, Data) ->
 
 -spec create(PathPattern, Data, Extra) -> Result when
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: khepri:payload() | khepri:data(),
+      Data :: khepri_payload:payload() | khepri:data(),
       Extra :: #{keep_while => khepri_condition:keep_while()},
       Result :: khepri:result().
 %% @doc Creates a specific tree node in the tree structure only if it does not
@@ -159,7 +159,7 @@ create(PathPattern, Data, Extra) ->
 
 -spec update(PathPattern, Data) -> Result when
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: khepri:payload() | khepri:data(),
+      Data :: khepri_payload:payload() | khepri:data(),
       Result :: khepri:result().
 %% @doc Updates a specific tree node in the tree structure only if it already
 %% exists.
@@ -169,7 +169,7 @@ update(PathPattern, Data) ->
 
 -spec update(PathPattern, Data, Extra) -> Result when
       PathPattern :: khepri_path:pattern() | string(),
-      Data :: khepri:payload() | khepri:data(),
+      Data :: khepri_payload:payload() | khepri:data(),
       Extra :: #{keep_while => khepri_condition:keep_while()},
       Result :: khepri:result().
 %% @doc Updates a specific tree node in the tree structure only if it already
@@ -184,7 +184,7 @@ update(PathPattern, Data, Extra) ->
 -spec compare_and_swap(PathPattern, DataPattern, Data) -> Result when
       PathPattern :: khepri_path:pattern() | string(),
       DataPattern :: ets:match_pattern(),
-      Data :: khepri:payload() | khepri:data(),
+      Data :: khepri_payload:payload() | khepri:data(),
       Result :: khepri:result().
 %% @doc Updates a specific tree node in the tree structure only if it already
 %% exists and its data matches the given `DataPattern'.
@@ -195,7 +195,7 @@ compare_and_swap(PathPattern, DataPattern, Data) ->
 -spec compare_and_swap(PathPattern, DataPattern, Data, Extra) -> Result when
       PathPattern :: khepri_path:pattern() | string(),
       DataPattern :: ets:match_pattern(),
-      Data :: khepri:payload() | khepri:data(),
+      Data :: khepri_payload:payload() | khepri:data(),
       Extra :: #{keep_while => khepri_condition:keep_while()},
       Result :: khepri:result().
 %% @doc Updates a specific tree node in the tree structure only if it already
@@ -222,7 +222,7 @@ clear_payload(PathPattern) ->
 %% @doc Clears the payload of a specific tree node in the tree structure.
 
 clear_payload(PathPattern, Extra) ->
-    put(PathPattern, ?NO_PAYLOAD, Extra).
+    put(PathPattern, khepri_payload:none(), Extra).
 
 -spec delete(PathPattern) -> Result when
       PathPattern :: khepri_path:pattern() | string(),
@@ -628,8 +628,8 @@ ensure_bif_is_valid(Bif, Arity) ->
             throw({call_denied, {Bif, Arity}})
     end.
 
-is_remote_call_valid(khepri, no_payload, 0) -> true;
-is_remote_call_valid(khepri, data_payload, 1) -> true;
+is_remote_call_valid(khepri_payload, no_payload, 0) -> true;
+is_remote_call_valid(khepri_payload, data, 1) -> true;
 
 is_remote_call_valid(khepri_tx, put, _) -> true;
 is_remote_call_valid(khepri_tx, create, _) -> true;

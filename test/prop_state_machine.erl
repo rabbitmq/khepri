@@ -12,6 +12,7 @@
 -include_lib("proper/include/proper.hrl").
 
 -include("include/khepri.hrl").
+-include("src/internal.hrl").
 
 -dialyzer([{[no_opaque, no_return],
             [prop_commands_with_simple_paths_work_in_any_order/0]}]).
@@ -110,17 +111,17 @@ add_entry(Entries, Path, Payload) ->
                             {Entry0, true}
                     end,
     Entry2 = case Payload of
-                 #kpayload_data{data = Data} -> Entry1#{data => Data};
-                 ?NO_PAYLOAD                 -> maps:remove(data, Entry1)
+                 #p_data{data = Data} -> Entry1#{data => Data};
+                 ?NO_PAYLOAD          -> maps:remove(data, Entry1)
              end,
     Entries1 = Entries#{Path => Entry2},
     add_entry1(Entries1, tl(lists:reverse(Path)), New).
 
-set_node_payload(#{data := Data} = Entry, #kpayload_data{data = Data}) ->
+set_node_payload(#{data := Data} = Entry, #p_data{data = Data}) ->
     Entry;
 set_node_payload(Entry, ?NO_PAYLOAD) when not is_map_key(data, Entry) ->
     Entry;
-set_node_payload(Entry, #kpayload_data{data = Data}) ->
+set_node_payload(Entry, #p_data{data = Data}) ->
     Entry#{data => Data};
 set_node_payload(Entry, ?NO_PAYLOAD) ->
     maps:remove(data, Entry).
@@ -231,4 +232,4 @@ no_payload() ->
 data_payload() ->
     ?LET(Data,
          binary(),
-         #kpayload_data{data = Data}).
+         #p_data{data = Data}).

@@ -143,9 +143,7 @@ khepri:transaction(
                 %% There is less than 100 pieces of wood, or there is none
                 %% at all (the node does not exist in Khepri). We need to
                 %% request a new order.
-                {ok, _} = khepri_tx:put(
-                            [order, wood],
-                            #kpayload_data{data = 1000}),
+                {ok, _} = khepri_tx:put([order, wood], 1000),
                 true
         end
     end).
@@ -174,10 +172,7 @@ the database itself and automatically execute it after some event occurs.
                 on_action => Action} = Props
           end,
 
-    khepri:put(
-      StoreId,
-      StoredProcPath,
-      #kpayload_sproc{sproc = Fun}))}.
+    khepri:put(StoreId, StoredProcPath, Fun).
     ```
 
 2.  Register a trigger using an event filter:

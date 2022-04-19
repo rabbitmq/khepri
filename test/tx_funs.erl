@@ -50,8 +50,8 @@ noop_ok_test() ->
 allowed_khepri_tx_api_test() ->
     ?assertStandaloneFun(
        begin
-           _ = khepri_tx:put([foo], #kpayload_data{data = value}),
-           _ = khepri_tx:put([foo], #kpayload_data{data = value}, #{}),
+           _ = khepri_tx:put([foo], khepri_payload:data(value)),
+           _ = khepri_tx:put([foo], khepri_payload:data(value), #{}),
            _ = khepri_tx:get([foo]),
            _ = khepri_tx:get([foo], #{}),
            _ = khepri_tx:exists([foo]),
@@ -832,7 +832,7 @@ when_readwrite_mode_is_true_test() ->
     ?assert(
        is_record(khepri_tx:to_standalone_fun(
                    fun() ->
-                           khepri_tx:put([foo], #kpayload_data{data = value})
+                           khepri_tx:put([foo], khepri_payload:data(value))
                    end,
                    rw),
                  standalone_fun)),
@@ -848,7 +848,7 @@ when_readwrite_mode_is_true_test() ->
        {invalid_tx_fun, {call_denied, {self, 0}}},
        khepri_tx:to_standalone_fun(
          fun() ->
-                 _ = khepri_tx:put([foo], #kpayload_data{data = value}),
+                 _ = khepri_tx:put([foo], khepri_payload:data(value)),
                  self() ! message
          end,
          rw)),
@@ -884,7 +884,7 @@ when_readwrite_mode_is_false_test() ->
        is_function(khepri_tx:to_standalone_fun(
                      fun() ->
                              khepri_tx:put(
-                               [foo], #kpayload_data{data = value})
+                               [foo], khepri_payload:data(value))
                      end,
                      ro),
                    0)),
@@ -902,7 +902,7 @@ when_readwrite_mode_is_false_test() ->
        is_function(khepri_tx:to_standalone_fun(
                      fun() ->
                              _ = khepri_tx:put(
-                                   [foo], #kpayload_data{data = value}),
+                                   [foo], khepri_payload:data(value)),
                              self() ! message
                      end,
                      ro),
@@ -936,7 +936,7 @@ when_readwrite_mode_is_auto_test() ->
     ?assert(
        is_record(khepri_tx:to_standalone_fun(
                    fun() ->
-                           khepri_tx:put([foo], #kpayload_data{data = value})
+                           khepri_tx:put([foo], khepri_payload:data(value))
                    end,
                    auto),
                  standalone_fun)),
@@ -952,7 +952,7 @@ when_readwrite_mode_is_auto_test() ->
        {invalid_tx_fun, {call_denied, {self, 0}}},
        khepri_tx:to_standalone_fun(
          fun() ->
-                 _ = khepri_tx:put([foo], #kpayload_data{data = value}),
+                 _ = khepri_tx:put([foo], khepri_payload:data(value)),
                  self() ! message
          end,
          auto)),

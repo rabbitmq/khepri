@@ -138,7 +138,7 @@
 -spec put(StoreId, PathPattern, Payload, Extra, Options) -> Result when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern() | string(),
-      Payload :: khepri:payload(),
+      Payload :: khepri_payload:payload(),
       Extra :: #{keep_while => khepri:keep_while_conds_map()},
       Options :: khepri:command_options(),
       Result :: khepri:result() | NoRetIfAsync,
@@ -163,32 +163,13 @@ put(StoreId, PathPattern, Payload, Extra, Options)
   when ?IS_KHEPRI_PAYLOAD(Payload) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
-    Payload1 = prepare_payload(Payload),
+    Payload1 = khepri_payload:prepare(Payload),
     Command = #put{path = PathPattern1,
                    payload = Payload1,
                    extra = Extra},
     process_command(StoreId, Command, Options);
 put(_StoreId, PathPattern, Payload, _Extra, _Options) ->
     throw({invalid_payload, PathPattern, Payload}).
-
--spec prepare_payload(Payload) -> Payload when
-      Payload :: khepri:payload().
-%% @doc Finishes any needed changes to the payload before it is ready to be
-%% stored.
-%%
-%% This currently only includes the conversion of anonymous functions to
-%% standalone functions for stored procedures' payload records.
-%%
-%% @private
-
-prepare_payload(?NO_PAYLOAD = Payload) ->
-    Payload;
-prepare_payload(#kpayload_data{} = Payload) ->
-    Payload;
-prepare_payload(#kpayload_sproc{sproc = Fun} = Payload)
-  when is_function(Fun) ->
-    StandaloneFun = khepri_sproc:to_standalone_fun(Fun),
-    Payload#kpayload_sproc{sproc = StandaloneFun}.
 
 -spec get(StoreId, PathPattern, Options) -> Result when
       StoreId :: khepri:store_id(),
@@ -903,7 +884,7 @@ state_enter(_StateName, _State) ->
 %% -------------------------------------------------------------------
 
 -spec create_node_record(Payload) -> Node when
-      Payload :: khepri:payload(),
+      Payload :: khepri_payload:payload(),
       Node :: tree_node().
 %% @private
 
@@ -913,7 +894,7 @@ create_node_record(Payload) ->
 
 -spec set_node_payload(Node, Payload) -> Node when
       Node :: tree_node(),
-      Payload :: khepri:payload().
+      Payload :: khepri_payload:payload().
 %% @private
 
 set_node_payload(#node{payload = Payload} = Node, Payload) ->
@@ -933,7 +914,7 @@ remove_node_payload(
 remove_node_payload(
   #node{stat = #{payload_version := DVersion} = Stat} = Node) ->
     Stat1 = Stat#{payload_version => DVersion + 1},
-    Node#node{stat = Stat1, payload = ?NO_PAYLOAD}.
+    Node#node{stat = Stat1, payload = khepri_payload:none()}.
 
 -spec add_node_child(Node, ChildName, Child) -> Node when
       Node :: tree_node(),
@@ -999,8 +980,8 @@ gather_node_props(#node{stat = #{payload_version := DVersion,
                       Result0
               end,
     case Payload of
-        #kpayload_data{data = Data}  -> Result1#{data => Data};
-        #kpayload_sproc{sproc = Fun} -> Result1#{sproc => Fun};
+        #p_data{data = Data}  -> Result1#{data => Data};
+        #p_sproc{sproc = Fun} -> Result1#{sproc => Fun};
         _                            -> Result1
     end.
 
@@ -1131,7 +1112,7 @@ find_matching_nodes_cb(_, {interrupted, _, _}, _, Result) ->
 -spec insert_or_update_node(State, PathPattern, Payload, Extra) -> Ret when
       State :: state(),
       PathPattern :: khepri_path:pattern(),
-      Payload :: khepri:payload(),
+      Payload :: khepri_payload:payload(),
       Extra :: #{keep_while => khepri_condition:keep_while()},
       Ret :: {State, Result} | {State, Result, ra_machine:effects()},
       Result :: khepri:result().
@@ -1258,7 +1239,7 @@ insert_or_update_node_cb(
             NodeProps = #{},
             {ok, Node, Result#{Path => NodeProps}};
         true ->
-            Node = create_node_record(?NO_PAYLOAD),
+            Node = create_node_record(khepri_payload:none()),
             {ok, Node, Result};
         false ->
             {error, {Reason, Info}}
