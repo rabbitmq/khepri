@@ -491,6 +491,18 @@ bit_string_comprehension_expression_test() ->
             <<<<(Part bxor Mask):32/integer>> || <<Part:32/integer>> <= Data>>
         end).
 
+apply_fun_to_args(Fun, Arg1, Arg2) ->
+    Fun(Arg1, Arg2).
+
+allowed_higher_order_external_call_test() ->
+    StandaloneFun = ?make_standalone_fun(
+                        begin
+                            Fun = fun erlang:min/2,
+                            apply_fun_to_args(Fun, 1, 2)
+                        end),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertEqual(1, khepri_fun:exec(StandaloneFun, [])).
+
 denied_receive_block_test() ->
     ?assertToFunThrow(
        {invalid_tx_fun, receiving_message_denied},
