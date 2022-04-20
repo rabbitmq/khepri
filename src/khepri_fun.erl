@@ -158,7 +158,8 @@
                         code            = [] :: [#function{}],
                         %% Added in this module to stored the decoded "Line"
                         %% chunk.
-                        lines                :: #lines{} | undefined}).
+                        lines                :: #lines{} | undefined,
+                        strings              :: binary() | undefined}).
 
 -type ensure_instruction_is_permitted_fun() ::
 fun((Instruction :: beam_instr()) -> ok).
@@ -248,6 +249,7 @@ fun((#{calls := #{Call :: mfa() => true},
                 functions = #{} :: #{mfa() => #function{}},
 
                 lines_in_progress :: #lines{} | undefined,
+                strings_in_progress :: binary() | undefined,
                 mfa_in_progress :: mfa() | undefined,
                 function_in_progress :: atom() | undefined,
                 next_label = 1 :: label(),
@@ -960,6 +962,18 @@ pass1_process_instructions(
     Instruction = decode_field_flags(Instruction0, 8),
     pass1_process_instructions([Instruction | Rest], State, Result);
 pass1_process_instructions(
+  [{bs_create_bin,
+    [{{f, _} = Fail, {u, Heap}, {u, Live}, {u, Unit}, Dst, _, _N, List}]}
+   | Rest],
+  State,
+  Result) when is_list(List) ->
+    %% `beam_disasm' decoded the instruction's arguments as a tuple inside a
+    %% list. They should be part of the instruction's tuple. Also, various
+    %% arguments are not wrapped/unwrapped correctly.
+    List1 = fix_create_bin_list(List, State),
+    Instruction = {bs_create_bin, Fail, Heap, Live, Unit, Dst, {list, List1}},
+    pass1_process_instructions([Instruction | Rest], State, Result);
+pass1_process_instructions(
   [{bs_private_append, _, _, _, _, {field_flags, FF}, _} = Instruction0 | Rest],
   State,
   Result)
@@ -1145,28 +1159,41 @@ pass1_process_instructions(
   State,
   Result) ->
     State1 = ensure_instruction_is_permitted(Instruction, State),
+    Src1 = fix_type_tagged_beam_register(Src),
+    Instruction1 = setelement(2, Instruction, Src1),
+
+    Reg = get_reg_from_type_tagged_beam_register(Src1),
     Type = {t_tuple, Element + 1, false, #{}},
-    VarInfo = {var_info, Src, [{type, Type}]},
+    VarInfo = {var_info, Reg, [{type, Type}]},
     Comment = {'%', VarInfo},
-    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+
+    pass1_process_instructions(Rest, State1, [Instruction1, Comment | Result]);
 pass1_process_instructions(
   [{select_tuple_arity, Src, _, _} = Instruction | Rest],
   State,
   Result) ->
     State1 = ensure_instruction_is_permitted(Instruction, State),
+    Src1 = fix_type_tagged_beam_register(Src),
+    Instruction1 = setelement(2, Instruction, Src1),
+
+    Reg = get_reg_from_type_tagged_beam_register(Src1),
     Type = {t_tuple, 0, false, #{}},
-    VarInfo = {var_info, Src, [{type, Type}]},
+    VarInfo = {var_info, Reg, [{type, Type}]},
     Comment = {'%', VarInfo},
-    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+    pass1_process_instructions(Rest, State1, [Instruction1, Comment | Result]);
 pass1_process_instructions(
   [{get_map_elements, _Fail, Src, {list, _}} = Instruction | Rest],
   State,
   Result) ->
     State1 = ensure_instruction_is_permitted(Instruction, State),
+    Src1 = fix_type_tagged_beam_register(Src),
+    Instruction1 = setelement(3, Instruction, Src1),
+
+    Reg = get_reg_from_type_tagged_beam_register(Src1),
     Type = {t_map, any, any},
-    VarInfo = {var_info, Src, [{type, Type}]},
+    VarInfo = {var_info, Reg, [{type, Type}]},
     Comment = {'%', VarInfo},
-    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+    pass1_process_instructions(Rest, State1, [Instruction1, Comment | Result]);
 pass1_process_instructions(
   [{put_map_assoc, _Fail, Src, _Dst, _Live, {list, _}} = Instruction | Rest],
   State,
@@ -1308,9 +1335,18 @@ find_function(
       BeamFileRecord :: #beam_file_ext{}.
 %% @private
 
+erl_eval_fun_to_asm(Module, Name, Arity, [{_, Bindings, _, _, _, Clauses}])
+  when Bindings =:= [] orelse %% Erlang is using a list for bindings,
+       Bindings =:= #{} ->    %% but Elixir is using a map.
+    %% Erlang starting from 25.
+    erl_eval_fun_to_asm1(Module, Name, Arity, Clauses);
 erl_eval_fun_to_asm(Module, Name, Arity, [{Bindings, _, _, Clauses}])
   when Bindings =:= [] orelse %% Erlang is using a list for bindings,
        Bindings =:= #{} ->    %% but Elixir is using a map.
+    %% Erlang up to 24.
+    erl_eval_fun_to_asm1(Module, Name, Arity, Clauses).
+
+erl_eval_fun_to_asm1(Module, Name, Arity, Clauses) ->
     %% We construct an abstract form based on the `env' of the lambda loaded
     %% by `erl_eval'.
     Anno = erl_anno:from_term(1),
@@ -1345,19 +1381,23 @@ erl_eval_fun_to_asm(Module, Name, Arity, [{Bindings, _, _, Clauses}])
 disassemble_module(Module, #state{checksums = Checksums} = State) ->
     case Checksums of
         #{Module := Checksum} ->
-            {#beam_file_ext{lines = Lines} = BeamFileRecord,
+            {#beam_file_ext{lines = Lines,
+                            strings = Strings} = BeamFileRecord,
              Checksum} = disassemble_module1(Module, Checksum),
 
-            State1 = State#state{lines_in_progress = Lines},
+            State1 = State#state{lines_in_progress = Lines,
+                                 strings_in_progress = Strings},
             {BeamFileRecord, State1};
         _ ->
-            {#beam_file_ext{lines = Lines} = BeamFileRecord,
+            {#beam_file_ext{lines = Lines,
+                            strings = Strings} = BeamFileRecord,
              Checksum} = disassemble_module1(Module, undefined),
             ?assert(is_binary(Checksum)),
 
             Checksums1 = Checksums#{Module => Checksum},
             State1 = State#state{checksums = Checksums1,
-                                 lines_in_progress = Lines},
+                                 lines_in_progress = Lines,
+                                 strings_in_progress = Strings},
             {BeamFileRecord, State1}
     end.
 
@@ -1426,13 +1466,15 @@ do_disassemble(Beam) ->
        compile_info = CompileInfo,
        code = Code} = BeamFileRecord,
     Lines = get_and_decode_line_chunk(Module, Beam),
+    Strings = get_and_decode_string_chunk(Module, Beam),
     BeamFileRecordExt = #beam_file_ext{
                            module = Module,
                            labeled_exports = LabeledExports,
                            attributes = Attributes,
                            compile_info = CompileInfo,
                            code = Code,
-                           lines = Lines},
+                           lines = Lines,
+                           strings = Strings},
     BeamFileRecordExt.
 
 %% The "Line" beam chunk decoding is based on the equivalent C code in ERTS.
@@ -1537,6 +1579,17 @@ decode_line_chunk_names(
 decode_line_chunk_names(<<>>, I, #lines{name_count = NameCount} = Lines)
   when I =:= NameCount ->
     Lines.
+
+get_and_decode_string_chunk(Module, Beam) ->
+    case beam_lib:chunks(Beam, ["StrT"]) of
+        {ok, {Module, [{"StrT", Chunk}]}} ->
+            %% There is nothing to decode: the chunk is made of concatenated
+            %% binaries. The instruction knows the offset inside the chunk and
+            %% the length of the binary to extract.
+            Chunk;
+        _ ->
+            undefined
+    end.
 
 %% See: erts/emulator/beam/beam_file.c, beamreader_read_tagged().
 
@@ -1653,6 +1706,39 @@ decode_field_flags(FieldFlags) when is_integer(FieldFlags) ->
 decode_field_flags({field_flags, FieldFlagsBitField}) ->
     FieldFlags = decode_field_flags(FieldFlagsBitField),
     {field_flags, FieldFlags}.
+
+fix_create_bin_list(
+  [{atom, string} = Type, Seg, Unit, Flags, {u, Offset} = _Val, Size
+   | Args],
+  #state{strings_in_progress = Strings} = State) ->
+    Seg1 = fix_integer(Seg),
+    Unit1 = fix_integer(Unit),
+    Size1 = {integer, Length} = fix_integer(Size),
+    ?assertNotEqual(undefined, Strings),
+    Binary = binary:part(Strings, {Offset, Length}),
+    Val = {string, Binary},
+    [Type, Seg1, Unit1, Flags, Val, Size1 | fix_create_bin_list(Args, State)];
+fix_create_bin_list(
+  [Type, Seg, Unit, Flags, Val, Size
+   | Args],
+  State) ->
+    Seg1 = fix_integer(Seg),
+    Unit1 = fix_integer(Unit),
+    Val1 = fix_integer(Val),
+    Size1 = fix_integer(Size),
+    [Type, Seg1, Unit1, Flags, Val1, Size1 | fix_create_bin_list(Args, State)];
+fix_create_bin_list([], _State) ->
+    [].
+
+fix_integer({u, U}) -> U;
+fix_integer({i, I}) -> {integer, I};
+fix_integer(Other)  -> Other.
+
+fix_type_tagged_beam_register({tr, Reg, {Type, _, _}}) -> {tr, Reg, Type};
+fix_type_tagged_beam_register(Other)                   -> Other.
+
+get_reg_from_type_tagged_beam_register({tr, Reg, _}) -> Reg;
+get_reg_from_type_tagged_beam_register(Reg)          -> Reg.
 
 -spec ensure_instruction_is_permitted(Instruction, State) ->
     State when
@@ -1842,6 +1928,9 @@ pass2_process_instruction(
     replace_label(Instruction, 2, State);
 pass2_process_instruction(
   {bs_append, _, _, _, _, _, _, _, _} = Instruction, State) ->
+    replace_label(Instruction, 2, State);
+pass2_process_instruction(
+  {bs_create_bin, _, _, _, _, _, _} = Instruction, State) ->
     replace_label(Instruction, 2, State);
 pass2_process_instruction(
   {bs_init2, _, _, _, _, _, _} = Instruction, State) ->
