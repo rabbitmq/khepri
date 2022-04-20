@@ -2501,7 +2501,7 @@ eval_keep_while_conditions(
     %% if they should be removed.
     maps:fold(
       fun
-          (RemovedPath, remove, ToRemove) ->
+          (RemovedPath, delete, ToRemove) ->
               maps:fold(
                 fun(Path, Watchers, ToRemove1) ->
                         case lists:prefix(RemovedPath, Path) of

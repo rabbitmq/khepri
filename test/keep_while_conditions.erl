@@ -287,3 +287,30 @@ recursive_automatic_cleanup_test() ->
                                              child_list_version => 1,
                                              child_list_length => 0}}}, Ret),
     ?assertEqual([], SE).
+
+keep_while_now_false_after_delete_command_test() ->
+    KeepWhile = #{[foo] => #if_node_exists{exists = true}},
+    Commands = [#put{path = [foo],
+                     payload = #kpayload_data{data = foo_value}},
+                #put{path = [baz],
+                     payload = #kpayload_data{data = baz_value},
+                     extra = #{keep_while => KeepWhile}}],
+    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               commands => Commands}),
+
+    Command = #delete{path = [foo]},
+    {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
+    Root = khepri_machine:get_root(S1),
+
+    ?assertEqual(
+       #node{
+          stat =
+          #{payload_version => 1,
+            child_list_version => 5},
+          child_nodes = #{}},
+       Root),
+    ?assertEqual({ok, #{[foo] => #{data => foo_value,
+                                   payload_version => 1,
+                                   child_list_version => 1,
+                                   child_list_length => 0}}}, Ret),
+    ?assertEqual([], SE).
