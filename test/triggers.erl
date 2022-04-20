@@ -14,7 +14,7 @@
 -include("test/helpers.hrl").
 
 event_triggers_associated_sproc_test_() ->
-    EventFilter = #kevf_tree{path = [foo]},
+    EventFilter = khepri_evf:tree([foo]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -24,15 +24,14 @@ event_triggers_associated_sproc_test_() ->
        [{"Storing a procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
-              #kpayload_sproc{
-                 sproc = make_sproc(self(), Key)}))},
+              make_sproc(self(), Key)))},
 
         {"Registering a trigger",
          ?_assertEqual(
             ok,
-            khepri_machine:register_trigger(
+            khepri:register_trigger(
               ?FUNCTION_NAME,
               ?FUNCTION_NAME,
               EventFilter,
@@ -41,15 +40,14 @@ event_triggers_associated_sproc_test_() ->
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
-              ?FUNCTION_NAME, [foo], #kpayload_data{data = value}))},
+            khepri:put(?FUNCTION_NAME, [foo], value))},
 
         {"Checking the procedure was executed",
          ?_assertEqual(executed, receive_sproc_msg(Key))}]
       }]}.
 
 event_using_matching_pattern_triggers_associated_sproc_test_() ->
-    EventFilter = #kevf_tree{path = [foo, #if_child_list_length{count = 0}]},
+    EventFilter = khepri_evf:tree([foo, #if_child_list_length{count = 0}]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -59,15 +57,14 @@ event_using_matching_pattern_triggers_associated_sproc_test_() ->
        [{"Storing a procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
-              #kpayload_sproc{
-                 sproc = make_sproc(self(), Key)}))},
+              make_sproc(self(), Key)))},
 
         {"Registering a trigger",
          ?_assertEqual(
             ok,
-            khepri_machine:register_trigger(
+            khepri:register_trigger(
               ?FUNCTION_NAME,
               ?FUNCTION_NAME,
               EventFilter,
@@ -76,16 +73,15 @@ event_using_matching_pattern_triggers_associated_sproc_test_() ->
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
-              ?FUNCTION_NAME, [foo, bar], #kpayload_data{data = value}))},
+            khepri:put(
+              ?FUNCTION_NAME, [foo, bar], value))},
 
         {"Checking the procedure was executed",
          ?_assertEqual(executed, receive_sproc_msg(Key))}]
       }]}.
 
 event_using_non_matching_pattern1_does_not_trigger_associated_sproc_test_() ->
-    EventFilter = #kevf_tree{
-                     path = [?STAR, #if_child_list_length{count = 1}]},
+    EventFilter = khepri_evf:tree([?STAR, #if_child_list_length{count = 1}]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -95,15 +91,14 @@ event_using_non_matching_pattern1_does_not_trigger_associated_sproc_test_() ->
        [{"Storing a procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
-              #kpayload_sproc{
-                 sproc = make_sproc(self(), Key)}))},
+              make_sproc(self(), Key)))},
 
         {"Registering a trigger",
          ?_assertEqual(
             ok,
-            khepri_machine:register_trigger(
+            khepri:register_trigger(
               ?FUNCTION_NAME,
               ?FUNCTION_NAME,
               EventFilter,
@@ -112,15 +107,15 @@ event_using_non_matching_pattern1_does_not_trigger_associated_sproc_test_() ->
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
-              ?FUNCTION_NAME, [foo, bar], #kpayload_data{data = value}))},
+            khepri:put(
+              ?FUNCTION_NAME, [foo, bar], value))},
 
         {"Checking the procedure was executed",
          ?_assertEqual(timeout, receive_sproc_msg(Key))}]
       }]}.
 
 event_using_non_matching_pattern2_does_not_trigger_associated_sproc_test_() ->
-    EventFilter = #kevf_tree{path = [foo]},
+    EventFilter = khepri_evf:tree([foo]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -130,15 +125,14 @@ event_using_non_matching_pattern2_does_not_trigger_associated_sproc_test_() ->
        [{"Storing a procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
-              #kpayload_sproc{
-                 sproc = make_sproc(self(), Key)}))},
+              make_sproc(self(), Key)))},
 
         {"Registering a trigger",
          ?_assertEqual(
             ok,
-            khepri_machine:register_trigger(
+            khepri:register_trigger(
               ?FUNCTION_NAME,
               ?FUNCTION_NAME,
               EventFilter,
@@ -147,15 +141,15 @@ event_using_non_matching_pattern2_does_not_trigger_associated_sproc_test_() ->
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
-              ?FUNCTION_NAME, [foo, bar], #kpayload_data{data = value}))},
+            khepri:put(
+              ?FUNCTION_NAME, [foo, bar], value))},
 
         {"Checking the procedure was executed",
          ?_assertEqual(timeout, receive_sproc_msg(Key))}]
       }]}.
 
 event_using_non_matching_pattern3_does_not_trigger_associated_sproc_test_() ->
-    EventFilter = #kevf_tree{path = [foo, bar]},
+    EventFilter = khepri_evf:tree([foo, bar]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -165,15 +159,14 @@ event_using_non_matching_pattern3_does_not_trigger_associated_sproc_test_() ->
        [{"Storing a procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
-              #kpayload_sproc{
-                 sproc = make_sproc(self(), Key)}))},
+              make_sproc(self(), Key)))},
 
         {"Registering a trigger",
          ?_assertEqual(
             ok,
-            khepri_machine:register_trigger(
+            khepri:register_trigger(
               ?FUNCTION_NAME,
               ?FUNCTION_NAME,
               EventFilter,
@@ -182,15 +175,15 @@ event_using_non_matching_pattern3_does_not_trigger_associated_sproc_test_() ->
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
-              ?FUNCTION_NAME, [foo], #kpayload_data{data = value}))},
+            khepri:put(
+              ?FUNCTION_NAME, [foo], value))},
 
         {"Checking the procedure was executed",
          ?_assertEqual(timeout, receive_sproc_msg(Key))}]
       }]}.
 
 event_does_not_trigger_unassociated_sproc_test_() ->
-    EventFilter = #kevf_tree{path = [foo]},
+    EventFilter = khepri_evf:tree([foo]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -200,15 +193,14 @@ event_does_not_trigger_unassociated_sproc_test_() ->
        [{"Storing a procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
-              #kpayload_sproc{
-                 sproc = make_sproc(self(), Key)}))},
+              make_sproc(self(), Key)))},
 
         {"Registering a trigger",
          ?_assertEqual(
             ok,
-            khepri_machine:register_trigger(
+            khepri:register_trigger(
               ?FUNCTION_NAME,
               ?FUNCTION_NAME,
               EventFilter,
@@ -217,15 +209,15 @@ event_does_not_trigger_unassociated_sproc_test_() ->
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
-              ?FUNCTION_NAME, [bar], #kpayload_data{data = value}))},
+            khepri:put(
+              ?FUNCTION_NAME, [bar], value))},
 
         {"Checking the procedure was executed",
          ?_assertEqual(timeout, receive_sproc_msg(Key))}]
       }]}.
 
 event_does_not_trigger_non_existing_sproc_test_() ->
-    EventFilter = #kevf_tree{path = [foo]},
+    EventFilter = khepri_evf:tree([foo]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -235,15 +227,14 @@ event_does_not_trigger_non_existing_sproc_test_() ->
        [{"Storing a procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, [non_existing | StoredProcPath],
-              #kpayload_sproc{
-                 sproc = make_sproc(self(), Key)}))},
+              make_sproc(self(), Key)))},
 
         {"Registering a trigger",
          ?_assertEqual(
             ok,
-            khepri_machine:register_trigger(
+            khepri:register_trigger(
               ?FUNCTION_NAME,
               ?FUNCTION_NAME,
               EventFilter,
@@ -252,15 +243,15 @@ event_does_not_trigger_non_existing_sproc_test_() ->
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
-              ?FUNCTION_NAME, [bar], #kpayload_data{data = value}))},
+            khepri:put(
+              ?FUNCTION_NAME, [bar], value))},
 
         {"Checking the procedure was executed",
          ?_assertEqual(timeout, receive_sproc_msg(Key))}]
       }]}.
 
 event_does_not_trigger_data_node_test_() ->
-    EventFilter = #kevf_tree{path = [foo]},
+    EventFilter = khepri_evf:tree([foo]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -270,15 +261,14 @@ event_does_not_trigger_data_node_test_() ->
        [{"Storing a procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
-              #kpayload_data{
-                 data = not_an_stored_proc}))},
+              not_an_stored_proc))},
 
         {"Registering a trigger",
          ?_assertEqual(
             ok,
-            khepri_machine:register_trigger(
+            khepri:register_trigger(
               ?FUNCTION_NAME,
               ?FUNCTION_NAME,
               EventFilter,
@@ -287,20 +277,17 @@ event_does_not_trigger_data_node_test_() ->
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
-              ?FUNCTION_NAME, [bar], #kpayload_data{data = value}))},
+            khepri:put(
+              ?FUNCTION_NAME, [bar], value))},
 
         {"Checking the procedure was executed",
          ?_assertEqual(timeout, receive_sproc_msg(Key))}]
       }]}.
 
 filter_on_change_type_test_() ->
-    CreatedEventFilter = #kevf_tree{path = [foo],
-                                    props = #{on_actions => [create]}},
-    UpdatedEventFilter = #kevf_tree{path = [foo],
-                                    props = #{on_actions => [update]}},
-    DeletedEventFilter = #kevf_tree{path = [foo],
-                                    props = #{on_actions => [delete]}},
+    CreatedEventFilter = khepri_evf:tree([foo], #{on_actions => [create]}),
+    UpdatedEventFilter = khepri_evf:tree([foo], #{on_actions => [update]}),
+    DeletedEventFilter = khepri_evf:tree([foo], #{on_actions => [delete]}),
     StoredProcPath = [sproc],
     CreatedKey = {?FUNCTION_NAME, created},
     UpdatedKey = {?FUNCTION_NAME, updated},
@@ -312,31 +299,28 @@ filter_on_change_type_test_() ->
        [{"Storing a procedure for `created` change",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, StoredProcPath ++ [created],
-              #kpayload_sproc{
-                 sproc = make_sproc(self(), CreatedKey)}))},
+              make_sproc(self(), CreatedKey)))},
 
         {"Storing a procedure for `updated` change",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, StoredProcPath ++ [updated],
-              #kpayload_sproc{
-                 sproc = make_sproc(self(), UpdatedKey)}))},
+              make_sproc(self(), UpdatedKey)))},
 
         {"Storing a procedure for `deleted` change",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, StoredProcPath ++ [deleted],
-              #kpayload_sproc{
-                 sproc = make_sproc(self(), DeletedKey)}))},
+              make_sproc(self(), DeletedKey)))},
 
         {"Registering a `created` trigger",
          ?_assertEqual(
             ok,
-            khepri_machine:register_trigger(
+            khepri:register_trigger(
               ?FUNCTION_NAME,
               created,
               CreatedEventFilter,
@@ -345,7 +329,7 @@ filter_on_change_type_test_() ->
         {"Registering a `updated` trigger",
          ?_assertEqual(
             ok,
-            khepri_machine:register_trigger(
+            khepri:register_trigger(
               ?FUNCTION_NAME,
               updated,
               UpdatedEventFilter,
@@ -354,7 +338,7 @@ filter_on_change_type_test_() ->
         {"Registering a `deleted` trigger",
          ?_assertEqual(
             ok,
-            khepri_machine:register_trigger(
+            khepri:register_trigger(
               ?FUNCTION_NAME,
               deleted,
               DeletedEventFilter,
@@ -363,8 +347,8 @@ filter_on_change_type_test_() ->
         {"Creating a node; should trigger the procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
-              ?FUNCTION_NAME, [foo], #kpayload_data{data = value1}))},
+            khepri:put(
+              ?FUNCTION_NAME, [foo], value1))},
 
         {"Checking the `created` procedure was executed",
          ?_assertEqual(executed, receive_sproc_msg(CreatedKey))},
@@ -376,8 +360,8 @@ filter_on_change_type_test_() ->
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
-              ?FUNCTION_NAME, [foo], #kpayload_data{data = value2}))},
+            khepri:put(
+              ?FUNCTION_NAME, [foo], value2))},
 
         {"Checking the `created` procedure was not executed",
          ?_assertEqual(timeout, receive_sproc_msg(CreatedKey))},
@@ -389,7 +373,7 @@ filter_on_change_type_test_() ->
         {"Deleting a node; should trigger the procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:delete(
+            khepri:delete(
               ?FUNCTION_NAME, [foo]))},
 
         {"Checking the `created` procedure was not executed",
@@ -401,7 +385,7 @@ filter_on_change_type_test_() ->
       }]}.
 
 a_buggy_sproc_does_not_crash_state_machine_test_() ->
-    EventFilter = #kevf_tree{path = [foo]},
+    EventFilter = khepri_evf:tree([foo]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -411,23 +395,21 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
        [{"Storing a working procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, StoredProcPath ++ [good],
-              #kpayload_sproc{
-                 sproc = make_sproc(self(), Key)}))},
+              make_sproc(self(), Key)))},
 
         {"Storing a failing procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, StoredProcPath ++ [bad],
-              #kpayload_sproc{
-                 sproc = fun(_Props) -> throw("Expected crash") end}))},
+              fun(_Props) -> throw("Expected crash") end))},
 
         {"Registering trigger 1",
          ?_assertEqual(
             ok,
-            khepri_machine:register_trigger(
+            khepri:register_trigger(
               ?FUNCTION_NAME,
               good,
               EventFilter,
@@ -436,17 +418,16 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
         {"Registering trigger 2",
          ?_assertEqual(
             ok,
-            khepri_machine:register_trigger(
+            khepri:register_trigger(
               ?FUNCTION_NAME,
               bad,
-              EventFilter#kevf_tree{props = #{priority => 10}},
+              khepri_evf:set_priority(EventFilter, 10),
               StoredProcPath ++ [bad]))},
 
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
-              ?FUNCTION_NAME, [foo], #kpayload_data{data = 1}))},
+            khepri:put(?FUNCTION_NAME, [foo], 1))},
 
         {"Checking the procedure was executed",
          ?_assertEqual(executed, receive_sproc_msg(Key))},
@@ -456,8 +437,7 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
             {ok, _},
             begin
                 timer:sleep(2000),
-                khepri_machine:put(
-                  ?FUNCTION_NAME, [foo], #kpayload_data{data = 2})
+                khepri:put(?FUNCTION_NAME, [foo], 2)
             end)},
 
         {"Checking the procedure was executed",
@@ -468,8 +448,7 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
             {ok, _},
             begin
                 timer:sleep(2000),
-                khepri_machine:put(
-                  ?FUNCTION_NAME, [foo], #kpayload_data{data = 3})
+                khepri:put(?FUNCTION_NAME, [foo], 3)
             end)},
 
         {"Checking the procedure was executed",
@@ -480,8 +459,7 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
             {ok, _},
             begin
                 timer:sleep(2000),
-                khepri_machine:put(
-                  ?FUNCTION_NAME, [foo], #kpayload_data{data = 4})
+                khepri:put(?FUNCTION_NAME, [foo], 4)
             end)},
 
         {"Checking the procedure was executed",
@@ -492,8 +470,7 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
             {ok, _},
             begin
                 timer:sleep(2000),
-                khepri_machine:put(
-                  ?FUNCTION_NAME, [foo], #kpayload_data{data = 5})
+                khepri:put(?FUNCTION_NAME, [foo], 5)
             end)},
 
         {"Checking the procedure was executed",
@@ -504,8 +481,7 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
             {ok, _},
             begin
                 timer:sleep(2000),
-                khepri_machine:put(
-                  ?FUNCTION_NAME, [foo], #kpayload_data{data = 6})
+                khepri:put(?FUNCTION_NAME, [foo], 6)
             end)},
 
         {"Checking the procedure was executed",

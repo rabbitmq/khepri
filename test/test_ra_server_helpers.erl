@@ -47,7 +47,7 @@ setup(Testcase) ->
 cleanup(#{ra_system := RaSystem,
           store_dir := StoreDir,
           store_id := StoreId}) ->
-    ServerIds = khepri:members(StoreId),
+    ServerIds = khepri_cluster:members(StoreId),
     _ = application:stop(khepri),
     %% FIXME: This monitoring can go away when/if the following pull request
     %% in Ra is merged:

@@ -18,7 +18,7 @@ create_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
          {ok, #{[foo] => #{data => foo_value,
@@ -32,7 +32,7 @@ create_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertEqual(
          {error,
@@ -52,8 +52,8 @@ insert_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
-         khepri:insert(?FUNCTION_NAME, [foo], foo_value)),
+         {ok, #{[foo] => #{}}},
+         khepri:put(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
          {ok, #{[foo] => #{data => foo_value,
                            payload_version => 1,
@@ -66,11 +66,14 @@ insert_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertEqual(
-         ok,
-         khepri:insert(?FUNCTION_NAME, [foo], foo_value2)),
+         {ok, #{[foo] => #{data => foo_value1,
+                           payload_version => 1,
+                           child_list_version => 1,
+                           child_list_length => 0}}},
+         khepri:put(?FUNCTION_NAME, [foo], foo_value2)),
       ?_assertEqual(
          {ok, #{[foo] => #{data => foo_value2,
                            payload_version => 2,
@@ -98,10 +101,13 @@ update_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{data => foo_value1,
+                           payload_version => 1,
+                           child_list_version => 1,
+                           child_list_length => 0}}},
          khepri:update(?FUNCTION_NAME, [foo], foo_value2)),
       ?_assertEqual(
          {ok, #{[foo] => #{data => foo_value2,
@@ -131,10 +137,13 @@ compare_and_swap_matching_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{data => foo_value1,
+                           payload_version => 1,
+                           child_list_version => 1,
+                           child_list_length => 0}}},
          khepri:compare_and_swap(
            ?FUNCTION_NAME, [foo], foo_value1, foo_value2)),
       ?_assertEqual(
@@ -149,7 +158,7 @@ compare_and_swap_mismatching_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertMatch(
          {error,
@@ -165,12 +174,42 @@ compare_and_swap_mismatching_node_test_() ->
          khepri:compare_and_swap(
            ?FUNCTION_NAME, [foo], foo_value2, foo_value3))]}.
 
+compare_and_swap_with_keep_while_or_options_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, #{[foo] => #{}}},
+         khepri:create(?FUNCTION_NAME, [foo], foo_value1)),
+      ?_assertEqual(
+         {ok, #{[foo] => #{data => foo_value1,
+                           payload_version => 1,
+                           child_list_version => 1,
+                           child_list_length => 0}}},
+         khepri:compare_and_swap(
+           ?FUNCTION_NAME, [foo], foo_value1, foo_value2,
+           #{keep_while => #{}})),
+      ?_assertEqual(
+         {ok, #{[foo] => #{data => foo_value2,
+                           payload_version => 2,
+                           child_list_version => 1,
+                           child_list_length => 0}}},
+         khepri:compare_and_swap(
+           ?FUNCTION_NAME, [foo], foo_value2, foo_value3,
+           #{async => false})),
+      ?_assertEqual(
+         {ok, #{[foo] => #{data => foo_value3,
+                           payload_version => 3,
+                           child_list_version => 1,
+                           child_list_length => 0}}},
+         khepri:get(?FUNCTION_NAME, [foo]))]}.
+
 clear_payload_from_non_existing_node_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{}}},
          khepri:clear_payload(?FUNCTION_NAME, [foo])),
       ?_assertEqual(
          {ok, #{[foo] => #{payload_version => 1,
@@ -183,11 +222,52 @@ clear_payload_from_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{data => foo_value,
+                           payload_version => 1,
+                           child_list_version => 1,
+                           child_list_length => 0}}},
          khepri:clear_payload(?FUNCTION_NAME, [foo])),
+      ?_assertEqual(
+         {ok, #{[foo] => #{payload_version => 2,
+                           child_list_version => 1,
+                           child_list_length => 0}}},
+         khepri:get(?FUNCTION_NAME, [foo]))]}.
+
+clear_payload_with_keep_while_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, #{[foo] => #{}}},
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertEqual(
+         {ok, #{[foo] => #{data => foo_value,
+                           payload_version => 1,
+                           child_list_version => 1,
+                           child_list_length => 0}}},
+         khepri:clear_payload(?FUNCTION_NAME, [foo], #{keep_while => #{}})),
+      ?_assertEqual(
+         {ok, #{[foo] => #{payload_version => 2,
+                           child_list_version => 1,
+                           child_list_length => 0}}},
+         khepri:get(?FUNCTION_NAME, [foo]))]}.
+
+clear_payload_with_options_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, #{[foo] => #{}}},
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertEqual(
+         {ok, #{[foo] => #{data => foo_value,
+                           payload_version => 1,
+                           child_list_version => 1,
+                           child_list_length => 0}}},
+         khepri:clear_payload(?FUNCTION_NAME, [foo], #{async => false})),
       ?_assertEqual(
          {ok, #{[foo] => #{payload_version => 2,
                            child_list_version => 1,

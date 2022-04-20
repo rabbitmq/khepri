@@ -89,10 +89,6 @@ khepri:insert([emails, <<"alice">>], "alice@example.org").
 khepri:insert("/:emails/alice", "alice@example.org").
 ```
 
-The `khepri` module provides the "simple API". It has several functions to
-cover the most common uses. For advanced uses, using the `khepri_machine`
-module directly is preferred.
-
 ### Read data back
 
 To get Alice's email address back, **query** the same path:
@@ -147,9 +143,7 @@ khepri:transaction(
                 %% There is less than 100 pieces of wood, or there is none
                 %% at all (the node does not exist in Khepri). We need to
                 %% request a new order.
-                {ok, _} = khepri_tx:put(
-                            [order, wood],
-                            #kpayload_data{data = 1000}),
+                {ok, _} = khepri_tx:put([order, wood], 1000),
                 true
         end
     end).
@@ -178,18 +172,16 @@ the database itself and automatically execute it after some event occurs.
                 on_action => Action} = Props
           end,
 
-    khepri_machine:put(
-      StoreId,
-      StoredProcPath,
-      #kpayload_sproc{sproc = Fun}))}.
+    khepri:put(StoreId, StoredProcPath, Fun).
     ```
 
 2.  Register a trigger using an event filter:
 
     ```erlang
-    EventFilter = #kevf_tree{path = [stock, wood, <<"oak">>]},
+    %% A path is automatically considered a tree event filter.
+    EventFilter = [stock, wood, <<"oak">>],
 
-    ok = khepri_machine:register_trigger(
+    ok = khepri:register_trigger(
            StoreId,
            TriggerId,
            EventFilter,

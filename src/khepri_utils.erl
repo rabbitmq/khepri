@@ -5,6 +5,8 @@
 %% Copyright (c) 2021-2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
+%% @hidden
+
 -module(khepri_utils).
 
 -include_lib("stdlib/include/assert.hrl").
@@ -21,8 +23,8 @@
 %% khepri:get_root/1 is unexported when compiled without `-DTEST'.
 -dialyzer(no_missing_calls).
 
--spec flat_struct_to_tree(khepri_machine:node_props_map()) ->
-    khepri_machine:node_props().
+-spec flat_struct_to_tree(khepri:node_props_map()) ->
+    khepri:node_props().
 
 flat_struct_to_tree(FlatStruct) ->
     NodeProps = maps:get([], FlatStruct, #{}),
@@ -56,7 +58,7 @@ flat_struct_to_tree([ChildName], NodeProps, Tree) ->
             Tree#{ChildName => NodeProps}
     end.
 
--spec display_tree(khepri_machine:node_props()) -> ok.
+-spec display_tree(khepri:node_props()) -> ok.
 
 display_tree(Tree) ->
     display_tree(Tree, "").

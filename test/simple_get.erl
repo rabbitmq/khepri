@@ -32,7 +32,7 @@ get_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
          {ok, #{[foo] => #{data => foo_value,
@@ -46,10 +46,10 @@ get_many_nodes_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo, bar] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
       ?_assertEqual(
-         ok,
+         {ok, #{[baz] => #{}}},
          khepri:create(?FUNCTION_NAME, [baz], baz_value)),
       ?_assertEqual(
          {ok, #{[] => #{payload_version => 1,
@@ -65,7 +65,9 @@ get_many_nodes_test_() ->
          khepri:get(
            ?FUNCTION_NAME, [?THIS_NODE, #if_name_matches{regex = any}])),
       ?_assertEqual(
-         {error, matches_many_nodes},
+         {error,
+          {possibly_matching_many_nodes_denied,
+           #if_name_matches{regex = any}}},
          khepri:get(
            ?FUNCTION_NAME,
            [?THIS_NODE, #if_name_matches{regex = any}],
@@ -76,23 +78,142 @@ check_node_exists_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assert(khepri:exists(?FUNCTION_NAME, [foo])),
       ?_assertNot(khepri:exists(?FUNCTION_NAME, [bar]))]}.
 
-check_node_has_data_test_() ->
+check_node_has_data_on_non_existing_node_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertNot(khepri:has_data(?FUNCTION_NAME, [foo]))]}.
+
+check_node_has_data_on_existing_node_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo, bar] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
       ?_assertEqual(
-         ok,
+         {ok, #{[baz] => #{}}},
          khepri:create(?FUNCTION_NAME, [baz], baz_value)),
       ?_assertNot(khepri:has_data(?FUNCTION_NAME, [foo])),
       ?_assert(khepri:has_data(?FUNCTION_NAME, [baz]))]}.
+
+check_node_has_sproc_on_non_existing_node_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertNot(khepri:has_sproc(?FUNCTION_NAME, [foo]))]}.
+
+check_node_has_sproc_on_existing_node_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, #{[foo, bar] => #{}}},
+         khepri:create(?FUNCTION_NAME, [foo, bar], fun() -> bar_value end)),
+      ?_assertEqual(
+         {ok, #{[baz] => #{}}},
+         khepri:create(?FUNCTION_NAME, [baz], fun() -> baz_value end)),
+      ?_assertNot(khepri:has_sproc(?FUNCTION_NAME, [foo])),
+      ?_assert(khepri:has_sproc(?FUNCTION_NAME, [baz]))]}.
+
+get_node_props_on_non_existing_node_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertThrow(
+         {error, {node_not_found, #{node_name := foo,
+                                    node_path := [foo],
+                                    node_is_target := true}}},
+         khepri:get_node_props(?FUNCTION_NAME, [foo]))]}.
+
+get_node_props_on_existing_node_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, #{[foo] => #{}}},
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertEqual(
+         #{data => foo_value,
+           payload_version => 1,
+           child_list_version => 1,
+           child_list_length => 0},
+         khepri:get_node_props(?FUNCTION_NAME, [foo]))]}.
+
+get_node_props_on_many_nodes_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, #{[foo, bar] => #{}}},
+         khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
+      ?_assertEqual(
+         {ok, #{[baz] => #{}}},
+         khepri:create(?FUNCTION_NAME, [baz], baz_value)),
+      ?_assertThrow(
+         {error,
+          {possibly_matching_many_nodes_denied,
+           #if_name_matches{regex = any}}},
+         khepri:get_node_props(
+           ?FUNCTION_NAME,
+           [?THIS_NODE, #if_name_matches{regex = any}]))]}.
+
+get_data_on_non_existing_node_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertThrow(
+         {error, {node_not_found, #{node_name := foo,
+                                    node_path := [foo],
+                                    node_is_target := true}}},
+         khepri:get_data(?FUNCTION_NAME, [foo]))]}.
+
+get_data_on_existing_node_with_data_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, #{[foo] => #{}}},
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertEqual(
+         foo_value,
+         khepri:get_data(?FUNCTION_NAME, [foo]))]}.
+
+get_data_on_existing_node_without_data_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, #{[foo] => #{}}},
+         khepri:create(?FUNCTION_NAME, [foo], khepri_payload:none())),
+      ?_assertThrow(
+         {error, {no_data, #{payload_version := 1,
+                             child_list_version := 1,
+                             child_list_length := 0}}},
+         khepri:get_data(?FUNCTION_NAME, [foo]))]}.
+
+get_data_on_many_nodes_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, #{[foo, bar] => #{}}},
+         khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
+      ?_assertEqual(
+         {ok, #{[baz] => #{}}},
+         khepri:create(?FUNCTION_NAME, [baz], baz_value)),
+      ?_assertThrow(
+         {error,
+          {possibly_matching_many_nodes_denied,
+           #if_name_matches{regex = any}}},
+         khepri:get_data(
+           ?FUNCTION_NAME,
+           [?THIS_NODE, #if_name_matches{regex = any}]))]}.
 
 list_non_existing_node_test_() ->
     {setup,
@@ -107,10 +228,10 @@ list_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo, bar] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
       ?_assertEqual(
-         ok,
+         {ok, #{[baz] => #{}}},
          khepri:create(?FUNCTION_NAME, [baz], baz_value)),
       ?_assertEqual(
          {ok, #{[] => #{payload_version => 1,
@@ -138,10 +259,10 @@ find_node_by_name_in_filled_db_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo, bar] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
       ?_assertEqual(
-         ok,
+         {ok, #{[baz] => #{}}},
          khepri:create(?FUNCTION_NAME, [baz], baz_value)),
       ?_assertEqual(
          {ok, #{[foo] => #{payload_version => 1,
@@ -154,10 +275,10 @@ find_node_by_condition_in_filled_db_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo, bar] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
       ?_assertEqual(
-         ok,
+         {ok, #{[baz] => #{}}},
          khepri:create(?FUNCTION_NAME, [baz], baz_value)),
       ?_assertEqual(
          {ok, #{[foo, bar] => #{data => bar_value,
@@ -175,16 +296,16 @@ find_node_starting_from_subnode_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
+         {ok, #{[foo, bar] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
       ?_assertEqual(
-         ok,
+         {ok, #{[foo, bar, baz] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo, bar, baz], baz_value)),
       ?_assertEqual(
-         ok,
+         {ok, #{[foo, bar, qux] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo, bar, qux], qux_value)),
       ?_assertEqual(
-         ok,
+         {ok, #{[baz] => #{}}},
          khepri:create(?FUNCTION_NAME, [baz], baz_value)),
       ?_assertEqual(
          {ok, #{[foo, bar, baz] => #{data => baz_value,

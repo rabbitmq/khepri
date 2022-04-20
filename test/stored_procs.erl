@@ -10,6 +10,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("include/khepri.hrl").
+-include("src/khepri_fun.hrl").
 -include("src/internal.hrl").
 -include("test/helpers.hrl").
 
@@ -22,14 +23,14 @@ execute_valid_sproc_test_() ->
        [{"Storing a procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
-              #kpayload_sproc{sproc = fun() -> return_value end}))},
+              fun() -> return_value end))},
 
         {"Execute the stored procedure",
          ?_assertEqual(
             return_value,
-            khepri_machine:run_sproc(
+            khepri:run_sproc(
               ?FUNCTION_NAME, StoredProcPath, []))}]
       }]}.
 
@@ -47,7 +48,7 @@ execute_nonexisting_sproc_test_() ->
                #{node_name := sproc,
                  node_path := StoredProcPath,
                  node_is_target := true}}}},
-            khepri_machine:run_sproc(
+            khepri:run_sproc(
               ?FUNCTION_NAME, StoredProcPath, []))}]
       }]}.
 
@@ -60,9 +61,9 @@ try_to_execute_data_test_() ->
        [{"Storing a procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
-              #kpayload_data{data = value}))},
+              value))},
 
         {"Execute the stored procedure",
          ?_assertThrow(
@@ -73,7 +74,7 @@ try_to_execute_data_test_() ->
                 payload_version := 1,
                 child_list_version := 1,
                 child_list_length := 0}}},
-            khepri_machine:run_sproc(
+            khepri:run_sproc(
               ?FUNCTION_NAME, StoredProcPath, []))}]
       }]}.
 
@@ -87,14 +88,14 @@ execute_sproc_with_wrong_arity_test_() ->
        [{"Storing a procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
-              #kpayload_sproc{sproc = fun() -> return_value end}))},
+              fun() -> return_value end))},
 
         {"Execute the stored procedure",
          ?_assertExit(
             {badarity, {#standalone_fun{arity = 0}, Args}},
-            khepri_machine:run_sproc(
+            khepri:run_sproc(
               ?FUNCTION_NAME, StoredProcPath, Args))}]
       }]}.
 
@@ -107,14 +108,14 @@ execute_crashing_sproc_test_() ->
        [{"Storing a procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
-              #kpayload_sproc{sproc = fun() -> throw("Expected crash") end}))},
+              fun() -> throw("Expected crash") end))},
 
         {"Execute the stored procedure",
          ?_assertThrow(
             "Expected crash",
-            khepri_machine:run_sproc(
+            khepri:run_sproc(
               ?FUNCTION_NAME, StoredProcPath, []))}]
       }]}.
 
@@ -130,10 +131,9 @@ crashing_sproc_stacktrace_test_() ->
        [{"Storing a procedure",
          ?_assertMatch(
             {ok, _},
-            khepri_machine:put(
+            khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
-              #kpayload_sproc{
-                 sproc = fun mod_used_for_transactions:crashing_fun/0}))},
+              fun mod_used_for_transactions:crashing_fun/0))},
 
         {"Execute the stored procedure",
          ?_assertMatch(
@@ -143,7 +143,7 @@ crashing_sproc_stacktrace_test_() ->
               {stored_procs, _, _, [{file, File2}, {line, _}]}
               | _]},
             try
-                khepri_machine:run_sproc(
+                khepri:run_sproc(
                   ?FUNCTION_NAME, StoredProcPath, [])
             catch
                 Class:Reason:Stacktrace ->

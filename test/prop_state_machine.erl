@@ -12,6 +12,7 @@
 -include_lib("proper/include/proper.hrl").
 
 -include("include/khepri.hrl").
+-include("src/internal.hrl").
 
 -dialyzer([{[no_opaque, no_return],
             [prop_commands_with_simple_paths_work_in_any_order/0]}]).
@@ -50,9 +51,9 @@ initial_state() ->
     #state{}.
 
 command(_State) ->
-    elements([{call, khepri_machine, put, [?STORE_ID, path(), payload()]},
-              {call, khepri_machine, get, [?STORE_ID, path()]},
-              {call, khepri_machine, delete, [?STORE_ID, path()]}]).
+    elements([{call, khepri, put, [?STORE_ID, path(), payload()]},
+              {call, khepri, get, [?STORE_ID, path()]},
+              {call, khepri, delete, [?STORE_ID, path()]}]).
 
 precondition(_State, _Command) ->
     true.
@@ -60,36 +61,36 @@ precondition(_State, _Command) ->
 next_state(
   #state{} = State,
   _Result,
-  {call, khepri_machine, get, [_StoreId, _Path]}) ->
+  {call, khepri, get, [_StoreId, _Path]}) ->
     State;
 next_state(
   #state{entries = Entries} = State,
   _Result,
-  {call, khepri_machine, put, [_StoreId, Path, Payload]}) ->
+  {call, khepri, put, [_StoreId, Path, Payload]}) ->
     Entries1 = add_entry(Entries, Path, Payload),
     State#state{entries = Entries1,
                 old_entries = Entries};
 next_state(
   #state{entries = Entries} = State,
   _Result,
-  {call, khepri_machine, delete, [_StoreId, Path]}) ->
+  {call, khepri, delete, [_StoreId, Path]}) ->
     Entries1 = delete_entry(Entries, Path),
     State#state{entries = Entries1,
                 old_entries = Entries}.
 
 postcondition(
   #state{entries = Entries},
-  {call, khepri_machine, get, [_StoreId, Path]},
+  {call, khepri, get, [_StoreId, Path]},
   Result) ->
     result_is_ok(Result, Entries, Path, {ok, #{}});
 postcondition(
   #state{entries = Entries},
-  {call, khepri_machine, put, [_StoreId, Path, _Payload]},
+  {call, khepri, put, [_StoreId, Path, _Payload]},
   Result) ->
     result_is_ok(Result, Entries, Path, {ok, #{Path => #{}}});
 postcondition(
   #state{entries = Entries},
-  {call, khepri_machine, delete, [_StoreId, Path]},
+  {call, khepri, delete, [_StoreId, Path]},
   Result) ->
     result_is_ok(Result, Entries, Path, {ok, #{}}).
 
@@ -110,19 +111,19 @@ add_entry(Entries, Path, Payload) ->
                             {Entry0, true}
                     end,
     Entry2 = case Payload of
-                 #kpayload_data{data = Data} -> Entry1#{data => Data};
-                 none                        -> maps:remove(data, Entry1)
+                 #p_data{data = Data} -> Entry1#{data => Data};
+                 ?NO_PAYLOAD          -> maps:remove(data, Entry1)
              end,
     Entries1 = Entries#{Path => Entry2},
     add_entry1(Entries1, tl(lists:reverse(Path)), New).
 
-set_node_payload(#{data := Data} = Entry, #kpayload_data{data = Data}) ->
+set_node_payload(#{data := Data} = Entry, #p_data{data = Data}) ->
     Entry;
-set_node_payload(Entry, none) when not is_map_key(data, Entry) ->
+set_node_payload(Entry, ?NO_PAYLOAD) when not is_map_key(data, Entry) ->
     Entry;
-set_node_payload(Entry, #kpayload_data{data = Data}) ->
+set_node_payload(Entry, #p_data{data = Data}) ->
     Entry#{data => Data};
-set_node_payload(Entry, none) ->
+set_node_payload(Entry, ?NO_PAYLOAD) ->
     maps:remove(data, Entry).
 
 add_entry1(Entries, ReversedPath, New) ->
@@ -226,9 +227,9 @@ payload() ->
               data_payload()]).
 
 no_payload() ->
-    none.
+    ?NO_PAYLOAD.
 
 data_payload() ->
     ?LET(Data,
          binary(),
-         #kpayload_data{data = Data}).
+         #p_data{data = Data}).

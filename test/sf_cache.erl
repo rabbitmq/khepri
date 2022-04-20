@@ -10,6 +10,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("include/khepri.hrl").
+-include("src/khepri_fun.hrl").
 -include("src/internal.hrl").
 
 %% FIXME: compile:forms/2 is incorrectly specified and doesn't accept

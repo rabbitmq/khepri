@@ -21,12 +21,12 @@ async_unset_in_put_test_() ->
          begin
              ?assertEqual(
                 {ok, #{[foo] => #{}}},
-                khepri_machine:put(?FUNCTION_NAME, [foo], none)),
+                khepri:put(?FUNCTION_NAME, [foo], ?NO_PAYLOAD)),
              ?assertEqual(
                 {ok, #{[foo] => #{payload_version => 1,
                                   child_list_version => 1,
                                   child_list_length => 0}}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
 
@@ -38,13 +38,13 @@ async_false_in_put_test_() ->
          begin
              ?assertEqual(
                 {ok, #{[foo] => #{}}},
-                khepri_machine:put(
-                  ?FUNCTION_NAME, [foo], none, #{async => false})),
+                khepri:put(
+                  ?FUNCTION_NAME, [foo], ?NO_PAYLOAD, #{async => false})),
              ?assertEqual(
                 {ok, #{[foo] => #{payload_version => 1,
                                   child_list_version => 1,
                                   child_list_length => 0}}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
 
@@ -56,13 +56,13 @@ async_true_in_put_test_() ->
          begin
              ?assertEqual(
                 ok,
-                khepri_machine:put(
-                  ?FUNCTION_NAME, [foo], none, #{async => true})),
+                khepri:put(
+                  ?FUNCTION_NAME, [foo], ?NO_PAYLOAD, #{async => true})),
              lists:foldl(
                fun
                    (_, {ok, Result}) when Result =:= #{} ->
                        timer:sleep(500),
-                       khepri_machine:get(?FUNCTION_NAME, [foo]);
+                       khepri:get(?FUNCTION_NAME, [foo]);
                    (_, Ret) ->
                        Ret
                end, {ok, #{}}, lists:seq(1, 60)),
@@ -70,7 +70,7 @@ async_true_in_put_test_() ->
                 {ok, #{[foo] => #{payload_version => 1,
                                   child_list_version => 1,
                                   child_list_length => 0}}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
 
@@ -83,8 +83,9 @@ async_with_correlation_in_put_test_() ->
              Correlation = 1,
              ?assertEqual(
                 ok,
-                khepri_machine:put(
-                  ?FUNCTION_NAME, [foo], none, #{async => Correlation})),
+                khepri:put(
+                  ?FUNCTION_NAME, [foo], ?NO_PAYLOAD,
+                  #{async => Correlation})),
              Ret = receive
                        {ra_event, _, {applied, [{Correlation, Reply}]}} ->
                            Reply
@@ -96,7 +97,7 @@ async_with_correlation_in_put_test_() ->
                 {ok, #{[foo] => #{payload_version => 1,
                                   child_list_version => 1,
                                   child_list_length => 0}}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
 
@@ -108,13 +109,13 @@ async_with_priority_in_put_test_() ->
          begin
              ?assertEqual(
                 ok,
-                khepri_machine:put(
-                  ?FUNCTION_NAME, [foo], none, #{async => low})),
+                khepri:put(
+                  ?FUNCTION_NAME, [foo], ?NO_PAYLOAD, #{async => low})),
              lists:foldl(
                fun
                    (_, {ok, Result}) when Result =:= #{} ->
                        timer:sleep(500),
-                       khepri_machine:get(?FUNCTION_NAME, [foo]);
+                       khepri:get(?FUNCTION_NAME, [foo]);
                    (_, Ret) ->
                        Ret
                end, {ok, #{}}, lists:seq(1, 60)),
@@ -122,7 +123,7 @@ async_with_priority_in_put_test_() ->
                 {ok, #{[foo] => #{payload_version => 1,
                                   child_list_version => 1,
                                   child_list_length => 0}}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
 
@@ -135,8 +136,8 @@ async_with_correlation_and_priority_in_put_test_() ->
              Correlation = 1,
              ?assertEqual(
                 ok,
-                khepri_machine:put(
-                  ?FUNCTION_NAME, [foo], none,
+                khepri:put(
+                  ?FUNCTION_NAME, [foo], ?NO_PAYLOAD,
                   #{async => {Correlation, low}})),
              Ret = receive
                        {ra_event, _, {applied, [{Correlation, Reply}]}} ->
@@ -149,7 +150,7 @@ async_with_correlation_and_priority_in_put_test_() ->
                 {ok, #{[foo] => #{payload_version => 1,
                                   child_list_version => 1,
                                   child_list_length => 0}}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
 
@@ -161,15 +162,15 @@ async_unset_in_delete_test_() ->
          begin
              ?assertEqual(
                 {ok, #{[foo] => #{}}},
-                khepri_machine:put(?FUNCTION_NAME, [foo], none)),
+                khepri:put(?FUNCTION_NAME, [foo], ?NO_PAYLOAD)),
              ?assertEqual(
                 {ok, #{[foo] => #{payload_version => 1,
                                   child_list_version => 1,
                                   child_list_length => 0}}},
-                khepri_machine:delete(?FUNCTION_NAME, [foo])),
+                khepri:delete(?FUNCTION_NAME, [foo])),
              ?assertEqual(
                 {ok, #{}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
 
@@ -181,16 +182,16 @@ async_false_in_delete_test_() ->
          begin
              ?assertEqual(
                 {ok, #{[foo] => #{}}},
-                khepri_machine:put(?FUNCTION_NAME, [foo], none)),
+                khepri:put(?FUNCTION_NAME, [foo], ?NO_PAYLOAD)),
              ?assertEqual(
                 {ok, #{[foo] => #{payload_version => 1,
                                   child_list_version => 1,
                                   child_list_length => 0}}},
-                khepri_machine:delete(
+                khepri:delete(
                   ?FUNCTION_NAME, [foo], #{async => false})),
              ?assertEqual(
                 {ok, #{}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
 
@@ -202,16 +203,16 @@ async_true_in_delete_test_() ->
          begin
              ?assertEqual(
                 {ok, #{[foo] => #{}}},
-                khepri_machine:put(?FUNCTION_NAME, [foo], none)),
+                khepri:put(?FUNCTION_NAME, [foo], ?NO_PAYLOAD)),
              ?assertEqual(
                 ok,
-                khepri_machine:delete(
+                khepri:delete(
                   ?FUNCTION_NAME, [foo], #{async => true})),
              lists:foldl(
                fun
                    (_, {ok, Result}) when Result =/= #{} ->
                        timer:sleep(500),
-                       khepri_machine:get(?FUNCTION_NAME, [foo]);
+                       khepri:get(?FUNCTION_NAME, [foo]);
                    (_, Ret) ->
                        Ret
                end,
@@ -221,7 +222,7 @@ async_true_in_delete_test_() ->
                lists:seq(1, 60)),
              ?assertEqual(
                 {ok, #{}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
 
@@ -233,11 +234,11 @@ async_with_correlation_in_delete_test_() ->
          begin
              ?assertEqual(
                 {ok, #{[foo] => #{}}},
-                khepri_machine:put(?FUNCTION_NAME, [foo], none)),
+                khepri:put(?FUNCTION_NAME, [foo], ?NO_PAYLOAD)),
              Correlation = 1,
              ?assertEqual(
                 ok,
-                khepri_machine:delete(
+                khepri:delete(
                   ?FUNCTION_NAME, [foo], #{async => Correlation})),
              Ret = receive
                        {ra_event, _, {applied, [{Correlation, Reply}]}} ->
@@ -250,7 +251,7 @@ async_with_correlation_in_delete_test_() ->
                 Ret),
              ?assertEqual(
                 {ok, #{}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
 
@@ -262,16 +263,16 @@ async_with_priority_in_delete_test_() ->
          begin
              ?assertEqual(
                 {ok, #{[foo] => #{}}},
-                khepri_machine:put(?FUNCTION_NAME, [foo], none)),
+                khepri:put(?FUNCTION_NAME, [foo], ?NO_PAYLOAD)),
              ?assertEqual(
                 ok,
-                khepri_machine:delete(
+                khepri:delete(
                   ?FUNCTION_NAME, [foo], #{async => low})),
              lists:foldl(
                fun
                    (_, {ok, Result}) when Result =/= #{} ->
                        timer:sleep(500),
-                       khepri_machine:get(?FUNCTION_NAME, [foo]);
+                       khepri:get(?FUNCTION_NAME, [foo]);
                    (_, Ret) ->
                        Ret
                end,
@@ -281,7 +282,7 @@ async_with_priority_in_delete_test_() ->
                lists:seq(1, 60)),
              ?assertEqual(
                 {ok, #{}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
 
@@ -293,11 +294,11 @@ async_with_correlation_and_priority_in_delete_test_() ->
          begin
              ?assertEqual(
                 {ok, #{[foo] => #{}}},
-                khepri_machine:put(?FUNCTION_NAME, [foo], none)),
+                khepri:put(?FUNCTION_NAME, [foo], ?NO_PAYLOAD)),
              Correlation = 1,
              ?assertEqual(
                 ok,
-                khepri_machine:delete(
+                khepri:delete(
                   ?FUNCTION_NAME, [foo], #{async => {Correlation, low}})),
              Ret = receive
                        {ra_event, _, {applied, [{Correlation, Reply}]}} ->
@@ -310,7 +311,7 @@ async_with_correlation_and_priority_in_delete_test_() ->
                 Ret),
              ?assertEqual(
                 {ok, #{}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
 
@@ -320,15 +321,15 @@ async_unset_in_transaction_test_() ->
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_test(
          begin
-             Fun = fun() -> khepri_tx:put([foo], none) end,
+             Fun = fun() -> khepri_tx:put([foo], ?NO_PAYLOAD) end,
              ?assertEqual(
                 {atomic, {ok, #{[foo] => #{}}}},
-                khepri_machine:transaction(?FUNCTION_NAME, Fun)),
+                khepri:transaction(?FUNCTION_NAME, Fun)),
              ?assertEqual(
                 {ok, #{[foo] => #{payload_version => 1,
                                   child_list_version => 1,
                                   child_list_length => 0}}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
 
@@ -338,16 +339,16 @@ async_false_in_transaction_test_() ->
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_test(
          begin
-             Fun = fun() -> khepri_tx:put([foo], none) end,
+             Fun = fun() -> khepri_tx:put([foo], ?NO_PAYLOAD) end,
              ?assertEqual(
                 {atomic, {ok, #{[foo] => #{}}}},
-                khepri_machine:transaction(
+                khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{async => false})),
              ?assertEqual(
                 {ok, #{[foo] => #{payload_version => 1,
                                   child_list_version => 1,
                                   child_list_length => 0}}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
 
@@ -357,16 +358,16 @@ async_true_in_transaction_test_() ->
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_test(
          begin
-             Fun = fun() -> khepri_tx:put([foo], none) end,
+             Fun = fun() -> khepri_tx:put([foo], ?NO_PAYLOAD) end,
              ?assertEqual(
                 ok,
-                khepri_machine:transaction(
+                khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{async => true})),
              lists:foldl(
                fun
                    (_, {ok, Result}) when Result =:= #{} ->
                        timer:sleep(500),
-                       khepri_machine:get(?FUNCTION_NAME, [foo]);
+                       khepri:get(?FUNCTION_NAME, [foo]);
                    (_, Ret) ->
                        Ret
                end, {ok, #{}}, lists:seq(1, 60)),
@@ -374,7 +375,7 @@ async_true_in_transaction_test_() ->
                 {ok, #{[foo] => #{payload_version => 1,
                                   child_list_version => 1,
                                   child_list_length => 0}}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
 
@@ -384,11 +385,11 @@ async_with_correlation_in_transaction_test_() ->
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_test(
          begin
-             Fun = fun() -> khepri_tx:put([foo], none) end,
+             Fun = fun() -> khepri_tx:put([foo], ?NO_PAYLOAD) end,
              Correlation = 1,
              ?assertEqual(
                 ok,
-                khepri_machine:transaction(
+                khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{async => Correlation})),
              Ret = receive
                        {ra_event, _, {applied, [{Correlation, Reply}]}} ->
@@ -401,7 +402,7 @@ async_with_correlation_in_transaction_test_() ->
                 {ok, #{[foo] => #{payload_version => 1,
                                   child_list_version => 1,
                                   child_list_length => 0}}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
 
@@ -411,16 +412,16 @@ async_with_priority_in_transaction_test_() ->
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_test(
          begin
-             Fun = fun() -> khepri_tx:put([foo], none) end,
+             Fun = fun() -> khepri_tx:put([foo], ?NO_PAYLOAD) end,
              ?assertEqual(
                 ok,
-                khepri_machine:transaction(
+                khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{async => low})),
              lists:foldl(
                fun
                    (_, {ok, Result}) when Result =:= #{} ->
                        timer:sleep(500),
-                       khepri_machine:get(?FUNCTION_NAME, [foo]);
+                       khepri:get(?FUNCTION_NAME, [foo]);
                    (_, Ret) ->
                        Ret
                end, {ok, #{}}, lists:seq(1, 60)),
@@ -428,7 +429,7 @@ async_with_priority_in_transaction_test_() ->
                 {ok, #{[foo] => #{payload_version => 1,
                                   child_list_version => 1,
                                   child_list_length => 0}}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
 
@@ -438,11 +439,11 @@ async_with_correlation_and_priority_in_transaction_test_() ->
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_test(
          begin
-             Fun = fun() -> khepri_tx:put([foo], none) end,
+             Fun = fun() -> khepri_tx:put([foo], ?NO_PAYLOAD) end,
              Correlation = 1,
              ?assertEqual(
                 ok,
-                khepri_machine:transaction(
+                khepri:transaction(
                   ?FUNCTION_NAME, Fun,
                   #{async => {Correlation, low}})),
              Ret = receive
@@ -456,6 +457,6 @@ async_with_correlation_and_priority_in_transaction_test_() ->
                 {ok, #{[foo] => #{payload_version => 1,
                                   child_list_version => 1,
                                   child_list_length => 0}}},
-                khepri_machine:get(?FUNCTION_NAME, [foo]))
+                khepri:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.

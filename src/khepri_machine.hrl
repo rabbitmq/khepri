@@ -15,12 +15,12 @@
 -record(khepri_machine,
         {config = #config{} :: khepri_machine:machine_config(),
          root = #node{stat = ?INIT_NODE_STAT} :: khepri_machine:tree_node(),
-         keep_while_conds = #{} :: khepri_machine:keep_while_conds_map(),
+         keep_while_conds = #{} :: khepri:keep_while_conds_map(),
          keep_while_conds_revidx = #{}
            :: khepri_machine:keep_while_conds_revidx(),
          triggers = #{} ::
-           #{khepri_machine:trigger_id() =>
+           #{khepri:trigger_id() =>
              #{sproc := khepri_path:path(),
-               event_filter := khepri_machine:event_filter()}},
+               event_filter := khepri_evf:event_filter()}},
          emitted_triggers = [] :: [khepri_machine:triggered()],
          metrics = #{} :: #{applied_command_count => non_neg_integer()}}).

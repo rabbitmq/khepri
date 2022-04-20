@@ -44,9 +44,9 @@ Because RabbitMQ already uses an implementation of the Raft consensus algorithm
 for its quorum queues, it was decided to leverage that library for all
 metadata. That's how Khepri was borned.
 
-Thanks to Ra and Raft, it is <strong>clear how Khepri will behave during and
-recover from a network partition</strong>. This makes it more comfortable for
-the RabbitMQ team and users, thanks to the absence of unknowns.
+Thanks to Ra and Raft, it is <strong>clear how Khepri will behave during a
+network partition and recover from it</strong>. This makes it more comfortable
+for the RabbitMQ team and users, thanks to the absence of unknowns.
 
 <blockquote>
 At the time of this writing, RabbitMQ does not use Khepri in a production
@@ -89,29 +89,24 @@ A tree node may or may not have a payload. Khepri supports two types of
 payload, the <em>data payload</em> and the <em>stored procedure payload</em>.
 More payload types may be added in the future.
 
-Payloads are represented using macros or helper functions:
+When passed to {@link khepri:put/2}, the type of the payload is autodetected.
+However if you need to prepare the payload before passing it to Khepri, you can
+use the following functions:
 <ul>
-<li>`none' and {@link khepri:no_payload/0}</li>
-<li>`#kpayload_data{data = Term}' and {@link khepri:data_payload/1}</li>
-<li>`#kpayload_sproc{sproc = Fun}' and {@link khepri:sproc_payload/1}</li>
+<li>{@link khepri_payload:none/0}</li>
+<li>{@link khepri_payload:data/1}</li>
+<li>{@link khepri_payload:sproc/1}</li>
 </ul>
-
-Functions in {@link khepri_machine} have no assumption on the type of the
-payload because they are a low-level API. Therefore, it must be specified
-explicitly using the macros or helper functions mentioned above.
-
-Most functions in {@link khepri}, being a higher-level API, target more
-specific use cases and detect the type of payload.
 
 === Properties ===
 
 Properties are:
 <ul>
 <li>The version of the payload, tracking the number of times it was modified
-({@link khepri_machine:payload_version()}).</li>
+({@link khepri:payload_version()}).</li>
 <li>The version of the list of child nodes, tracking the number of times child
-nodes were added or removed ({@link khepri_machine:child_list_version()}).</li>
-<li>The number of child nodes ({@link khepri_machine:child_list_count()}).</li>
+nodes were added or removed ({@link khepri:child_list_version()}).</li>
+<li>The number of child nodes ({@link khepri:child_list_count()}).</li>
 </ul>
 
 === Addressing a tree node ===
@@ -189,68 +184,45 @@ KeepWhileCondition = #{[stock, wood] => #if_child_list_length{count = {gt, 0}}}.
 `keep_while' conditions on self (like the example above) are not evaluated on
 the first insert though.
 
+== Stores ==
+
+A Khepri store corresponds to one Ra cluster. In fact, the name of the Ra
+cluster is the name of the Khepri store. It is possible to have multiple
+database instances running on the same Erlang node or cluster by starting
+multiple Ra clusters. Note that it is called a "Ra cluster" but it can have a
+single member.
+
+By default, {@link khepri:start/0} starts a default store called `khepri',
+based on Ra's default system. You can start a simple store using {@link
+khepri:start/1}. To configure a cluster, you need to use {@link
+khepri_clustering} to add or remove members.
+
 == Khepri API ==
 
-=== High-level API ===
-
-A high-level API is provided by the {@link khepri} module. It covers most
-common use cases and should be straightforward to use.
+The essential part of the public API is provided by the {@link khepri} module.
+It covers most common use cases and should be straightforward to use.
 
 ```
-khepri:insert([stock, wood, <<"lime tree">>], 150),
+{ok, _} = khepri:put([stock, wood, <<"lime tree">>], 150),
 
 Ret = khepri:get([stock, wood, <<"lime tree">>]),
 {ok, #{[stock, wood, <<"lime tree">>] =>
-       #{child_list_count => 0,
-         child_list_version => 1,
-         data => 150,
-         payload_version => 1}}} = Ret,
+       #{data => 150,
+         payload_version => 1,
+         child_list_count => 0,
+         child_list_version => 1}}} = Ret,
 
 true = khepri:exists([stock, wood, <<"lime tree">>]),
 
-khepri:delete([stock, wood, <<"lime tree">>]).
+{ok, _} = khepri:delete([stock, wood, <<"lime tree">>]).
 '''
 
-=== Low-level API ===
+Inside transaction funtions, {@link khepri_tx} must be used instead of {@link
+khepri}. The former provides the same API, except for functions which don't
+make sense in the context of a transaction function.
 
 The high-level API is built on top of a low-level API. The low-level API is
-provided by the {@link khepri_machine} module.
-
-The low-level API provides just a handful of primitives. More advanced or
-specific use cases may need to rely on that low-level API.
-
-```
-%% Unlike the high-level API's `khepri:insert/2' function, this low-level
-%% insert returns whatever it replaced (if anything). In this case, there was
-%% nothing before, so the returned value is empty.
-Ret1 = khepri_machine:put(
-         StoreId, [stock, wood, <<"lime tree">>],
-         #kpayload_data{data = 150}),
-{ok, #{}} = Ret1,
-
-Ret2 = khepri_machine:get(StoreId, [stock, wood, <<"lime tree">>]),
-{ok, #{[stock, wood, <<"lime tree">>] =>
-       #{child_list_count => 0,
-         child_list_version => 1,
-         data => 150,
-         payload_version => 1}}} = Ret2,
-
-%% Unlike the high-level API's `khepri:delete/2' function, this low-level
-%% delete returns whatever it deleted.
-Ret3 = khepri_machine:delete(StoreId, [stock, wood, <<"lime tree">>]),
-{ok, #{[stock, wood, <<"lime tree">>] =>
-       #{child_list_count => 0,
-         child_list_version => 1,
-         data => 150,
-         payload_version => 1}}} = Ret3.
-'''
-
-=== Stores ===
-
-It is possible to have multiple database instances running on the same Erlang
-node or cluster.
-
-By default, Khepri starts a default store, based on Ra's default system.
+provided by the private {@link khepri_machine} module.
 
 == Transactions ==
 
@@ -273,8 +245,7 @@ next section need to be taken into account.</li>
 </ul>
 
 The nature of the anonymous function is passed as the `ReadWrite' argument to
-{@link khepri:transaction/3} or {@link khepri_machine:transaction/3}
-functions.
+{@link khepri:transaction/3}.
 
 === The constraints imposed by Raft ===
 
@@ -344,9 +315,9 @@ outside of the changes to the tree nodes.
 If the transaction needs to have side effects, there are two options:
 <ul>
 <li>Perform any side effects after the transaction.</li>
-<li>Use {@link khepri_machine:put/3} with {@link
-khepri_condition:if_payload_version()} conditions in the path and retry if the
-put fails because the version changed in between.</li>
+<li>Use {@link khepri:put/3} with {@link khepri_condition:if_payload_version()}
+conditions in the path and retry if the put fails because the version changed
+in between.</li>
 </ul>
 
 Here is an example of the second option:
@@ -355,7 +326,7 @@ Here is an example of the second option:
 Path = [stock, wood, <<"lime tree">>],
 {ok, #{Path := #{data = Term,
                  payload_version = PayloadVersion}}} =
-  khepri_machine:get(StoredId, Path),
+  khepri:get(StoredId, Path),
 
 %% Do anything with `Term` that depend on external factors and could have side
 %% effects.
@@ -367,8 +338,7 @@ PathPattern = [stock,
                  conditions = [
                    <<"lime tree">>,
                    #if_payload_version{version = PayloadVersion}]}],
-Payload = #kpayload_data{data = Term1},
-case khepri_machine:put(StoredId, PathPattern, Payload) of
+case khepri:put(StoredId, PathPattern, Term1) of
     {ok, _} ->
         ok; %% `Term1` was stored successfully.
     {error, {mismatching_node, _}} ->
@@ -399,14 +369,13 @@ The indicated stored procedure must have been stored in the tree first.
 
 === Storing an anonymous function ===
 
-This is possible to store an anonymous function as the payload of a tree node
-using the {@link khepri_machine:payload_sproc()} record:
+This is possible to store an anonymous function as the payload of a tree node:
 
 ```
-khepri_machine:put(
+khepri:put(
   StoreId,
   StoredProcPath,
-  #kpayload_sproc{sproc = fun() -> do_something() end}))}.
+  fun() -> do_something() end).
 '''
 
 The `StoredProcPath' can be <a href="#Addressing_a_tree_node">any path in the
@@ -420,40 +389,47 @@ A stored procedure can accept any numbers of arguments too.
 
 It is possible to execute a stored procedure directly without configuring any
 triggers. To execute a stored procedure, you can call {@link
-khepri_machine:run_sproc/3}. Here is an example:
+khepri:run_sproc/3}. Here is an example:
 
 ```
-Ret = khepri_machine:run_sproc(
+Ret = khepri:run_sproc(
         StoreId,
         StoredProcPath,
         [] = _Args).
 '''
 
 This works exactly like {@link erlang:apply/2}. The list of arguments passed
-to {@link khepri_machine:run_sproc/3} must correspond to the stored procedure
+to {@link khepri:run_sproc/3} must correspond to the stored procedure
 arity.
 
 === Configuring a trigger ===
 
 Khepri uses <em>event filters</em> to associate a type of events with a stored
 procedure. Khepri supports tree changes events and thus only supports a single
-event filter called {@link khepri_machine:event_filter_tree()}.
+event filter called {@link khepri_evf:tree_event_filter()}.
 
-An event filter is registered using {@link khepri_machine:register_trigger/4}:
+An event filter is registered using {@link khepri:register_trigger/4}:
 
 ```
-EventFilter = #kevf_tree{path = [stock, wood, <<"oak">>],  %% Required
-                         props = #{on_actions => [delete], %% Optional
-                                   priority => 10}},       %% Optional
+%% An event filter can be explicitly created using the `khepri_evf'
+%% module. This is possible to specify properties at the same time.
+EventFilter = khepri_evf:tree([stock, wood, <<"oak">>], %% Required
+                              #{on_actions => [delete], %% Optional
+                                priority => 10}),       %% Optional
 
-ok = khepri_machine:register_trigger(
+%% For ease of use, some terms can be automatically converted to an event %
+%filter. Here, a Unix-like path could be used as a tree event % filter, though
+%it would have default properties unlike the previous line:
+EventFilter = "/:stock/:wood/oak".
+
+ok = khepri:register_trigger(
        StoreId,
        TriggerId,
        EventFilter,
        StoredProcPath))}.
 '''
 
-In this example, the {@link khepri_machine:event_filter_tree()} record only
+In this example, the {@link khepri_evf:tree_event_filter()} structure only
 requires the path to monitor. The path can be any path pattern and thus can
 have conditions to monitor several nodes at once.
 

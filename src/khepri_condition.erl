@@ -340,7 +340,7 @@ applies_to_grandchildren(_) ->
 -spec is_met(Condition, PathOrChildName, Child) -> IsMet when
       Condition :: khepri_path:pattern_component(),
       PathOrChildName :: khepri_path:path() | khepri_path:component(),
-      Child :: khepri_machine:tree_node() | khepri_machine:node_props(),
+      Child :: khepri_machine:tree_node() | khepri:node_props(),
       IsMet :: true | IsNotMet1 | IsNotMet2,
       IsNotMet1 :: {false, khepri_path:pattern_component()},
       IsNotMet2 :: {false, {condition(), any()}}.
@@ -385,17 +385,17 @@ is_met(
   _Child) ->
     eval_regex(Cond, SourceRegex, CompiledRegex, ChildName);
 is_met(#if_has_data{has_data = true},
-       _ChildName, #node{payload = #kpayload_data{data = _}}) ->
+       _ChildName, #node{payload = #p_data{data = _}}) ->
     true;
 is_met(#if_has_data{has_data = false} = Cond,
-       _ChildName, #node{payload = #kpayload_data{data = _}}) ->
+       _ChildName, #node{payload = #p_data{data = _}}) ->
     {false, Cond};
 is_met(#if_has_data{has_data = true} = Cond, _ChildName, _Child) ->
     {false, Cond};
 is_met(#if_has_data{has_data = false}, _ChildName, _Child) ->
     true;
 is_met(#if_data_matches{compiled = CompMatchSpec} = Cond,
-       _ChildName, #node{payload = #kpayload_data{data = Data}}) ->
+       _ChildName, #node{payload = #p_data{data = Data}}) ->
     case term_matches(Data, CompMatchSpec) of
         true  -> true;
         false -> {false, Cond}
@@ -454,7 +454,7 @@ is_met(Cond, _, _) ->
     {false, Cond}.
 
 -spec term_matches(Term, MatchSpec) -> Matches when
-      Term :: khepri_machine:data(),
+      Term :: khepri:data(),
       MatchSpec :: ets:comp_match_spec(),
       Matches :: boolean().
 %% @doc Returns true if the given match spec matches the given match term.

@@ -22,7 +22,7 @@ stop(_) ->
     lists:foreach(
       fun(StoreId) -> khepri_machine:clear_cache(StoreId) end,
       StoreIds),
-    khepri:forget_store_ids(),
+    khepri_cluster:forget_store_ids(),
     ok.
 
 config_change(_Changed, _New, _Removed) ->
