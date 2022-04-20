@@ -73,10 +73,10 @@
 <hr>
 
 <h1>Module khepri_fun</h1>
-<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Anonymous function extraction API.
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Anonymous function extraction private API.
 
 
-<h2><a name="description">Description</a></h2><p>Anonymous function extraction API.</p>
+<h2><a name="description">Description</a></h2><p>Anonymous function extraction private API.</p>
  
   <p>This module is responsible for extracting the code of an anonymous function.  
 The goal is to be able to store the extracted function and execute it later,  
@@ -117,10 +117,14 @@ to older runtimes.</p>
  
   <p>This kind of lambdas becomes a local function in the <code>erl_eval</code> module.</p>
  
-  Their assembly code isn't available in the <code>erl_eval</code> module. However, the
+  <p>Their assembly code isn't available in the <code>erl_eval</code> module. However, the
   abstract code (i.e. after parsing but before compilation) is available in
-  the <code>env</code>. We compile that abstract code and extract the assembly from that
-  compiled beam.
+  the <code>env</code>. We compile that abstract code and extract the assembly from that  
+compiled beam.</p>
+ 
+  This module is private. The documentation is still visible because it may
+  help understand some implementation details. However, this module should
+  never be called directly outside of Khepri.
 <h2><a name="types">Data Types</a></h2>
 
 <h3 class="typedecl"><a name="type-beam_instr">beam_instr()</a></h3>

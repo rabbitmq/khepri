@@ -1,0 +1,263 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Module khepri_cluster</title>
+<link rel="stylesheet" type="text/css" href="github-markdown.css" title="EDoc">
+<link href="prism.css" rel="stylesheet" /><style>
+    body {
+      box-sizing: border-box;
+      min-width: 200px;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 45px;
+    }
+    @media (max-width: 767px) {
+      body {
+        padding: 15px;
+      }
+    }
+    /* Don't apply the table style to the top-level navigation bar. */
+    .navbar table {
+      display: table;
+      width: 100%;
+    }
+    .navbar table tr,
+    .navbar table th,
+    .navbar table td {
+      border: 0;
+    }
+    /* Keep the same font side inside code blocks than everywhere else. */
+    .markdown-body pre code,
+    code[class*="language-"] {
+      font-size: 85%;
+    }
+    /* Force the color for link on code blocks used for @see tags.  */
+    .markdown-body a code,
+    .markdown-body a code span.token {
+      color: var(--color-accent-fg);
+    }
+    /* Copy the style of code blocks. */
+    .markdown-body .spec {
+      background: #f5f2f0;
+      padding: 1em;
+      margin: .5em 0;
+      overflow: auto;
+      border-radius: 6px;
+    }
+    /* Improve margins inside function spec blocks so that:
+        - empty paragraphs don't add useless margins
+        - the final top and bottom margins are equal */
+    .markdown-body .spec p,
+    .markdown-body .spec ul {
+      margin-top: 16px;
+      margin-bottom: 0;
+    }
+    .markdown-body .spec p:first-child,
+    .markdown-body .spec p:empty {
+      margin-top: 0;
+    }
+    /* Put the function prototype in bold characters. */
+    .markdown-body .spec > p > code:first-child {
+      font-weight: bold;
+    }
+    /* Add some margin below the module short description between the table
+       of contents in the Description section. This text isn't in a
+       <p></p>. */
+    .index + p {
+      margin-top: 16px;
+    }
+    </style></head>
+<body class="markdown-body language-erlang"><script src="prism.js"></script>
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module khepri_cluster</h1>
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Khepri service and cluster management API.
+
+
+<h2><a name="description">Description</a></h2><p>Khepri service and cluster management API.</p>
+ 
+  <p>This module provides the public API for the service and cluster management.
+  For convenience, some functions of this API are repeated in the <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> module.</p>
+ 
+  <h3><a name="Starting_a_Ra_system">Starting a Ra system</a></h3>
+ 
+  <p>The default store is based on Ra's default system. You need to change the  
+Ra application configuration if you want to set settings. That said, it is  
+recommended to start your own Ra system. This way, even though Ra is  
+already running, you can choose where the Khepri data should be stored.  
+This is also required if you need to run multiple database instances in  
+parallel.</p>
+ 
+  <p>Here is a quick start example:</p>
+ 
+  <pre><code>%% We start Khepri. Ra is also started because Khepri depends on it.
+{ok, _} = application:ensure_all_started(khepri),
+ 
+%% We define the configuration of the Ra system for our database. Here, we
+%% only care about the directory where data will be written.
+RaSystem = my_ra_system,
+RaSystemDataDir = "/path/to/storage/dir",
+DefaultSystemConfig = ra_system:default_config(),
+RaSystemConfig = DefaultSystemConfig#{name =&gt; RaSystem,
+                                      data_dir =&gt; RaSystemDataDir,
+                                      wal_data_dir =&gt; RaSystemDataDir,
+                                      names =&gt; ra_system:derive_names(
+                                                 RaSystem)},
+ 
+%% The configuration is ready, let's start the Ra system.
+{ok, _RaSystemPid} = ra_system:start(RaSystemConfig),
+ 
+%% At last we can start Khepri! We need to choose a name for the Ra cluster
+%% running in the Ra system started above. This must be an atom.
+RaClusterName = my_khepri_db,
+RaClusterFriendlyName = "My Khepri DB",
+{ok, StoreId} = khepri:start(
+                  RaSystem,
+                  RaClusterName,
+                  RaClusterFriendlyName),
+ 
+%% The Ra cluster name is our &lt;em&gt;store ID&lt;/em&gt; used everywhere in the
+Khepri API.
+khepri:insert(StoreId, [stock, wood], 156).</code></pre>
+ 
+  <p>Please refer to <a href="https://github.com/rabbitmq/ra">Ra
+  documentation</a> to learn more about Ra systems and Ra clusters.</p>
+ 
+  <h3><a name="Managing_Ra_cluster_members">Managing Ra cluster members</a></h3>
+ 
+  <p>To add a member to your Ra cluster:</p>
+ 
+  <pre><code>khepri_cluster:add_member(
+  RaSystem,
+  RaClusterName,
+  RaClusterFriendlyName,
+  NewMemberErlangNodename).</code></pre>
+ 
+  <p>To remove a member from your Ra cluster:</p>
+ 
+  <pre><code>khepri_cluster:remove_member(
+  RaClusterName,
+  MemberErlangNodenameToRemove).</code></pre>
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#start-0">start/0</a></td><td>Starts a store on the default Ra system.</td></tr>
+<tr><td valign="top"><a href="#start-1">start/1</a></td><td>Starts a store on the specified Ra system.</td></tr>
+<tr><td valign="top"><a href="#start-3">start/3</a></td><td>Starts a store on the specified Ra system.</td></tr>
+<tr><td valign="top"><a href="#add_member-2">add_member/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#add_member-4">add_member/4</a></td><td></td></tr>
+<tr><td valign="top"><a href="#remove_member-1">remove_member/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#remove_member-2">remove_member/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#reset-2">reset/2</a></td><td>Resets the store on this Erlang node.</td></tr>
+<tr><td valign="top"><a href="#members-1">members/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#locally_known_members-1">locally_known_members/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#nodes-1">nodes/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#locally_known_nodes-1">locally_known_nodes/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_store_ids-0">get_store_ids/0</a></td><td>Returns the list of running stores.</td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="start-0">start/0</a></h3>
+<div class="spec">
+<p><code>start() -&gt; Ret</code>
+<ul class="definitions"><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(StoreId) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Starts a store on the default Ra system.</p>
+ 
+  The store uses the default Ra cluster name and cluster friendly name.</p>
+
+<h3 class="function"><a name="start-1">start/1</a></h3>
+<div class="spec">
+<p><code>start(RaSystem) -&gt; Ret</code>
+<ul class="definitions"><li><code>RaSystem = atom()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(StoreId) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li></ul></p>
+<p><code>RaSystem</code>: the name of the Ra system.<br>
+</p>
+</div><p><p>Starts a store on the specified Ra system.</p>
+ 
+  The store uses the default Ra cluster name and cluster friendly name.
+ </p>
+
+<h3 class="function"><a name="start-3">start/3</a></h3>
+<div class="spec">
+<p><code>start(RaSystem, ClusterName, FriendlyName) -&gt; Ret</code>
+<ul class="definitions"><li><code>RaSystem = atom()</code></li><li><code>ClusterName = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-cluster_name">ra:cluster_name()</a></code></li><li><code>FriendlyName = string()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(StoreId) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li></ul></p>
+<p><code>RaSystem</code>: the name of the Ra system.<br>
+<code>ClusterName</code>: the name of the Ra cluster.<br>
+<code>FriendlyName</code>: the friendly name of the Ra cluster.<br>
+</p>
+</div><p>Starts a store on the specified Ra system.
+ </p>
+
+<h3 class="function"><a name="add_member-2">add_member/2</a></h3>
+<div class="spec">
+<p><code>add_member(RaSystem, NewNode) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="add_member-4">add_member/4</a></h3>
+<div class="spec">
+<p><code>add_member(RaSystem, ClusterName, FriendlyName, NewNode) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="remove_member-1">remove_member/1</a></h3>
+<div class="spec">
+<p><code>remove_member(NodeToRemove) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="remove_member-2">remove_member/2</a></h3>
+<div class="spec">
+<p><code>remove_member(ClusterName, NodeToRemove) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="reset-2">reset/2</a></h3>
+<div class="spec">
+<p><code>reset(RaSystem, ClusterName) -&gt; Ret</code>
+<ul class="definitions"><li><code>RaSystem = atom()</code></li><li><code>ClusterName = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-cluster_name">ra:cluster_name()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a> | {badrpc, any()}</code></li></ul></p>
+<p><code>RaSystem</code>: the name of the Ra system.<br>
+<code>ClusterName</code>: the name of the Ra cluster.<br>
+</p>
+</div><p><p>Resets the store on this Erlang node.</p>
+ 
+  It does that by force-deleting the Ra local server.
+ </p>
+
+<h3 class="function"><a name="members-1">members/1</a></h3>
+<div class="spec">
+<p><code>members(ClusterName) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="locally_known_members-1">locally_known_members/1</a></h3>
+<div class="spec">
+<p><code>locally_known_members(ClusterName) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="nodes-1">nodes/1</a></h3>
+<div class="spec">
+<p><code>nodes(ClusterName) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="locally_known_nodes-1">locally_known_nodes/1</a></h3>
+<div class="spec">
+<p><code>locally_known_nodes(ClusterName) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="get_store_ids-0">get_store_ids/0</a></h3>
+<div class="spec">
+<p><code>get_store_ids() -&gt; [StoreId]</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li></ul></p>
+<p></p>
+</div><p>Returns the list of running stores.</p>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc</i></p>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Module khepri_payload</title>
+<link rel="stylesheet" type="text/css" href="github-markdown.css" title="EDoc">
+<link href="prism.css" rel="stylesheet" /><style>
+    body {
+      box-sizing: border-box;
+      min-width: 200px;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 45px;
+    }
+    @media (max-width: 767px) {
+      body {
+        padding: 15px;
+      }
+    }
+    /* Don't apply the table style to the top-level navigation bar. */
+    .navbar table {
+      display: table;
+      width: 100%;
+    }
+    .navbar table tr,
+    .navbar table th,
+    .navbar table td {
+      border: 0;
+    }
+    /* Keep the same font side inside code blocks than everywhere else. */
+    .markdown-body pre code,
+    code[class*="language-"] {
+      font-size: 85%;
+    }
+    /* Force the color for link on code blocks used for @see tags.  */
+    .markdown-body a code,
+    .markdown-body a code span.token {
+      color: var(--color-accent-fg);
+    }
+    /* Copy the style of code blocks. */
+    .markdown-body .spec {
+      background: #f5f2f0;
+      padding: 1em;
+      margin: .5em 0;
+      overflow: auto;
+      border-radius: 6px;
+    }
+    /* Improve margins inside function spec blocks so that:
+        - empty paragraphs don't add useless margins
+        - the final top and bottom margins are equal */
+    .markdown-body .spec p,
+    .markdown-body .spec ul {
+      margin-top: 16px;
+      margin-bottom: 0;
+    }
+    .markdown-body .spec p:first-child,
+    .markdown-body .spec p:empty {
+      margin-top: 0;
+    }
+    /* Put the function prototype in bold characters. */
+    .markdown-body .spec > p > code:first-child {
+      font-weight: bold;
+    }
+    /* Add some margin below the module short description between the table
+       of contents in the Description section. This text isn't in a
+       <p></p>. */
+    .index + p {
+      margin-top: 16px;
+    }
+    </style></head>
+<body class="markdown-body language-erlang"><script src="prism.js"></script>
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module khepri_payload</h1>
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Khepri payloads.
+
+
+<h2><a name="description">Description</a></h2><p>Khepri payloads.</p>
+ 
+  Payloads are the structure used to attach something to a tree node in the
+  store. Khepri supports the following payloads:
+  <ul>
+  <li>No payload at all (<a docgen-rel="seetype" docgen-href="#no_payload/0" href="#type-no_payload"><code>no_payload()</code></a></li>
+  <li>Data payload used to store any Erlang term (<a docgen-rel="seetype" docgen-href="#data/0" href="#type-data"><code>data()</code></a>)</li>
+  <li>Stored procedure payload used to store functions (<a docgen-rel="seetype" docgen-href="#sproc/0" href="#type-sproc"><code>sproc()</code></a>)</li>
+  </ul>
+ 
+  Usually, there is no need to explicitly use this module as the type of
+  payload will be autodetected, thanks to the <a docgen-rel="seemfa" docgen-href="#wrap/1" href="#wrap-1"><code>wrap/1</code></a> function already
+  called internally.
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-data">data()</a></h3>
+<p><code>data() = #p_data{data = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a>}</code></p>
+<p><p>  Internal structure to wrap any Erlang term before it can be stored in a  
+tree node.</p>
+ 
+  The only constraint is the conversion to an Erlang binary must be supported
+  by this term.</p>
+
+<h3 class="typedecl"><a name="type-no_payload">no_payload()</a></h3>
+<p><code>no_payload() = '$__NO_PAYLOAD__'</code></p>
+<p>  Internal value used to mark that a tree node has no payload attached.</p>
+
+<h3 class="typedecl"><a name="type-payload">payload()</a></h3>
+<p><code>payload() = <a href="#type-no_payload">no_payload()</a> | <a href="#type-data">data()</a> | <a href="#type-sproc">sproc()</a></code></p>
+<p><p>  All types of payload stored in the nodes of the tree structure.</p>
+ 
+  Beside the absence of payload, the only type of payload supported is data.</p>
+
+<h3 class="typedecl"><a name="type-sproc">sproc()</a></h3>
+<p><code>sproc() = #p_sproc{sproc = <a href="/home/runner/work/khepri/khepri/doc/khepri_fun.html#type-standalone_fun">khepri_fun:standalone_fun()</a>}</code></p>
+<p>  Internal structure to wrap an anonymous function before it can be stored in
+  a tree node and later executed.</p>
+
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#none-0">none/0</a></td><td>Returns the internal value used to mark that a tree node has no
+  payload attached.</td></tr>
+<tr><td valign="top"><a href="#data-1">data/1</a></td><td>Returns the same term wrapped into an internal structure ready to be
+  stored in the tree.</td></tr>
+<tr><td valign="top"><a href="#sproc-1">sproc/1</a></td><td>Returns the same function wrapped into an internal structure ready to
+  be stored in the tree.</td></tr>
+<tr><td valign="top"><a href="#wrap-1">wrap/1</a></td><td>Automatically detects the payload type and ensures it is wrapped in  
+one of the internal types.</td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="none-0">none/0</a></h3>
+<div class="spec">
+<p><code>none() -&gt; <a href="#type-no_payload">no_payload()</a></code><br></p>
+<p></p>
+</div><p>Returns the internal value used to mark that a tree node has no
+  payload attached.
+ </p>
+<p><b>See also:</b> <a href="#type-no_payload">no_payload()</a>.</p>
+
+<h3 class="function"><a name="data-1">data/1</a></h3>
+<div class="spec">
+<p><code>data(Term) -&gt; Payload</code>
+<ul class="definitions"><li><code>Term = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Payload = <a href="#type-data">data()</a></code></li></ul></p>
+<p></p>
+</div><p>Returns the same term wrapped into an internal structure ready to be
+  stored in the tree.
+ </p>
+<p><b>See also:</b> <a href="#type-data">data()</a>.</p>
+
+<h3 class="function"><a name="sproc-1">sproc/1</a></h3>
+<div class="spec">
+<p><code>sproc(Fun) -&gt; Payload</code>
+<ul class="definitions"><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_fun.html#type-standalone_fun">khepri_fun:standalone_fun()</a> | function()</code></li><li><code>Payload = <a href="#type-sproc">sproc()</a></code></li></ul></p>
+<p></p>
+</div><p>Returns the same function wrapped into an internal structure ready to
+  be stored in the tree.
+ </p>
+<p><b>See also:</b> <a href="#type-sproc">sproc()</a>.</p>
+
+<h3 class="function"><a name="wrap-1">wrap/1</a></h3>
+<div class="spec">
+<p><code>wrap(Payload) -&gt; WrappedPayload</code>
+<ul class="definitions"><li><code>Payload = <a href="#type-payload">payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>WrappedPayload = <a href="#type-payload">payload()</a></code></li></ul></p>
+<p><code>Payload</code>: an already wrapped payload, or any term which needs to be
+         wrapped.
+ <br>
+</p>
+<p>returns: the wrapped payload.</p>
+</div><p><p>Automatically detects the payload type and ensures it is wrapped in  
+one of the internal types.</p>
+ 
+  The internal types make sure we avoid any collision between any
+  user-provided terms and internal structures.
+ </p>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc</i></p>
+</body>
+</html>
