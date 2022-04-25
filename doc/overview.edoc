@@ -195,7 +195,7 @@ single member.
 By default, {@link khepri:start/0} starts a default store called `khepri',
 based on Ra's default system. You can start a simple store using {@link
 khepri:start/1}. To configure a cluster, you need to use {@link
-khepri_clustering} to add or remove members.
+khepri_cluster} to add or remove members.
 
 == Khepri API ==
 
