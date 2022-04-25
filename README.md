@@ -103,6 +103,10 @@ Ret = khepri:get("/:emails/alice"),
          data => "alice@example.org",
          payload_version => 1}}} = Ret.
 ```
+```erlang
+%% Get the data directly, providing a default value if there is no data:
+"alice@example.org" = khepri:get_data_or("/:emails/alice", undefined).
+```
 
 The `khepri:get/0` function and many other ones accept a "path pattern".
 Therefore it is possible to get several nodes in a single call. The result is a
