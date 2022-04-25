@@ -113,10 +113,8 @@ display_node_branch(Key, false, Prefix, _Options) ->
 display_node_branch(Key, true, Prefix, _Options) ->
     io:format("~ts╰── ~ts~n", [Prefix, format_key(Key)]).
 
-format_key(Key) when is_atom(Key) ->
-    io_lib:format("~ts", [Key]);
-format_key(Key) when is_binary(Key) ->
-    io_lib:format("<<~ts>>", [Key]).
+format_key(Key) ->
+    io_lib:format("~0p", [Key]).
 
 display_data(Data, Prefix, Options) ->
     Formatted = format_data(Data, Options),

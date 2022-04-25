@@ -624,7 +624,7 @@ display_tree_with_binary_key_test() ->
        "├── bar\n"
        "│     \033[38;5;246mData: bar_value\033[0m\n"
        "│\n"
-       "╰── <<foo>>\n"
+       "╰── <<\"foo\">>\n"
        "      \033[38;5;246mData: foo_value\033[0m\n"
        "\n",
        ?capturedOutput),
@@ -649,7 +649,7 @@ display_tree_with_similar_atom_and_binary_keys_test() ->
        "├── foo\n"
        "│     \033[38;5;246mData: foo_atom\033[0m\n"
        "│\n"
-       "╰── <<foo>>\n"
+       "╰── <<\"foo\">>\n"
        "      \033[38;5;246mData: foo_binary\033[0m\n"
        "\n",
        ?capturedOutput),

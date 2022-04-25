@@ -78,8 +78,8 @@ get_store_info_on_running_store_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{[foo, bar] => #{}}},
-         khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
+         {ok, #{[foo, <<"bar">>] => #{}}},
+         khepri:create(?FUNCTION_NAME, [foo, <<"bar">>], bar_value)),
       ?_assertEqual(
          {ok, #{[baz] => #{}}},
          khepri:create(?FUNCTION_NAME, [baz], baz_value)),
@@ -96,7 +96,7 @@ get_store_info_on_running_store_test_() ->
          "│     \033[38;5;246mData: baz_value\033[0m\n"
          "│\n"
          "╰── foo\n"
-         "    ╰── bar\n"
+         "    ╰── <<\"bar\">>\n"
          "          \033[38;5;246mData: bar_value\033[0m\n"
          "\n",
          begin
