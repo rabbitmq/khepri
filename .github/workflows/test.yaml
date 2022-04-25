@@ -23,7 +23,7 @@ jobs:
         id: install-erlang
         with:
           otp-version: ${{matrix.otp_version}}
-          rebar3-version: '3.16.1'
+          rebar3-version: '3.18.0'
 
       - name: Restore Dialyzer PLT files from cache
         uses: actions/cache@v2
