@@ -83,10 +83,10 @@ Here's how to **insert** a piece of data, say, an email address of Alice:
 
 ```erlang
 %% Using a native path:
-khepri:insert([emails, <<"alice">>], "alice@example.org").
+khepri:put([emails, <<"alice">>], "alice@example.org").
 
 %% Using a Unix-like path string:
-khepri:insert("/:emails/alice", "alice@example.org").
+khepri:put("/:emails/alice", "alice@example.org").
 ```
 
 ### Read data back
