@@ -345,6 +345,12 @@ exists.</td></tr>
 <tr><td valign="top"><a href="#get_data-1">get_data/1</a></td><td>Returns the data associated with the given node path.</td></tr>
 <tr><td valign="top"><a href="#get_data-2">get_data/2</a></td><td>Returns the data associated with the given node path.</td></tr>
 <tr><td valign="top"><a href="#get_data-3">get_data/3</a></td><td>Returns the data associated with the given node path.</td></tr>
+<tr><td valign="top"><a href="#get_data_or-2">get_data_or/2</a></td><td>Returns the data associated with the given node path, or <code>Default</code> if  
+there is no data.</td></tr>
+<tr><td valign="top"><a href="#get_data_or-3">get_data_or/3</a></td><td>Returns the data associated with the given node path, or <code>Default</code> if  
+there is no data.</td></tr>
+<tr><td valign="top"><a href="#get_data_or-4">get_data_or/4</a></td><td>Returns the data associated with the given node path, or <code>Default</code> if  
+there is no data.</td></tr>
 <tr><td valign="top"><a href="#has_sproc-1">has_sproc/1</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path holds a
   stored procedure, otherwise <code>false</code>.</td></tr>
 <tr><td valign="top"><a href="#has_sproc-2">has_sproc/2</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path holds a
@@ -1149,8 +1155,7 @@ multiple nodes.</p>
  <br>
 </p>
 <p>returns: the data if the node has a data payload, or throws an exception if
-  it does not exist, has no payload, holds a stored procedure or if there was
-  any error.
+  it does not exist, has no payload or holds a stored procedure.
  </p>
 </div><p><p>Returns the data associated with the given node path.</p>
  
@@ -1166,7 +1171,71 @@ multiple nodes.</p>
   <li>the node does not exist</li>
   <li>the node has no payload</li>
   <li>the node holds a stored procedure</li>
-  <li><a docgen-rel="seemfa" docgen-href="#get/3" href="#get-3"><code>get/3</code></a> returned an error</li>
+  </ul>
+ </p>
+<p><b>See also:</b> <a href="#get-3">get/3</a>.</p>
+
+<h3 class="function"><a name="get_data_or-2">get_data_or/2</a></h3>
+<div class="spec">
+<p><code>get_data_or(PathPattern, Default) -&gt; Data</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Default = <a href="#type-data">data()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Returns the data associated with the given node path, or <code>Default</code> if  
+there is no data.</p>
+ 
+  Calling this function is the same as calling <code>get_data_or(StoreId,
+  PathPattern, Default)</code> with the default store ID.
+ </p>
+<p><b>See also:</b> <a href="#get_data_or-3">get_data_or/3</a>.</p>
+
+<h3 class="function"><a name="get_data_or-3">get_data_or/3</a></h3>
+<div class="spec">
+<p><code>get_data_or(StoreId, PathPattern, Default) -&gt; Data</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Default = <a href="#type-data">data()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p><p><code>get_data_or(PathPattern, Options, Default) -&gt; Data</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Default = <a href="#type-data">data()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p>
+<p></p>
+<p></p>
+</div><p><p>Returns the data associated with the given node path, or <code>Default</code> if  
+there is no data.</p>
+ 
+  This function accepts the following two forms:
+  <ul>
+  <li><code>get_data_or(StoreId, PathPattern, Default)</code>. Calling it is the same as
+  calling <code>get_data_or(StoreId, PathPattern, Default, #{})</code>.</li>
+  <li><code>get_data_or(PathPattern, Default, Options)</code>. Calling it is the same as
+  calling <code>get_data_or(StoreId, PathPattern, Default, Options)</code> with the
+  default store ID.</li>
+  </ul>
+ </p>
+<p><b>See also:</b> <a href="#get_data_or-4">get_data_or/4</a>.</p>
+
+<h3 class="function"><a name="get_data_or-4">get_data_or/4</a></h3>
+<div class="spec">
+<p><code>get_data_or(StoreId, PathPattern, Default, Options) -&gt; Data</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Default = <a href="#type-data">data()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
+<code>Default</code>: the default term to return if there is no data.<br>
+<code>Options</code>: query options such as <code>favor</code>.
+ <br>
+</p>
+<p>returns: the data if the node has a data payload, or <code>Default</code> if it does
+  not exist, has no payload or holds a stored procedure.
+ </p>
+</div><p><p>Returns the data associated with the given node path, or <code>Default</code> if  
+there is no data.</p>
+ 
+  <p>The <code>PathPattern</code> can be provided as native path (a list of node names and
+  conditions) or as a string. See <a docgen-rel="seemfa" docgen-href="khepri_path#from_string/1" href="khepri_path.html#from_string-1"><code>khepri_path:from_string/1</code></a>.</p>
+ 
+  <p>The <code>PathPattern</code> must point to a specific tree node and can't match  
+multiple nodes.</p>
+ 
+  <code>Default</code> is returned if one of the following reasons is met:
+  <ul>
+  <li>the node does not exist</li>
+  <li>the node has no payload</li>
+  <li>the node holds a stored procedure</li>
   </ul>
  </p>
 <p><b>See also:</b> <a href="#get-3">get/3</a>.</p>

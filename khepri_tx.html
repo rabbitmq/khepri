@@ -154,6 +154,10 @@ catching up after a network partition.</p>
   otherwise <code>false</code>.</td></tr>
 <tr><td valign="top"><a href="#get_data-1">get_data/1</a></td><td>Returns the data associated with the given node path.</td></tr>
 <tr><td valign="top"><a href="#get_data-2">get_data/2</a></td><td>Returns the data associated with the given node path.</td></tr>
+<tr><td valign="top"><a href="#get_data_or-2">get_data_or/2</a></td><td>Returns the data associated with the given node path, or <code>Default</code> if
+  there is no data.</td></tr>
+<tr><td valign="top"><a href="#get_data_or-3">get_data_or/3</a></td><td>Returns the data associated with the given node path, or <code>Default</code> if
+  there is no data.</td></tr>
 <tr><td valign="top"><a href="#list-1">list/1</a></td><td>Returns all direct child nodes under the given path.</td></tr>
 <tr><td valign="top"><a href="#list-2">list/2</a></td><td>Returns all direct child nodes under the given path.</td></tr>
 <tr><td valign="top"><a href="#find-2">find/2</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
@@ -313,6 +317,22 @@ catching up after a network partition.</p>
 <ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li></ul></p>
 <p></p>
 </div><p>Returns the data associated with the given node path.</p>
+
+<h3 class="function"><a name="get_data_or-2">get_data_or/2</a></h3>
+<div class="spec">
+<p><code>get_data_or(PathPattern, Default) -&gt; Data</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Default = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li></ul></p>
+<p></p>
+</div><p>Returns the data associated with the given node path, or <code>Default</code> if
+  there is no data.</p>
+
+<h3 class="function"><a name="get_data_or-3">get_data_or/3</a></h3>
+<div class="spec">
+<p><code>get_data_or(PathPattern, Default, Options) -&gt; Data</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Default = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li></ul></p>
+<p></p>
+</div><p>Returns the data associated with the given node path, or <code>Default</code> if
+  there is no data.</p>
 
 <h3 class="function"><a name="list-1">list/1</a></h3>
 <div class="spec">
