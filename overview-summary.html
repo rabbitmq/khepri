@@ -279,8 +279,8 @@ true = khepri:exists([stock, wood, &lt;&lt;"lime tree"&gt;&gt;]),
 <p>Inside transaction funtions, <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> must be used instead of <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a>. The former provides the same API, except for functions which don't
 make sense in the context of a transaction function.</p>
 
-<p>The high-level API is built on top of a low-level API. The low-level API is
-provided by the private <a docgen-rel="seeerl" docgen-href="khepri_machine" href="khepri_machine.html"><code>khepri_machine</code></a> module.</p>
+<p>The public API is built on top of a low-level internal API, provided by the
+private <a docgen-rel="seeerl" docgen-href="khepri_machine" href="khepri_machine.html"><code>khepri_machine</code></a> module.</p>
 
 <h3><a name="Transactions">Transactions</a></h3>
 

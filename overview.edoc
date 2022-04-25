@@ -221,8 +221,8 @@ Inside transaction funtions, {@link khepri_tx} must be used instead of {@link
 khepri}. The former provides the same API, except for functions which don't
 make sense in the context of a transaction function.
 
-The high-level API is built on top of a low-level API. The low-level API is
-provided by the private {@link khepri_machine} module.
+The public API is built on top of a low-level internal API, provided by the
+private {@link khepri_machine} module.
 
 == Transactions ==
 
