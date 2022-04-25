@@ -11,11 +11,11 @@ jobs:
 
     strategy:
       matrix:
-        otp_version: [23, 24]
+        otp_version: [23, 24, '25.0-rc3']
         os: [ubuntu-latest, windows-latest]
 
     env:
-      LATEST_OTP_RELEASE: 24
+      RUN_DIALYZER_ON_OTP_RELEASE: 24
 
     steps:
       - uses: actions/checkout@v2
@@ -23,11 +23,11 @@ jobs:
         id: install-erlang
         with:
           otp-version: ${{matrix.otp_version}}
-          rebar3-version: '3.16.1'
+          rebar3-version: '3.18.0'
 
       - name: Restore Dialyzer PLT files from cache
         uses: actions/cache@v2
-        if: ${{ matrix.otp_version == env.LATEST_OTP_RELEASE && matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.otp_version == env.RUN_DIALYZER_ON_OTP_RELEASE && matrix.os == 'ubuntu-latest' }}
         with:
           path: _build/*/rebar3_*_plt
           key: dialyzer-plt-cache-${{ steps.install-erlang.outputs.otp-version }}-${{ runner.os }}-${{ hashFiles('rebar.config*') }}-v1
@@ -48,7 +48,7 @@ jobs:
         run: rebar3 as test coveralls send
 
       - name: Dialyzer
-        if: ${{ matrix.otp_version == env.LATEST_OTP_RELEASE && matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.otp_version == env.RUN_DIALYZER_ON_OTP_RELEASE && matrix.os == 'ubuntu-latest' }}
         run: rebar3 clean && rebar3 as test dialyzer
 
   Finish:
