@@ -92,6 +92,7 @@
          get_node_props/1, get_node_props/2, get_node_props/3,
          has_data/1, has_data/2, has_data/3,
          get_data/1, get_data/2, get_data/3,
+         get_data_or/2, get_data_or/3, get_data_or/4,
          has_sproc/1, has_sproc/2, has_sproc/3,
          run_sproc/2, run_sproc/3, run_sproc/4,
          register_trigger/3, register_trigger/4, register_trigger/5,
@@ -124,6 +125,7 @@
                            exists/2,
                            has_data/2,
                            get_data/2,
+                           get_data_or/3,
                            has_sproc/2,
                            run_sproc/3,
                            transaction/2, transaction/3]}).
@@ -1323,7 +1325,6 @@ get_data(PathPattern, Options) when is_map(Options) ->
 %% <li>the node does not exist</li>
 %% <li>the node has no payload</li>
 %% <li>the node holds a stored procedure</li>
-%% <li>{@link get/3} returned an error</li>
 %% </ul>
 %%
 %% @param StoreId the name of the Ra cluster.
@@ -1331,8 +1332,7 @@ get_data(PathPattern, Options) when is_map(Options) ->
 %% @param Options query options such as `favor'.
 %%
 %% @returns the data if the node has a data payload, or throws an exception if
-%% it does not exist, has no payload, holds a stored procedure or if there was
-%% any error.
+%% it does not exist, has no payload or holds a stored procedure.
 %%
 %% @see get/3.
 
@@ -1341,6 +1341,95 @@ get_data(StoreId, PathPattern, Options) ->
     case NodeProps of
         #{data := Data} -> Data;
         _               -> throw({error, {no_data, NodeProps}})
+    end.
+
+-spec get_data_or(PathPattern, Default) -> Data when
+      PathPattern :: khepri_path:pattern() | string(),
+      Default :: data(),
+      Data :: data().
+%% @doc Returns the data associated with the given node path, or `Default' if
+%% there is no data.
+%%
+%% Calling this function is the same as calling `get_data_or(StoreId,
+%% PathPattern, Default)' with the default store ID.
+%%
+%% @see get_data_or/3.
+
+get_data_or(PathPattern, Default) ->
+    get_data_or(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Default).
+
+-spec get_data_or
+(StoreId, PathPattern, Default) -> Data when
+      StoreId :: store_id(),
+      PathPattern :: khepri_path:pattern() | string(),
+      Default :: data(),
+      Data :: data();
+(PathPattern, Options, Default) -> Data when
+      PathPattern :: khepri_path:pattern() | string(),
+      Default :: data(),
+      Options :: query_options(),
+      Data :: data().
+%% @doc Returns the data associated with the given node path, or `Default' if
+%% there is no data.
+%%
+%% This function accepts the following two forms:
+%% <ul>
+%% <li>`get_data_or(StoreId, PathPattern, Default)'. Calling it is the same as
+%% calling `get_data_or(StoreId, PathPattern, Default, #{})'.</li>
+%% <li>`get_data_or(PathPattern, Default, Options)'. Calling it is the same as
+%% calling `get_data_or(StoreId, PathPattern, Default, Options)' with the
+%% default store ID.</li>
+%% </ul>
+%%
+%% @see get_data_or/4.
+
+get_data_or(StoreId, PathPattern, Default) when is_atom(StoreId) ->
+    get_data_or(StoreId, PathPattern, Default, #{});
+get_data_or(PathPattern, Default, Options) when is_map(Options) ->
+    get_data_or(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Default, Options).
+
+-spec get_data_or(StoreId, PathPattern, Default, Options) -> Data when
+      StoreId :: store_id(),
+      PathPattern :: khepri_path:pattern() | string(),
+      Default :: data(),
+      Options :: query_options(),
+      Data :: data().
+%% @doc Returns the data associated with the given node path, or `Default' if
+%% there is no data.
+%%
+%% The `PathPattern' can be provided as native path (a list of node names and
+%% conditions) or as a string. See {@link khepri_path:from_string/1}.
+%%
+%% The `PathPattern' must point to a specific tree node and can't match
+%% multiple nodes.
+%%
+%% `Default' is returned if one of the following reasons is met:
+%% <ul>
+%% <li>the node does not exist</li>
+%% <li>the node has no payload</li>
+%% <li>the node holds a stored procedure</li>
+%% </ul>
+%%
+%% @param StoreId the name of the Ra cluster.
+%% @param PathPattern the path (or path pattern) to the nodes to check.
+%% @param Default the default term to return if there is no data.
+%% @param Options query options such as `favor'.
+%%
+%% @returns the data if the node has a data payload, or `Default' if it does
+%% not exist, has no payload or holds a stored procedure.
+%%
+%% @see get/3.
+
+get_data_or(StoreId, PathPattern, Default, Options) ->
+    try
+        NodeProps = get_node_props(StoreId, PathPattern, Options),
+        case NodeProps of
+            #{data := Data} -> Data;
+            _               -> Default
+        end
+    catch
+        throw:{error, {node_not_found, _}} ->
+            Default
     end.
 
 -spec has_sproc(PathPattern) -> HasStoredProc when

@@ -215,6 +215,55 @@ get_data_on_many_nodes_test_() ->
            ?FUNCTION_NAME,
            [?THIS_NODE, #if_name_matches{regex = any}]))]}.
 
+get_data_or_default_on_non_existing_node_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         default,
+         khepri:get_data_or(?FUNCTION_NAME, [foo], default))]}.
+
+get_data_or_default_on_existing_node_with_data_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, #{[foo] => #{}}},
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertEqual(
+         foo_value,
+         khepri:get_data_or(?FUNCTION_NAME, [foo], default))]}.
+
+get_data_or_default_on_existing_node_without_data_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, #{[foo] => #{}}},
+         khepri:create(?FUNCTION_NAME, [foo], khepri_payload:none())),
+      ?_assertEqual(
+         default,
+         khepri:get_data_or(?FUNCTION_NAME, [foo], default))]}.
+
+get_data_or_default_on_many_nodes_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, #{[foo, bar] => #{}}},
+         khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
+      ?_assertEqual(
+         {ok, #{[baz] => #{}}},
+         khepri:create(?FUNCTION_NAME, [baz], baz_value)),
+      ?_assertThrow(
+         {error,
+          {possibly_matching_many_nodes_denied,
+           #if_name_matches{regex = any}}},
+         khepri:get_data_or(
+           ?FUNCTION_NAME,
+           [?THIS_NODE, #if_name_matches{regex = any}],
+           default))]}.
+
 list_non_existing_node_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,

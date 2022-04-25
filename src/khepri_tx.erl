@@ -63,6 +63,7 @@
          get_node_props/1, get_node_props/2,
          has_data/1,
          get_data/1, get_data/2,
+         get_data_or/2, get_data_or/3,
 
          list/1, list/2,
          find/2, find/3,
@@ -83,7 +84,8 @@
 -if(?OTP_RELEASE >= 24).
 -dialyzer({no_underspecs, [exists/1,
                            has_data/1, has_data/2,
-                           get_data/1, get_data/2]}).
+                           get_data/1, get_data/2,
+                           get_data_or/2, get_data_or/3]}).
 -endif.
 
 -type tx_fun_result() :: any() | no_return().
@@ -352,6 +354,36 @@ get_data(PathPattern, Options) ->
     case NodeProps of
         #{data := Data} -> Data;
         _               -> abort({error, {no_data, NodeProps}})
+    end.
+
+-spec get_data_or(PathPattern, Default) -> Data when
+      PathPattern :: khepri_path:pattern() | string(),
+      Default :: khepri:data(),
+      Data :: khepri:data().
+%% @doc Returns the data associated with the given node path, or `Default' if
+%% there is no data.
+
+get_data_or(PathPattern, Default) ->
+    get_data_or(PathPattern, Default, #{}).
+
+-spec get_data_or(PathPattern, Default, Options) -> Data when
+      PathPattern :: khepri_path:pattern() | string(),
+      Default :: khepri:data(),
+      Options :: khepri:query_options(),
+      Data :: khepri:data().
+%% @doc Returns the data associated with the given node path, or `Default' if
+%% there is no data.
+
+get_data_or(PathPattern, Default, Options) ->
+    try
+        NodeProps = get_node_props(PathPattern, Options),
+        case NodeProps of
+            #{data := Data} -> Data;
+            _               -> Default
+        end
+    catch
+        throw:{aborted, {error, {node_not_found, _}}} ->
+            Default
     end.
 
 -spec list(PathPattern) -> Result when
@@ -644,6 +676,7 @@ is_remote_call_valid(khepri_tx, get, _) -> true;
 is_remote_call_valid(khepri_tx, get_node_props, _) -> true;
 is_remote_call_valid(khepri_tx, has_data, _) -> true;
 is_remote_call_valid(khepri_tx, get_data, _) -> true;
+is_remote_call_valid(khepri_tx, get_data_or, _) -> true;
 is_remote_call_valid(khepri_tx, list, _) -> true;
 is_remote_call_valid(khepri_tx, find, _) -> true;
 is_remote_call_valid(khepri_tx, abort, _) -> true;
