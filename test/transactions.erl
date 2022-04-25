@@ -283,6 +283,105 @@ get_data_in_rw_transaction_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
 
+get_data_on_many_nodes_in_ro_transaction_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {aborted,
+          {error,
+           {possibly_matching_many_nodes_denied,
+            #if_name_matches{regex = any}}}},
+         begin
+             _ = khepri:put(
+                   ?FUNCTION_NAME, [foo], khepri_payload:none()),
+
+             Fun = fun() ->
+                           khepri_tx:get_data([?STAR])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end)]}.
+
+get_data_or_default_on_non_existing_node_in_ro_transaction_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {atomic, default},
+         begin
+             Fun = fun() ->
+                           khepri_tx:get_data_or([foo], default)
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end)]}.
+
+get_data_or_default_on_existing_node_with_data_in_ro_transaction_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {atomic, value1},
+         begin
+             _ = khepri:put(
+                   ?FUNCTION_NAME, [foo], khepri_payload:data(value1)),
+
+             Fun = fun() ->
+                           khepri_tx:get_data_or([foo], default)
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end)]}.
+
+get_data_or_default_on_many_nodes_in_ro_transaction_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {aborted,
+          {error,
+           {possibly_matching_many_nodes_denied,
+            #if_name_matches{regex = any}}}},
+         begin
+             _ = khepri:put(
+                   ?FUNCTION_NAME, [foo], khepri_payload:none()),
+
+             Fun = fun() ->
+                           khepri_tx:get_data_or([?STAR], default)
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end)]}.
+
+get_data_or_default_on_existing_node_without_data_in_ro_transaction_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {atomic, default},
+         begin
+             _ = khepri:put(
+                   ?FUNCTION_NAME, [foo], khepri_payload:none()),
+
+             Fun = fun() ->
+                           khepri_tx:get_data_or([foo], default)
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end)]}.
+
+get_data_or_default_in_rw_transaction_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {atomic, value1},
+         begin
+             _ = khepri:put(
+                   ?FUNCTION_NAME, [foo], khepri_payload:data(value1)),
+
+             Fun = fun() ->
+                           khepri_tx:get_data_or([foo], default)
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end)]}.
+
 put_in_ro_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
