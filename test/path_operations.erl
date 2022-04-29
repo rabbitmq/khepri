@@ -145,6 +145,33 @@ glob_pattern_from_string_test() ->
        [#if_name_matches{regex = "^.*foo.*bar.*$"}],
        khepri_path:from_string("/*foo*bar*")).
 
+from_binary_test() ->
+    ?assertEqual(
+       [],
+       khepri_path:from_string(<<>>)),
+    ?assertEqual(
+       ['foo', <<"bar">>],
+       khepri_path:from_string(<<"/:foo/bar">>)),
+    ?assertEqual(
+       [?THIS_NODE, <<"foo">>, ?PARENT_NODE],
+       khepri_path:from_string(<<"./foo/..">>)),
+    ?assertEqual(
+       [#if_name_matches{regex = "^.*foo.*bar.*$"}],
+       khepri_path:from_string(<<"/*foo*bar*">>)),
+
+    ?assertEqual(
+       [],
+       khepri_path:from_binary(<<>>)),
+    ?assertEqual(
+       ['foo', <<"bar">>],
+       khepri_path:from_binary(<<"/:foo/bar">>)),
+    ?assertEqual(
+       [?THIS_NODE, <<"foo">>, ?PARENT_NODE],
+       khepri_path:from_binary(<<"./foo/..">>)),
+    ?assertEqual(
+       [#if_name_matches{regex = "^.*foo.*bar.*$"}],
+       khepri_path:from_binary(<<"/*foo*bar*">>)).
+
 %% -------------------------------------------------------------------
 %% Path component serializing.
 %% -------------------------------------------------------------------
@@ -212,6 +239,17 @@ path_with_binary_to_string_test() ->
     ?assertEqual(
        "/bin%2Fary/:atom",
        khepri_path:to_string([<<"bin/ary">>, atom])).
+
+path_to_binary_test() ->
+    ?assertEqual(
+       <<"/">>,
+       khepri_path:to_binary([])),
+    ?assertEqual(
+       <<"/:foo/bar">>,
+       khepri_path:to_binary(['foo', <<"bar">>])),
+    ?assertEqual(
+       <<"foo/..">>,
+       khepri_path:to_binary([?THIS_NODE, <<"foo">>, ?PARENT_NODE])).
 
 %% -------------------------------------------------------------------
 %% Combine path with conditions.
