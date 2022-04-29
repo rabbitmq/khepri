@@ -66,7 +66,6 @@
 -export([compile/1,
          from_string/1,
          from_binary/1,
-         maybe_from_string/1,
          to_string/1,
          to_binary/1,
          combine_with_conditions/2,
@@ -248,31 +247,6 @@ finalize_path(Rest, ReversedPath) ->
     case lists:reverse(ReversedPath) ++ Rest of
         [?ROOT_NODE | Path] -> Path;
         Path                -> Path
-    end.
-
--spec maybe_from_string(pattern() | string()) -> pattern().
-
-maybe_from_string([Component | _] = Path)
-  when ?IS_NODE_ID(Component) orelse
-       ?IS_CONDITION(Component) ->
-    Path;
-maybe_from_string([?ROOT_NODE]) ->
-    [];
-maybe_from_string([Component] = Path)
-  when ?IS_SPECIAL_PATH_COMPONENT(Component) ->
-    Path;
-maybe_from_string([] = Path) ->
-    Path;
-maybe_from_string([Char | _] = Path)
-  when is_integer(Char) andalso
-       Char >= 0 andalso Char =< 16#10ffff andalso
-       not ?IS_SPECIAL_PATH_COMPONENT(Char) ->
-    from_string(Path);
-maybe_from_string([Char1, Char2 | _] = Path)
-  when ?IS_SPECIAL_PATH_COMPONENT(Char1) ->
-    if
-        ?IS_NODE_ID(Char2) orelse ?IS_CONDITION(Char2) -> Path;
-        true                                           -> from_string(Path)
     end.
 
 -spec to_string(path()) -> string().
