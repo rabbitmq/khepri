@@ -144,9 +144,11 @@ UnixPath = "/:stock/:wood/oak".</code></pre>
 
 
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#from_string-1">from_string/1</a></td><td></td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#from_string-1">from_string/1</a></td><td>Converts a Unix-like path to a native path.</td></tr>
+<tr><td valign="top"><a href="#from_binary-1">from_binary/1</a></td><td>Converts a Unix-like path to a native path.</td></tr>
 <tr><td valign="top"><a href="#maybe_from_string-1">maybe_from_string/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#to_string-1">to_string/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#to_string-1">to_string/1</a></td><td>Converts a native path to a string.</td></tr>
+<tr><td valign="top"><a href="#to_binary-1">to_binary/1</a></td><td>Converts a native path to a binary.</td></tr>
 <tr><td valign="top"><a href="#combine_with_conditions-2">combine_with_conditions/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#targets_specific_node-1">targets_specific_node/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_valid-1">is_valid/1</a></td><td></td></tr>
@@ -160,10 +162,26 @@ UnixPath = "/:stock/:wood/oak".</code></pre>
 
 <h3 class="function"><a name="from_string-1">from_string/1</a></h3>
 <div class="spec">
-<p><code>from_string(MaybeString) -&gt; PathPattern</code>
-<ul class="definitions"><li><code>MaybeString = string() | <a href="#type-pattern">pattern()</a></code></li><li><code>PathPattern = <a href="#type-pattern">pattern()</a></code></li></ul></p>
+<p><code>from_string(String) -&gt; PathPattern</code>
+<ul class="definitions"><li><code>String = string() | binary() | <a href="#type-pattern">pattern()</a></code></li><li><code>PathPattern = <a href="#type-pattern">pattern()</a></code></li></ul></p>
 <p></p>
-</div>
+</div><p><p>Converts a Unix-like path to a native path.</p>
+ 
+  <p>The Unix-like string can be either an Erlang string or an Erlang binary.</p>
+ 
+  For convenience, a native path is also accepted and returned as-is.</p>
+
+<h3 class="function"><a name="from_binary-1">from_binary/1</a></h3>
+<div class="spec">
+<p><code>from_binary(String) -&gt; PathPattern</code>
+<ul class="definitions"><li><code>String = string() | binary() | <a href="#type-pattern">pattern()</a></code></li><li><code>PathPattern = <a href="#type-pattern">pattern()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Converts a Unix-like path to a native path.</p>
+ 
+  This is the same as calling <code>from_string(String)</code>. Therefore, it accepts
+  Erlang strings or binaries and native paths.
+ </p>
+<p><b>See also:</b> <a href="#from_string-1">from_string/1</a>.</p>
 
 <h3 class="function"><a name="maybe_from_string-1">maybe_from_string/1</a></h3>
 <div class="spec">
@@ -175,7 +193,13 @@ UnixPath = "/:stock/:wood/oak".</code></pre>
 <div class="spec">
 <p><code>to_string(Path::<a href="#type-path">path()</a>) -&gt; string()</code><br></p>
 <p></p>
-</div>
+</div><p>Converts a native path to a string.</p>
+
+<h3 class="function"><a name="to_binary-1">to_binary/1</a></h3>
+<div class="spec">
+<p><code>to_binary(Path::<a href="#type-path">path()</a>) -&gt; binary()</code><br></p>
+<p></p>
+</div><p>Converts a native path to a binary.</p>
 
 <h3 class="function"><a name="combine_with_conditions-2">combine_with_conditions/2</a></h3>
 <div class="spec">
