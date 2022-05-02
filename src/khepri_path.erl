@@ -32,25 +32,9 @@
 %%                oak].
 %% '''
 %%
-%% To be user-friendly, Unix-like string-based paths are accepted by most
-%% functions. These <em>Unix paths</em> have the following syntax:
-%%
-%% <ul>
-%% <li>Path components are separated by a forward slash, `/'.</li>
-%% <li>Atom-based node IDs are prefixed with a `:' character: `:wood'.</li>
-%% <li>Binary-based node IDS are written as-is: `oak'.</li>
-%% <li>Atom and binaries can be percent-encoded.</li>
-%% <li>An absolute path must start with `/', otherwise it is considered a
-%% relative path</li>
-%% <li>`.' and `..' represent `?THIS_NODE' and `?PARENT_NODE'
-%% respectively</li>
-%% <li>Simple glob patterns are accepted:
-%% <ul>
-%% <li>`abc*def' is the same as `#if_name_matches{regex = "^abc.*def$"}'</li>
-%% <li>`*' is the same as `?STAR' or `#if_name_matches{regex = any}'</li>
-%% <li>`**' is the same as `?STAR_STAR' or `if_path_matches{regex = any}'</li>
-%% </ul></li>
-%% </ul>
+%% To be user-friendly, string-based and binary-based <em>Unix-like paths</em>
+%% are accepted by most functions. The syntax of these <em>Unix paths</em> is
+%% described in the {@link unix_path()} type documentation. Example:
 %%
 %% ```
 %% %% Unix path, equivalent of the first native path example.
@@ -87,30 +71,146 @@
 -type component() :: node_id() | ?ROOT_NODE | ?THIS_NODE | ?PARENT_NODE.
 %% Component name in a path to a node.
 
-%% TODO: Rename to node_path()
--type path() :: [component()].
+-type native_path() :: [component()].
+%% Native path to a node.
+%%
+%% A native path is a list of atoms, binaries and special components.
+%%
+%% It is called <em>native</em> because it requires no further processing
+%% (unlike {@link unix_path()}) and is the format used internally by the state
+%% machine.
+%%
+%% Special components are:
+%% <ol>
+%% <li>`?ROOT_NODE' to explicitly mark the root node. A path is absolute by
+%% default. Using `?ROOT_NODE' is only useful when manipulating the root node
+%% itself (querying it or storing something in the root node).</li>
+%% <li>`?THIS_NODE' to make a relative path (the default being an absolute
+%% path). This is mostly useful for {@link khepri_condition:keep_while()} to
+%% make it easy to put a condition on the node itself.</li>
+%% <li>`?PARENT_NODE' to target the parent of a node, with the same benefits
+%% and use cases as `?THIS_NODE'.</li>
+%% </ol>
+%%
+%% Example:
+%%
+%% ```
+%% %% Native path.
+%% Path = [stock, wood, <<"oak">>].
+%% '''
+
+-type native_pattern() :: [pattern_component()].
+%% Path pattern which may match zero, one or more nodes.
+%%
+%% A native pattern is a list of atoms, binaries, special components and
+%% conditions.
+%%
+%% It is called <em>native</em> because it requires no further processing
+%% (unlike {@link unix_pattern()}) and is the format used internally by the
+%% state machine.
+%%
+%% See {@link native_path()} for a description of special components.
+%%
+%% Conditions are any condition defined by {@link
+%% khepri_condition:condition()}.
+%%
+%% Example:
+%%
+%% ```
+%% %% Path pattern with a condition on `wood'.
+%% PathPattern = [stock,
+%%                #if_all{conditions = [wood,
+%%                                      #if_node_exists{exists = true}]},
+%%                oak].
+%% '''
+
+-type unix_path() :: string() | binary().
+%% Unix-like path to a node.
+%%
+%% These <em>Unix paths</em> have the following syntax:
+%%
+%% <ul>
+%% <li>Path components are separated by a forward slash, `/'.</li>
+%% <li>Atom-based node IDs are prefixed with a `:' character: `:wood'.</li>
+%% <li>Binary-based node IDs are written as-is: `oak'.</li>
+%% <li>Atom and binaries can be percent-encoded.</li>
+%% <li>An absolute path must start with `/', otherwise it is considered a
+%% relative path</li>
+%% <li>`.' and `..' represent `?THIS_NODE' and `?PARENT_NODE'
+%% respectively</li>
+%% <li>Simple glob patterns are accepted:
+%% <ul>
+%% <li>`abc*def' is the same as `#if_name_matches{regex = "^abc.*def$"}'</li>
+%% <li>`*' is the same as `?STAR' or `#if_name_matches{regex = any}'</li>
+%% <li>`**' is the same as `?STAR_STAR' or `if_path_matches{regex = any}'</li>
+%% </ul></li>
+%% </ul>
+%%
+%% <strong>Warning</strong>: There is no special handling of Unicode in tree
+%% node names. To use Unicode, it is recommended to either use a native path or
+%% a binary-based Unix-like path. If using a string-based Unix-like path, the
+%% behavior is undefined and the call may crash. Matching against node names is
+%% also undefined behavior and may crash, regardless of the type of path being
+%% used. It will be improved in the future.
+%%
+%% Example:
+%% ```
+%% %% Unix path, equivalent of the first native path example.
+%% UnixPath = "/:stock/:wood/oak".
+%% '''
+
+-type unix_pattern() :: string() | binary().
+%% Unix-like path pattern to a node.
+%%
+%% It accepts the following special characters:
+%% <ol>
+%% <li>`*' anywhere in a path component behaves like a {@link
+%% khepri_condition:if_name_matches()}.</li>
+%% <li>`**' as a path component behaves like a {@link
+%% khepri_condition:if_path_matches()}.</li>
+%% </ol>
+%%
+%% A Unix-like path pattern can't express all the conditions of a native path
+%% pattern currently.
+%%
+%% Otherwise it works as a {@link unix_path()} and has the same syntax and
+%% limitations.
+%%
+%% Example:
+%% ```
+%% %% Unix path pattern, matching multiple types of oak.
+%% UnixPathPattern = "/:stock/:wood/*oak".
+%% '''
+
+-type path() :: native_path() | unix_path().
 %% Path to a node.
 
--type pattern() :: [pattern_component()].
+-type pattern() :: native_pattern() | unix_pattern().
 %% Path pattern which may match zero, one or more nodes.
 
 -type pattern_component() :: component() | khepri_condition:condition().
+%% Path pattern component which may match zero, one or more nodes.
 
 -export_type([path/0,
+              native_path/0,
+              unix_path/0,
               pattern/0,
+              native_pattern/0,
+              unix_pattern/0,
               component/0,
               pattern_component/0,
               node_id/0]).
 
--spec compile(pattern()) -> pattern().
+-spec compile(PathPattern) -> PathPattern when
+      PathPattern :: native_pattern().
 %% @private
 
 compile(PathPattern) ->
     lists:map(fun khepri_condition:compile/1, PathPattern).
 
 -spec from_string(String) -> PathPattern when
-      String :: string() | binary() | pattern(),
-      PathPattern :: pattern().
+      String :: pattern(),
+      PathPattern :: native_pattern().
 %% @doc Converts a Unix-like path to a native path.
 %%
 %% The Unix-like string can be either an Erlang string or an Erlang binary.
@@ -128,8 +228,8 @@ from_string(NotPath) ->
     throw({invalid_path, #{path => NotPath}}).
 
 -spec from_binary(String) -> PathPattern when
-      String :: string() | binary() | pattern(),
-      PathPattern :: pattern().
+      String :: pattern(),
+      PathPattern :: native_pattern().
 %% @doc Converts a Unix-like path to a native path.
 %%
 %% This is the same as calling `from_string(String)'. Therefore, it accepts
@@ -249,7 +349,9 @@ finalize_path(Rest, ReversedPath) ->
         Path                -> Path
     end.
 
--spec to_string(path()) -> string().
+-spec to_string(NativePath) -> UnixPath when
+      NativePath :: native_path(),
+      UnixPath :: string().
 %% @doc Converts a native path to a string.
 
 to_string([?ROOT_NODE | Path]) ->
@@ -273,7 +375,9 @@ to_string(Path) ->
       lists:map(fun component_to_string/1, Path),
       "/").
 
--spec to_binary(path()) -> binary().
+-spec to_binary(NativePath) -> UnixPath when
+      NativePath :: native_path(),
+      UnixPath :: binary().
 %% @doc Converts a native path to a binary.
 
 to_binary(Path) ->
@@ -335,8 +439,9 @@ percent_encode_string([Char | Rest], PercentEncoded) ->
 percent_encode_string([], PercentEncoded) ->
     PercentEncoded.
 
--spec combine_with_conditions(pattern(), [khepri_condition:condition()]) ->
-    pattern().
+-spec combine_with_conditions(PathPattern, Conditions) -> PathPattern when
+      PathPattern :: native_pattern(),
+      Conditions :: [khepri_condition:condition()].
 
 combine_with_conditions(Path, []) ->
     Path;
@@ -345,8 +450,10 @@ combine_with_conditions(Path, Conditions) ->
     Combined = #if_all{conditions = [ChildName | Conditions]},
     lists:reverse([Combined | Rest]).
 
--spec targets_specific_node(pattern()) ->
-    {true, path()} | false.
+-spec targets_specific_node(PathPattern) -> Ret when
+      PathPattern :: native_pattern(),
+      Ret :: {true, Path} | false,
+      Path :: native_path().
 
 targets_specific_node(PathPattern) ->
     targets_specific_node(PathPattern, []).
@@ -359,8 +466,10 @@ targets_specific_node([Condition | Rest], Path) ->
 targets_specific_node([], Path) ->
     {true, lists:reverse(Path)}.
 
--spec component_targets_specific_node(pattern_component()) ->
-    {true, component()} | false.
+-spec component_targets_specific_node(ComponentPattern) -> Ret when
+      ComponentPattern :: pattern_component(),
+      Ret :: {true, Component} | false,
+      Component :: component().
 %% @private
 
 component_targets_specific_node(ChildName)
@@ -407,8 +516,9 @@ component_targets_specific_node(_) ->
     false.
 
 -spec is_valid(PathPattern) -> IsValid when
-      PathPattern :: pattern(),
-      IsValid :: true | {false, pattern_component()}.
+      PathPattern :: native_pattern(),
+      IsValid :: true | {false, ComponentPattern},
+      ComponentPattern :: pattern_component().
 
 is_valid(PathPattern) when is_list(PathPattern) ->
     lists:foldl(
@@ -420,7 +530,7 @@ is_valid(NotPathPattern) ->
     {false, NotPathPattern}.
 
 -spec ensure_is_valid(PathPattern) -> ok | no_return() when
-      PathPattern :: pattern().
+      PathPattern :: native_pattern().
 
 ensure_is_valid(PathPattern) ->
     case is_valid(PathPattern) of
@@ -429,7 +539,9 @@ ensure_is_valid(PathPattern) ->
                                                      component => Component}})
     end.
 
--spec abspath(pattern(), pattern()) -> pattern().
+-spec abspath(Path, BasePath) -> Path when
+      Path :: native_pattern(),
+      BasePath :: native_pattern().
 
 abspath([FirstComponent | _] = AbsolutePath, _)
   when FirstComponent =/= ?THIS_NODE andalso FirstComponent =/= ?PARENT_NODE ->
@@ -439,7 +551,8 @@ abspath([_ | _] = RelativePath, BasePath) ->
 abspath([] = PathToRoot, _) ->
     PathToRoot.
 
--spec realpath(pattern()) -> pattern().
+-spec realpath(Path) -> Path when
+      Path :: native_pattern().
 
 realpath(Path) ->
     realpath(Path, []).

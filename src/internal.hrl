@@ -24,7 +24,7 @@
                                      is_record(Payload, p_data) orelse
                                      is_record(Payload, p_sproc))).
 
--record(evf_tree, {path :: khepri_path:pattern(),
+-record(evf_tree, {path :: khepri_path:native_pattern(),
                    props = #{} :: khepri_evf:tree_event_filter_props()}).
 %-record(evf_process, {pid :: pid(),
 %                      props = #{} :: #{on_reason => ets:match_pattern(),
@@ -41,18 +41,18 @@
 
 %% State machine commands.
 
--record(put, {path :: khepri_path:pattern(),
+-record(put, {path :: khepri_path:native_pattern(),
               payload = ?NO_PAYLOAD :: khepri_payload:payload(),
               extra = #{} :: #{keep_while =>
                                khepri:keep_while_conds_map()}}).
 
--record(delete, {path :: khepri_path:pattern()}).
+-record(delete, {path :: khepri_path:native_pattern()}).
 
 -record(tx, {'fun' :: khepri_fun:standalone_fun()}).
 
 -record(register_trigger, {id :: khepri:trigger_id(),
                            event_filter :: khepri_evf:event_filter(),
-                           sproc :: khepri_path:path()}).
+                           sproc :: khepri_path:native_path()}).
 
 -record(ack_triggered, {triggered :: [khepri_machine:triggered()]}).
 
