@@ -69,17 +69,57 @@ query_keep_while_conds_state_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {ok, #{[foo] =>
-                #{[foo] => #if_child_list_length{count = {gt, 0}}}}},
-         begin
-             _ = khepri:put(
-                   ?FUNCTION_NAME,
-                   [foo],
-                   khepri_payload:data(foo_value),
-                   #{keep_while => KeepWhile}),
-             khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME)
-         end)]}.
+     [{inorder,
+       [?_assertEqual(
+           {ok, #{[foo] => #{}}},
+           khepri:put(
+             ?FUNCTION_NAME,
+             [foo],
+             khepri_payload:data(foo_value),
+             #{keep_while => KeepWhile})),
+        ?_assertEqual(
+           {ok, #{[foo] =>
+                  #{[foo] => #if_child_list_length{count = {gt, 0}}}}},
+           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME))
+       ]}]}.
+
+use_unix_string_path_in_keep_while_cond_test_() ->
+    KeepWhile = #{"." => #if_child_list_length{count = {gt, 0}}},
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [?_assertEqual(
+           {ok, #{[foo] => #{}}},
+           khepri:put(
+             ?FUNCTION_NAME,
+             [foo],
+             khepri_payload:data(foo_value),
+             #{keep_while => KeepWhile})),
+        ?_assertEqual(
+           {ok, #{[foo] =>
+                  #{[foo] => #if_child_list_length{count = {gt, 0}}}}},
+           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME))
+       ]}]}.
+
+use_unix_binary_path_in_keep_while_cond_test_() ->
+    KeepWhile = #{<<".">> => #if_child_list_length{count = {gt, 0}}},
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [?_assertEqual(
+           {ok, #{[foo] => #{}}},
+           khepri:put(
+             ?FUNCTION_NAME,
+             [foo],
+             khepri_payload:data(foo_value),
+             #{keep_while => KeepWhile})),
+        ?_assertEqual(
+           {ok, #{[foo] =>
+                  #{[foo] => #if_child_list_length{count = {gt, 0}}}}},
+           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME))
+       ]}]}.
 
 use_an_invalid_path_test_() ->
     {setup,

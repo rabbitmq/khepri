@@ -230,7 +230,8 @@
 %% evaluates to true, the tree node is kept. Once the condition evaluates to
 %% false, the tree node is deleted.
 
--export([compile/1,
+-export([ensure_native_keep_while/1,
+         compile/1,
          applies_to_grandchildren/1,
          is_met/3,
          is_valid/1]).
@@ -243,6 +244,18 @@
 -export_type([condition/0,
               comparison_op/1,
               keep_while/0]).
+
+ensure_native_keep_while(KeepWhile) ->
+    maps:fold(
+      fun(Path, Condition, Acc) ->
+              Path1 = khepri_path:from_string(Path),
+              %% TODO: Handle situations where the parsed path yields a native
+              %% path already present in the resulting map.
+              %%
+              %% Should we merge conditions in a `#if_all{}' condition? Return
+              %% an error?
+              Acc#{Path1 => Condition}
+      end, #{}, KeepWhile).
 
 -spec compile(Condition) -> Condition when
       Condition :: khepri_path:pattern_component().

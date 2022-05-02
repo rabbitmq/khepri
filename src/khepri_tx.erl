@@ -124,9 +124,17 @@ put(PathPattern, Data, Extra) ->
     ensure_updates_are_allowed(),
     PathPattern1 = path_from_string(PathPattern),
     Payload1 = khepri_payload:wrap(Data),
+    Extra1 = case Extra of
+                 #{keep_while := KeepWhile} ->
+                     KeepWhile1 = khepri_condition:ensure_native_keep_while(
+                                    KeepWhile),
+                     Extra#{keep_while => KeepWhile1};
+                 _ ->
+                     Extra
+             end,
     {State, SideEffects} = get_tx_state(),
     Ret = khepri_machine:insert_or_update_node(
-            State, PathPattern1, Payload1, Extra),
+            State, PathPattern1, Payload1, Extra1),
     case Ret of
         {NewState, Result, NewSideEffects} ->
             set_tx_state(NewState, SideEffects ++ NewSideEffects);

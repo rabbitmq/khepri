@@ -164,9 +164,17 @@ put(StoreId, PathPattern, Payload, Extra, Options)
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     Payload1 = khepri_payload:prepare(Payload),
+    Extra1 = case Extra of
+                 #{keep_while := KeepWhile} ->
+                     KeepWhile1 = khepri_condition:ensure_native_keep_while(
+                                    KeepWhile),
+                     Extra#{keep_while => KeepWhile1};
+                 _ ->
+                     Extra
+             end,
     Command = #put{path = PathPattern1,
                    payload = Payload1,
-                   extra = Extra},
+                   extra = Extra1},
     process_command(StoreId, Command, Options);
 put(_StoreId, PathPattern, Payload, _Extra, _Options) ->
     throw({invalid_payload, PathPattern, Payload}).
