@@ -81,6 +81,10 @@
 -type machine_config() :: #config{}.
 %% Configuration record, holding read-only or rarely changing fields.
 
+-type keep_while_conds_map() :: #{khepri_path:native_path() =>
+                                  khepri_condition:native_keep_while()}.
+%% Per-node `keep_while' conditions.
+
 -type keep_while_conds_revidx() :: #{khepri_path:native_path() =>
                                      #{khepri_path:native_path() => ok}}.
 %% Internal reverse index of the keep_while conditions. If node A depends on a
@@ -102,7 +106,7 @@
 -type walk_down_the_tree_extra() :: #{include_root_props =>
                                       boolean(),
                                       keep_while_conds =>
-                                      khepri:keep_while_conds_map(),
+                                      keep_while_conds_map(),
                                       keep_while_conds_revidx =>
                                       keep_while_conds_revidx(),
                                       keep_while_aftermath =>
@@ -126,6 +130,7 @@
               tree_node/0,
               stat/0,
               triggered/0,
+              keep_while_conds_map/0,
               keep_while_conds_revidx/0]).
 
 %% -------------------------------------------------------------------
@@ -139,7 +144,7 @@
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Payload :: khepri_payload:payload(),
-      Extra :: #{keep_while => khepri:keep_while_conds_map()},
+      Extra :: #{keep_while => khepri_condition:keep_while()},
       Options :: khepri:command_options(),
       Result :: khepri:result() | NoRetIfAsync,
       NoRetIfAsync :: ok.
@@ -404,7 +409,7 @@ ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
 
 -spec get_keep_while_conds_state(StoreId) -> Ret when
       StoreId :: khepri:store_id(),
-      Ret :: {ok, khepri:keep_while_conds_map()} | khepri:error().
+      Ret :: {ok, keep_while_conds_map()} | khepri:error().
 %% @doc Returns the `keep_while' conditions internal state.
 %%
 %% The returned state consists of all the `keep_while' condition set so far.
@@ -995,7 +1000,7 @@ gather_node_props(#node{stat = #{payload_version := DVersion,
 
 -spec to_absolute_keep_while(BasePath, KeepWhile) -> KeepWhile when
       BasePath :: khepri_path:native_path(),
-      KeepWhile :: khepri_condition:keep_while().
+      KeepWhile :: khepri_condition:native_keep_while().
 %% @private
 
 to_absolute_keep_while(BasePath, KeepWhile) ->
@@ -1007,7 +1012,7 @@ to_absolute_keep_while(BasePath, KeepWhile) ->
 
 -spec are_keep_while_conditions_met(Node, KeepWhile) -> Ret when
       Node :: tree_node(),
-      KeepWhile :: khepri_condition:keep_while(),
+      KeepWhile :: khepri_condition:native_keep_while(),
       Ret :: true | {false, any()}.
 %% @private
 
@@ -1053,10 +1058,10 @@ is_keep_while_condition_met_on_self(_, _, _) ->
 -spec update_keep_while_conds_revidx(
         KeepWhileConds, KeepWhileCondsRevIdx, Watcher, KeepWhile) ->
     KeepWhileConds when
-      KeepWhileConds :: khepri:keep_while_conds_map(),
+      KeepWhileConds :: keep_while_conds_map(),
       KeepWhileCondsRevIdx :: keep_while_conds_revidx(),
       Watcher :: khepri_path:native_path(),
-      KeepWhile :: khepri_condition:keep_while().
+      KeepWhile :: khepri_condition:native_keep_while().
 
 update_keep_while_conds_revidx(
   KeepWhileConds, KeepWhileCondsRevIdx, Watcher, KeepWhile) ->
@@ -1121,7 +1126,7 @@ find_matching_nodes_cb(_, {interrupted, _, _}, _, Result) ->
       State :: state(),
       PathPattern :: khepri_path:native_pattern(),
       Payload :: khepri_payload:payload(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
+      Extra :: #{keep_while => khepri_condition:native_keep_while()},
       Ret :: {State, Result} | {State, Result, ra_machine:effects()},
       Result :: khepri:result().
 %% @private

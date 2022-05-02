@@ -229,6 +229,36 @@
 %% An association between a path and a condition. As long as the condition
 %% evaluates to true, the tree node is kept. Once the condition evaluates to
 %% false, the tree node is deleted.
+%%
+%% If the `keep_while' conditions are false at the time of the insert, the
+%% insert fails. The only exception to that is if the `keep_while' condition
+%% is on the inserted node itself.
+%%
+%% Paths in the map can be native paths or Unix-like paths. However, having
+%% two entries that resolve to the same node (one native path entry and one
+%% Unix-like path entry for instance) is undefined behavior: one of them will
+%% overwrite the other.
+%%
+%% Example:
+%% ```
+%% khepri:put(
+%%   StoreId,
+%%   [foo],
+%%   Payload,
+%%   #{keep_while => #{
+%%     %% The node `[foo]' will be removed as soon as `[bar]' is removed
+%%     %% because the condition associated with `[bar]' will not be true
+%%     %% anymore.
+%%     [bar] => #if_node_exists{exists = true}
+%%   }}
+%% ).
+%% '''
+
+-type native_keep_while() :: #{khepri_path:native_path() => condition()}.
+%% An association between a native path and a condition.
+%%
+%% This is the same as {@link keep_while()} but the paths in the map keys were
+%% converted to native paths if necessary.
 
 -export([ensure_native_keep_while/1,
          compile/1,
@@ -243,7 +273,12 @@
 
 -export_type([condition/0,
               comparison_op/1,
-              keep_while/0]).
+              keep_while/0,
+              native_keep_while/0]).
+
+-spec ensure_native_keep_while(KeepWhile) -> NativeKeepWhile when
+      KeepWhile :: keep_while(),
+      NativeKeepWhile :: native_keep_while().
 
 ensure_native_keep_while(KeepWhile) ->
     maps:fold(
