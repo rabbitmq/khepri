@@ -65,8 +65,10 @@
 
 -export([compile/1,
          from_string/1,
+         from_binary/1,
          maybe_from_string/1,
          to_string/1,
+         to_binary/1,
          combine_with_conditions/2,
          targets_specific_node/1,
          component_targets_specific_node/1,
@@ -107,16 +109,37 @@
 compile(PathPattern) ->
     lists:map(fun khepri_condition:compile/1, PathPattern).
 
--spec from_string(MaybeString) -> PathPattern when
-      MaybeString :: string() | pattern(),
+-spec from_string(String) -> PathPattern when
+      String :: string() | binary() | pattern(),
       PathPattern :: pattern().
+%% @doc Converts a Unix-like path to a native path.
+%%
+%% The Unix-like string can be either an Erlang string or an Erlang binary.
+%%
+%% For convenience, a native path is also accepted and returned as-is.
 
 from_string("/" ++ MaybeString) ->
     from_string(MaybeString, [?ROOT_NODE]);
 from_string(MaybeString) when is_list(MaybeString) ->
     from_string(MaybeString, []);
+from_string(Binary) when is_binary(Binary) ->
+    String = erlang:binary_to_list(Binary),
+    from_string(String);
 from_string(NotPath) ->
     throw({invalid_path, #{path => NotPath}}).
+
+-spec from_binary(String) -> PathPattern when
+      String :: string() | binary() | pattern(),
+      PathPattern :: pattern().
+%% @doc Converts a Unix-like path to a native path.
+%%
+%% This is the same as calling `from_string(String)'. Therefore, it accepts
+%% Erlang strings or binaries and native paths.
+%%
+%% @see from_string/1.
+
+from_binary(MaybeString) ->
+    from_string(MaybeString).
 
 from_string([Component | _] = Rest, ReversedPath)
   when ?IS_NODE_ID(Component) orelse
@@ -253,6 +276,7 @@ maybe_from_string([Char1, Char2 | _] = Path)
     end.
 
 -spec to_string(path()) -> string().
+%% @doc Converts a native path to a string.
 
 to_string([?ROOT_NODE | Path]) ->
     "/" ++
@@ -275,7 +299,15 @@ to_string(Path) ->
       lists:map(fun component_to_string/1, Path),
       "/").
 
+-spec to_binary(path()) -> binary().
+%% @doc Converts a native path to a binary.
+
+to_binary(Path) ->
+    String = to_string(Path),
+    erlang:list_to_binary(String).
+
 -spec component_to_string(component()) -> string().
+%% @private
 
 component_to_string(?ROOT_NODE) ->
     "/";
