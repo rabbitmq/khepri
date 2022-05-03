@@ -6,12 +6,18 @@ on:
 
 jobs:
   Test:
-    name: Test on Erlang/OTP ${{ matrix.otp_version }} and ${{ matrix.os }}
+    name: Test on Erlang/OTP ${{ matrix.beam_versions.otp }}, Elixir ${{ matrix.beam_versions.elixir }} and ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        otp_version: [23, 24, '25.0-rc3']
+        beam_versions:
+          - otp: 23
+            elixir: '1.11.4'
+          - otp: 24
+            elixir: '1.13.4'
+          # - otp: '25.0-rc3'
+          #   elixir: '1.13.4'
         os: [ubuntu-latest, windows-latest]
 
     env:
@@ -22,12 +28,13 @@ jobs:
       - uses: erlef/setup-beam@v1
         id: install-erlang
         with:
-          otp-version: ${{matrix.otp_version}}
+          otp-version: ${{ matrix.beam_versions.otp }}
+          elixir-version: ${{ matrix.beam_versions.elixir }}
           rebar3-version: '3.18.0'
 
       - name: Restore Dialyzer PLT files from cache
         uses: actions/cache@v2
-        if: ${{ matrix.otp_version == env.RUN_DIALYZER_ON_OTP_RELEASE && matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.beam_versions.otp == env.RUN_DIALYZER_ON_OTP_RELEASE && matrix.os == 'ubuntu-latest' }}
         with:
           path: _build/*/rebar3_*_plt
           key: dialyzer-plt-cache-${{ steps.install-erlang.outputs.otp-version }}-${{ runner.os }}-${{ hashFiles('rebar.config*') }}-v1
@@ -44,12 +51,17 @@ jobs:
       - name: Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERALLS_FLAG_NAME: Erlang/OTP ${{ matrix.otp_version }} on ${{ matrix.os }}
+          COVERALLS_FLAG_NAME: Erlang/OTP ${{ matrix.beam_versions.otp }} on ${{ matrix.os }}
         run: rebar3 as test coveralls send
 
       - name: Dialyzer
-        if: ${{ matrix.otp_version == env.RUN_DIALYZER_ON_OTP_RELEASE && matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.beam_versions.otp == env.RUN_DIALYZER_ON_OTP_RELEASE && matrix.os == 'ubuntu-latest' }}
         run: rebar3 clean && rebar3 as test dialyzer
+
+      - name: Get Elixir dependencies
+        run: mix deps.get
+      - name: ExUnit
+        run: mix test
 
   Finish:
     name: Finishing
