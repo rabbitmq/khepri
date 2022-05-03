@@ -224,7 +224,32 @@ if_data_matches_matching_test() ->
     ?assertEqual(
        {false, CompiledCond2},
        khepri_condition:is_met(
-         CompiledCond2, foo, #node{payload = khepri_payload:data(other)})).
+         CompiledCond2, foo, #node{payload = khepri_payload:data(other)})),
+
+    CompiledCond3 = khepri_condition:compile(
+                      #if_data_matches{pattern = {a, '$1'},
+                                       conditions = [{is_integer, '$1'},
+                                                     {'>=', '$1', 10}]}),
+    ?assert(
+       khepri_condition:is_met(
+         CompiledCond3, foo, #{data => {a, 10}})),
+    ?assertEqual(
+       {false, CompiledCond3},
+       khepri_condition:is_met(
+         CompiledCond3, foo, #{})),
+    ?assertEqual(
+       {false, CompiledCond3},
+       khepri_condition:is_met(
+         CompiledCond3, foo, #{data => {a, 9}})),
+    ?assertEqual(
+       {false, CompiledCond3},
+       khepri_condition:is_met(
+         CompiledCond3, foo, #{data => {a, not_integer}})),
+    ?assertEqual(
+       {false, CompiledCond3},
+       khepri_condition:is_met(
+         CompiledCond3, foo, #{data => other})),
+    ok.
 
 if_payload_version_matching_test() ->
     ?assert(
