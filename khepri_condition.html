@@ -155,17 +155,33 @@ corresponds to the expected value.</p>
 #if_child_list_version{version = {gt, 10}}.</code></pre></p>
 
 <h3 class="typedecl"><a name="type-if_data_matches">if_data_matches()</a></h3>
-<p><code>if_data_matches() = #if_data_matches{pattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a>, compiled = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-comp_match_spec">ets:comp_match_spec()</a> | undefined}</code></p>
-<p><p>  Condition. Evaluates to true if the tested node has a data payload and the  
-data payload term matches the given pattern.</p>
+<p><code>if_data_matches() = #if_data_matches{pattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a>, conditions = [any()], compiled = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-comp_match_spec">ets:comp_match_spec()</a> | undefined}</code></p>
+<p><p>  Condition. Evaluates to true if the tested node has a data payload and the
+  data payload term matches the given <code>pattern</code> and all <code>conditions</code> evaluates  
+to true.</p>
  
   Record fields:
   <ul>
-  <li><code>pattern</code>: an ETS-like match pattern.</li>
+  <li><code>pattern</code>: an ETS-like match pattern. The match pattern can define
+  variables to be used in the <code>conditions</code> below.</li>
+  <li><code>conditions</code>: a list of guard expressions. All guard expressions must
+  evaluate to true to consider a match. The default is an empty list of
+  conditions which means that only the pattern matching is
+  considered.</li>
   </ul>
  
-  Example:
-  <pre><code>#if_data_matches{pattern = {user, '_'}}.</code></pre></p>
+  Examples:
+  <pre><code>%% The data must be of the form `{user, _}', so a tuple of arity 2 with the
+%% first element being the `user' atom. The second element can be anything.
+#if_data_matches{pattern = {user, '_'}}.</code></pre>
+  <pre><code>%% The data must be of the form `{age, Age}' and `Age' must be an
+%% integer greater than or equal to 18.
+#if_data_matches{pattern = {age, '$1'},
+                 conditions = [{is_integer, '$1'},
+                               {'&gt;=', '$1', 18}]}.</code></pre>
+ 
+  See <a href="https://www.erlang.org/doc/apps/erts/match_spec.html">Match
+  Specifications in Erlang</a> for a detailed documentation of how it works.</p>
 
 <h3 class="typedecl"><a name="type-if_has_data">if_has_data()</a></h3>
 <p><code>if_has_data() = #if_has_data{has_data = boolean()}</code></p>
