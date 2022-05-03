@@ -52,6 +52,8 @@
          from_binary/1,
          to_string/1,
          to_binary/1,
+         sigil_p/2,
+         sigil_P/2,
          combine_with_conditions/2,
          targets_specific_node/1,
          component_targets_specific_node/1,
@@ -239,6 +241,50 @@ from_string(NotPath) ->
 
 from_binary(MaybeString) ->
     from_string(MaybeString).
+
+-spec sigil_p(PathPattern, Options) -> NativePathPattern when
+      PathPattern :: pattern(),
+      Options :: [char()],
+      NativePathPattern :: native_pattern().
+%% @doc Elixir sigil to parse Unix-like path using the `~p"/:path/:to/node"'
+%% syntax.
+%%
+%% The lowercase `~p' sigil means that the string will go through
+%% interpolation first before this function is called.
+%%
+%% @see sigil_P/2.
+%%
+%% @private
+
+sigil_p(PathPattern, _Options) ->
+    try
+        from_string(PathPattern)
+    catch
+        throw:Reason:Stacktrace ->
+            erlang:raise(error, Reason, Stacktrace)
+    end.
+
+-spec sigil_P(PathPattern, Options) -> NativePathPattern when
+      PathPattern :: pattern(),
+      Options :: [char()],
+      NativePathPattern :: native_pattern().
+%% @doc Elixir sigil to parse Unix-like path using the `~P"/:path/:to/node"'
+%% syntax.
+%%
+%% The uppercase `~P' sigil means that the string will NOT go through
+%% interpolation first before this function is called.
+%%
+%% @see sigil_p/2.
+%%
+%% @private
+
+sigil_P(PathPattern, _Options) ->
+    try
+        from_string(PathPattern)
+    catch
+        throw:Reason:Stacktrace ->
+            erlang:raise(error, Reason, Stacktrace)
+    end.
 
 from_string([Component | _] = Rest, ReversedPath)
   when ?IS_NODE_ID(Component) orelse
