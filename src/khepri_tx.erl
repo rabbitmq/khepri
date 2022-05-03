@@ -137,11 +137,12 @@ put(PathPattern, Data, Extra) ->
             State, PathPattern1, Payload1, Extra1),
     case Ret of
         {NewState, Result, NewSideEffects} ->
-            set_tx_state(NewState, SideEffects ++ NewSideEffects);
+            set_tx_state(NewState, SideEffects ++ NewSideEffects),
+            Result;
         {NewState, Result} ->
-            set_tx_state(NewState, SideEffects)
-    end,
-    Result.
+            set_tx_state(NewState, SideEffects),
+            Result
+    end.
 
 -spec create(PathPattern, Data) -> Result when
       PathPattern :: khepri_path:pattern(),
@@ -246,11 +247,12 @@ delete(PathPattern) ->
     Ret = khepri_machine:delete_matching_nodes(State, PathPattern1),
     case Ret of
         {NewState, Result, NewSideEffects} ->
-            set_tx_state(NewState, SideEffects ++ NewSideEffects);
+            set_tx_state(NewState, SideEffects ++ NewSideEffects),
+            Result;
         {NewState, Result} ->
-            set_tx_state(NewState, SideEffects)
-    end,
-    Result.
+            set_tx_state(NewState, SideEffects),
+            Result
+    end.
 
 -spec exists(PathPattern) -> Exists when
       PathPattern :: khepri_path:pattern(),
