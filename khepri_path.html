@@ -99,13 +99,94 @@ PathPattern = [stock,
                                      #if_node_exists{exists = true}]},
                oak].</code></pre>
  
-  <p>To be user-friendly, Unix-like string-based paths are accepted by most
-  functions. These <em>Unix paths</em> have the following syntax:</p>
+  <p>To be user-friendly, string-based and binary-based <em>Unix-like paths</em>
+  are accepted by most functions. The syntax of these <em>Unix paths</em> is
+  described in the <a docgen-rel="seetype" docgen-href="#unix_path/0" href="#type-unix_path"><code>unix_path()</code></a> type documentation. Example:</p>
+ 
+  <pre><code>%% Unix path, equivalent of the first native path example.
+UnixPath = "/:stock/:wood/oak".</code></pre>
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-component">component()</a></h3>
+<p><code>component() = <a href="#type-node_id">node_id()</a> | 47 | 46 | 94</code></p>
+<p>  Component name in a path to a node.</p>
+
+<h3 class="typedecl"><a name="type-native_path">native_path()</a></h3>
+<p><code>native_path() = [<a href="#type-component">component()</a>]</code></p>
+<p><p>  Native path to a node.</p>
+ 
+  <p>A native path is a list of atoms, binaries and special components.</p>
+ 
+  <p>It is called <em>native</em> because it requires no further processing
+  (unlike <a docgen-rel="seetype" docgen-href="#unix_path/0" href="#type-unix_path"><code>unix_path()</code></a>) and is the format used internally by the state  
+machine.</p>
+ 
+  Special components are:
+  <ol>
+  <li><code>?ROOT_NODE</code> to explicitly mark the root node. A path is absolute by
+  default. Using <code>?ROOT_NODE</code> is only useful when manipulating the root node
+  itself (querying it or storing something in the root node).</li>
+  <li><code>?THIS_NODE</code> to make a relative path (the default being an absolute
+  path). This is mostly useful for <a docgen-rel="seetype" docgen-href="khepri_condition#keep_while/0" href="khepri_condition.html#type-keep_while"><code>khepri_condition:keep_while()</code></a> to
+  make it easy to put a condition on the node itself.</li>
+  <li><code>?PARENT_NODE</code> to target the parent of a node, with the same benefits
+  and use cases as <code>?THIS_NODE</code>.</li>
+  </ol>
+ 
+  <p>Example:</p>
+ 
+  <pre><code>%% Native path.
+Path = [stock, wood, &lt;&lt;"oak"&gt;&gt;].</code></pre></p>
+
+<h3 class="typedecl"><a name="type-native_pattern">native_pattern()</a></h3>
+<p><code>native_pattern() = [<a href="#type-pattern_component">pattern_component()</a>]</code></p>
+<p><p>  Path pattern which may match zero, one or more nodes.</p>
+ 
+  <p>A native pattern is a list of atoms, binaries, special components and  
+conditions.</p>
+ 
+  <p>It is called <em>native</em> because it requires no further processing
+  (unlike <a docgen-rel="seetype" docgen-href="#unix_pattern/0" href="#type-unix_pattern"><code>unix_pattern()</code></a>) and is the format used internally by the  
+state machine.</p>
+ 
+  <p>See <a docgen-rel="seetype" docgen-href="#native_path/0" href="#type-native_path"><code>native_path()</code></a> for a description of special components.</p>
+ 
+  <p>Conditions are any condition defined by <a docgen-rel="seetype" docgen-href="khepri_condition#condition/0" href="khepri_condition.html#type-condition"><code>khepri_condition:condition()</code></a>.</p>
+ 
+  <p>Example:</p>
+ 
+  <pre><code>%% Path pattern with a condition on `wood'.
+PathPattern = [stock,
+               #if_all{conditions = [wood,
+                                     #if_node_exists{exists = true}]},
+               oak].</code></pre></p>
+
+<h3 class="typedecl"><a name="type-node_id">node_id()</a></h3>
+<p><code>node_id() = atom() | binary()</code></p>
+<p>  A node name.</p>
+
+<h3 class="typedecl"><a name="type-path">path()</a></h3>
+<p><code>path() = <a href="#type-native_path">native_path()</a> | <a href="#type-unix_path">unix_path()</a></code></p>
+<p>  Path to a node.</p>
+
+<h3 class="typedecl"><a name="type-pattern">pattern()</a></h3>
+<p><code>pattern() = <a href="#type-native_pattern">native_pattern()</a> | <a href="#type-unix_pattern">unix_pattern()</a></code></p>
+<p>  Path pattern which may match zero, one or more nodes.</p>
+
+<h3 class="typedecl"><a name="type-pattern_component">pattern_component()</a></h3>
+<p><code>pattern_component() = <a href="#type-component">component()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-condition">khepri_condition:condition()</a></code></p>
+<p>  Path pattern component which may match zero, one or more nodes.</p>
+
+<h3 class="typedecl"><a name="type-unix_path">unix_path()</a></h3>
+<p><code>unix_path() = string() | binary()</code></p>
+<p><p>  Unix-like path to a node.</p>
+ 
+  <p>These <em>Unix paths</em> have the following syntax:</p>
  
   <ul>
   <li>Path components are separated by a forward slash, <code>/</code>.</li>
   <li>Atom-based node IDs are prefixed with a <code>:</code> character: <code>:wood</code>.</li>
-  <li>Binary-based node IDS are written as-is: <code>oak</code>.</li>
+  <li>Binary-based node IDs are written as-is: <code>oak</code>.</li>
   <li>Atom and binaries can be percent-encoded.</li>
   <li>An absolute path must start with <code>/</code>, otherwise it is considered a
   relative path</li>
@@ -119,29 +200,36 @@ PathPattern = [stock,
   </ul></li>
   </ul>
  
+  <p><strong>Warning</strong>: There is no special handling of Unicode in tree  
+node names. To use Unicode, it is recommended to either use a native path or  
+a binary-based Unix-like path. If using a string-based Unix-like path, the  
+behavior is undefined and the call may crash. Matching against node names is  
+also undefined behavior and may crash, regardless of the type of path being  
+used. It will be improved in the future.</p>
+ 
+  Example:
   <pre><code>%% Unix path, equivalent of the first native path example.
-UnixPath = "/:stock/:wood/oak".</code></pre>
-<h2><a name="types">Data Types</a></h2>
+UnixPath = "/:stock/:wood/oak".</code></pre></p>
 
-<h3 class="typedecl"><a name="type-component">component()</a></h3>
-<p><code>component() = <a href="#type-node_id">node_id()</a> | 47 | 46 | 94</code></p>
-<p>  Component name in a path to a node.</p>
-
-<h3 class="typedecl"><a name="type-node_id">node_id()</a></h3>
-<p><code>node_id() = atom() | binary()</code></p>
-<p>  A node name.</p>
-
-<h3 class="typedecl"><a name="type-path">path()</a></h3>
-<p><code>path() = [<a href="#type-component">component()</a>]</code></p>
-<p>  Path to a node.</p>
-
-<h3 class="typedecl"><a name="type-pattern">pattern()</a></h3>
-<p><code>pattern() = [<a href="#type-pattern_component">pattern_component()</a>]</code></p>
-<p>  Path pattern which may match zero, one or more nodes.</p>
-
-<h3 class="typedecl"><a name="type-pattern_component">pattern_component()</a></h3>
-<p><code>pattern_component() = <a href="#type-component">component()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-condition">khepri_condition:condition()</a></code></p>
-
+<h3 class="typedecl"><a name="type-unix_pattern">unix_pattern()</a></h3>
+<p><code>unix_pattern() = string() | binary()</code></p>
+<p><p>  Unix-like path pattern to a node.</p>
+ 
+  It accepts the following special characters:
+  <ol>
+  <li><code>*</code> anywhere in a path component behaves like a <a docgen-rel="seetype" docgen-href="khepri_condition#if_name_matches/0" href="khepri_condition.html#type-if_name_matches"><code>khepri_condition:if_name_matches()</code></a>.</li>
+  <li><code>**</code> as a path component behaves like a <a docgen-rel="seetype" docgen-href="khepri_condition#if_path_matches/0" href="khepri_condition.html#type-if_path_matches"><code>khepri_condition:if_path_matches()</code></a>.</li>
+  </ol>
+ 
+  <p>A Unix-like path pattern can't express all the conditions of a native path  
+pattern currently.</p>
+ 
+  <p>Otherwise it works as a <a docgen-rel="seetype" docgen-href="#unix_path/0" href="#type-unix_path"><code>unix_path()</code></a> and has the same syntax and  
+limitations.</p>
+ 
+  Example:
+  <pre><code>%% Unix path pattern, matching multiple types of oak.
+UnixPathPattern = "/:stock/:wood/*oak".</code></pre></p>
 
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#from_string-1">from_string/1</a></td><td>Converts a Unix-like path to a native path.</td></tr>
@@ -162,7 +250,7 @@ UnixPath = "/:stock/:wood/oak".</code></pre>
 <h3 class="function"><a name="from_string-1">from_string/1</a></h3>
 <div class="spec">
 <p><code>from_string(String) -&gt; PathPattern</code>
-<ul class="definitions"><li><code>String = string() | binary() | <a href="#type-pattern">pattern()</a></code></li><li><code>PathPattern = <a href="#type-pattern">pattern()</a></code></li></ul></p>
+<ul class="definitions"><li><code>String = <a href="#type-pattern">pattern()</a></code></li><li><code>PathPattern = <a href="#type-native_pattern">native_pattern()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Converts a Unix-like path to a native path.</p>
  
@@ -173,7 +261,7 @@ UnixPath = "/:stock/:wood/oak".</code></pre>
 <h3 class="function"><a name="from_binary-1">from_binary/1</a></h3>
 <div class="spec">
 <p><code>from_binary(String) -&gt; PathPattern</code>
-<ul class="definitions"><li><code>String = string() | binary() | <a href="#type-pattern">pattern()</a></code></li><li><code>PathPattern = <a href="#type-pattern">pattern()</a></code></li></ul></p>
+<ul class="definitions"><li><code>String = <a href="#type-pattern">pattern()</a></code></li><li><code>PathPattern = <a href="#type-native_pattern">native_pattern()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Converts a Unix-like path to a native path.</p>
  
@@ -184,51 +272,57 @@ UnixPath = "/:stock/:wood/oak".</code></pre>
 
 <h3 class="function"><a name="to_string-1">to_string/1</a></h3>
 <div class="spec">
-<p><code>to_string(Path::<a href="#type-path">path()</a>) -&gt; string()</code><br></p>
+<p><code>to_string(NativePath) -&gt; UnixPath</code>
+<ul class="definitions"><li><code>NativePath = <a href="#type-native_path">native_path()</a></code></li><li><code>UnixPath = string()</code></li></ul></p>
 <p></p>
 </div><p>Converts a native path to a string.</p>
 
 <h3 class="function"><a name="to_binary-1">to_binary/1</a></h3>
 <div class="spec">
-<p><code>to_binary(Path::<a href="#type-path">path()</a>) -&gt; binary()</code><br></p>
+<p><code>to_binary(NativePath) -&gt; UnixPath</code>
+<ul class="definitions"><li><code>NativePath = <a href="#type-native_path">native_path()</a></code></li><li><code>UnixPath = binary()</code></li></ul></p>
 <p></p>
 </div><p>Converts a native path to a binary.</p>
 
 <h3 class="function"><a name="combine_with_conditions-2">combine_with_conditions/2</a></h3>
 <div class="spec">
-<p><code>combine_with_conditions(Path::<a href="#type-pattern">pattern()</a>, Conditions::[<a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-condition">khepri_condition:condition()</a>]) -&gt; <a href="#type-pattern">pattern()</a></code><br></p>
+<p><code>combine_with_conditions(PathPattern, Conditions) -&gt; PathPattern</code>
+<ul class="definitions"><li><code>PathPattern = <a href="#type-native_pattern">native_pattern()</a></code></li><li><code>Conditions = [<a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-condition">khepri_condition:condition()</a>]</code></li></ul></p>
 <p></p>
 </div>
 
 <h3 class="function"><a name="targets_specific_node-1">targets_specific_node/1</a></h3>
 <div class="spec">
-<p><code>targets_specific_node(PathPattern::<a href="#type-pattern">pattern()</a>) -&gt; {true, <a href="#type-path">path()</a>} | false</code><br></p>
+<p><code>targets_specific_node(PathPattern) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="#type-native_pattern">native_pattern()</a></code></li><li><code>Ret = {true, Path} | false</code></li><li><code>Path = <a href="#type-native_path">native_path()</a></code></li></ul></p>
 <p></p>
 </div>
 
 <h3 class="function"><a name="is_valid-1">is_valid/1</a></h3>
 <div class="spec">
 <p><code>is_valid(PathPattern) -&gt; IsValid</code>
-<ul class="definitions"><li><code>PathPattern = <a href="#type-pattern">pattern()</a></code></li><li><code>IsValid = true | {false, <a href="#type-pattern_component">pattern_component()</a>}</code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="#type-native_pattern">native_pattern()</a></code></li><li><code>IsValid = true | {false, ComponentPattern}</code></li><li><code>ComponentPattern = <a href="#type-pattern_component">pattern_component()</a></code></li></ul></p>
 <p></p>
 </div>
 
 <h3 class="function"><a name="ensure_is_valid-1">ensure_is_valid/1</a></h3>
 <div class="spec">
 <p><code>ensure_is_valid(PathPattern) -&gt; ok | no_return()</code>
-<ul class="definitions"><li><code>PathPattern = <a href="#type-pattern">pattern()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="#type-native_pattern">native_pattern()</a></code></li></ul></p>
 <p></p>
 </div>
 
 <h3 class="function"><a name="abspath-2">abspath/2</a></h3>
 <div class="spec">
-<p><code>abspath(AbsolutePath::<a href="#type-pattern">pattern()</a>, BasePath::<a href="#type-pattern">pattern()</a>) -&gt; <a href="#type-pattern">pattern()</a></code><br></p>
+<p><code>abspath(Path, BasePath) -&gt; Path</code>
+<ul class="definitions"><li><code>Path = <a href="#type-native_pattern">native_pattern()</a></code></li><li><code>BasePath = <a href="#type-native_pattern">native_pattern()</a></code></li></ul></p>
 <p></p>
 </div>
 
 <h3 class="function"><a name="realpath-1">realpath/1</a></h3>
 <div class="spec">
-<p><code>realpath(Path::<a href="#type-pattern">pattern()</a>) -&gt; <a href="#type-pattern">pattern()</a></code><br></p>
+<p><code>realpath(Path) -&gt; Path</code>
+<ul class="definitions"><li><code>Path = <a href="#type-native_pattern">native_pattern()</a></code></li></ul></p>
 <p></p>
 </div>
 

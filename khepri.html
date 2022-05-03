@@ -238,7 +238,7 @@ node.</p>
   </ul></p>
 
 <h3 class="typedecl"><a name="type-node_props_map">node_props_map()</a></h3>
-<p><code>node_props_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; <a href="#type-node_props">node_props()</a>}</code></p>
+<p><code>node_props_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a> =&gt; <a href="#type-node_props">node_props()</a>}</code></p>
 <p><p>  Structure used to return a map of nodes and their associated properties,  
 payload and child nodes.</p>
  
@@ -448,7 +448,7 @@ result.</td></tr>
 <h3 class="function"><a name="put-2">put/2</a></h3>
 <div class="spec">
 <p><code>put(PathPattern, Data) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Creates or modifies a specific tree node in the tree structure.</p>
  
@@ -460,7 +460,7 @@ result.</td></tr>
 <h3 class="function"><a name="put-3">put/3</a></h3>
 <div class="spec">
 <p><code>put(StoreId, PathPattern, Data) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Creates or modifies a specific tree node in the tree structure.</p>
  
@@ -472,7 +472,7 @@ result.</td></tr>
 <h3 class="function"><a name="put-4">put/4</a></h3>
 <div class="spec">
 <p><code>put(StoreId, PathPattern, Data, Extra::Extra | Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p></p>
 </div><p><p>Creates or modifies a specific tree node in the tree structure.</p>
  
@@ -484,7 +484,7 @@ result.</td></tr>
 <h3 class="function"><a name="put-5">put/5</a></h3>
 <div class="spec">
 <p><code>put(StoreId, PathPattern, Data, Extra, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
@@ -566,7 +566,7 @@ Result = khepri:put(ra_cluster_name, [foo, bar], new_value),
 <h3 class="function"><a name="create-2">create/2</a></h3>
 <div class="spec">
 <p><code>create(PathPattern, Data) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Creates a specific tree node in the tree structure only if it does not  
 exist.</p>
@@ -579,7 +579,7 @@ exist.</p>
 <h3 class="function"><a name="create-3">create/3</a></h3>
 <div class="spec">
 <p><code>create(StoreId, PathPattern, Data) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Creates a specific tree node in the tree structure only if it does not  
 exist.</p>
@@ -592,7 +592,7 @@ exist.</p>
 <h3 class="function"><a name="create-4">create/4</a></h3>
 <div class="spec">
 <p><code>create(StoreId, PathPattern, Data, Extra::Extra | Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p></p>
 </div><p><p>Creates a specific tree node in the tree structure only if it does not  
 exist.</p>
@@ -605,7 +605,7 @@ exist.</p>
 <h3 class="function"><a name="create-5">create/5</a></h3>
 <div class="spec">
 <p><code>create(StoreId, PathPattern, Data, Extra, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
@@ -631,7 +631,7 @@ exist.</p>
 <h3 class="function"><a name="update-2">update/2</a></h3>
 <div class="spec">
 <p><code>update(PathPattern, Data) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Updates a specific tree node in the tree structure only if it already  
 exists.</p>
@@ -644,7 +644,7 @@ exists.</p>
 <h3 class="function"><a name="update-3">update/3</a></h3>
 <div class="spec">
 <p><code>update(StoreId, PathPattern, Data) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Updates a specific tree node in the tree structure only if it already  
 exists.</p>
@@ -657,7 +657,7 @@ exists.</p>
 <h3 class="function"><a name="update-4">update/4</a></h3>
 <div class="spec">
 <p><code>update(StoreId, PathPattern, Data, Extra::Extra | Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p></p>
 </div><p><p>Updates a specific tree node in the tree structure only if it already  
 exists.</p>
@@ -670,7 +670,7 @@ exists.</p>
 <h3 class="function"><a name="update-5">update/5</a></h3>
 <div class="spec">
 <p><code>update(StoreId, PathPattern, Data, Extra, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
@@ -696,7 +696,7 @@ exists.</p>
 <h3 class="function"><a name="compare_and_swap-3">compare_and_swap/3</a></h3>
 <div class="spec">
 <p><code>compare_and_swap(PathPattern, DataPattern, Data) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Updates a specific tree node in the tree structure only if it already
   exists and its data matches the given <code>DataPattern</code>.</p>
@@ -709,7 +709,7 @@ exists.</p>
 <h3 class="function"><a name="compare_and_swap-4">compare_and_swap/4</a></h3>
 <div class="spec">
 <p><code>compare_and_swap(StoreId, PathPattern, DataPattern, Data) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Updates a specific tree node in the tree structure only if it already
   exists and its data matches the given <code>DataPattern</code>.</p>
@@ -722,7 +722,7 @@ exists.</p>
 <h3 class="function"><a name="compare_and_swap-5">compare_and_swap/5</a></h3>
 <div class="spec">
 <p><code>compare_and_swap(StoreId, PathPattern, DataPattern, Data, Extra::Extra | Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p></p>
 </div><p><p>Updates a specific tree node in the tree structure only if it already
   exists and its data matches the given <code>DataPattern</code>.</p>
@@ -736,7 +736,7 @@ exists.</p>
 <h3 class="function"><a name="compare_and_swap-6">compare_and_swap/6</a></h3>
 <div class="spec">
 <p><code>compare_and_swap(StoreId, PathPattern, DataPattern, Data, Extra, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
@@ -762,7 +762,7 @@ exists.</p>
 <h3 class="function"><a name="clear_payload-1">clear_payload/1</a></h3>
 <div class="spec">
 <p><code>clear_payload(PathPattern) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Clears the payload of a specific tree node in the tree structure.</p>
  
@@ -774,7 +774,7 @@ exists.</p>
 <h3 class="function"><a name="clear_payload-2">clear_payload/2</a></h3>
 <div class="spec">
 <p><code>clear_payload(StoreId, PathPattern) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Clears the payload of a specific tree node in the tree structure.</p>
  
@@ -786,7 +786,7 @@ exists.</p>
 <h3 class="function"><a name="clear_payload-3">clear_payload/3</a></h3>
 <div class="spec">
 <p><code>clear_payload(StoreId, PathPattern, Extra::Extra | Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p></p>
 </div><p><p>Clears the payload of a specific tree node in the tree structure.</p>
  
@@ -798,7 +798,7 @@ exists.</p>
 <h3 class="function"><a name="clear_payload-4">clear_payload/4</a></h3>
 <div class="spec">
 <p><code>clear_payload(StoreId, PathPattern, Extra, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
@@ -821,7 +821,7 @@ exists.</p>
 <h3 class="function"><a name="delete-1">delete/1</a></h3>
 <div class="spec">
 <p><code>delete(PathPattern) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Deletes all tree nodes matching the path pattern.</p>
  
@@ -833,8 +833,8 @@ exists.</p>
 <h3 class="function"><a name="delete-2">delete/2</a></h3>
 <div class="spec">
 <p><code>delete(StoreId, PathPattern) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p><p><code>delete(PathPattern, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p><p><code>delete(PathPattern, Options) -&gt; Result</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 <p></p>
 </div><p><p>Deletes all tree nodes matching the path pattern.</p>
@@ -852,7 +852,7 @@ exists.</p>
 <h3 class="function"><a name="delete-3">delete/3</a></h3>
 <div class="spec">
 <p><code>delete(StoreId, PathPattern, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to delete.<br>
 <code>Options</code>: command options such as the command type.
@@ -885,7 +885,7 @@ Result = khepri:delete(ra_cluster_name, [foo, bar]),
 <h3 class="function"><a name="exists-1">exists/1</a></h3>
 <div class="spec">
 <p><code>exists(PathPattern) -&gt; Exists</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Exists = boolean()</code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Exists = boolean()</code></li></ul></p>
 <p></p>
 </div><p><p>Returns <code>true</code> if the tree node pointed to by the given path exists,
   otherwise <code>false</code>.</p>
@@ -898,8 +898,8 @@ Result = khepri:delete(ra_cluster_name, [foo, bar]),
 <h3 class="function"><a name="exists-2">exists/2</a></h3>
 <div class="spec">
 <p><code>exists(StoreId, PathPattern) -&gt; Exists</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Exists = boolean()</code></li></ul></p><p><code>exists(PathPattern, Options) -&gt; Exists</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Exists = boolean()</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Exists = boolean()</code></li></ul></p><p><code>exists(PathPattern, Options) -&gt; Exists</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Exists = boolean()</code></li></ul></p>
 <p></p>
 <p></p>
 </div><p><p>Returns <code>true</code> if the tree node pointed to by the given path exists,
@@ -918,7 +918,7 @@ Result = khepri:delete(ra_cluster_name, [foo, bar]),
 <h3 class="function"><a name="exists-3">exists/3</a></h3>
 <div class="spec">
 <p><code>exists(StoreId, PathPattern, Options) -&gt; Exists</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Exists = boolean()</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Exists = boolean()</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
 <code>Options</code>: query options such as <code>favor</code>.
@@ -941,7 +941,7 @@ Result = khepri:delete(ra_cluster_name, [foo, bar]),
 <h3 class="function"><a name="get-1">get/1</a></h3>
 <div class="spec">
 <p><code>get(PathPattern) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Returns all tree nodes matching the path pattern.</p>
  
@@ -953,8 +953,8 @@ Result = khepri:delete(ra_cluster_name, [foo, bar]),
 <h3 class="function"><a name="get-2">get/2</a></h3>
 <div class="spec">
 <p><code>get(StoreId, PathPattern) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p><p><code>get(PathPattern, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p><p><code>get(PathPattern, Options) -&gt; Result</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 <p></p>
 </div><p><p>Returns all tree nodes matching the path pattern.</p>
@@ -972,7 +972,7 @@ Result = khepri:delete(ra_cluster_name, [foo, bar]),
 <h3 class="function"><a name="get-3">get/3</a></h3>
 <div class="spec">
 <p><code>get(StoreId, PathPattern, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to get.<br>
 <code>Options</code>: query options such as <code>favor</code>.
@@ -1003,7 +1003,7 @@ Result = khepri:get(ra_cluster_name, [foo, bar]),
 <h3 class="function"><a name="get_node_props-1">get_node_props/1</a></h3>
 <div class="spec">
 <p><code>get_node_props(PathPattern) -&gt; NodeProps</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>NodeProps = <a href="#type-node_props">node_props()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>NodeProps = <a href="#type-node_props">node_props()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Returns the tree node properties associated with the given node path.</p>
  
@@ -1015,8 +1015,8 @@ Result = khepri:get(ra_cluster_name, [foo, bar]),
 <h3 class="function"><a name="get_node_props-2">get_node_props/2</a></h3>
 <div class="spec">
 <p><code>get_node_props(StoreId, PathPattern) -&gt; NodeProps</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>NodeProps = <a href="#type-node_props">node_props()</a></code></li></ul></p><p><code>get_node_props(PathPattern, Options) -&gt; NodeProps</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>NodeProps = <a href="#type-node_props">node_props()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>NodeProps = <a href="#type-node_props">node_props()</a></code></li></ul></p><p><code>get_node_props(PathPattern, Options) -&gt; NodeProps</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>NodeProps = <a href="#type-node_props">node_props()</a></code></li></ul></p>
 <p></p>
 <p></p>
 </div><p><p>Returns the tree node properties associated with the given node path.</p>
@@ -1035,7 +1035,7 @@ Result = khepri:get(ra_cluster_name, [foo, bar]),
 <h3 class="function"><a name="get_node_props-3">get_node_props/3</a></h3>
 <div class="spec">
 <p><code>get_node_props(StoreId, PathPattern, Options) -&gt; NodeProps</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>NodeProps = <a href="#type-node_props">node_props()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>NodeProps = <a href="#type-node_props">node_props()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
 <code>Options</code>: query options such as <code>favor</code>.
@@ -1061,7 +1061,7 @@ multiple nodes.</p>
 <h3 class="function"><a name="has_data-1">has_data/1</a></h3>
 <div class="spec">
 <p><code>has_data(PathPattern) -&gt; HasData</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>HasData = boolean()</code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>HasData = boolean()</code></li></ul></p>
 <p></p>
 </div><p><p>Returns <code>true</code> if the tree node pointed to by the given path has data,
   otherwise <code>false</code>.</p>
@@ -1074,8 +1074,8 @@ multiple nodes.</p>
 <h3 class="function"><a name="has_data-2">has_data/2</a></h3>
 <div class="spec">
 <p><code>has_data(StoreId, PathPattern) -&gt; HasData</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>HasData = boolean()</code></li></ul></p><p><code>has_data(PathPattern, Options) -&gt; HasData</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasData = boolean()</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>HasData = boolean()</code></li></ul></p><p><code>has_data(PathPattern, Options) -&gt; HasData</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasData = boolean()</code></li></ul></p>
 <p></p>
 <p></p>
 </div><p><p>Returns <code>true</code> if the tree node pointed to by the given path has data,
@@ -1094,7 +1094,7 @@ multiple nodes.</p>
 <h3 class="function"><a name="has_data-3">has_data/3</a></h3>
 <div class="spec">
 <p><code>has_data(StoreId, PathPattern, Options) -&gt; HasData</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasData = boolean()</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasData = boolean()</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
 <code>Options</code>: query options such as <code>favor</code>.
@@ -1117,7 +1117,7 @@ multiple nodes.</p>
 <h3 class="function"><a name="get_data-1">get_data/1</a></h3>
 <div class="spec">
 <p><code>get_data(PathPattern) -&gt; Data</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Returns the data associated with the given node path.</p>
  
@@ -1129,8 +1129,8 @@ multiple nodes.</p>
 <h3 class="function"><a name="get_data-2">get_data/2</a></h3>
 <div class="spec">
 <p><code>get_data(StoreId, PathPattern) -&gt; Data</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p><p><code>get_data(PathPattern, Options) -&gt; Data</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p><p><code>get_data(PathPattern, Options) -&gt; Data</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p>
 <p></p>
 <p></p>
 </div><p><p>Returns the data associated with the given node path.</p>
@@ -1148,7 +1148,7 @@ multiple nodes.</p>
 <h3 class="function"><a name="get_data-3">get_data/3</a></h3>
 <div class="spec">
 <p><code>get_data(StoreId, PathPattern, Options) -&gt; Data</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
 <code>Options</code>: query options such as <code>favor</code>.
@@ -1178,7 +1178,7 @@ multiple nodes.</p>
 <h3 class="function"><a name="get_data_or-2">get_data_or/2</a></h3>
 <div class="spec">
 <p><code>get_data_or(PathPattern, Default) -&gt; Data</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Default = <a href="#type-data">data()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Default = <a href="#type-data">data()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Returns the data associated with the given node path, or <code>Default</code> if  
 there is no data.</p>
@@ -1191,8 +1191,8 @@ there is no data.</p>
 <h3 class="function"><a name="get_data_or-3">get_data_or/3</a></h3>
 <div class="spec">
 <p><code>get_data_or(StoreId, PathPattern, Default) -&gt; Data</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Default = <a href="#type-data">data()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p><p><code>get_data_or(PathPattern, Options, Default) -&gt; Data</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Default = <a href="#type-data">data()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Default = <a href="#type-data">data()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p><p><code>get_data_or(PathPattern, Options, Default) -&gt; Data</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Default = <a href="#type-data">data()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p>
 <p></p>
 <p></p>
 </div><p><p>Returns the data associated with the given node path, or <code>Default</code> if  
@@ -1212,7 +1212,7 @@ there is no data.</p>
 <h3 class="function"><a name="get_data_or-4">get_data_or/4</a></h3>
 <div class="spec">
 <p><code>get_data_or(StoreId, PathPattern, Default, Options) -&gt; Data</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Default = <a href="#type-data">data()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Default = <a href="#type-data">data()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
 <code>Default</code>: the default term to return if there is no data.<br>
@@ -1243,7 +1243,7 @@ multiple nodes.</p>
 <h3 class="function"><a name="has_sproc-1">has_sproc/1</a></h3>
 <div class="spec">
 <p><code>has_sproc(PathPattern) -&gt; HasStoredProc</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>HasStoredProc = boolean()</code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>HasStoredProc = boolean()</code></li></ul></p>
 <p></p>
 </div><p><p>Returns <code>true</code> if the tree node pointed to by the given path holds a
   stored procedure, otherwise <code>false</code>.</p>
@@ -1256,8 +1256,8 @@ multiple nodes.</p>
 <h3 class="function"><a name="has_sproc-2">has_sproc/2</a></h3>
 <div class="spec">
 <p><code>has_sproc(StoreId, PathPattern) -&gt; HasStoredProc</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>HasStoredProc = boolean()</code></li></ul></p><p><code>has_sproc(PathPattern, Options) -&gt; HasStoredProc</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasStoredProc = boolean()</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>HasStoredProc = boolean()</code></li></ul></p><p><code>has_sproc(PathPattern, Options) -&gt; HasStoredProc</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasStoredProc = boolean()</code></li></ul></p>
 <p></p>
 <p></p>
 </div><p><p>Returns <code>true</code> if the tree node pointed to by the given path holds a
@@ -1276,7 +1276,7 @@ multiple nodes.</p>
 <h3 class="function"><a name="has_sproc-3">has_sproc/3</a></h3>
 <div class="spec">
 <p><code>has_sproc(StoreId, PathPattern, Options) -&gt; HasStoredProc</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasStoredProc = boolean()</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasStoredProc = boolean()</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
 <code>Options</code>: query options such as <code>favor</code>.
@@ -1299,7 +1299,7 @@ multiple nodes.</p>
 <h3 class="function"><a name="run_sproc-2">run_sproc/2</a></h3>
 <div class="spec">
 <p><code>run_sproc(PathPattern, Args) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Args = list()</code></li><li><code>Result = any()</code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Args = list()</code></li><li><code>Result = any()</code></li></ul></p>
 <p></p>
 </div><p><p>Runs the stored procedure pointed to by the given path and returns the  
 result.</p>
@@ -1312,8 +1312,8 @@ result.</p>
 <h3 class="function"><a name="run_sproc-3">run_sproc/3</a></h3>
 <div class="spec">
 <p><code>run_sproc(StoreId, PathPattern, Args) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Args = list()</code></li><li><code>Result = any()</code></li></ul></p><p><code>run_sproc(PathPattern, Args, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Args = list()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = any()</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Args = list()</code></li><li><code>Result = any()</code></li></ul></p><p><code>run_sproc(PathPattern, Args, Options) -&gt; Result</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Args = list()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = any()</code></li></ul></p>
 <p></p>
 <p></p>
 </div><p><p>Runs the stored procedure pointed to by the given path and returns the  
@@ -1333,7 +1333,7 @@ result.</p>
 <h3 class="function"><a name="run_sproc-4">run_sproc/4</a></h3>
 <div class="spec">
 <p><code>run_sproc(StoreId, PathPattern, Args, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Args = list()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = any()</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Args = list()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = any()</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
 <code>Args</code>: the list of args to pass to the stored procedure; its length
@@ -1360,7 +1360,7 @@ multiple nodes.</p>
 <h3 class="function"><a name="register_trigger-3">register_trigger/3</a></h3>
 <div class="spec">
 <p><code>register_trigger(TriggerId, EventFilter, StoredProcPath) -&gt; Ret</code>
-<ul class="definitions"><li><code>TriggerId = <a href="#type-trigger_id">trigger_id()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> | string()</code></li><li><code>Ret = ok | <a href="#type-error">error()</a></code></li></ul></p>
+<ul class="definitions"><li><code>TriggerId = <a href="#type-trigger_id">trigger_id()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a></code></li><li><code>Ret = ok | <a href="#type-error">error()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Registers a trigger.</p>
  
@@ -1372,8 +1372,8 @@ multiple nodes.</p>
 <h3 class="function"><a name="register_trigger-4">register_trigger/4</a></h3>
 <div class="spec">
 <p><code>register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>TriggerId = <a href="#type-trigger_id">trigger_id()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> | string()</code></li><li><code>Ret = ok | <a href="#type-error">error()</a></code></li></ul></p><p><code>register_trigger(TriggerId, EventFilter, StoredProcPath, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>TriggerId = <a href="#type-trigger_id">trigger_id()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> | string()</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Ret = ok | <a href="#type-error">error()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>TriggerId = <a href="#type-trigger_id">trigger_id()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a></code></li><li><code>Ret = ok | <a href="#type-error">error()</a></code></li></ul></p><p><code>register_trigger(TriggerId, EventFilter, StoredProcPath, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>TriggerId = <a href="#type-trigger_id">trigger_id()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a></code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Ret = ok | <a href="#type-error">error()</a></code></li></ul></p>
 <p></p>
 <p></p>
 </div><p><p>Registers a trigger.</p>
@@ -1393,7 +1393,7 @@ multiple nodes.</p>
 <h3 class="function"><a name="register_trigger-5">register_trigger/5</a></h3>
 <div class="spec">
 <p><code>register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>TriggerId = <a href="#type-trigger_id">trigger_id()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> | string()</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Ret = ok | <a href="#type-error">error()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>TriggerId = <a href="#type-trigger_id">trigger_id()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a></code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Ret = ok | <a href="#type-error">error()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>TriggerId</code>: the name of the trigger.<br>
 <code>EventFilter</code>: the event filter used to associate an event with a
@@ -1441,7 +1441,7 @@ is a map containing the event properties. Here is an example:</p>
 <h3 class="function"><a name="list-1">list/1</a></h3>
 <div class="spec">
 <p><code>list(PathPattern) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Returns all direct child nodes under the given path.</p>
  
@@ -1453,8 +1453,8 @@ is a map containing the event properties. Here is an example:</p>
 <h3 class="function"><a name="list-2">list/2</a></h3>
 <div class="spec">
 <p><code>list(StoreId, PathPattern) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p><p><code>list(PathPattern, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p><p><code>list(PathPattern, Options) -&gt; Result</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 <p></p>
 </div><p><p>Returns all direct child nodes under the given path.</p>
@@ -1472,7 +1472,7 @@ is a map containing the event properties. Here is an example:</p>
 <h3 class="function"><a name="list-3">list/3</a></h3>
 <div class="spec">
 <p><code>list(StoreId, PathPattern, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to get.<br>
 <code>Options</code>: query options such as <code>favor</code>.
@@ -1494,7 +1494,7 @@ is a map containing the event properties. Here is an example:</p>
 <h3 class="function"><a name="find-2">find/2</a></h3>
 <div class="spec">
 <p><code>find(PathPattern, Condition) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Condition = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Condition = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Returns all tree nodes matching the path pattern.</p>
  
@@ -1506,8 +1506,8 @@ is a map containing the event properties. Here is an example:</p>
 <h3 class="function"><a name="find-3">find/3</a></h3>
 <div class="spec">
 <p><code>find(StoreId, PathPattern, Condition) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Condition = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p><p><code>find(PathPattern, Condition, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Condition = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Condition = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p><p><code>find(PathPattern, Condition, Options) -&gt; Result</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Condition = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p></p>
 <p></p>
 </div><p><p>Returns all tree nodes matching the path pattern.</p>
@@ -1526,7 +1526,7 @@ is a map containing the event properties. Here is an example:</p>
 <h3 class="function"><a name="find-4">find/4</a></h3>
 <div class="spec">
 <p><code>find(StoreId, PathPattern, Condition, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Condition = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Condition = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path indicating where to start the search from.<br>
 <code>Condition</code>: the condition nodes must match to be part of the result.
