@@ -20,7 +20,7 @@
            :: khepri_machine:keep_while_conds_revidx(),
          triggers = #{} ::
            #{khepri:trigger_id() =>
-             #{sproc := khepri_path:path(),
+             #{sproc := khepri_path:native_path(),
                event_filter := khepri_evf:event_filter()}},
          emitted_triggers = [] :: [khepri_machine:triggered()],
          metrics = #{} :: #{applied_command_count => non_neg_integer()}}).

@@ -182,7 +182,7 @@
 %% <li>Child nodes are only included if requested.</li>
 %% </ul>
 
--type node_props_map() :: #{khepri_path:path() => node_props()}.
+-type node_props_map() :: #{khepri_path:native_path() => node_props()}.
 %% Structure used to return a map of nodes and their associated properties,
 %% payload and child nodes.
 %%
@@ -387,7 +387,7 @@ get_store_ids() ->
 %% -------------------------------------------------------------------
 
 -spec put(PathPattern, Data) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
       Result :: result().
 %% @doc Creates or modifies a specific tree node in the tree structure.
@@ -402,7 +402,7 @@ put(PathPattern, Data) ->
 
 -spec put(StoreId, PathPattern, Data) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
       Result :: result().
 %% @doc Creates or modifies a specific tree node in the tree structure.
@@ -417,7 +417,7 @@ put(StoreId, PathPattern, Data) ->
 
 -spec put(StoreId, PathPattern, Data, Extra | Options) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
@@ -437,7 +437,7 @@ put(StoreId, PathPattern, Data, Options) ->
 
 -spec put(StoreId, PathPattern, Data, Extra, Options) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
@@ -529,7 +529,7 @@ put(StoreId, PathPattern, Data, Extra, Options) ->
     do_put(StoreId, PathPattern, Data, Extra, Options).
 
 -spec create(PathPattern, Data) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
       Result :: result().
 %% @doc Creates a specific tree node in the tree structure only if it does not
@@ -545,7 +545,7 @@ create(PathPattern, Data) ->
 
 -spec create(StoreId, PathPattern, Data) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
       Result :: result().
 %% @doc Creates a specific tree node in the tree structure only if it does not
@@ -561,7 +561,7 @@ create(StoreId, PathPattern, Data) ->
 
 -spec create(StoreId, PathPattern, Data, Extra | Options) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
@@ -582,7 +582,7 @@ create(StoreId, PathPattern, Data, Options) ->
 
 -spec create(StoreId, PathPattern, Data, Extra, Options) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
@@ -617,7 +617,7 @@ create(StoreId, PathPattern, Data, Extra, Options) ->
     do_put(StoreId, PathPattern2, Data, Extra, Options).
 
 -spec update(PathPattern, Data) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
       Result :: result().
 %% @doc Updates a specific tree node in the tree structure only if it already
@@ -633,7 +633,7 @@ update(PathPattern, Data) ->
 
 -spec update(StoreId, PathPattern, Data) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
       Result :: result().
 %% @doc Updates a specific tree node in the tree structure only if it already
@@ -649,7 +649,7 @@ update(StoreId, PathPattern, Data) ->
 
 -spec update(StoreId, PathPattern, Data, Extra | Options) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
@@ -670,7 +670,7 @@ update(StoreId, PathPattern, Data, Options) ->
 
 -spec update(StoreId, PathPattern, Data, Extra, Options) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
@@ -705,7 +705,7 @@ update(StoreId, PathPattern, Data, Extra, Options) ->
     do_put(StoreId, PathPattern2, Data, Extra, Options).
 
 -spec compare_and_swap(PathPattern, DataPattern, Data) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
       Result :: result().
@@ -722,7 +722,7 @@ compare_and_swap(PathPattern, DataPattern, Data) ->
 
 -spec compare_and_swap(StoreId, PathPattern, DataPattern, Data) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
       Result :: result().
@@ -741,7 +741,7 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data) ->
         StoreId, PathPattern, DataPattern, Data, Extra | Options) ->
     Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
@@ -767,7 +767,7 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) ->
         StoreId, PathPattern, DataPattern, Data, Extra, Options) ->
     Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
@@ -804,7 +804,7 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data, Extra, Options) ->
 
 -spec do_put(StoreId, PathPattern, Payload, Extra, Options) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Payload :: khepri_payload:payload() | data() | fun(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
@@ -819,7 +819,7 @@ do_put(StoreId, PathPattern, Payload, Extra, Options) ->
     khepri_machine:put(StoreId, PathPattern, Payload1, Extra, Options).
 
 -spec clear_payload(PathPattern) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Result :: result().
 %% @doc Clears the payload of a specific tree node in the tree structure.
 %%
@@ -833,7 +833,7 @@ clear_payload(PathPattern) ->
 
 -spec clear_payload(StoreId, PathPattern) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Result :: result().
 %% @doc Clears the payload of a specific tree node in the tree structure.
 %%
@@ -847,7 +847,7 @@ clear_payload(StoreId, PathPattern) ->
 
 -spec clear_payload(StoreId, PathPattern, Extra | Options) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
@@ -866,7 +866,7 @@ clear_payload(StoreId, PathPattern, Options) ->
 
 -spec clear_payload(StoreId, PathPattern, Extra, Options) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Extra :: #{keep_while => keep_while_conds_map()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
@@ -894,7 +894,7 @@ clear_payload(StoreId, PathPattern, Extra, Options) ->
       StoreId, PathPattern, khepri_payload:none(), Extra, Options).
 
 -spec delete(PathPattern) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Result :: result().
 %% @doc Deletes all tree nodes matching the path pattern.
 %%
@@ -909,10 +909,10 @@ delete(PathPattern) ->
 -spec delete
 (StoreId, PathPattern) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Result :: result();
 (PathPattern, Options) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: command_options(),
       Result :: result().
 
@@ -935,7 +935,7 @@ delete(PathPattern, Options) when is_map(Options) ->
 
 -spec delete(StoreId, PathPattern, Options) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
       NoRetIfAsync :: ok.
@@ -973,7 +973,7 @@ delete(StoreId, PathPattern, Options) ->
     khepri_machine:delete(StoreId, PathPattern, Options).
 
 -spec exists(PathPattern) -> Exists when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Exists :: boolean().
 %% @doc Returns `true' if the tree node pointed to by the given path exists,
 %% otherwise `false'.
@@ -989,10 +989,10 @@ exists(PathPattern) ->
 -spec exists
 (StoreId, PathPattern) -> Exists when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Exists :: boolean();
 (PathPattern, Options) -> Exists when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
       Exists :: boolean().
 %% @doc Returns `true' if the tree node pointed to by the given path exists,
@@ -1015,7 +1015,7 @@ exists(PathPattern, Options) when is_map(Options) ->
 
 -spec exists(StoreId, PathPattern, Options) -> Exists when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
       Exists :: boolean().
 %% @doc Returns `true' if the tree node pointed to by the given path exists,
@@ -1044,7 +1044,7 @@ exists(StoreId, PathPattern, Options) ->
     end.
 
 -spec get(PathPattern) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Result :: result().
 %% @doc Returns all tree nodes matching the path pattern.
 %%
@@ -1059,10 +1059,10 @@ get(PathPattern) ->
 -spec get
 (StoreId, PathPattern) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Result :: result();
 (PathPattern, Options) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
       Result :: result().
 %% @doc Returns all tree nodes matching the path pattern.
@@ -1084,7 +1084,7 @@ get(PathPattern, Options) when is_map(Options) ->
 
 -spec get(StoreId, PathPattern, Options) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
       Result :: result().
 %% @doc Returns all tree nodes matching the path pattern.
@@ -1119,7 +1119,7 @@ get(StoreId, PathPattern, Options) ->
     khepri_machine:get(StoreId, PathPattern, Options).
 
 -spec get_node_props(PathPattern) -> NodeProps when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       NodeProps :: node_props().
 %% @doc Returns the tree node properties associated with the given node path.
 %%
@@ -1134,10 +1134,10 @@ get_node_props(PathPattern) ->
 -spec get_node_props
 (StoreId, PathPattern) -> NodeProps when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       NodeProps :: node_props();
 (PathPattern, Options) -> NodeProps when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
       NodeProps :: node_props().
 %% @doc Returns the tree node properties associated with the given node path.
@@ -1160,7 +1160,7 @@ get_node_props(PathPattern, Options) when is_map(Options) ->
 
 -spec get_node_props(StoreId, PathPattern, Options) -> NodeProps when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
       NodeProps :: node_props().
 %% @doc Returns the tree node properties associated with the given node path.
@@ -1195,7 +1195,7 @@ get_node_props(StoreId, PathPattern, Options) ->
     end.
 
 -spec has_data(PathPattern) -> HasData when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       HasData :: boolean().
 %% @doc Returns `true' if the tree node pointed to by the given path has data,
 %% otherwise `false'.
@@ -1211,10 +1211,10 @@ has_data(PathPattern) ->
 -spec has_data
 (StoreId, PathPattern) -> HasData when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       HasData :: boolean();
 (PathPattern, Options) -> HasData when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
       HasData :: boolean().
 %% @doc Returns `true' if the tree node pointed to by the given path has data,
@@ -1237,7 +1237,7 @@ has_data(PathPattern, Options) when is_map(Options) ->
 
 -spec has_data(StoreId, PathPattern, Options) -> HasData when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
       HasData :: boolean().
 %% @doc Returns `true' if the tree node pointed to by the given path has data,
@@ -1268,7 +1268,7 @@ has_data(StoreId, PathPattern, Options) ->
     end.
 
 -spec get_data(PathPattern) -> Data when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: data().
 %% @doc Returns the data associated with the given node path.
 %%
@@ -1283,10 +1283,10 @@ get_data(PathPattern) ->
 -spec get_data
 (StoreId, PathPattern) -> Data when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: data();
 (PathPattern, Options) -> Data when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
       Data :: data().
 %% @doc Returns the data associated with the given node path.
@@ -1308,7 +1308,7 @@ get_data(PathPattern, Options) when is_map(Options) ->
 
 -spec get_data(StoreId, PathPattern, Options) -> Data when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
       Data :: data().
 %% @doc Returns the data associated with the given node path.
@@ -1344,7 +1344,7 @@ get_data(StoreId, PathPattern, Options) ->
     end.
 
 -spec get_data_or(PathPattern, Default) -> Data when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Default :: data(),
       Data :: data().
 %% @doc Returns the data associated with the given node path, or `Default' if
@@ -1361,11 +1361,11 @@ get_data_or(PathPattern, Default) ->
 -spec get_data_or
 (StoreId, PathPattern, Default) -> Data when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Default :: data(),
       Data :: data();
 (PathPattern, Options, Default) -> Data when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Default :: data(),
       Options :: query_options(),
       Data :: data().
@@ -1390,7 +1390,7 @@ get_data_or(PathPattern, Default, Options) when is_map(Options) ->
 
 -spec get_data_or(StoreId, PathPattern, Default, Options) -> Data when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Default :: data(),
       Options :: query_options(),
       Data :: data().
@@ -1433,7 +1433,7 @@ get_data_or(StoreId, PathPattern, Default, Options) ->
     end.
 
 -spec has_sproc(PathPattern) -> HasStoredProc when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       HasStoredProc :: boolean().
 %% @doc Returns `true' if the tree node pointed to by the given path holds a
 %% stored procedure, otherwise `false'.
@@ -1449,10 +1449,10 @@ has_sproc(PathPattern) ->
 -spec has_sproc
 (StoreId, PathPattern) -> HasStoredProc when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       HasStoredProc :: boolean();
 (PathPattern, Options) -> HasStoredProc when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
       HasStoredProc :: boolean().
 %% @doc Returns `true' if the tree node pointed to by the given path holds a
@@ -1475,7 +1475,7 @@ has_sproc(PathPattern, Options) when is_map(Options) ->
 
 -spec has_sproc(StoreId, PathPattern, Options) -> HasStoredProc when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
       HasStoredProc :: boolean().
 %% @doc Returns `true' if the tree node pointed to by the given path holds a
@@ -1507,7 +1507,7 @@ has_sproc(StoreId, PathPattern, Options) ->
     end.
 
 -spec run_sproc(PathPattern, Args) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Args :: list(),
       Result :: any().
 %% @doc Runs the stored procedure pointed to by the given path and returns the
@@ -1524,11 +1524,11 @@ run_sproc(PathPattern, Args) ->
 -spec run_sproc
 (StoreId, PathPattern, Args) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Args :: list(),
       Result :: any();
 (PathPattern, Args, Options) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Args :: list(),
       Options :: query_options(),
       Result :: any().
@@ -1553,7 +1553,7 @@ run_sproc(PathPattern, Args, Options) when is_map(Options) ->
 
 -spec run_sproc(StoreId, PathPattern, Args, Options) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Args :: list(),
       Options :: query_options(),
       Result :: any().
@@ -1585,8 +1585,8 @@ run_sproc(StoreId, PathPattern, Args, Options) ->
 -spec register_trigger(TriggerId, EventFilter, StoredProcPath) -> Ret when
       TriggerId :: trigger_id(),
       EventFilter :: khepri_evf:event_filter() |
-                     khepri_path:pattern() | string(),
-      StoredProcPath :: khepri_path:path() | string(),
+                     khepri_path:pattern(),
+      StoredProcPath :: khepri_path:path(),
       Ret :: ok | error().
 %% @doc Registers a trigger.
 %%
@@ -1604,14 +1604,14 @@ register_trigger(TriggerId, EventFilter, StoredProcPath) ->
       StoreId :: khepri:store_id(),
       TriggerId :: trigger_id(),
       EventFilter :: khepri_evf:event_filter() |
-                     khepri_path:pattern() | string(),
-      StoredProcPath :: khepri_path:path() | string(),
+                     khepri_path:pattern(),
+      StoredProcPath :: khepri_path:path(),
       Ret :: ok | error();
 (TriggerId, EventFilter, StoredProcPath, Options) -> Ret when
       TriggerId :: trigger_id(),
       EventFilter :: khepri_evf:event_filter() |
-                     khepri_path:pattern() | string(),
-      StoredProcPath :: khepri_path:path() | string(),
+                     khepri_path:pattern(),
+      StoredProcPath :: khepri_path:path(),
       Options :: command_options(),
       Ret :: ok | error().
 %% @doc Registers a trigger.
@@ -1643,8 +1643,8 @@ register_trigger(TriggerId, EventFilter, StoredProcPath, Options)
       StoreId :: khepri:store_id(),
       TriggerId :: trigger_id(),
       EventFilter :: khepri_evf:event_filter() |
-                     khepri_path:pattern() | string(),
-      StoredProcPath :: khepri_path:path() | string(),
+                     khepri_path:pattern(),
+      StoredProcPath :: khepri_path:path(),
       Options :: command_options(),
       Ret :: ok | error().
 %% @doc Registers a trigger.
@@ -1702,7 +1702,7 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
       StoreId, TriggerId, EventFilter, StoredProcPath, Options).
 
 -spec list(PathPattern) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Result :: result().
 %% @doc Returns all direct child nodes under the given path.
 %%
@@ -1717,10 +1717,10 @@ list(PathPattern) ->
 -spec list
 (StoreId, PathPattern) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Result :: result();
 (PathPattern, Options) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
       Result :: result().
 %% @doc Returns all direct child nodes under the given path.
@@ -1742,7 +1742,7 @@ list(PathPattern, Options) when is_map(Options) ->
 
 -spec list(StoreId, PathPattern, Options) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
       Result :: result().
 %% @doc Returns all direct child nodes under the given path.
@@ -1768,7 +1768,7 @@ list(StoreId, PathPattern, Options) ->
     get(StoreId, PathPattern2, Options).
 
 -spec find(PathPattern, Condition) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Condition :: khepri_path:pattern_component(),
       Result :: result().
 %% @doc Returns all tree nodes matching the path pattern.
@@ -1784,11 +1784,11 @@ find(PathPattern, Condition) ->
 -spec find
 (StoreId, PathPattern, Condition) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Condition :: khepri_path:pattern_component(),
       Result :: result();
 (PathPattern, Condition, Options) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Condition :: khepri_path:pattern_component(),
       Options :: query_options(),
       Result :: result().
@@ -1812,7 +1812,7 @@ find(PathPattern, Condition, Options) when is_map(Options) ->
 
 -spec find(StoreId, PathPattern, Condition, Options) -> Result when
       StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Condition :: khepri_path:pattern_component(),
       Options :: query_options(),
       Result :: result().

@@ -105,7 +105,7 @@
 %% -------------------------------------------------------------------
 
 -spec put(PathPattern, Data) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data(),
       Result :: khepri:result().
 %% @doc Creates or modifies a specific tree node in the tree structure.
@@ -114,7 +114,7 @@ put(PathPattern, Data) ->
     put(PathPattern, Data, #{}).
 
 -spec put(PathPattern, Data, Extra) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data(),
       Extra :: #{keep_while => khepri_condition:keep_while()},
       Result :: khepri:result().
@@ -136,7 +136,7 @@ put(PathPattern, Data, Extra) ->
     Result.
 
 -spec create(PathPattern, Data) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data(),
       Result :: khepri:result().
 %% @doc Creates a specific tree node in the tree structure only if it does not
@@ -146,7 +146,7 @@ create(PathPattern, Data) ->
     create(PathPattern, Data, #{}).
 
 -spec create(PathPattern, Data, Extra) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data(),
       Extra :: #{keep_while => khepri_condition:keep_while()},
       Result :: khepri:result().
@@ -160,7 +160,7 @@ create(PathPattern, Data, Extra) ->
     put(PathPattern2, Data, Extra).
 
 -spec update(PathPattern, Data) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data(),
       Result :: khepri:result().
 %% @doc Updates a specific tree node in the tree structure only if it already
@@ -170,7 +170,7 @@ update(PathPattern, Data) ->
     update(PathPattern, Data, #{}).
 
 -spec update(PathPattern, Data, Extra) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data(),
       Extra :: #{keep_while => khepri_condition:keep_while()},
       Result :: khepri:result().
@@ -184,7 +184,7 @@ update(PathPattern, Data, Extra) ->
     put(PathPattern2, Data, Extra).
 
 -spec compare_and_swap(PathPattern, DataPattern, Data) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | khepri:data(),
       Result :: khepri:result().
@@ -195,7 +195,7 @@ compare_and_swap(PathPattern, DataPattern, Data) ->
     compare_and_swap(PathPattern, DataPattern, Data, #{}).
 
 -spec compare_and_swap(PathPattern, DataPattern, Data, Extra) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | khepri:data(),
       Extra :: #{keep_while => khepri_condition:keep_while()},
@@ -210,7 +210,7 @@ compare_and_swap(PathPattern, DataPattern, Data, Extra) ->
     put(PathPattern2, Data, Extra).
 
 -spec clear_payload(PathPattern) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Result :: khepri:result().
 %% @doc Clears the payload of a specific tree node in the tree structure.
 
@@ -218,7 +218,7 @@ clear_payload(PathPattern) ->
     clear_payload(PathPattern, #{}).
 
 -spec clear_payload(PathPattern, Extra) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Extra :: #{keep_while => khepri_condition:keep_while()},
       Result :: khepri:result().
 %% @doc Clears the payload of a specific tree node in the tree structure.
@@ -227,7 +227,7 @@ clear_payload(PathPattern, Extra) ->
     put(PathPattern, khepri_payload:none(), Extra).
 
 -spec delete(PathPattern) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Result :: khepri:result().
 %% @doc Deletes all tree nodes matching the path pattern.
 
@@ -245,7 +245,7 @@ delete(PathPattern) ->
     Result.
 
 -spec exists(PathPattern) -> Exists when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Exists :: boolean().
 %% @doc Returns `true' if the tree node pointed to by the given path exists,
 %% otherwise `false'.
@@ -254,7 +254,7 @@ exists(PathPattern) ->
     exists(PathPattern, #{}).
 
 -spec exists(PathPattern, Options) -> Exists when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: khepri:query_options(),
       Exists :: boolean().
 %% @doc Returns `true' if the tree node pointed to by the given path exists,
@@ -268,7 +268,7 @@ exists(PathPattern, Options) ->
     end.
 
 -spec get(PathPattern) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Result :: khepri:result().
 %% @doc Returns all tree nodes matching the path pattern.
 
@@ -276,7 +276,7 @@ get(PathPattern) ->
     get(PathPattern, #{}).
 
 -spec get(PathPattern, Options) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: khepri:query_options(),
       Result :: khepri:result().
 %% @doc Returns all tree nodes matching the path pattern.
@@ -287,7 +287,7 @@ get(PathPattern, Options) ->
     khepri_machine:find_matching_nodes(Root, PathPattern1, Options).
 
 -spec get_node_props(PathPattern) -> NodeProps when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       NodeProps :: khepri:node_props().
 %% @doc Returns the tree node properties associated with the given node path.
 
@@ -295,7 +295,7 @@ get_node_props(PathPattern) ->
     get_node_props(PathPattern, #{}).
 
 -spec get_node_props(PathPattern, Options) -> NodeProps when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: khepri:query_options(),
       NodeProps :: khepri:node_props().
 %% @doc Returns the tree node properties associated with the given node path.
@@ -311,7 +311,7 @@ get_node_props(PathPattern, Options) ->
     end.
 
 -spec has_data(PathPattern) -> HasData when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       HasData :: boolean().
 %% @doc Returns `true' if the tree node pointed to by the given path has data,
 %% otherwise `false'.
@@ -320,7 +320,7 @@ has_data(PathPattern) ->
     has_data(PathPattern, #{}).
 
 -spec has_data(PathPattern, Options) -> HasData when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: khepri:query_options(),
       HasData :: boolean().
 %% @doc Returns `true' if the tree node pointed to by the given path has data,
@@ -336,7 +336,7 @@ has_data(PathPattern, Options) ->
     end.
 
 -spec get_data(PathPattern) -> Data when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Data :: khepri:data().
 %% @doc Returns the data associated with the given node path.
 
@@ -344,7 +344,7 @@ get_data(PathPattern) ->
     get_data(PathPattern, #{}).
 
 -spec get_data(PathPattern, Options) -> Data when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: khepri:query_options(),
       Data :: khepri:data().
 %% @doc Returns the data associated with the given node path.
@@ -357,7 +357,7 @@ get_data(PathPattern, Options) ->
     end.
 
 -spec get_data_or(PathPattern, Default) -> Data when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Default :: khepri:data(),
       Data :: khepri:data().
 %% @doc Returns the data associated with the given node path, or `Default' if
@@ -367,7 +367,7 @@ get_data_or(PathPattern, Default) ->
     get_data_or(PathPattern, Default, #{}).
 
 -spec get_data_or(PathPattern, Default, Options) -> Data when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Default :: khepri:data(),
       Options :: khepri:query_options(),
       Data :: khepri:data().
@@ -387,7 +387,7 @@ get_data_or(PathPattern, Default, Options) ->
     end.
 
 -spec list(PathPattern) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Result :: khepri:result().
 %% @doc Returns all direct child nodes under the given path.
 
@@ -395,7 +395,7 @@ list(PathPattern) ->
     list(PathPattern, #{}).
 
 -spec list(PathPattern, Options) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: khepri:query_options(),
       Result :: khepri:result().
 %% @doc Returns all direct child nodes under the given path.
@@ -406,7 +406,7 @@ list(PathPattern, Options) ->
     get(PathPattern2, Options).
 
 -spec find(PathPattern, Condition) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Condition :: khepri_path:pattern_component(),
       Result :: khepri:result().
 %% @doc Returns all tree nodes matching the path pattern.
@@ -415,7 +415,7 @@ find(PathPattern, Condition) ->
     find(PathPattern, Condition, #{}).
 
 -spec find(PathPattern, Condition, Options) -> Result when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Condition :: khepri_path:pattern_component(),
       Options :: khepri:query_options(),
       Result :: khepri:result().
@@ -900,8 +900,9 @@ set_tx_state(#khepri_machine{} = NewState, SideEffects) ->
 get_tx_props() ->
     erlang:get(?TX_PROPS).
 
--spec path_from_string(PathPattern) -> PathPattern | no_return() when
-      PathPattern :: khepri_path:pattern().
+-spec path_from_string(PathPattern) -> NativePathPattern | no_return() when
+      PathPattern :: khepri_path:pattern(),
+      NativePathPattern :: khepri_path:native_pattern().
 %% @doc Converts a string to a path (if necessary) and validates it.
 %%
 %% This is the same as calling {@link khepri_path:from_string/1} then {@link

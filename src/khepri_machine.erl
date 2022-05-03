@@ -81,13 +81,13 @@
 -type machine_config() :: #config{}.
 %% Configuration record, holding read-only or rarely changing fields.
 
--type keep_while_conds_revidx() :: #{khepri_path:path() =>
-                                     #{khepri_path:path() => ok}}.
+-type keep_while_conds_revidx() :: #{khepri_path:native_path() =>
+                                     #{khepri_path:native_path() => ok}}.
 %% Internal reverse index of the keep_while conditions. If node A depends on a
 %% condition on node B, then this reverse index will have a "node B => node A"
 %% entry.
 
--type keep_while_aftermath() :: #{khepri_path:path() =>
+-type keep_while_aftermath() :: #{khepri_path:native_path() =>
                                   khepri:node_props() | delete}.
 %% Internal index of the per-node changes which happened during a traversal.
 %% This is used when the tree is walked back up to determine the list of tree
@@ -109,7 +109,7 @@
                                       keep_while_aftermath()}.
 
 -type walk_down_the_tree_fun() ::
-    fun((khepri_path:path(),
+    fun((khepri_path:native_path(),
          khepri:ok(tree_node()) | error(any(), map()),
          Acc :: any()) ->
         ok(tree_node() | keep | delete, any()) |
@@ -137,7 +137,7 @@
 
 -spec put(StoreId, PathPattern, Payload, Extra, Options) -> Result when
       StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Payload :: khepri_payload:payload(),
       Extra :: #{keep_while => khepri:keep_while_conds_map()},
       Options :: khepri:command_options(),
@@ -173,7 +173,7 @@ put(_StoreId, PathPattern, Payload, _Extra, _Options) ->
 
 -spec get(StoreId, PathPattern, Options) -> Result when
       StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: khepri:query_options(),
       Result :: khepri:result().
 %% @doc Returns all tree nodes matching the path pattern.
@@ -195,7 +195,7 @@ get(StoreId, PathPattern, Options) ->
 
 -spec delete(StoreId, PathPattern, Options) -> Result when
       StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options(),
       Result :: khepri:result() | NoRetIfAsync,
       NoRetIfAsync :: ok.
@@ -311,7 +311,7 @@ readwrite_transaction(StoreId, StandaloneFun, Options) ->
 
 -spec run_sproc(StoreId, PathPattern, Args, Options) -> Ret when
       StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Args :: [any()],
       Options :: khepri:query_options(),
       Ret :: any().
@@ -353,9 +353,8 @@ run_sproc(StoreId, PathPattern, Args, Options) when is_list(Args) ->
     Ret when
       StoreId :: khepri:store_id(),
       TriggerId :: khepri:trigger_id(),
-      EventFilter :: khepri_evf:event_filter() |
-                     khepri_path:pattern() | string(),
-      StoredProcPath :: khepri_path:path() | string(),
+      EventFilter :: khepri_evf:event_filter() | khepri_path:pattern(),
+      StoredProcPath :: khepri_path:path(),
       Options :: khepri:command_options(),
       Ret :: ok | khepri:error().
 %% @doc Registers a trigger.
@@ -987,7 +986,7 @@ gather_node_props(#node{stat = #{payload_version := DVersion,
     end.
 
 -spec to_absolute_keep_while(BasePath, KeepWhile) -> KeepWhile when
-      BasePath :: khepri_path:path(),
+      BasePath :: khepri_path:native_path(),
       KeepWhile :: khepri_condition:keep_while().
 %% @private
 
@@ -1048,7 +1047,7 @@ is_keep_while_condition_met_on_self(_, _, _) ->
     KeepWhileConds when
       KeepWhileConds :: khepri:keep_while_conds_map(),
       KeepWhileCondsRevIdx :: keep_while_conds_revidx(),
-      Watcher :: khepri_path:path(),
+      Watcher :: khepri_path:native_path(),
       KeepWhile :: khepri_condition:keep_while().
 
 update_keep_while_conds_revidx(
@@ -1075,7 +1074,7 @@ update_keep_while_conds_revidx(
 
 -spec find_matching_nodes(Root, PathPattern, Options) -> Result when
       Root :: tree_node(),
-      PathPattern :: khepri_path:pattern(),
+      PathPattern :: khepri_path:native_pattern(),
       Options :: khepri:query_options(),
       Result :: khepri:result().
 %% @private
@@ -1112,7 +1111,7 @@ find_matching_nodes_cb(_, {interrupted, _, _}, _, Result) ->
 
 -spec insert_or_update_node(State, PathPattern, Payload, Extra) -> Ret when
       State :: state(),
-      PathPattern :: khepri_path:pattern(),
+      PathPattern :: khepri_path:native_pattern(),
       Payload :: khepri_payload:payload(),
       Extra :: #{keep_while => khepri_condition:keep_while()},
       Ret :: {State, Result} | {State, Result, ra_machine:effects()},
@@ -1267,7 +1266,7 @@ can_continue_update_after_node_not_found1(_) ->
 
 -spec delete_matching_nodes(State, PathPattern) -> Ret when
       State :: state(),
-      PathPattern :: khepri_path:pattern(),
+      PathPattern :: khepri_path:native_pattern(),
       Ret :: {State, Result} | {State, Result, ra_machine:effects()},
       Result :: khepri:result().
 %% @private
@@ -1497,7 +1496,7 @@ sort_triggered_sprocs(TriggeredStoredProcs) ->
 -spec walk_down_the_tree(
         Root, PathPattern, WorkOnWhat, Extra, Fun, FunAcc) -> Ret when
       Root :: tree_node(),
-      PathPattern :: khepri_path:pattern(),
+      PathPattern :: khepri_path:native_pattern(),
       WorkOnWhat :: specific_node | many_nodes,
       Extra :: walk_down_the_tree_extra(),
       Fun :: walk_down_the_tree_fun(),
@@ -1519,9 +1518,9 @@ walk_down_the_tree(Root, PathPattern, WorkOnWhat, Extra, Fun, FunAcc) ->
         Root, CompiledPathPattern, WorkOnWhat,
         ReversedPath, ReversedParentTree, Extra, Fun, FunAcc) -> Ret when
       Root :: tree_node(),
-      CompiledPathPattern :: khepri_path:pattern(),
+      CompiledPathPattern :: khepri_path:native_pattern(),
       WorkOnWhat :: specific_node | many_nodes,
-      ReversedPath :: khepri_path:pattern(),
+      ReversedPath :: khepri_path:native_pattern(),
       ReversedParentTree :: [Node | {Node, child_created}],
       Extra :: walk_down_the_tree_extra(),
       Fun :: walk_down_the_tree_fun(),
@@ -1778,7 +1777,7 @@ walk_down_the_tree1(
 
 -spec special_component_to_node_name(SpecialComponent, Path) -> NodeName when
       SpecialComponent :: ?ROOT_NODE | ?THIS_NODE,
-      Path :: khepri_path:pattern(),
+      Path :: khepri_path:native_pattern(),
       NodeName :: khepri_path:component().
 
 special_component_to_node_name(?ROOT_NODE = NodeName, [])  -> NodeName;
@@ -1809,7 +1808,7 @@ starting_node_in_rev_parent_tree(ReversedParentTree, _) ->
       Node :: tree_node(),
       ChildName :: khepri_path:component(),
       Child :: tree_node(),
-      WholePathPattern :: khepri_path:pattern(),
+      WholePathPattern :: khepri_path:native_pattern(),
       WorkOnWhat :: specific_node | many_nodes,
       ReversedPath :: [Node | {Node, child_created}],
       Extra :: walk_down_the_tree_extra(),
@@ -1858,9 +1857,9 @@ handle_branch(
         Extra, Fun, FunAcc) -> Ret when
       Reason :: mismatching_node | node_not_found,
       Info :: map(),
-      PathPattern :: khepri_path:pattern(),
+      PathPattern :: khepri_path:native_pattern(),
       WorkOnWhat :: specific_node | many_nodes,
-      ReversedPath :: khepri_path:path(),
+      ReversedPath :: khepri_path:native_path(),
       Node :: tree_node(),
       ReversedParentTree :: [Node | {Node, child_created}],
       Extra :: walk_down_the_tree_extra(),
@@ -1955,7 +1954,7 @@ squash_version_bumps(
   Child, ReversedPath, ReversedParentTree, Extra, FunAcc) -> Ret when
       Node :: tree_node(),
       Child :: Node | delete,
-      ReversedPath :: khepri_path:path(),
+      ReversedPath :: khepri_path:native_path(),
       ReversedParentTree :: [Node | {Node, child_created}],
       Extra :: walk_down_the_tree_extra(),
       FunAcc :: any(),
@@ -1972,10 +1971,10 @@ walk_back_up_the_tree(
   FunAcc) -> Ret when
       Node :: tree_node(),
       Child :: Node | delete,
-      ReversedPath :: khepri_path:path(),
+      ReversedPath :: khepri_path:native_path(),
       ReversedParentTree :: [Node | {Node, child_created}],
       Extra :: walk_down_the_tree_extra(),
-      KeepWhileAftermath :: #{khepri_path:path() => Node | delete},
+      KeepWhileAftermath :: #{khepri_path:native_path() => Node | delete},
       FunAcc :: any(),
       Ret :: ok(Node, Extra, FunAcc).
 %% @private
