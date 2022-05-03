@@ -73,7 +73,7 @@
 <hr>
 
 <h1>Module khepri_condition</h1>
-<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li></ul>Condition support.
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Condition support.
 
 
 <h2><a name="description">Description</a></h2><p>Condition support.</p>
@@ -264,13 +264,55 @@ corresponds to the expected value.</p>
 
 <h3 class="typedecl"><a name="type-keep_while">keep_while()</a></h3>
 <p><code>keep_while() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; <a href="#type-condition">condition()</a>}</code></p>
-<p>  An association between a path and a condition. As long as the condition
-  evaluates to true, the tree node is kept. Once the condition evaluates to
-  false, the tree node is deleted.</p>
+<p><p>  An association between a path and a condition. As long as the condition  
+evaluates to true, the tree node is kept. Once the condition evaluates to  
+false, the tree node is deleted.</p>
+ 
+  <p>If the <code>keep_while</code> conditions are false at the time of the insert, the
+  insert fails. The only exception to that is if the <code>keep_while</code> condition  
+is on the inserted node itself.</p>
+ 
+  <p>Paths in the map can be native paths or Unix-like paths. However, having  
+two entries that resolve to the same node (one native path entry and one  
+Unix-like path entry for instance) is undefined behavior: one of them will  
+overwrite the other.</p>
+ 
+  Example:
+  <pre><code>khepri:put(
+  StoreId,
+  [foo],
+  Payload,
+  #{keep_while =&gt; #{
+    %% The node `[foo]' will be removed as soon as `[bar]' is removed
+    %% because the condition associated with `[bar]' will not be true
+    %% anymore.
+    [bar] =&gt; #if_node_exists{exists = true}
+  }}
+).</code></pre></p>
+
+<h3 class="typedecl"><a name="type-native_keep_while">native_keep_while()</a></h3>
+<p><code>native_keep_while() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a> =&gt; <a href="#type-condition">condition()</a>}</code></p>
+<p><p>  An association between a native path and a condition.</p>
+ 
+  This is the same as <a docgen-rel="seetype" docgen-href="#keep_while/0" href="#type-keep_while"><code>keep_while()</code></a> but the paths in the map keys were
+  converted to native paths if necessary.</p>
 
 <h3 class="typedecl"><a name="type-re_mp">re_mp()</a></h3>
 <p><code>re_mp() = tuple()</code></p>
 
+
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#ensure_native_keep_while-1">ensure_native_keep_while/1</a></td><td></td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="ensure_native_keep_while-1">ensure_native_keep_while/1</a></h3>
+<div class="spec">
+<p><code>ensure_native_keep_while(KeepWhile) -&gt; NativeKeepWhile</code>
+<ul class="definitions"><li><code>KeepWhile = <a href="#type-keep_while">keep_while()</a></code></li><li><code>NativeKeepWhile = <a href="#type-native_keep_while">native_keep_while()</a></code></li></ul></p>
+<p></p>
+</div>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>

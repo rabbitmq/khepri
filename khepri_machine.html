@@ -91,6 +91,10 @@ module.</p>
   never be called directly outside of Khepri.
 <h2><a name="types">Data Types</a></h2>
 
+<h3 class="typedecl"><a name="type-keep_while_conds_map">keep_while_conds_map()</a></h3>
+<p><code>keep_while_conds_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-native_keep_while">khepri_condition:native_keep_while()</a>}</code></p>
+<p>  Per-node <code>keep_while</code> conditions.</p>
+
 <h3 class="typedecl"><a name="type-keep_while_conds_revidx">keep_while_conds_revidx()</a></h3>
 <p><code>keep_while_conds_revidx() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a> =&gt; #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a> =&gt; ok}}</code></p>
 <p>  Internal reverse index of the keep_while conditions. If node A depends on a
@@ -106,7 +110,7 @@ module.</p>
 <p>  Stats attached to each node in the tree structure.</p>
 
 <h3 class="typedecl"><a name="type-state">state()</a></h3>
-<p><code>state() = #khepri_machine{config = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-machine_config">khepri_machine:machine_config()</a>, root = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tree_node">khepri_machine:tree_node()</a>, keep_while_conds = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-keep_while_conds_map">khepri:keep_while_conds_map()</a>, keep_while_conds_revidx = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_while_conds_revidx">khepri_machine:keep_while_conds_revidx()</a>, triggers = #{<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id">khepri:trigger_id()</a> =&gt; #{sproc := <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a>, event_filter := <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a>}}, emitted_triggers = [<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-triggered">khepri_machine:triggered()</a>], metrics = #{applied_command_count =&gt; non_neg_integer()}}</code></p>
+<p><code>state() = #khepri_machine{config = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-machine_config">khepri_machine:machine_config()</a>, root = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tree_node">khepri_machine:tree_node()</a>, keep_while_conds = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_while_conds_map">khepri_machine:keep_while_conds_map()</a>, keep_while_conds_revidx = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_while_conds_revidx">khepri_machine:keep_while_conds_revidx()</a>, triggers = #{<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id">khepri:trigger_id()</a> =&gt; #{sproc := <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a>, event_filter := <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a>}}, emitted_triggers = [<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-triggered">khepri_machine:triggered()</a>], metrics = #{applied_command_count =&gt; non_neg_integer()}}</code></p>
 <p>  State of this Ra state machine.</p>
 
 <h3 class="typedecl"><a name="type-tree_node">tree_node()</a></h3>

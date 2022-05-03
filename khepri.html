@@ -202,26 +202,6 @@ returned data and low latency of queries.</p>
   out is very small.</li>
   </ul></p>
 
-<h3 class="typedecl"><a name="type-keep_while_conds_map">keep_while_conds_map()</a></h3>
-<p><code>keep_while_conds_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></p>
-<p><p>  Per-node <code>keep_while</code> conditions.</p>
- 
-  <p>When a node is put with <code>keep_while</code> conditions, this node will be kept in  
-the database while each condition remains true for their associated path.</p>
- 
-  Example:
-  <pre><code>khepri:put(
-  StoreId,
-  [foo],
-  Payload,
-  #{keep_while =&gt; #{
-    %% The node `[foo]' will be removed as soon as `[bar]' is removed
-    %% because the condition associated with `[bar]' will not be true
-    %% anymore.
-    [bar] =&gt; #if_node_exists{exists = true}
-  }}
-).</code></pre></p>
-
 <h3 class="typedecl"><a name="type-node_props">node_props()</a></h3>
 <p><code>node_props() = #{data =&gt; <a href="#type-data">data()</a>, sproc =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_fun.html#type-standalone_fun">khepri_fun:standalone_fun()</a>, payload_version =&gt; <a href="#type-payload_version">payload_version()</a>, child_list_version =&gt; <a href="#type-child_list_version">child_list_version()</a>, child_list_length =&gt; <a href="#type-child_list_length">child_list_length()</a>, child_nodes =&gt; #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-node_id">khepri_path:node_id()</a> =&gt; <a href="#type-node_props">node_props()</a>}}</code></p>
 <p><p>  Structure used to return properties, payload and child nodes for a specific  
@@ -472,7 +452,7 @@ result.</td></tr>
 <h3 class="function"><a name="put-4">put/4</a></h3>
 <div class="spec">
 <p><code>put(StoreId, PathPattern, Data, Extra::Extra | Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p></p>
 </div><p><p>Creates or modifies a specific tree node in the tree structure.</p>
  
@@ -484,7 +464,7 @@ result.</td></tr>
 <h3 class="function"><a name="put-5">put/5</a></h3>
 <div class="spec">
 <p><code>put(StoreId, PathPattern, Data, Extra, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
@@ -547,7 +527,7 @@ there was no properties or payload to return).</p>
   The <code>Extra</code> map may specify put-specific options:
   <ul>
   <li><code>keep_while</code>: <code>keep_while</code> conditions to tie the life of the inserted
-  node to conditions on other nodes; see <a docgen-rel="seetype" docgen-href="#keep_while_conds_map/0" href="#type-keep_while_conds_map"><code>keep_while_conds_map()</code></a>.</li>
+  node to conditions on other nodes; see <a docgen-rel="seetype" docgen-href="khepri_condition#keep_while/0" href="khepri_condition.html#type-keep_while"><code>khepri_condition:keep_while()</code></a>.</li>
   </ul>
  
   <p>The <code>Options</code> map may specify command-level options; see <a docgen-rel="seetype" docgen-href="#command_options/0" href="#type-command_options"><code>command_options()</code></a>.</p>
@@ -592,7 +572,7 @@ exist.</p>
 <h3 class="function"><a name="create-4">create/4</a></h3>
 <div class="spec">
 <p><code>create(StoreId, PathPattern, Data, Extra::Extra | Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p></p>
 </div><p><p>Creates a specific tree node in the tree structure only if it does not  
 exist.</p>
@@ -605,7 +585,7 @@ exist.</p>
 <h3 class="function"><a name="create-5">create/5</a></h3>
 <div class="spec">
 <p><code>create(StoreId, PathPattern, Data, Extra, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
@@ -657,7 +637,7 @@ exists.</p>
 <h3 class="function"><a name="update-4">update/4</a></h3>
 <div class="spec">
 <p><code>update(StoreId, PathPattern, Data, Extra::Extra | Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p></p>
 </div><p><p>Updates a specific tree node in the tree structure only if it already  
 exists.</p>
@@ -670,7 +650,7 @@ exists.</p>
 <h3 class="function"><a name="update-5">update/5</a></h3>
 <div class="spec">
 <p><code>update(StoreId, PathPattern, Data, Extra, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
@@ -722,7 +702,7 @@ exists.</p>
 <h3 class="function"><a name="compare_and_swap-5">compare_and_swap/5</a></h3>
 <div class="spec">
 <p><code>compare_and_swap(StoreId, PathPattern, DataPattern, Data, Extra::Extra | Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p></p>
 </div><p><p>Updates a specific tree node in the tree structure only if it already
   exists and its data matches the given <code>DataPattern</code>.</p>
@@ -736,7 +716,7 @@ exists.</p>
 <h3 class="function"><a name="compare_and_swap-6">compare_and_swap/6</a></h3>
 <div class="spec">
 <p><code>compare_and_swap(StoreId, PathPattern, DataPattern, Data, Extra, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
@@ -786,7 +766,7 @@ exists.</p>
 <h3 class="function"><a name="clear_payload-3">clear_payload/3</a></h3>
 <div class="spec">
 <p><code>clear_payload(StoreId, PathPattern, Extra::Extra | Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p></p>
 </div><p><p>Clears the payload of a specific tree node in the tree structure.</p>
  
@@ -798,7 +778,7 @@ exists.</p>
 <h3 class="function"><a name="clear_payload-4">clear_payload/4</a></h3>
 <div class="spec">
 <p><code>clear_payload(StoreId, PathPattern, Extra, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Extra = #{keep_while =&gt; <a href="#type-keep_while_conds_map">keep_while_conds_map()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
