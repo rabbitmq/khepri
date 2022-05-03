@@ -11,6 +11,10 @@ defmodule Khepri.MixProject do
     ]
   end
 
+  def application do
+    [extra_applications: [:elixir]]
+  end
+
   defp deps() do
     [
       # Dependency pinning must be updated in rebar.config too.
