@@ -44,7 +44,7 @@
 -record(put, {path :: khepri_path:native_pattern(),
               payload = ?NO_PAYLOAD :: khepri_payload:payload(),
               extra = #{} :: #{keep_while =>
-                               khepri:keep_while_conds_map()}}).
+                               khepri_condition:native_keep_while()}}).
 
 -record(delete, {path :: khepri_path:native_pattern()}).
 

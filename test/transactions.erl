@@ -432,6 +432,72 @@ put_in_rw_transaction_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
 
+put_with_native_keep_while_cond_test_() ->
+    KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = {gt, 0}}},
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [?_assertEqual(
+           {atomic,
+            {ok, #{[foo] => #{}}}},
+           begin
+               Fun = fun() ->
+                             khepri_tx:put(
+                               [foo], value,
+                               #{keep_while => KeepWhile})
+                     end,
+               khepri:transaction(?FUNCTION_NAME, Fun, rw)
+           end),
+        ?_assertEqual(
+           {ok, #{[foo] =>
+                  #{[foo] => #if_child_list_length{count = {gt, 0}}}}},
+           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME))]}]}.
+
+put_with_unix_string_keep_while_cond_test_() ->
+    KeepWhile = #{"." => #if_child_list_length{count = {gt, 0}}},
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [?_assertEqual(
+           {atomic,
+            {ok, #{[foo] => #{}}}},
+           begin
+               Fun = fun() ->
+                             khepri_tx:put(
+                               [foo], value,
+                               #{keep_while => KeepWhile})
+                     end,
+               khepri:transaction(?FUNCTION_NAME, Fun, rw)
+           end),
+        ?_assertEqual(
+           {ok, #{[foo] =>
+                  #{[foo] => #if_child_list_length{count = {gt, 0}}}}},
+           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME))]}]}.
+
+put_with_unix_binary_keep_while_cond_test_() ->
+    KeepWhile = #{<<".">> => #if_child_list_length{count = {gt, 0}}},
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [?_assertEqual(
+           {atomic,
+            {ok, #{[foo] => #{}}}},
+           begin
+               Fun = fun() ->
+                             khepri_tx:put(
+                               [foo], value,
+                               #{keep_while => KeepWhile})
+                     end,
+               khepri:transaction(?FUNCTION_NAME, Fun, rw)
+           end),
+        ?_assertEqual(
+           {ok, #{[foo] =>
+                  #{[foo] => #if_child_list_length{count = {gt, 0}}}}},
+           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME))]}]}.
+
 create_in_ro_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,

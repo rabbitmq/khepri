@@ -192,28 +192,6 @@
                   khepri:error().
 %% Return value of a query or synchronous command.
 
--type keep_while_conds_map() :: #{khepri_path:path() =>
-                                  khepri_condition:keep_while()}.
-%% Per-node `keep_while' conditions.
-%%
-%% When a node is put with `keep_while' conditions, this node will be kept in
-%% the database while each condition remains true for their associated path.
-%%
-%% Example:
-%% ```
-%% khepri:put(
-%%   StoreId,
-%%   [foo],
-%%   Payload,
-%%   #{keep_while => #{
-%%     %% The node `[foo]' will be removed as soon as `[bar]' is removed
-%%     %% because the condition associated with `[bar]' will not be true
-%%     %% anymore.
-%%     [bar] => #if_node_exists{exists = true}
-%%   }}
-%% ).
-%% '''
-
 -type trigger_id() :: atom().
 %% An ID to identify a registered trigger.
 
@@ -301,7 +279,6 @@
               node_props/0,
               node_props_map/0,
               result/0,
-              keep_while_conds_map/0,
               trigger_id/0,
 
               async_option/0,
@@ -419,7 +396,7 @@ put(StoreId, PathPattern, Data) ->
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
-      Extra :: #{keep_while => keep_while_conds_map()},
+      Extra :: #{keep_while => khepri_condition:keep_while()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
       NoRetIfAsync :: ok.
@@ -439,7 +416,7 @@ put(StoreId, PathPattern, Data, Options) ->
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
-      Extra :: #{keep_while => keep_while_conds_map()},
+      Extra :: #{keep_while => khepri_condition:keep_while()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
       NoRetIfAsync :: ok.
@@ -494,7 +471,7 @@ put(StoreId, PathPattern, Data, Options) ->
 %% <ul>
 %% <li>`keep_while': `keep_while' conditions to tie the life of the inserted
 %% node to conditions on other nodes; see {@link
-%% keep_while_conds_map()}.</li>
+%% khepri_condition:keep_while()}.</li>
 %% </ul>
 %%
 %% The `Options' map may specify command-level options; see {@link
@@ -563,7 +540,7 @@ create(StoreId, PathPattern, Data) ->
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
-      Extra :: #{keep_while => keep_while_conds_map()},
+      Extra :: #{keep_while => khepri_condition:keep_while()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
       NoRetIfAsync :: ok.
@@ -584,7 +561,7 @@ create(StoreId, PathPattern, Data, Options) ->
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
-      Extra :: #{keep_while => keep_while_conds_map()},
+      Extra :: #{keep_while => khepri_condition:keep_while()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
       NoRetIfAsync :: ok.
@@ -651,7 +628,7 @@ update(StoreId, PathPattern, Data) ->
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
-      Extra :: #{keep_while => keep_while_conds_map()},
+      Extra :: #{keep_while => khepri_condition:keep_while()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
       NoRetIfAsync :: ok.
@@ -672,7 +649,7 @@ update(StoreId, PathPattern, Data, Options) ->
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
-      Extra :: #{keep_while => keep_while_conds_map()},
+      Extra :: #{keep_while => khepri_condition:keep_while()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
       NoRetIfAsync :: ok.
@@ -744,7 +721,7 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data) ->
       PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
-      Extra :: #{keep_while => keep_while_conds_map()},
+      Extra :: #{keep_while => khepri_condition:keep_while()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
       NoRetIfAsync :: ok.
@@ -770,7 +747,7 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) ->
       PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
-      Extra :: #{keep_while => keep_while_conds_map()},
+      Extra :: #{keep_while => khepri_condition:keep_while()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
       NoRetIfAsync :: ok.
@@ -806,7 +783,7 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data, Extra, Options) ->
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       Payload :: khepri_payload:payload() | data() | fun(),
-      Extra :: #{keep_while => keep_while_conds_map()},
+      Extra :: #{keep_while => khepri_condition:keep_while()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
       NoRetIfAsync :: ok.
@@ -848,7 +825,7 @@ clear_payload(StoreId, PathPattern) ->
 -spec clear_payload(StoreId, PathPattern, Extra | Options) -> Result when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
-      Extra :: #{keep_while => keep_while_conds_map()},
+      Extra :: #{keep_while => khepri_condition:keep_while()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
       NoRetIfAsync :: ok.
@@ -867,7 +844,7 @@ clear_payload(StoreId, PathPattern, Options) ->
 -spec clear_payload(StoreId, PathPattern, Extra, Options) -> Result when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
-      Extra :: #{keep_while => keep_while_conds_map()},
+      Extra :: #{keep_while => khepri_condition:keep_while()},
       Options :: command_options(),
       Result :: result() | NoRetIfAsync,
       NoRetIfAsync :: ok.
