@@ -90,17 +90,35 @@
 
 -type if_data_matches() :: #if_data_matches{}.
 %% Condition. Evaluates to true if the tested node has a data payload and the
-%% data payload term matches the given pattern.
+%% data payload term matches the given `pattern' and all `conditions' evaluates
+%% to true.
 %%
 %% Record fields:
 %% <ul>
-%% <li>`pattern': an ETS-like match pattern.</li>
+%% <li>`pattern': an ETS-like match pattern. The match pattern can define
+%% variables to be used in the `conditions' below.</li>
+%% <li>`conditions': a list of guard expressions. All guard expressions must
+%% evaluate to true to consider a match. The default is an empty list of
+%% conditions which means that only the pattern matching is
+%% considered.</li>
 %% </ul>
 %%
-%% Example:
+%% Examples:
 %% ```
+%% %% The data must be of the form `{user, _}', so a tuple of arity 2 with the
+%% %% first element being the `user' atom. The second element can be anything.
 %% #if_data_matches{pattern = {user, '_'}}.
 %% '''
+%% ```
+%% %% The data must be of the form `{age, Age}' and `Age' must be an
+%% %% integer greater than or equal to 18.
+%% #if_data_matches{pattern = {age, '$1'},
+%%                  conditions = [{is_integer, '$1'},
+%%                                {'>=', '$1', 18}]}.
+%% '''
+%%
+%% See <a href="https://www.erlang.org/doc/apps/erts/match_spec.html">Match
+%% Specifications in Erlang</a> for a detailed documentation of how it works.
 
 -type if_node_exists() :: #if_node_exists{}.
 %% Condition. Evaluates to true if the tested node existence corresponds to
@@ -316,8 +334,11 @@ compile(#if_name_matches{regex = any} = Cond) ->
 compile(#if_name_matches{regex = Re, compiled = undefined} = Cond) ->
     Compiled = re:compile(Re),
     Cond#if_name_matches{compiled = Compiled};
-compile(#if_data_matches{pattern = Pattern, compiled = undefined} = Cond) ->
-    Compiled = ets:match_spec_compile([{Pattern, [], [match]}]),
+compile(
+  #if_data_matches{pattern = Pattern,
+                   conditions = Conditions,
+                   compiled = undefined} = Cond) ->
+    Compiled = ets:match_spec_compile([{Pattern, Conditions, [match]}]),
     Cond#if_data_matches{compiled = Compiled};
 compile(#if_not{condition = InnerCond} = Cond) ->
     InnerCond1 = compile(InnerCond),
@@ -607,7 +628,8 @@ is_valid(#if_path_matches{}) ->
     true;
 is_valid(#if_has_data{has_data = HasData}) ->
     is_boolean(HasData);
-is_valid(#if_data_matches{}) ->
+is_valid(#if_data_matches{conditions = Conditions})
+  when is_list(Conditions) ->
     true;
 is_valid(#if_payload_version{}) ->
     true;

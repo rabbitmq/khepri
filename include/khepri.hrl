@@ -56,6 +56,7 @@
 
 -record(if_data_matches,
         {pattern = '_' :: ets:match_pattern(),
+         conditions = [] :: [any()],
          compiled = undefined :: ets:comp_match_spec() | undefined}).
 
 -record(if_node_exists,
