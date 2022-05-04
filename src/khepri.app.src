@@ -3,7 +3,6 @@
  [{description, "Tree-like replicated on-disk database library"},
   %% In addition to below, the version needs to be updated in:
   %%   * README.md
-  %%   * mix.exs
   %%   * doc/overview.edoc
   %% Pay attention to links in particular.
   {vsn, "0.3.0"},
