@@ -1372,73 +1372,71 @@ create_tree_change_side_effects(
 list_triggered_sprocs(Root, Changes, Triggers) ->
     TriggeredStoredProcs =
     maps:fold(
-      fun(Path, Change, SPP) ->
+      fun(Path, Change, TSP) ->
               % For each change, we evaluate each trigger.
               maps:fold(
-                fun
-                    (TriggerId,
-                     #{sproc := StoredProcPath,
-                       event_filter :=
-                       #evf_tree{path = PathPattern,
-                                  props = EventFilterProps} = EventFilter},
-                     SPP1) ->
-                        %% For each trigger based on a tree event:
-                        %%   1. we verify the path of the changed tree node
-                        %%      matches the monitored path pattern in the
-                        %%      event filter.
-                        %%   2. we verify the type of change matches the
-                        %%      change filter in the event filter.
-                        PathMatches = does_path_match(
-                                        Path, PathPattern, [], Root),
-                        DefaultWatchedChanges = [create, update, delete],
-                        WatchedChanges = case EventFilterProps of
-                                             #{on_actions := []} ->
-                                                 DefaultWatchedChanges;
-                                             #{on_actions := OnActions}
-                                               when is_list(OnActions) ->
-                                                 OnActions;
-                                            _ ->
-                                                 DefaultWatchedChanges
-                                         end,
-                        ChangeMatches = lists:member(Change, WatchedChanges),
-                        case PathMatches andalso ChangeMatches of
-                            true ->
-                                %% We then locate the stored procedure. If the
-                                %% path doesn't point to an existing tree
-                                %% node, or if this tree node is not a stored
-                                %% procedure, the trigger is ignored.
-                                %%
-                                %% TODO: Should we return an error or at least
-                                %% log something? This could be considered
-                                %% noise if the trigger exists regardless of
-                                %% the presence of the stored procedure on
-                                %% purpose (for instance the caller code is
-                                %% being updated).
-                                case find_stored_proc(Root, StoredProcPath) of
-                                    undefined ->
-                                        SPP1;
-                                    StoredProc ->
-                                        %% TODO: Use a record to format
-                                        %% stored procedure arguments?
-                                        EventProps = #{path => Path,
-                                                       on_action => Change},
-                                        Triggered = #triggered{
-                                                       id = TriggerId,
-                                                       event_filter =
-                                                       EventFilter,
-                                                       sproc = StoredProc,
-                                                       props = EventProps
-                                                      },
-                                        [Triggered | SPP1]
-                                end;
-                            false ->
-                                SPP1
-                        end;
-                    (_TriggerId, _Trigger, SPP1) ->
-                        SPP1
-                end, SPP, Triggers)
+                fun(TriggerId, TriggerProps, TSP1) ->
+                        evaluate_trigger(
+                          Root, Path, Change, TriggerId, TriggerProps, TSP1)
+                end, TSP, Triggers)
       end, [], Changes),
     sort_triggered_sprocs(TriggeredStoredProcs).
+
+evaluate_trigger(
+  Root, Path, Change, TriggerId,
+  #{sproc := StoredProcPath,
+    event_filter := #evf_tree{path = PathPattern,
+                              props = EventFilterProps} = EventFilter},
+  TriggeredStoredProcs) ->
+    %% For each trigger based on a tree event:
+    %%   1. we verify the path of the changed tree node matches the monitored
+    %%      path pattern in the event filter.
+    %%   2. we verify the type of change matches the change filter in the
+    %%      event filter.
+    PathMatches = does_path_match(Path, PathPattern, [], Root),
+    DefaultWatchedChanges = [create, update, delete],
+    WatchedChanges = case EventFilterProps of
+                         #{on_actions := []} ->
+                             DefaultWatchedChanges;
+                         #{on_actions := OnActions}
+                           when is_list(OnActions) ->
+                             OnActions;
+                         _ ->
+                             DefaultWatchedChanges
+                     end,
+    ChangeMatches = lists:member(Change, WatchedChanges),
+    case PathMatches andalso ChangeMatches of
+        true ->
+            %% We then locate the stored procedure. If the path doesn't point
+            %% to an existing tree node, or if this tree node is not a stored
+            %% procedure, the trigger is ignored.
+            %%
+            %% TODO: Should we return an error or at least log something? This
+            %% could be considered noise if the trigger exists regardless of
+            %% the presence of the stored procedure on purpose (for instance
+            %% the caller code is being updated).
+            case find_stored_proc(Root, StoredProcPath) of
+                undefined ->
+                    TriggeredStoredProcs;
+                StoredProc ->
+                    %% TODO: Use a record to format
+                    %% stored procedure arguments?
+                    EventProps = #{path => Path,
+                                   on_action => Change},
+                    Triggered = #triggered{
+                                   id = TriggerId,
+                                   event_filter = EventFilter,
+                                   sproc = StoredProc,
+                                   props = EventProps
+                                  },
+                    [Triggered | TriggeredStoredProcs]
+            end;
+        false ->
+            TriggeredStoredProcs
+    end;
+evaluate_trigger(
+  _Root, _Path, _Change, _TriggerId, _TriggerProps, TriggeredStoredProcs) ->
+    TriggeredStoredProcs.
 
 does_path_match(PathRest, PathRest, _ReversedPath, _Root) ->
     true;
