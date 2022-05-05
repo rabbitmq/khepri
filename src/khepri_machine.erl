@@ -1787,9 +1787,10 @@ walk_down_the_tree1(
             Error
     end.
 
--spec special_component_to_node_name(SpecialComponent, Path) -> NodeName when
+-spec special_component_to_node_name(SpecialComponent, ReversedPath) ->
+    NodeName when
       SpecialComponent :: ?ROOT_NODE | ?THIS_NODE,
-      Path :: khepri_path:native_pattern(),
+      ReversedPath :: khepri_path:native_path(),
       NodeName :: khepri_path:component().
 
 special_component_to_node_name(?ROOT_NODE = NodeName, [])  -> NodeName;
