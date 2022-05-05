@@ -114,7 +114,7 @@
 
 -type walk_down_the_tree_fun() ::
     fun((khepri_path:native_path(),
-         khepri:ok(tree_node()) | error(any(), map()),
+         tree_node() | {interrupted, any(), map()},
          Acc :: any()) ->
         ok(tree_node() | keep | delete, any()) |
         khepri:error()).
@@ -123,7 +123,6 @@
 
 -type ok(Type1, Type2) :: {ok, Type1, Type2}.
 -type ok(Type1, Type2, Type3) :: {ok, Type1, Type2, Type3}.
--type error(Type1, Type2) :: {error, Type1, Type2}.
 
 -export_type([state/0,
               machine_config/0,
