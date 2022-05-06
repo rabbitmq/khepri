@@ -13,7 +13,8 @@
          hash_term/1,
          crashing_fun/0,
          make_record/1,
-         outer_function/2]).
+         outer_function/2,
+         min/2]).
 
 exported() -> unexported().
 unexported() -> ok.
@@ -45,3 +46,6 @@ inner_function(#my_record{function = hash_term = Function}, Term) ->
     true;
 inner_function(_, _) ->
     false.
+
+min(A, B) ->
+    erlang:min(A, B).

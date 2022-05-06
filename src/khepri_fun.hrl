@@ -10,4 +10,5 @@
 -record(standalone_fun, {module :: module(),
                          beam :: binary(),
                          arity :: arity(),
+                         literal_funs :: [khepri_fun:standalone_fun()],
                          env :: list()}).

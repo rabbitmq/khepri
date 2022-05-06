@@ -497,7 +497,7 @@ apply_fun_to_args(Fun, Arg1, Arg2) ->
 allowed_higher_order_external_call_test() ->
     StandaloneFun = ?make_standalone_fun(
                         begin
-                            Fun = fun erlang:min/2,
+                            Fun = fun mod_used_for_transactions:min/2,
                             apply_fun_to_args(Fun, 1, 2)
                         end),
     ?assertMatch(#standalone_fun{}, StandaloneFun),

@@ -254,6 +254,7 @@ fun((#{calls := #{Call :: mfa() => true},
                 function_in_progress :: atom() | undefined,
                 next_label = 1 :: label(),
                 label_map = #{} :: #{{module(), label()} => label()},
+                literal_funs = #{} :: #{fun() => standalone_fun()},
 
                 errors = [] :: [any()],
                 options = #{} :: options()}).
@@ -388,6 +389,9 @@ to_standalone_fun3(
                 true ->
                     process_errors(State3),
 
+                    #state{literal_funs = LiteralFuns0} = State3,
+                    LiteralFuns = maps:values(LiteralFuns0),
+
                     Asm = pass2(State3),
                     {GeneratedModuleName, Beam} = compile(Asm),
 
@@ -395,6 +399,7 @@ to_standalone_fun3(
                                        module = GeneratedModuleName,
                                        beam = Beam,
                                        arity = Arity,
+                                       literal_funs = LiteralFuns,
                                        env = Env},
                     cache_standalone_fun(State3, StandaloneFun),
                     {StandaloneFun, State3};
@@ -821,23 +826,38 @@ merge_comments(Comments, ExistingComments) ->
 
 exec(
   #standalone_fun{module = Module,
-                  beam = Beam,
                   arity = Arity,
-                  env = Env},
+                  literal_funs = LiteralFuns,
+                  env = Env} = StandaloneFun,
   Args) when length(Args) =:= Arity ->
-    case code:is_loaded(Module) of
-        false ->
-            {module, _} = code:load_binary(Module, ?MODULE_STRING, Beam),
-            ok;
-        _ ->
-            ok
-    end,
+    load_standalone_fun(StandaloneFun),
+    %% We also need to load any literal functions referenced by the standalone
+    %% function and extracted with it. The assembly code already references
+    %% them.
+    lists:foreach(
+      fun(LiteralFun) -> load_standalone_fun(LiteralFun) end,
+      LiteralFuns),
     Env1 = to_actual_arg(Env),
     erlang:apply(Module, ?SF_ENTRYPOINT, Args ++ Env1);
 exec(#standalone_fun{} = StandaloneFun, Args) ->
     exit({badarity, {StandaloneFun, Args}});
 exec(Fun, Args) ->
     erlang:apply(Fun, Args).
+
+-spec load_standalone_fun(StandaloneFun) -> ok when
+      StandaloneFun :: standalone_fun().
+%% @private
+
+load_standalone_fun(#standalone_fun{module = Module, beam = Beam}) ->
+    case code:is_loaded(Module) of
+        false ->
+            {module, _} = code:load_binary(Module, ?MODULE_STRING, Beam),
+            ok;
+        _ ->
+            ok
+    end;
+load_standalone_fun(Fun) when is_function(Fun) ->
+    ok.
 
 %% -------------------------------------------------------------------
 %% Code processing [Pass 1]
@@ -1188,6 +1208,47 @@ pass1_process_instructions(
     State1 = ensure_instruction_is_permitted(Instruction, State),
     State2 = pass1_process_call(Module, Name, Arity, State1),
     pass1_process_instructions(Rest, State2, [Instruction | Result]);
+pass1_process_instructions(
+  [{move, {literal, Fun}, Reg} = Instruction | Rest],
+  State,
+  Result) when is_function(Fun) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+
+    %% This `move' instruction references a lambda: we must extract it like
+    %% lambas present in the environment. We keep track of all extracted
+    %% literal funs in the `literal_funs' field of the state record. This is
+    %% used to create the final `#standalone_fun{}' at the end.
+    %%
+    %% Note that `literal_funs` can contain both `#standalone_fun{}' records
+    %% and lambdas. The latter is possible if the function doesn't need
+    %% extraction.
+    #state{literal_funs = LiteralFuns} = State1,
+    State3 = case LiteralFuns of
+                 #{Fun := _} ->
+                     State1;
+                 _ ->
+                     {StandaloneFun, State2} = to_embedded_standalone_fun(
+                                                 Fun, State1),
+                     LiteralFuns1 = LiteralFuns#{Fun => StandaloneFun},
+                     State2#state{literal_funs = LiteralFuns1}
+             end,
+
+    %% We can now get the result of the extraction and recreate the `move'
+    %% instruction.
+    #state{literal_funs = #{Fun := StandaloneFun1}} = State3,
+    Fun1 = case StandaloneFun1 of
+               #standalone_fun{module = Module, arity = Arity} ->
+                   %% The lambda was extracted. Here we simply construct the
+                   %% reference to the entrypoint function in the generated
+                   %% module. It doesn't matter that the module is not loaded.
+                   fun Module:?SF_ENTRYPOINT/Arity;
+               _ when is_function(StandaloneFun1) ->
+                   %% The function didn't require any extraction.
+                   ?assertEqual(Fun, StandaloneFun1),
+                   Fun
+           end,
+    Instruction1 = {move, {literal, Fun1}, Reg},
+    pass1_process_instructions(Rest, State3, [Instruction1 | Result]);
 
 %% Third group.
 pass1_process_instructions(
