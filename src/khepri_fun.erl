@@ -1045,6 +1045,18 @@ pass1_process_instructions(
     Instruction = {bs_start_match4, Fail, Live, Src, Dst},
     pass1_process_instructions([Instruction | Rest], State, Result);
 pass1_process_instructions(
+  [{call_fun2,
+    {atom, safe},
+    Arity,
+    {tr, FunReg, {{t_fun, _Arity, _Domain, _Range} = Type, _, _}}} | Rest],
+  State,
+  Result) ->
+    %% `beam_disasm' did not decode this instruction correctly. The
+    %% type in the type-tagged record is wrapped with extra information
+    %% we discard.
+    Instruction = {call_fun2, {atom, safe}, Arity, {tr, FunReg, Type}},
+    pass1_process_instructions([Instruction | Rest], State, Result);
+pass1_process_instructions(
   [{test, BsGetSomething,
     Fail, [Ctx, Live, Size, Unit, {field_flags, FF} = FieldFlags0, Dst]}
    | Rest],
