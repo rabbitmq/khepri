@@ -408,6 +408,28 @@ to_standalone_fun3(
             {Fun, State1}
     end.
 
+-spec to_embedded_standalone_fun(Fun, State) -> {StandaloneFun, State} when
+      Fun :: fun(),
+      State :: #state{},
+      StandaloneFun :: standalone_fun().
+%% @private
+%% @hidden
+
+to_embedded_standalone_fun(
+  Fun,
+  #state{options = Options,
+         all_calls = AllCalls,
+         errors = Errors} = State)
+  when is_function(Fun) ->
+    {StandaloneFun, InnerState} = to_standalone_fun1(Fun, Options),
+    #state{all_calls = InnerAllCalls,
+           errors = InnerErrors} = InnerState,
+    AllCalls1 = maps:merge(AllCalls, InnerAllCalls),
+    Errors1 = Errors ++ InnerErrors,
+    State1 = State#state{all_calls = AllCalls1,
+                         errors = Errors1},
+    {StandaloneFun, State1}.
+
 -spec standalone_fun_cache_key(State) -> Key when
       State :: #state{},
       Key :: {?MODULE,
@@ -2141,18 +2163,8 @@ to_standalone_arg(Map, State) when is_map(Map) ->
               M1 = M#{Key1 => Value1},
               {M1, St2}
       end, {#{}, State}, Map);
-to_standalone_arg(Fun, #state{options = Options,
-                              all_calls = AllCalls,
-                              errors = Errors} = State)
-  when is_function(Fun) ->
-    {StandaloneFun, InnerState} = to_standalone_fun1(Fun, Options),
-    #state{all_calls = InnerAllCalls,
-           errors = InnerErrors} = InnerState,
-    AllCalls1 = maps:merge(AllCalls, InnerAllCalls),
-    Errors1 = Errors ++ InnerErrors,
-    State1 = State#state{all_calls = AllCalls1,
-                         errors = Errors1},
-    {StandaloneFun, State1};
+to_standalone_arg(Fun, State) when is_function(Fun) ->
+    to_embedded_standalone_fun(Fun, State);
 to_standalone_arg(Term, State) ->
     {Term, State}.
 
