@@ -363,3 +363,54 @@ find_node_starting_from_subnode_test_() ->
                                      child_list_length => 0}}},
          khepri:find(
            ?FUNCTION_NAME, [foo, bar], #if_name_matches{regex = "b"}))]}.
+
+count_non_existing_node_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, 0},
+         khepri:count(?FUNCTION_NAME, [foo])),
+      ?_assertEqual(
+         {ok, 0},
+         khepri:count(
+           ?FUNCTION_NAME, [foo], #{expect_specific_node => true}))]}.
+
+count_existing_node_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, #{[foo] => #{}}},
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertEqual(
+         {ok, 1},
+         khepri:count(?FUNCTION_NAME, [foo]))]}.
+
+count_many_nodes_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, #{[foo, bar] => #{}}},
+         khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
+      ?_assertEqual(
+         {ok, #{[baz] => #{}}},
+         khepri:create(?FUNCTION_NAME, [baz], baz_value)),
+
+      ?_assertEqual(
+         {ok, 2},
+         khepri:count(
+           ?FUNCTION_NAME, [?THIS_NODE, #if_name_matches{regex = any}])),
+      ?_assertEqual(
+         {ok, 3},
+         khepri:count(
+           ?FUNCTION_NAME, [#if_path_matches{regex = any}])),
+      ?_assertEqual(
+         {error,
+          {possibly_matching_many_nodes_denied,
+           #if_name_matches{regex = any}}},
+         khepri:count(
+           ?FUNCTION_NAME,
+           [?THIS_NODE, #if_name_matches{regex = any}],
+           #{expect_specific_node => true}))]}.

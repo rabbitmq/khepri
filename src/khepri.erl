@@ -95,6 +95,8 @@
          get_data_or/2, get_data_or/3, get_data_or/4,
          has_sproc/1, has_sproc/2, has_sproc/3,
          run_sproc/2, run_sproc/3, run_sproc/4,
+         count/1, count/2, count/3,
+
          register_trigger/3, register_trigger/4, register_trigger/5,
 
          list/1, list/2, list/3,
@@ -1073,6 +1075,13 @@ get(PathPattern, Options) when is_map(Options) ->
 %% the path for each node matching the path pattern. Each key will point to a
 %% map containing the properties and payload of that matching node.
 %%
+%% The root node may or may not be included in the result. Currently, the root
+%% node is only included if the path pattern is one of the following:
+%% <ul>
+%% <li>`"/*"' or `[?STAR]'</li>
+%% <li>`"/**"' or `[?STAR_STAR]'</li>
+%% </ul>
+%%
 %% Example:
 %% ```
 %% %% Query the node at `/:foo/:bar'.
@@ -1558,6 +1567,79 @@ run_sproc(PathPattern, Args, Options) when is_map(Options) ->
 
 run_sproc(StoreId, PathPattern, Args, Options) ->
     khepri_machine:run_sproc(StoreId, PathPattern, Args, Options).
+
+-spec count(PathPattern) -> Result when
+      PathPattern :: khepri_path:pattern(),
+      Result :: ok(integer()) | error().
+%% @doc Counts all tree nodes matching the path pattern.
+%%
+%% Calling this function is the same as calling `count(StoreId, PathPattern)'
+%% with the default store ID.
+%%
+%% @see count/2.
+
+count(PathPattern) ->
+    count(?DEFAULT_RA_CLUSTER_NAME, PathPattern).
+
+-spec count
+(StoreId, PathPattern) -> Result when
+      StoreId :: store_id(),
+      PathPattern :: khepri_path:pattern(),
+      Result :: ok(integer()) | error();
+(PathPattern, Options) -> Result when
+      PathPattern :: khepri_path:pattern(),
+      Options :: query_options(),
+      Result :: ok(integer()) | error().
+%% @doc Counts all tree nodes matching the path pattern.
+%%
+%% This function accepts the following two forms:
+%% <ul>
+%% <li>`count(StoreId, PathPattern)'. Calling it is the same as calling
+%% `count(StoreId, PathPattern, #{})'.</li>
+%% <li>`count(PathPattern, Options)'. Calling it is the same as calling
+%% `count(StoreId, PathPattern, Options)' with the default store ID.</li>
+%% </ul>
+%%
+%% @see count/3.
+
+count(StoreId, PathPattern) when is_atom(StoreId) ->
+    count(StoreId, PathPattern, #{});
+count(PathPattern, Options) when is_map(Options) ->
+    count(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Options).
+
+-spec count(StoreId, PathPattern, Options) -> Result when
+      StoreId :: store_id(),
+      PathPattern :: khepri_path:pattern(),
+      Options :: query_options(),
+      Result :: ok(integer()) | error().
+%% @doc Counts all tree nodes matching the path pattern.
+%%
+%% The `PathPattern' can be provided as native path (a list of node names and
+%% conditions) or as a string. See {@link khepri_path:from_string/1}.
+%%
+%% The root node is not included in the count.
+%%
+%% It is implemented like {@link get/3}. Therefore, it is not faster. It will
+%% consume less memory though, as the result map is not constructed.
+%%
+%% Example:
+%% ```
+%% %% Query the node at `/:foo/:bar'.
+%% Result = khepri:count(ra_cluster_name, [foo, ?STAR]),
+%%
+%% %% Here is the content of `Result'.
+%% {ok, 3} = Result.
+%% '''
+%%
+%% @param StoreId the name of the Ra cluster.
+%% @param PathPattern the path (or path pattern) to the nodes to count.
+%% @param Options query options such as `favor'.
+%%
+%% @returns an `{ok, Count}' tuple with the number of matching tree nodes, or
+%% an `{error, Reason}' tuple.
+
+count(StoreId, PathPattern, Options) ->
+    khepri_machine:count(StoreId, PathPattern, Options).
 
 -spec register_trigger(TriggerId, EventFilter, StoredProcPath) -> Ret when
       TriggerId :: trigger_id(),
