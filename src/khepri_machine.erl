@@ -30,6 +30,7 @@
 
 -export([put/5,
          get/3,
+         count/3,
          delete/3,
          transaction/4,
          run_sproc/4,
@@ -202,6 +203,28 @@ get(StoreId, PathPattern, Options) ->
     khepri_path:ensure_is_valid(PathPattern1),
     Query = fun(#?MODULE{root = Root}) ->
                     find_matching_nodes(Root, PathPattern1, Options)
+            end,
+    process_query(StoreId, Query, Options).
+
+-spec count(StoreId, PathPattern, Options) -> Result when
+      StoreId :: khepri:store_id(),
+      PathPattern :: khepri_path:pattern(),
+      Options :: khepri:query_options(),
+      Result :: khepri:ok(integer()) | khepri:error().
+%% @doc Counts all tree nodes matching the path pattern.
+%%
+%% @param StoreId the name of the Ra cluster.
+%% @param PathPattern the path (or path pattern) to the nodes to count.
+%% @param Options query options such as `favor'.
+%%
+%% @returns an `{ok, Count}' tuple with the number of matching tree nodes, or
+%% an `{error, Reason}' tuple.
+
+count(StoreId, PathPattern, Options) ->
+    PathPattern1 = khepri_path:from_string(PathPattern),
+    khepri_path:ensure_is_valid(PathPattern1),
+    Query = fun(#?MODULE{root = Root}) ->
+                    count_matching_nodes(Root, PathPattern1, Options)
             end,
     process_query(StoreId, Query, Options).
 
@@ -1092,6 +1115,40 @@ update_keep_while_conds_revidx(
 %% @private
 
 find_matching_nodes(Root, PathPattern, Options) ->
+    IncludeRootProps = khepri_path:pattern_includes_root_node(PathPattern),
+    Extra = #{include_root_props => IncludeRootProps},
+    do_find_matching_nodes(Root, PathPattern, Options, Extra, #{}).
+
+-spec count_matching_nodes(Root, PathPattern, Options) -> Result when
+      Root :: tree_node(),
+      PathPattern :: khepri_path:native_pattern(),
+      Options :: khepri:query_options(),
+      Result :: khepri:ok(integer()) | khepri:error().
+%% @private
+
+count_matching_nodes(Root, PathPattern, Options) ->
+    Extra = #{include_root_props => false},
+    do_find_matching_nodes(Root, PathPattern, Options, Extra, 0).
+
+-spec do_find_matching_nodes
+(Root, PathPattern, Options, Extra, Map) -> Result when
+      Root :: tree_node(),
+      PathPattern :: khepri_path:native_pattern(),
+      Options :: khepri:query_options(),
+      Extra :: #{include_root_props => boolean()},
+      Map :: map(),
+      Result :: khepri:result();
+(Root, PathPattern, Options, Extra, Integer) ->
+    Result when
+      Root :: tree_node(),
+      PathPattern :: khepri_path:native_pattern(),
+      Options :: khepri:query_options(),
+      Extra :: #{include_root_props => boolean()},
+      Integer :: integer(),
+      Result :: khepri:ok(integer()) | khepri:error().
+%% @private
+
+do_find_matching_nodes(Root, PathPattern, Options, Extra, MapOrInteger) ->
     Fun = fun(Path, Node, Result) ->
                   find_matching_nodes_cb(Path, Node, Options, Result)
           end,
@@ -1099,9 +1156,9 @@ find_matching_nodes(Root, PathPattern, Options) ->
                      #{expect_specific_node := true} -> specific_node;
                      _                               -> many_nodes
                  end,
-    IncludeRootProps = khepri_path:pattern_includes_root_node(PathPattern),
-    Extra = #{include_root_props => IncludeRootProps},
-    case walk_down_the_tree(Root, PathPattern, WorkOnWhat, Extra, Fun, #{}) of
+    Ret = walk_down_the_tree(
+            Root, PathPattern, WorkOnWhat, Extra, Fun, MapOrInteger),
+    case Ret of
         {ok, NewRoot, _, Result} ->
             ?assertEqual(Root, NewRoot),
             {ok, Result};
@@ -1109,14 +1166,24 @@ find_matching_nodes(Root, PathPattern, Options) ->
             Error
     end.
 
-find_matching_nodes_cb(Path, #node{} = Node, Options, Result) ->
+find_matching_nodes_cb(Path, #node{} = Node, Options, Map)
+  when is_map(Map) ->
     NodeProps = gather_node_props(Node, Options),
-    {ok, keep, Result#{Path => NodeProps}};
+    {ok, keep, Map#{Path => NodeProps}};
+find_matching_nodes_cb(_Path, #node{} = _Node, _Options, Count)
+  when is_integer(Count) ->
+    {ok, keep, Count + 1};
 find_matching_nodes_cb(
   _,
   {interrupted, node_not_found = Reason, Info},
   #{expect_specific_node := true},
-  _) ->
+  Map)
+  when is_map(Map) ->
+    %% If we are collecting node properties (the result is a map) and the path
+    %% targets a specific node which is not found, we return an error.
+    %%
+    %% If we are counting nodes, that's fine and the next function clause will
+    %% run. The walk won't be interrupted.
     {error, {Reason, Info}};
 find_matching_nodes_cb(_, {interrupted, _, _}, _, Result) ->
     {ok, keep, Result}.
