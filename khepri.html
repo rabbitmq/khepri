@@ -343,6 +343,9 @@ result.</td></tr>
 result.</td></tr>
 <tr><td valign="top"><a href="#run_sproc-4">run_sproc/4</a></td><td>Runs the stored procedure pointed to by the given path and returns the  
 result.</td></tr>
+<tr><td valign="top"><a href="#count-1">count/1</a></td><td>Counts all tree nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#count-2">count/2</a></td><td>Counts all tree nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#count-3">count/3</a></td><td>Counts all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#register_trigger-3">register_trigger/3</a></td><td>Registers a trigger.</td></tr>
 <tr><td valign="top"><a href="#register_trigger-4">register_trigger/4</a></td><td>Registers a trigger.</td></tr>
 <tr><td valign="top"><a href="#register_trigger-5">register_trigger/5</a></td><td>Registers a trigger.</td></tr>
@@ -969,6 +972,13 @@ Result = khepri:delete(ra_cluster_name, [foo, bar]),
 the path for each node matching the path pattern. Each key will point to a  
 map containing the properties and payload of that matching node.</p>
  
+  The root node may or may not be included in the result. Currently, the root
+  node is only included if the path pattern is one of the following:
+  <ul>
+  <li><code>"/*"</code> or <code>[?STAR]</code></li>
+  <li><code>"/**"</code> or <code>[?STAR_STAR]</code></li>
+  </ul>
+ 
   Example:
   <pre><code>%% Query the node at `/:foo/:bar'.
 Result = khepri:get(ra_cluster_name, [foo, bar]),
@@ -1335,6 +1345,66 @@ multiple nodes.</p>
  
   The <code>Args</code> list must match the number of arguments expected by the stored
   procedure.
+ </p>
+
+<h3 class="function"><a name="count-1">count/1</a></h3>
+<div class="spec">
+<p><code>count(PathPattern) -&gt; Result</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="#type-ok">ok</a>(integer()) | <a href="#type-error">error()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Counts all tree nodes matching the path pattern.</p>
+ 
+  Calling this function is the same as calling <code>count(StoreId, PathPattern)</code>
+  with the default store ID.
+ </p>
+<p><b>See also:</b> <a href="#count-2">count/2</a>.</p>
+
+<h3 class="function"><a name="count-2">count/2</a></h3>
+<div class="spec">
+<p><code>count(StoreId, PathPattern) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="#type-ok">ok</a>(integer()) | <a href="#type-error">error()</a></code></li></ul></p><p><code>count(PathPattern, Options) -&gt; Result</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-ok">ok</a>(integer()) | <a href="#type-error">error()</a></code></li></ul></p>
+<p></p>
+<p></p>
+</div><p><p>Counts all tree nodes matching the path pattern.</p>
+ 
+  This function accepts the following two forms:
+  <ul>
+  <li><code>count(StoreId, PathPattern)</code>. Calling it is the same as calling
+  <code>count(StoreId, PathPattern, #{})</code>.</li>
+  <li><code>count(PathPattern, Options)</code>. Calling it is the same as calling
+  <code>count(StoreId, PathPattern, Options)</code> with the default store ID.</li>
+  </ul>
+ </p>
+<p><b>See also:</b> <a href="#count-3">count/3</a>.</p>
+
+<h3 class="function"><a name="count-3">count/3</a></h3>
+<div class="spec">
+<p><code>count(StoreId, PathPattern, Options) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-ok">ok</a>(integer()) | <a href="#type-error">error()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<code>PathPattern</code>: the path (or path pattern) to the nodes to count.<br>
+<code>Options</code>: query options such as <code>favor</code>.
+ <br>
+</p>
+<p>returns: an <code>{ok, Count}</code> tuple with the number of matching tree nodes, or
+  an <code>{error, Reason}</code> tuple.</p>
+</div><p><p>Counts all tree nodes matching the path pattern.</p>
+ 
+  <p>The <code>PathPattern</code> can be provided as native path (a list of node names and
+  conditions) or as a string. See <a docgen-rel="seemfa" docgen-href="khepri_path#from_string/1" href="khepri_path.html#from_string-1"><code>khepri_path:from_string/1</code></a>.</p>
+ 
+  <p>The root node is not included in the count.</p>
+ 
+  <p>It is implemented like <a docgen-rel="seemfa" docgen-href="#get/3" href="#get-3"><code>get/3</code></a>. Therefore, it is not faster. It will  
+consume less memory though, as the result map is not constructed.</p>
+ 
+  Example:
+  <pre><code>%% Query the node at `/:foo/:bar'.
+Result = khepri:count(ra_cluster_name, [foo, ?STAR]),
+ 
+%% Here is the content of `Result'.
+{ok, 3} = Result.</code></pre>
  </p>
 
 <h3 class="function"><a name="register_trigger-3">register_trigger/3</a></h3>
