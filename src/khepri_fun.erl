@@ -264,6 +264,8 @@ fun((#{calls := #{Call :: mfa() => true},
                 [#function{}],
                 label()}.
 
+-define(SF_ENTRYPOINT, run).
+
 -spec to_standalone_fun(Fun) -> StandaloneFun when
       Fun :: fun(),
       StandaloneFun :: standalone_fun().
@@ -809,7 +811,7 @@ exec(
             ok
     end,
     Env1 = to_actual_arg(Env),
-    erlang:apply(Module, run, Args ++ Env1);
+    erlang:apply(Module, ?SF_ENTRYPOINT, Args ++ Env1);
 exec(#standalone_fun{} = StandaloneFun, Args) ->
     exit({badarity, {StandaloneFun, Args}});
 exec(Fun, Args) ->
@@ -2072,7 +2074,7 @@ gen_module_name(#state{fun_info = Info, functions = Functions}) ->
 gen_function_name(
   Module, Name, Arity,
   #state{entrypoint = {Module, Name, Arity}}) ->
-    run;
+    ?SF_ENTRYPOINT;
 gen_function_name(
   Module, Name, _Arity,
   _State) ->
