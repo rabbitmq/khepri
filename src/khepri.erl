@@ -109,7 +109,7 @@
          transaction/1, transaction/2, transaction/3, transaction/4,
 
          info/0,
-         info/1]).
+         info/1, info/2]).
 
 -compile({no_auto_import, [get/2, put/2, erase/1]}).
 
@@ -239,23 +239,27 @@
 %% out is very small.</li>
 %% </ul>
 
--type command_options() :: #{async => async_option()}.
+-type command_options() :: #{timeout => timeout(),
+                             async => async_option()}.
 %% Options used in commands.
 %%
 %% Commands are {@link put/5}, {@link delete/3} and read-write {@link
 %% transaction/4}.
 %%
 %% <ul>
+%% <li>`timeout' is passed to Ra command processing function.</li>
 %% <li>`async' indicates the synchronous or asynchronous nature of the
 %% command; see {@link async_option()}.</li>
 %% </ul>
 
--type query_options() :: #{expect_specific_node => boolean(),
+-type query_options() :: #{timeout => timeout(),
+                           expect_specific_node => boolean(),
                            include_child_names => boolean(),
                            favor => favor_option()}.
 %% Options used in queries.
 %%
 %% <ul>
+%% <li>`timeout' is passed to Ra query processing function.</li>
 %% <li>`expect_specific_node' indicates if the path is expected to point to a
 %% specific tree node or could match many nodes.</li>
 %% <li>`include_child_names' indicates if child names should be included in
@@ -2159,12 +2163,22 @@ info() ->
 %% @param StoreID the name of the Ra cluster.
 
 info(StoreId) ->
+    info(StoreId, #{}).
+
+-spec info(StoreId, Options) -> ok when
+      StoreId :: store_id(),
+      Options :: query_options().
+%% @doc Lists the content of specified store on <em>stdout</em>.
+%%
+%% @param StoreID the name of the Ra cluster.
+
+info(StoreId, Options) ->
     io:format("~n\033[1;32m== CLUSTER MEMBERS ==\033[0m~n~n", []),
     Nodes = lists:sort(
               [Node || {_, Node} <- khepri_cluster:members(StoreId)]),
     lists:foreach(fun(Node) -> io:format("~ts~n", [Node]) end, Nodes),
 
-    case khepri_machine:get_keep_while_conds_state(StoreId) of
+    case khepri_machine:get_keep_while_conds_state(StoreId, Options) of
         {ok, KeepWhileConds} when KeepWhileConds =/= #{} ->
             io:format("~n\033[1;32m== LIFETIME DEPS ==\033[0m~n", []),
             WatcherList = lists:sort(maps:keys(KeepWhileConds)),
@@ -2186,7 +2200,7 @@ info(StoreId) ->
             ok
     end,
 
-    case get(StoreId, [?STAR_STAR]) of
+    case get(StoreId, [?STAR_STAR], Options) of
         {ok, Result} ->
             io:format("~n\033[1;32m== TREE ==\033[0m~n~n●~n", []),
             Tree = khepri_utils:flat_struct_to_tree(Result),

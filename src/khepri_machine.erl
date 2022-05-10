@@ -35,7 +35,7 @@
          transaction/4,
          run_sproc/4,
          register_trigger/5]).
--export([get_keep_while_conds_state/1]).
+-export([get_keep_while_conds_state/2]).
 -export([init/1,
          apply/3,
          state_enter/2]).
@@ -429,8 +429,9 @@ ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
     Command = #ack_triggered{triggered = TriggeredStoredProcs},
     process_command(StoreId, Command, #{}).
 
--spec get_keep_while_conds_state(StoreId) -> Ret when
+-spec get_keep_while_conds_state(StoreId, Options) -> Ret when
       StoreId :: khepri:store_id(),
+      Options :: khepri:query_options(),
       Ret :: {ok, keep_while_conds_map()} | khepri:error().
 %% @doc Returns the `keep_while' conditions internal state.
 %%
@@ -443,11 +444,12 @@ ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
 %%
 %% @private
 
-get_keep_while_conds_state(StoreId) ->
+get_keep_while_conds_state(StoreId, Options) ->
     Query = fun(#?MODULE{keep_while_conds = KeepWhileConds}) ->
                     {ok, KeepWhileConds}
             end,
-    process_query(StoreId, Query, #{favor => consistency}).
+    Options1 = Options#{favor => consistency},
+    process_query(StoreId, Query, Options1).
 
 -spec process_command(StoreId, Command, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -472,23 +474,24 @@ process_command(StoreId, Command, Options) ->
     CommandType = select_command_type(Options),
     case CommandType of
         sync ->
-            process_sync_command(StoreId, Command);
+            process_sync_command(StoreId, Command, Options);
         {async, Correlation, Priority} ->
             process_async_command(
               StoreId, Command, Correlation, Priority)
     end.
 
-process_sync_command(StoreId, Command) ->
+process_sync_command(StoreId, Command, Options) ->
     case get_leader(StoreId) of
         LeaderId when LeaderId =/= undefined ->
-            case ra:process_command(LeaderId, Command) of
+            Timeout = get_timeout(Options),
+            case ra:process_command(LeaderId, Command, Timeout) of
                 {ok, Ret, NewLeaderId} ->
                     cache_leader_if_changed(
                       StoreId, LeaderId, NewLeaderId),
                     just_did_consistent_call(StoreId),
                     Ret;
-                {timeout, _} = Timeout ->
-                    {error, Timeout};
+                {timeout, _} = TimedOut ->
+                    {error, TimedOut};
                 {error, _} = Error ->
                     Error
             end;
@@ -554,35 +557,41 @@ select_command_type(#{async := {Correlation, Priority}})
 
 process_query(StoreId, QueryFun, Options) ->
     QueryType = select_query_type(StoreId, Options),
+    Timeout = get_timeout(Options),
     case QueryType of
-        local -> process_local_query(StoreId, QueryFun);
-        _     -> process_non_local_query(StoreId, QueryFun, QueryType)
+        local -> process_local_query(StoreId, QueryFun, Timeout);
+        _     -> process_non_local_query(StoreId, QueryFun, QueryType, Timeout)
     end.
 
--spec process_local_query(StoreId, QueryFun) -> Ret when
+-spec process_local_query(StoreId, QueryFun, Timeout) -> Ret when
       StoreId :: khepri:store_id(),
       QueryFun :: query_fun(),
+      Timeout :: timeout(),
       Ret :: any().
 
-process_local_query(StoreId, QueryFun) ->
+process_local_query(StoreId, QueryFun, Timeout) ->
     LocalServerId = {StoreId, node()},
-    Ret = ra:local_query(LocalServerId, QueryFun),
+    Ret = ra:local_query(LocalServerId, QueryFun, Timeout),
     process_query_response(StoreId, undefined, local, Ret).
 
--spec process_non_local_query(StoreId, QueryFun, QueryType) -> Ret when
+-spec process_non_local_query(StoreId, QueryFun, QueryType, Timeout) ->
+    Ret when
       StoreId :: khepri:store_id(),
       QueryFun :: query_fun(),
       QueryType :: leader | consistent,
+      Timeout :: timeout(),
       Ret :: any().
 
-process_non_local_query(StoreId, QueryFun, QueryType)
+process_non_local_query(StoreId, QueryFun, QueryType, Timeout)
   when QueryType =:= leader orelse
        QueryType =:= consistent ->
     case get_leader(StoreId) of
         LeaderId when LeaderId =/= undefined ->
             Ret = case QueryType of
-                      leader     -> ra:leader_query(LeaderId, QueryFun);
-                      consistent -> ra:consistent_query(LeaderId, QueryFun)
+                      leader ->
+                          ra:leader_query(LeaderId, QueryFun, Timeout);
+                      consistent ->
+                          ra:consistent_query(LeaderId, QueryFun, Timeout)
                   end,
             %% TODO: If the consistent query times out in the context of
             %% `QueryType=compromise`, should we retry with a local query to
@@ -615,8 +624,8 @@ process_query_response(
     cache_leader_if_changed(StoreId, LeaderId, NewLeaderId),
     Ret;
 process_query_response(
-  _StoreId, _LeaderId, _QueryType, {timeout, _} = Timeout) ->
-    {error, Timeout};
+  _StoreId, _LeaderId, _QueryType, {timeout, _} = TimedOut) ->
+    {error, TimedOut};
 process_query_response(
   _StoreId, _LeaderId, _QueryType, {error, _} = Error) ->
     Error.
@@ -756,6 +765,14 @@ just_did_consistent_call(StoreId) ->
 get_last_consistent_call_atomics(StoreId) ->
     Key = ?LAST_CONSISTENT_CALL_TS_REF(StoreId),
     persistent_term:get(Key, undefined).
+
+-spec get_timeout(Options) -> Timeout when
+      Options :: khepri:command_options() | khepri:query_options(),
+      Timeout :: timeout().
+%% @private
+
+get_timeout(#{timeout := Timeout}) -> Timeout;
+get_timeout(_)                     -> infinity.
 
 -spec clear_cache(StoreId) -> ok when
       StoreId :: khepri:store_id().

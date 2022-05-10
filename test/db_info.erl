@@ -69,7 +69,7 @@ get_store_info_on_non_existing_store_test_() ->
          "\033[1;32m== CLUSTER MEMBERS ==\033[0m\n"
          "\n",
          begin
-             khepri:info(non_existing_store),
+             khepri:info(non_existing_store, #{timeout => 1000}),
              ?capturedOutput
          end)]}.
 

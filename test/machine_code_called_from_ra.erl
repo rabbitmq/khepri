@@ -80,7 +80,7 @@ query_keep_while_conds_state_test_() ->
         ?_assertEqual(
            {ok, #{[foo] =>
                   #{[foo] => #if_child_list_length{count = {gt, 0}}}}},
-           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME))
+           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME, #{}))
        ]}]}.
 
 use_unix_string_path_in_keep_while_cond_test_() ->
@@ -99,7 +99,7 @@ use_unix_string_path_in_keep_while_cond_test_() ->
         ?_assertEqual(
            {ok, #{[foo] =>
                   #{[foo] => #if_child_list_length{count = {gt, 0}}}}},
-           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME))
+           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME, #{}))
        ]}]}.
 
 use_unix_binary_path_in_keep_while_cond_test_() ->
@@ -118,7 +118,7 @@ use_unix_binary_path_in_keep_while_cond_test_() ->
         ?_assertEqual(
            {ok, #{[foo] =>
                   #{[foo] => #if_child_list_length{count = {gt, 0}}}}},
-           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME))
+           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME, #{}))
        ]}]}.
 
 use_an_invalid_path_test_() ->
