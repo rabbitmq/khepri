@@ -24,6 +24,9 @@
                                      is_record(Payload, p_data) orelse
                                      is_record(Payload, p_sproc))).
 
+-define(IS_TIMEOUT(Timeout), (Timeout =:= infinity orelse
+                              (is_integer(Timeout) andalso Timeout >= 0))).
+
 -record(evf_tree, {path :: khepri_path:native_pattern(),
                    props = #{} :: khepri_evf:tree_event_filter_props()}).
 %-record(evf_process, {pid :: pid(),

@@ -34,3 +34,48 @@ event_handler_gen_server_callbacks_test() ->
     ?assertEqual(ok, gen_server:call(khepri_event_handler, any_call)),
     ?assert(is_process_alive(whereis(khepri_event_handler))),
     ?assertEqual(ok, application:stop(khepri)).
+
+get_default_timeout_with_no_app_env_test() ->
+    ?assertEqual(
+       infinity,
+       khepri_app:get_default_timeout()).
+
+get_default_timeout_with_infinity_app_env_test() ->
+    Timeout = infinity,
+    application:set_env(
+      khepri, default_timeout, Timeout, [{persistent, true}]),
+    ?assertEqual(
+       Timeout,
+       khepri_app:get_default_timeout()),
+    application:unset_env(
+      khepri, default_timeout, [{persistent, true}]).
+
+get_default_timeout_with_non_neg_integer_app_env_test() ->
+    Timeout = 0,
+    application:set_env(
+      khepri, default_timeout, Timeout, [{persistent, true}]),
+    ?assertEqual(
+       Timeout,
+       khepri_app:get_default_timeout()),
+    application:unset_env(
+      khepri, default_timeout, [{persistent, true}]).
+
+get_default_timeout_with_neg_integer_app_env_test() ->
+    Timeout = -5000,
+    application:set_env(
+      khepri, default_timeout, Timeout, [{persistent, true}]),
+    ?assertThrow(
+       {invalid_timeout, Timeout},
+       khepri_app:get_default_timeout()),
+    application:unset_env(
+      khepri, default_timeout, [{persistent, true}]).
+
+get_default_timeout_with_invalid_app_env_test() ->
+    Invalid = {invalid},
+    application:set_env(
+      khepri, default_timeout, Invalid, [{persistent, true}]),
+    ?assertThrow(
+       {invalid_timeout, Invalid},
+       khepri_app:get_default_timeout()),
+    application:unset_env(
+      khepri, default_timeout, [{persistent, true}]).

@@ -772,7 +772,7 @@ get_last_consistent_call_atomics(StoreId) ->
 %% @private
 
 get_timeout(#{timeout := Timeout}) -> Timeout;
-get_timeout(_)                     -> infinity.
+get_timeout(_)                     -> khepri_app:get_default_timeout().
 
 -spec clear_cache(StoreId) -> ok when
       StoreId :: khepri:store_id().

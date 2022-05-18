@@ -10,6 +10,13 @@
 -module(khepri_app).
 -behaviour(application).
 
+-include_lib("kernel/include/logger.hrl").
+-include_lib("stdlib/include/assert.hrl").
+
+-include("src/internal.hrl").
+
+-export([get_default_timeout/0]).
+
 -export([start/2,
          stop/1,
          config_change/3]).
@@ -27,3 +34,17 @@ stop(_) ->
 
 config_change(_Changed, _New, _Removed) ->
     ok.
+
+get_default_timeout() ->
+    Timeout = application:get_env(khepri, default_timeout, infinity),
+    if
+        ?IS_TIMEOUT(Timeout) ->
+            ok;
+        true ->
+            ?LOG_ERROR(
+               "Invalid timeout set in `default_timeout` "
+               "application environment: ~p",
+               [Timeout]),
+            throw({invalid_timeout, Timeout})
+    end,
+    Timeout.
