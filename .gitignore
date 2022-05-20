@@ -3,6 +3,7 @@ erl_crash.dump
 .*.sw?
 /deps
 /_build
+/_checkouts
 /doc/*
 !/doc/overview.edoc
 /mix.lock
