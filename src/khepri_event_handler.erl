@@ -11,6 +11,7 @@
 -behaviour(gen_server).
 
 -include_lib("kernel/include/logger.hrl").
+-include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
@@ -44,7 +45,10 @@ init(_) ->
     State = #?MODULE{},
     {ok, State}.
 
-handle_call(_Request, _From, State) ->
+handle_call(Request, From, State) ->
+    ?LOG_WARNING(
+       "Unhandled handle_call request from ~0p: ~p",
+       [From, Request]),
     {State1, Timeout} = log_accumulated_trigger_crashes(State),
     {reply, ok, State1, Timeout}.
 
@@ -100,14 +104,16 @@ handle_cast(
     _ = khepri_machine:ack_triggers_execution(StoreId, TriggeredStoredProcs),
     {State2, Timeout} = log_accumulated_trigger_crashes(State1),
     {noreply, State2, Timeout};
-handle_cast(_Request, State) ->
+handle_cast(Request, State) ->
+    ?LOG_WARNING("Unhandled handle_cast request: ~p", [Request]),
     {State1, Timeout} = log_accumulated_trigger_crashes(State),
     {noreply, State1, Timeout}.
 
 handle_info(timeout, State) ->
     {State1, Timeout} = log_accumulated_trigger_crashes(State),
     {noreply, State1, Timeout};
-handle_info(_Info, State) ->
+handle_info(Msg, State) ->
+    ?LOG_WARNING("Unhandled handle_info message: ~p", [Msg]),
     {State1, Timeout} = log_accumulated_trigger_crashes(State),
     {noreply, State1, Timeout}.
 
