@@ -192,10 +192,11 @@ database instances running on the same Erlang node or cluster by starting
 multiple Ra clusters. Note that it is called a "Ra cluster" but it can have a
 single member.
 
-By default, {@link khepri:start/0} starts a default store called `khepri',
-based on Ra's default system. You can start a simple store using {@link
-khepri:start/1}. To configure a cluster, you need to use {@link
-khepri_cluster} to add or remove members.
+You can start a Khepri store using {@link start/0} up to {@link start/3}. See
+those functions to learn more about the configuration settings.
+
+To expand or shrink a cluster, {@link khepri_cluster:join/1} and {@link
+khepri_cluster:reset/0} allow a Khepri store node to join or leave a cluster.
 
 == Khepri API ==
 

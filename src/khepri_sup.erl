@@ -18,7 +18,7 @@ start_link() ->
 
 init(_) ->
     SupFlags = #{strategy => one_for_one},
-    EventHandlerSpec = #{id => khepri_event_handler,
+    EventHandlerSpec = #{id => event_handler,
                          start => {khepri_event_handler, start_link, []},
                          type => worker},
     ChildSpecs = [EventHandlerSpec],

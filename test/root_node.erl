@@ -17,7 +17,9 @@
 -dialyzer(no_missing_calls).
 
 query_root_node_implicitly_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME}),
+    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node())}),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(Root, [], #{}),
 
@@ -28,7 +30,9 @@ query_root_node_implicitly_test() ->
        Ret).
 
 query_root_node_explicitly_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME}),
+    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node())}),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(Root, [?ROOT_NODE], #{}),
 
@@ -39,7 +43,9 @@ query_root_node_explicitly_test() ->
        Ret).
 
 query_root_node_using_dot_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME}),
+    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node())}),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(Root, [?THIS_NODE], #{}),
 
@@ -53,6 +59,8 @@ query_above_root_node_using_dot_dot_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Root = khepri_machine:get_root(S0),
 
@@ -80,7 +88,9 @@ query_above_root_node_using_dot_dot_test() ->
        Ret).
 
 query_root_node_with_conditions_true_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME}),
+    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node())}),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
             Root,
@@ -95,7 +105,9 @@ query_root_node_with_conditions_true_test() ->
        Ret).
 
 query_root_node_with_conditions_false_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME}),
+    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node())}),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
             Root,
@@ -108,7 +120,9 @@ query_root_node_with_conditions_false_test() ->
        Ret).
 
 store_data_in_root_node_using_empty_path_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME}),
+    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node())}),
     Command = #put{path = [],
                    payload = khepri_payload:data(value)},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -127,7 +141,9 @@ store_data_in_root_node_using_empty_path_test() ->
     ?assertEqual([], SE).
 
 store_data_in_root_node_using_root_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME}),
+    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node())}),
     Command = #put{path = [?ROOT_NODE],
                    payload = khepri_payload:data(value)},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -146,7 +162,9 @@ store_data_in_root_node_using_root_test() ->
     ?assertEqual([], SE).
 
 store_data_in_root_node_using_dot_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME}),
+    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node())}),
     Command = #put{path = [?THIS_NODE],
                    payload = khepri_payload:data(value)},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -165,7 +183,9 @@ store_data_in_root_node_using_dot_test() ->
     ?assertEqual([], SE).
 
 store_data_in_root_node_using_dot_dot_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME}),
+    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node())}),
     Command = #put{path = [?PARENT_NODE],
                    payload = khepri_payload:data(value)},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -184,7 +204,9 @@ store_data_in_root_node_using_dot_dot_test() ->
     ?assertEqual([], SE).
 
 store_data_in_root_node_with_condition_true_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME}),
+    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node())}),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 0}),
     Command = #put{path = [#if_all{conditions = [?ROOT_NODE, Compiled]}],
                    payload = khepri_payload:data(value)},
@@ -204,7 +226,9 @@ store_data_in_root_node_with_condition_true_test() ->
     ?assertEqual([], SE).
 
 store_data_in_root_node_with_condition_true_using_dot_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME}),
+    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node())}),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 0}),
     Command = #put{path = [#if_all{conditions = [?THIS_NODE, Compiled]}],
                    payload = khepri_payload:data(value)},
@@ -224,7 +248,9 @@ store_data_in_root_node_with_condition_true_using_dot_test() ->
     ?assertEqual([], SE).
 
 store_data_in_root_node_with_condition_false_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME}),
+    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node())}),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 1}),
     Command = #put{path = [#if_all{conditions = [?ROOT_NODE, Compiled]}],
                    payload = khepri_payload:data(value)},
@@ -249,7 +275,9 @@ store_data_in_root_node_with_condition_false_test() ->
     ?assertEqual([], SE).
 
 delete_empty_root_node_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME}),
+    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node())}),
     Command = #delete{path = []},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
@@ -269,6 +297,8 @@ delete_root_node_using_empty_path_test() ->
     Commands = [#put{path = [],
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Command = #delete{path = []},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -290,6 +320,8 @@ delete_root_node_using_root_test() ->
     Commands = [#put{path = [],
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Command = #delete{path = [?ROOT_NODE]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -311,6 +343,8 @@ delete_root_node_using_dot_test() ->
     Commands = [#put{path = [],
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Command = #delete{path = [?THIS_NODE]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -332,6 +366,8 @@ delete_root_node_using_dot_dot_test() ->
     Commands = [#put{path = [],
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Command = #delete{path = [?PARENT_NODE]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -355,6 +391,8 @@ delete_root_node_with_child_nodes_test() ->
                 #put{path = [baz, qux],
                      payload = khepri_payload:data(qux_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Command = #delete{path = []},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -375,6 +413,8 @@ delete_root_node_with_condition_true_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(foo_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 1}),
     Command = #delete{path = [#if_all{conditions = [?ROOT_NODE, Compiled]}]},
@@ -396,6 +436,8 @@ delete_root_node_with_condition_true_using_dot_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(foo_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 1}),
     Command = #delete{path = [#if_all{conditions = [?THIS_NODE, Compiled]}]},
@@ -417,6 +459,8 @@ delete_root_node_with_condition_false_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(foo_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 0}),
     Command = #delete{path = [#if_all{conditions = [?ROOT_NODE, Compiled]}]},

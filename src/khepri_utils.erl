@@ -13,7 +13,11 @@
 
 -include("include/khepri.hrl").
 
--export([flat_struct_to_tree/1,
+-export([start_timeout_window/1,
+         end_timeout_window/2,
+         sleep/2,
+         is_ra_server_alive/1,
+         flat_struct_to_tree/1,
          display_tree/1,
          display_tree/2,
          display_tree/3,
@@ -22,6 +26,50 @@
 
 %% khepri:get_root/1 is unexported when compiled without `-DTEST'.
 -dialyzer(no_missing_calls).
+
+-spec start_timeout_window(Timeout) -> Timestamp | none when
+      Timeout :: timeout(),
+      Timestamp :: integer().
+
+start_timeout_window(infinity) ->
+    none;
+start_timeout_window(_Timeout) ->
+    erlang:monotonic_time().
+
+-spec end_timeout_window(Timeout, Timestamp | none) -> Timeout when
+      Timeout :: timeout(),
+      Timestamp :: integer().
+
+end_timeout_window(infinity = Timeout, none) ->
+    Timeout;
+end_timeout_window(Timeout, T0) ->
+    T1 = erlang:monotonic_time(),
+    TDiff = erlang:convert_time_unit(T1 - T0, native, millisecond),
+    Remaining = Timeout - TDiff,
+    erlang:max(Remaining, 0).
+
+-spec sleep(Time, Timeout) -> Timeout when
+      Time :: non_neg_integer(),
+      Timeout :: timeout().
+
+sleep(Time, infinity = Timeout) ->
+    timer:sleep(Time),
+    Timeout;
+sleep(_Time, 0 = Timeout) ->
+    Timeout;
+sleep(Time, Timeout) when Time =< Timeout ->
+    timer:sleep(Time),
+    Timeout - Time;
+sleep(Time, Timeout) when Time > Timeout ->
+    timer:sleep(Timeout),
+    0.
+
+-spec is_ra_server_alive(RaServer) -> IsAlive when
+      RaServer :: ra:server_id(),
+      IsAlive :: boolean().
+
+is_ra_server_alive({RegName, Node}) when Node =:= node() ->
+    is_pid(erlang:whereis(RegName)).
 
 -spec flat_struct_to_tree(khepri:node_props_map()) ->
     khepri:node_props().

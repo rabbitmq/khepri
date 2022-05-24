@@ -21,7 +21,7 @@ favor_compromise_in_get_test_() ->
          begin
              ?assertEqual(
                 undefined,
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              ?assertEqual(
                 undefined,
                 khepri_machine:get_last_consistent_call_atomics(
@@ -34,7 +34,7 @@ favor_compromise_in_get_test_() ->
 
              ?assertEqual(
                 {?FUNCTION_NAME, node()},
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              Ref = khepri_machine:get_last_consistent_call_atomics(
                      ?FUNCTION_NAME),
              TS1 = atomics:get(Ref, 1),
@@ -49,7 +49,7 @@ favor_compromise_in_get_test_() ->
 
              ?assertEqual(
                 {?FUNCTION_NAME, node()},
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              TS2 = atomics:get(Ref, 1),
              ?assertEqual(TS1, TS2),
 
@@ -62,7 +62,7 @@ favor_compromise_in_get_test_() ->
 
              ?assertEqual(
                 {?FUNCTION_NAME, node()},
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              TS3 = atomics:get(Ref, 1),
              ?assertNotEqual(TS1, TS3),
 
@@ -78,7 +78,7 @@ favor_consistency_in_get_test_() ->
          begin
              ?assertEqual(
                 undefined,
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              ?assertEqual(
                 undefined,
                 khepri_machine:get_last_consistent_call_atomics(
@@ -91,7 +91,7 @@ favor_consistency_in_get_test_() ->
 
              ?assertEqual(
                 {?FUNCTION_NAME, node()},
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              Ref = khepri_machine:get_last_consistent_call_atomics(
                      ?FUNCTION_NAME),
              TS1 = atomics:get(Ref, 1),
@@ -106,7 +106,7 @@ favor_consistency_in_get_test_() ->
 
              ?assertEqual(
                 {?FUNCTION_NAME, node()},
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              TS2 = atomics:get(Ref, 1),
              ?assertNotEqual(TS1, TS2),
 
@@ -122,7 +122,7 @@ favor_low_latency_in_get_test_() ->
          begin
              ?assertEqual(
                 undefined,
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              ?assertEqual(
                 undefined,
                 khepri_machine:get_last_consistent_call_atomics(
@@ -135,7 +135,7 @@ favor_low_latency_in_get_test_() ->
 
              ?assertEqual(
                 {?FUNCTION_NAME, node()},
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              ?assertEqual(
                 undefined,
                 khepri_machine:get_last_consistent_call_atomics(
@@ -148,7 +148,7 @@ favor_low_latency_in_get_test_() ->
 
              ?assertEqual(
                 {?FUNCTION_NAME, node()},
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              ?assertEqual(
                 undefined,
                 khepri_machine:get_last_consistent_call_atomics(
@@ -168,7 +168,7 @@ favor_compromise_in_transaction_test_() ->
 
              ?assertEqual(
                 undefined,
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              ?assertEqual(
                 undefined,
                 khepri_machine:get_last_consistent_call_atomics(
@@ -181,7 +181,7 @@ favor_compromise_in_transaction_test_() ->
 
              ?assertEqual(
                 {?FUNCTION_NAME, node()},
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              Ref = khepri_machine:get_last_consistent_call_atomics(
                      ?FUNCTION_NAME),
              TS1 = atomics:get(Ref, 1),
@@ -196,7 +196,7 @@ favor_compromise_in_transaction_test_() ->
 
              ?assertEqual(
                 {?FUNCTION_NAME, node()},
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              TS2 = atomics:get(Ref, 1),
              ?assertEqual(TS1, TS2),
 
@@ -209,7 +209,7 @@ favor_compromise_in_transaction_test_() ->
 
              ?assertEqual(
                 {?FUNCTION_NAME, node()},
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              TS3 = atomics:get(Ref, 1),
              ?assertNotEqual(TS1, TS3),
 
@@ -227,7 +227,7 @@ favor_consistency_in_transaction_test_() ->
 
              ?assertEqual(
                 undefined,
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              ?assertEqual(
                 undefined,
                 khepri_machine:get_last_consistent_call_atomics(
@@ -240,7 +240,7 @@ favor_consistency_in_transaction_test_() ->
 
              ?assertEqual(
                 {?FUNCTION_NAME, node()},
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              Ref = khepri_machine:get_last_consistent_call_atomics(
                      ?FUNCTION_NAME),
              TS1 = atomics:get(Ref, 1),
@@ -255,7 +255,7 @@ favor_consistency_in_transaction_test_() ->
 
              ?assertEqual(
                 {?FUNCTION_NAME, node()},
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              TS2 = atomics:get(Ref, 1),
              ?assertNotEqual(TS1, TS2),
 
@@ -273,7 +273,7 @@ favor_low_latency_in_transaction_test_() ->
 
              ?assertEqual(
                 undefined,
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              ?assertEqual(
                 undefined,
                 khepri_machine:get_last_consistent_call_atomics(
@@ -286,7 +286,7 @@ favor_low_latency_in_transaction_test_() ->
 
              ?assertEqual(
                 {?FUNCTION_NAME, node()},
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              ?assertEqual(
                 undefined,
                 khepri_machine:get_last_consistent_call_atomics(
@@ -299,7 +299,7 @@ favor_low_latency_in_transaction_test_() ->
 
              ?assertEqual(
                 {?FUNCTION_NAME, node()},
-                khepri_machine:get_cached_leader(?FUNCTION_NAME)),
+                khepri_cluster:get_cached_leader(?FUNCTION_NAME)),
              ?assertEqual(
                 undefined,
                 khepri_machine:get_last_consistent_call_atomics(

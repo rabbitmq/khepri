@@ -18,7 +18,9 @@
 -dialyzer(no_missing_calls).
 
 delete_non_existing_node_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME}),
+    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node())}),
     Command = #delete{path = [foo]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
 
@@ -28,7 +30,9 @@ delete_non_existing_node_test() ->
     ?assertEqual([], SE).
 
 delete_non_existing_node_under_non_existing_parent_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME}),
+    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node())}),
     Command = #delete{path = [foo, bar, baz]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
 
@@ -41,6 +45,8 @@ delete_existing_node_with_data_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(foo_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Command = #delete{path = [foo]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -63,6 +69,8 @@ delete_existing_node_with_data_using_dot_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(foo_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Command = #delete{path = [foo, ?THIS_NODE]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -85,6 +93,8 @@ delete_existing_node_with_child_nodes_test() ->
     Commands = [#put{path = [foo, bar],
                      payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Command = #delete{path = [foo]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -106,6 +116,8 @@ delete_a_node_deep_into_the_tree_test() ->
     Commands = [#put{path = [foo, bar, baz, qux],
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Command = #delete{path = [foo, bar, baz]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -138,6 +150,8 @@ delete_existing_node_with_condition_true_test() ->
                 #put{path = [bar],
                      payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Command = #delete{path = [#if_data_matches{pattern = bar_value}]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -165,6 +179,8 @@ delete_existing_node_with_condition_false_test() ->
                 #put{path = [bar],
                      payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Command = #delete{path = [#if_data_matches{pattern = other_value}]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -192,6 +208,8 @@ delete_existing_node_with_condition_true_using_dot_test() ->
                 #put{path = [bar],
                      payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Command = #delete{path =
                       [bar,
@@ -223,6 +241,8 @@ delete_existing_node_with_condition_false_using_dot_test() ->
                 #put{path = [bar],
                      payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Command = #delete{path =
                       [bar,
@@ -256,6 +276,8 @@ delete_many_nodes_at_once_test() ->
                 #put{path = [baz],
                      payload = khepri_payload:data(baz_value)}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                commands => Commands}),
     Command = #delete{path = [#if_name_matches{regex = "a"}]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -284,6 +306,8 @@ delete_many_nodes_at_once_test() ->
 delete_command_bumps_applied_command_count_test() ->
     Commands = [#delete{path = [foo]}],
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
+                               member => khepri_cluster:node_to_member(
+                                           ?FUNCTION_NAME, node()),
                                snapshot_interval => 3,
                                commands => Commands}),
 

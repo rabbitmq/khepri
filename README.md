@@ -71,8 +71,8 @@ khepri:start().
 ```
 
 The default Khepri store uses the default Ra system. Data is stored in the
-configured default Ra system data directory, which defaults to the current
-working directory.
+configured default Ra system data directory, which is `khepri#$NODENAME` in
+the current working directory.
 
 It is fine to get started and play with Khepri. However, it is recommended to
 configure your own Ra system and Ra cluster to select the directory where data

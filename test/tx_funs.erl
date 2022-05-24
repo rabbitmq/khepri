@@ -64,9 +64,13 @@ allowed_khepri_tx_api_test() ->
        end).
 
 denied_khepri_tx_run_3_test() ->
+    MachineState = #khepri_machine{
+                      config = #config{store_id = ?FUNCTION_NAME,
+                                       member = {?FUNCTION_NAME, node()}}
+                     },
     ?assertToFunThrow(
        {invalid_tx_fun, {call_denied, {khepri_tx, run, 3}}},
-       _ = khepri_tx:run(#khepri_machine{}, fun() -> ok end, true)).
+       _ = khepri_tx:run(MachineState, fun() -> ok end, true)).
 
 allowed_erlang_expressions_add_test() ->
     One = mask(1),

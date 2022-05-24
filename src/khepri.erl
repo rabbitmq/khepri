@@ -15,9 +15,9 @@
 %% the API to use inside transaction functions is provided by {@link
 %% khepri_tx}.
 %%
-%% This module also provides functions to start and stop (in the future) a
-%% simple unclustered Khepri store. For more advanced setup and clustering,
-%% see {@link khepri_cluster}.
+%% This module also provides functions to start and stop a simple unclustered
+%% Khepri store. For more advanced setup and clustering, see {@link
+%% khepri_cluster}.
 %%
 %% == A Khepri store ==
 %%
@@ -69,12 +69,11 @@
 -include("src/internal.hrl").
 
 -export([
-         %% Functions to start & stop (in the future) a Khepri store; for more
+         %% Functions to start & stop a Khepri store; for more
          %% advanced functions, including clustering, see `khepri_cluster'.
-         start/0,
-         start/1,
-         start/3,
-         reset/2,
+         start/0, start/1, start/2, start/3,
+         reset/0, reset/1, reset/2,
+         stop/0, stop/1,
          get_store_ids/0,
 
          %% Simple direct atomic operations & queries.
@@ -118,7 +117,8 @@
 %% please Dialyzer. So for now, let's disable this specific check for the
 %% problematic functions.
 -if(?OTP_RELEASE >= 24).
--dialyzer({no_underspecs, [start/1, start/3,
+-dialyzer({no_underspecs, [start/1, start/2,
+                           stop/0, stop/1,
 
                            put/2, put/3,
                            create/2, create/3,
@@ -297,64 +297,107 @@
 %% -------------------------------------------------------------------
 
 -spec start() -> Ret when
-      Ret :: ok(StoreId) | error(),
-      StoreId :: store_id().
-%% @doc Starts a store on the default Ra system.
-%%
-%% The store uses the default Ra cluster name and cluster friendly name.
+      Ret :: khepri:ok(StoreId) | khepri:error(),
+      StoreId :: khepri:store_id().
+%% @doc Starts a store.
 %%
 %% @see khepri_cluster:start/0.
 
 start() ->
     khepri_cluster:start().
 
--spec start(RaSystem) -> Ret when
+-spec start(RaSystem | DataDir) -> Ret when
       RaSystem :: atom(),
-      Ret :: ok(StoreId) | error(),
-      StoreId :: store_id().
-%% @doc Starts a store on the specified Ra system.
-%%
-%% The store uses the default Ra cluster name and cluster friendly name.
-%%
-%% @param RaSystem the name of the Ra system.
+      DataDir :: file:filename_all(),
+      Ret :: khepri:ok(StoreId) | khepri:error(),
+      StoreId :: khepri:store_id().
+%% @doc Starts a store.
 %%
 %% @see khepri_cluster:start/1.
 
-start(RaSystem) ->
-    khepri_cluster:start(RaSystem).
+start(RaSystemOrDataDir) ->
+    khepri_cluster:start(RaSystemOrDataDir).
 
--spec start(RaSystem, ClusterName, FriendlyName) -> Ret when
+-spec start(RaSystem | DataDir, ClusterName | RaServerConfig) -> Ret when
       RaSystem :: atom(),
+      DataDir :: file:filename_all(),
       ClusterName :: ra:cluster_name(),
-      FriendlyName :: string(),
-      Ret :: ok(StoreId) | error(),
-      StoreId :: store_id().
-%% @doc Starts a store on the specified Ra system.
+      RaServerConfig :: khepri_cluster:incomplete_ra_server_config(),
+      Ret :: khepri:ok(StoreId) | khepri:error(),
+      StoreId :: khepri:store_id().
+%% @doc Starts a store.
 %%
-%% @param RaSystem the name of the Ra system.
-%% @param ClusterName the name of the Ra cluster.
-%% @param FriendlyName the friendly name of the Ra cluster.
+%% @see khepri_cluster:start/2.
+
+start(RaSystemOrDataDir, ClusterNameOrRaServerConfig) ->
+    khepri_cluster:start(RaSystemOrDataDir, ClusterNameOrRaServerConfig).
+
+-spec start(RaSystem | DataDir, ClusterName | RaServerConfig, Timeout) ->
+    Ret when
+      RaSystem :: atom(),
+      DataDir :: file:filename_all(),
+      ClusterName :: ra:cluster_name(),
+      RaServerConfig :: khepri_cluster:incomplete_ra_server_config(),
+      Timeout :: timeout(),
+      Ret :: khepri:ok(StoreId) | khepri:error(),
+      StoreId :: khepri:store_id().
+%% @doc Starts a store.
 %%
 %% @see khepri_cluster:start/3.
 
-start(RaSystem, ClusterName, FriendlyName) ->
-    khepri_cluster:start(RaSystem, ClusterName, FriendlyName).
+start(RaSystemOrDataDir, ClusterNameOrRaServerConfig, Timeout) ->
+    khepri_cluster:start(
+      RaSystemOrDataDir, ClusterNameOrRaServerConfig, Timeout).
 
--spec reset(RaSystem, ClusterName) -> Ret when
-      RaSystem :: atom(),
-      ClusterName :: ra:cluster_name(),
-      Ret :: ok | error() | {badrpc, any()}.
+-spec reset() -> Ret when
+      Ret :: ok | error().
 %% @doc Resets the store on this Erlang node.
 %%
-%% It does that by force-deleting the Ra local server.
+%% @see khepri_cluster:reset/0.
+
+reset() ->
+    khepri_cluster:reset().
+
+-spec reset(StoreId | Timeout) -> Ret when
+      StoreId :: khepri:store_id(),
+      Timeout :: timeout(),
+      Ret :: ok | khepri:error().
+%% @doc Resets the store on this Erlang node.
 %%
-%% @param RaSystem the name of the Ra system.
-%% @param ClusterName the name of the Ra cluster.
+%% @see khepri_cluster:reset/1.
+
+reset(StoreIdOrTimeout) ->
+    khepri_cluster:reset(StoreIdOrTimeout).
+
+-spec reset(StoreId, Timeout) -> Ret when
+      StoreId :: khepri:store_id(),
+      Timeout :: timeout(),
+      Ret :: ok | error().
+%% @doc Resets the store on this Erlang node.
 %%
 %% @see khepri_cluster:reset/2.
 
-reset(RaSystem, ClusterName) ->
-    khepri_cluster:reset(RaSystem, ClusterName).
+reset(StoreId, Timeout) ->
+    khepri_cluster:reset(StoreId, Timeout).
+
+-spec stop() -> Ret when
+      Ret :: ok | khepri:error().
+%% @doc Stops a store.
+%%
+%% @see khepri_cluster:stop/0.
+
+stop() ->
+    khepri_cluster:stop().
+
+-spec stop(StoreId) -> Ret when
+      StoreId :: khepri:store_id(),
+      Ret :: ok | khepri:error().
+%% @doc Stops a store.
+%%
+%% @see khepri_cluster:stop/1.
+
+stop(StoreId) ->
+    khepri_cluster:stop(StoreId).
 
 -spec get_store_ids() -> [StoreId] when
       StoreId :: store_id().

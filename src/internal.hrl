@@ -5,8 +5,8 @@
 %% Copyright (c) 2021-2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
+-define(DEFAULT_RA_SYSTEM_NAME, khepri).
 -define(DEFAULT_RA_CLUSTER_NAME, khepri).
--define(DEFAULT_RA_FRIENDLY_NAME, "Khepri datastore").
 
 -define(INIT_DATA_VERSION, 1).
 -define(INIT_CHILD_LIST_VERSION, 1).
@@ -26,6 +26,11 @@
 
 -define(IS_TIMEOUT(Timeout), (Timeout =:= infinity orelse
                               (is_integer(Timeout) andalso Timeout >= 0))).
+-define(HAS_TIME_LEFT(Timeout), (Timeout =:= infinity orelse Timeout > 0)).
+
+%% timer:sleep/1 time used as a retry interval when the local Ra server is
+%% unaware of a leader exit.
+-define(NOPROC_RETRY_INTERVAL, 200).
 
 -record(evf_tree, {path :: khepri_path:native_pattern(),
                    props = #{} :: khepri_evf:tree_event_filter_props()}).
