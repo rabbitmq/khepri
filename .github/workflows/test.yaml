@@ -37,10 +37,12 @@ jobs:
 
       - name: Xref
         run: rebar3 xref
-      - name: EUnit
+      - name: EUnit (unit tests)
         run: rebar3 eunit --verbose --cover
-      - name: PropEr
+      - name: PropEr (property tests)
         run: rebar3 proper --verbose --cover
+      - name: Common test (integration tests)
+        run: rebar3 ct --verbose --cover --sname ct
 
       - name: Dialyzer
         if: ${{ matrix.otp_version == env.RUN_DIALYZER_ON_OTP_RELEASE && matrix.os == 'ubuntu-latest' }}
