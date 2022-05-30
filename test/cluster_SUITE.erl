@@ -850,13 +850,25 @@ can_start_store_in_specified_data_dir_on_single_node(_Config) ->
 %% -------------------------------------------------------------------
 
 setup_node() ->
-    _ = logger:set_handler_config(
-          default, formatter,
-          {logger_formatter, #{single_line => true}}),
-    _ = logger:add_handler_filter(
-          default, progress,
-          {fun logger_filters:progress/2,stop}),
     _ = logger:set_primary_config(level, debug),
+
+    %% We use an additional logger handler for messages tagged with a non-OTP
+    %% domain because by default, `cth_log_redirect' drops them.
+    ok = logger:add_handler(
+           cth_log_redirect_any_domains, cth_log_redirect_any_domains,
+           #{}),
+
+    HandlerIds = [default, cth_log_redirect, cth_log_redirect_any_domains],
+    lists:foreach(
+      fun(HandlerId) ->
+              _ = logger:set_handler_config(
+                    HandlerId, formatter,
+                    {logger_formatter, #{single_line => true}}),
+              _ = logger:add_handler_filter(
+                    HandlerId, progress,
+                    {fun logger_filters:progress/2,stop})
+      end, HandlerIds),
+    ct:pal("Logger configuration: ~p", [logger:get_config()]),
 
     ok = application:set_env(
            khepri, default_timeout, 2000, [{persistent, true}]),
