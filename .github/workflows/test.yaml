@@ -13,6 +13,10 @@ jobs:
       matrix:
         otp_version: [23, 24, 25]
         os: [ubuntu-latest, windows-latest]
+        exclude:
+          # `ct_slave` fails to start Erlang nodes on Windows with Erlang 24.
+          - otp_version: 24
+            os: windows-latest
 
     env:
       RUN_DIALYZER_ON_OTP_RELEASE: 25
