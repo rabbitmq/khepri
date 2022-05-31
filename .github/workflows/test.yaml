@@ -51,6 +51,18 @@ jobs:
         if: ${{ matrix.otp_version == env.RUN_DIALYZER_ON_OTP_RELEASE && matrix.os == 'ubuntu-latest' }}
         run: rebar3 clean && rebar3 as test dialyzer
 
+      - name: Generate code coverage report
+        run: rebar3 as test covertool generate
+
+      - name: Upload code coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: _build/test/covertool/khepri.covertool.xml
+          flags: erlang:${{ matrix.otp_version }},os:${{ matrix.os }}
+          name: Erlang/OTP ${{ matrix.otp_version }} on ${{ matrix.os }}
+          verbose: true # optional (default = false)
+
   Finish:
     name: Finishing
     needs: [Test]
