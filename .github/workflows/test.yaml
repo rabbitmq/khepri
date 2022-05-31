@@ -41,11 +41,6 @@ jobs:
         run: rebar3 eunit --verbose --cover
       - name: PropEr
         run: rebar3 proper --verbose --cover
-      - name: Coveralls
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERALLS_FLAG_NAME: Erlang/OTP ${{ matrix.otp_version }} on ${{ matrix.os }}
-        run: rebar3 as test coveralls send
 
       - name: Dialyzer
         if: ${{ matrix.otp_version == env.RUN_DIALYZER_ON_OTP_RELEASE && matrix.os == 'ubuntu-latest' }}
@@ -62,16 +57,3 @@ jobs:
           flags: erlang:${{ matrix.otp_version }},os:${{ matrix.os }}
           name: Erlang/OTP ${{ matrix.otp_version }} on ${{ matrix.os }}
           verbose: true # optional (default = false)
-
-  Finish:
-    name: Finishing
-    needs: [Test]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Coveralls finished
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          curl -v -k https://coveralls.io/webhook \
-            --header "Content-Type: application/json" \
-            --data "{\"repo_name\":\"$GITHUB_REPOSITORY\",\"repo_token\":\"$GITHUB_TOKEN\",\"payload\":{\"build_num\":$GITHUB_RUN_NUMBER,\"status\":\"done\"}}"
