@@ -1350,7 +1350,7 @@ get_data_or(PathPattern, Default) ->
       PathPattern :: khepri_path:pattern(),
       Default :: data(),
       Data :: data();
-(PathPattern, Options, Default) -> Data when
+(PathPattern, Default, Options) -> Data when
       PathPattern :: khepri_path:pattern(),
       Default :: data(),
       Options :: query_options(),
