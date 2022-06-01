@@ -17,9 +17,7 @@
 -dialyzer(no_missing_calls).
 
 query_a_non_existing_node_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node())}),
+    S0 = khepri_machine:init(?MACH_PARAMS()),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(Root, [foo], #{}),
 
@@ -30,10 +28,7 @@ query_a_non_existing_node_test() ->
 query_an_existing_node_with_no_value_test() ->
     Commands = [#put{path = [foo, bar],
                      payload = khepri_payload:data(value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(Root, [foo], #{}),
 
@@ -46,10 +41,7 @@ query_an_existing_node_with_no_value_test() ->
 query_an_existing_node_with_value_test() ->
     Commands = [#put{path = [foo, bar],
                      payload = khepri_payload:data(value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(Root, [foo, bar], #{}),
 
@@ -63,10 +55,7 @@ query_an_existing_node_with_value_test() ->
 query_a_node_with_matching_condition_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
             Root,
@@ -84,10 +73,7 @@ query_a_node_with_matching_condition_test() ->
 query_a_node_with_non_matching_condition_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
             Root,
@@ -104,10 +90,7 @@ query_child_nodes_of_a_specific_node_test() ->
                      payload = khepri_payload:data(bar_value)},
                 #put{path = [baz],
                      payload = khepri_payload:data(baz_value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
             Root,
@@ -132,10 +115,7 @@ query_child_nodes_of_a_specific_node_with_condition_on_leaf_test() ->
                      payload = khepri_payload:data(bar_value)},
                 #put{path = [baz],
                      payload = khepri_payload:data(baz_value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
             Root,
@@ -158,10 +138,7 @@ query_many_nodes_with_condition_on_parent_test() ->
                      payload = khepri_payload:data(baz_value)},
                 #put{path = [baz, pouet],
                      payload = khepri_payload:data(pouet_value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
             Root,
@@ -189,10 +166,7 @@ query_many_nodes_recursively_test() ->
                      payload = khepri_payload:data(baz_value)},
                 #put{path = [baz, pouet],
                      payload = khepri_payload:data(pouet_value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     Ret1 = khepri_machine:find_matching_nodes(
              Root,
@@ -239,10 +213,7 @@ query_many_nodes_recursively_using_regex_test() ->
                      payload = khepri_payload:data(baz_value)},
                 #put{path = [baz, pouet],
                      payload = khepri_payload:data(pouet_value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
             Root,
@@ -272,10 +243,7 @@ query_many_nodes_recursively_with_condition_on_leaf_test() ->
                      payload = khepri_payload:data(baz_value)},
                 #put{path = [baz, pouet],
                      payload = khepri_payload:data(pouet_value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
             Root,
@@ -302,10 +270,7 @@ query_many_nodes_recursively_with_condition_on_self_test() ->
                      payload = khepri_payload:data(baz_value)},
                 #put{path = [baz, pouet],
                      payload = khepri_payload:data(pouet_value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
             Root,
@@ -341,10 +306,7 @@ query_many_nodes_recursively_with_several_star_star_test() ->
                      payload = khepri_payload:data(baz_value)},
                 #put{path = [baz, pouet],
                      payload = khepri_payload:data(pouet_value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
             Root,
@@ -363,10 +325,7 @@ query_many_nodes_recursively_with_several_star_star_test() ->
 query_a_node_using_relative_path_components_test() ->
     Commands = [#put{path = [foo, bar],
                      payload = khepri_payload:data(value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
             Root, [?THIS_NODE, foo, ?PARENT_NODE, foo, bar], #{}),
@@ -383,10 +342,7 @@ include_child_names_in_query_response_test() ->
                      payload = khepri_payload:data(bar_value)},
                 #put{path = [foo, quux],
                      payload = khepri_payload:data(quux_value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
             Root,

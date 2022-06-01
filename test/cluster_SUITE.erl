@@ -168,7 +168,7 @@ fail_to_start_with_bad_ra_server_config(Config) ->
        khepri:start(RaSystem, #{cluster_name => StoreId,
                                 tick_timeout => not_a_timeout})),
 
-    ThisMember = khepri_cluster:node_to_member(StoreId, node()),
+    ThisMember = khepri_cluster:this_member(StoreId),
     ok = khepri_cluster:wait_for_ra_server_exit(ThisMember),
 
     %% The process is restarted by its supervisor. Depending on the timing, we
@@ -206,7 +206,7 @@ initial_members_are_ignored(Config) ->
                                                     {StoreId, c}]})),
 
     ct:pal("This member is alone in the \"cluster\""),
-    ThisMember = khepri_cluster:node_to_member(StoreId, node()),
+    ThisMember = khepri_cluster:this_member(StoreId),
     ?assertEqual(
        [ThisMember],
        khepri_cluster:members(StoreId)),
@@ -594,7 +594,7 @@ fail_to_join_non_existing_node(Config) ->
        {error, {nodedown, RemoteNode}},
        khepri_cluster:join(StoreId, RemoteNode)),
 
-    ThisMember = khepri_cluster:node_to_member(StoreId, node()),
+    ThisMember = khepri_cluster:this_member(StoreId),
     ?assertEqual(
        [ThisMember],
        khepri_cluster:members(StoreId)),

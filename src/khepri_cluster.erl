@@ -115,6 +115,7 @@
 
 %% Internal.
 -export([node_to_member/2,
+         this_member/1,
          wait_for_cluster_readyness/2,
          get_cached_leader/1,
          cache_leader/2,
@@ -377,8 +378,7 @@ ensure_server_started(
 
 ensure_server_started_locked(
   RaSystem, #{cluster_name := StoreId} = RaServerConfig, Timeout) ->
-    ThisNode = node(),
-    ThisMember = node_to_member(StoreId, ThisNode),
+    ThisMember = this_member(StoreId),
     ?LOG_DEBUG(
        "Trying to restart local Ra server for store \"~s\" "
        "in Ra system \"~s\"",
@@ -487,8 +487,7 @@ stop(StoreId) when ?IS_STORE_ID(StoreId) ->
       Ret :: ok | khepri:error().
 
 stop_locked(StoreId) ->
-    ThisNode = node(),
-    ThisMember = node_to_member(StoreId, ThisNode),
+    ThisMember = this_member(StoreId),
     case get_store_prop(StoreId, ra_system) of
         {ok, RaSystem} ->
             ?LOG_DEBUG(
@@ -654,8 +653,7 @@ join(StoreId, {StoreId, RemoteNode} = _RemoteMember, Timeout) ->
 %% @private
 
 check_status_and_join_locked(StoreId, RemoteNode, Timeout) ->
-    ThisNode = node(),
-    ThisMember = node_to_member(StoreId, ThisNode),
+    ThisMember = this_member(StoreId),
     RaServerRunning = erlang:is_pid(erlang:whereis(StoreId)),
     Prop1 = get_store_prop(StoreId, ra_system),
     Prop2 = get_store_prop(StoreId, ra_server_config),
@@ -862,8 +860,7 @@ reset(StoreId, Timeout) ->
     end.
 
 reset_locked(StoreId, Timeout) ->
-    ThisNode = node(),
-    ThisMember = node_to_member(StoreId, ThisNode),
+    ThisMember = this_member(StoreId),
     case get_store_prop(StoreId, ra_system) of
         {ok, RaSystem}     -> do_reset(RaSystem, StoreId, ThisMember, Timeout);
         {error, _} = Error -> Error
@@ -993,8 +990,7 @@ members(StoreId) ->
     members(StoreId, Timeout).
 
 members(StoreId, Timeout) ->
-    ThisNode = node(),
-    ThisMember = node_to_member(StoreId, ThisNode),
+    ThisMember = this_member(StoreId),
     do_query_members(StoreId, ThisMember, leader, Timeout).
 
 locally_known_members(StoreId) ->
@@ -1002,8 +998,7 @@ locally_known_members(StoreId) ->
     locally_known_members(StoreId, Timeout).
 
 locally_known_members(StoreId, Timeout) ->
-    ThisNode = node(),
-    ThisMember = node_to_member(StoreId, ThisNode),
+    ThisMember = this_member(StoreId),
     do_query_members(StoreId, ThisMember, local, Timeout).
 
 do_query_members(StoreId, RaServer, QueryType, Timeout) ->
@@ -1054,6 +1049,15 @@ locally_known_nodes(StoreId) ->
 
 node_to_member(StoreId, Node) ->
     {StoreId, Node}.
+
+-spec this_member(StoreId) -> Member when
+      StoreId :: khepri:store_id(),
+      Member :: ra:server_id().
+%% @private
+
+this_member(StoreId) ->
+    ThisNode = node(),
+    node_to_member(StoreId, ThisNode).
 
 server_start_lock(StoreId) ->
     {{khepri, StoreId}, self()}.

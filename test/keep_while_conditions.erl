@@ -24,10 +24,7 @@
 are_keep_while_conditions_met_test() ->
     Commands = [#put{path = [foo, bar],
                      payload = khepri_payload:data(bar_value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
 
     %% TODO: Add more testcases.
@@ -64,10 +61,7 @@ are_keep_while_conditions_met_test() ->
 insert_when_keep_while_true_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(foo_value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
     KeepWhile = #{[foo] => #if_node_exists{exists = true}},
     Command = #put{path = [baz],
@@ -105,10 +99,7 @@ insert_when_keep_while_true_test() ->
 insert_when_keep_while_false_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(foo_value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
     %% The targeted keep_while node does not exist.
     KeepWhile1 = #{[foo, bar] => #if_node_exists{exists = true}},
@@ -148,9 +139,7 @@ insert_when_keep_while_false_test() ->
     ?assertEqual([], SE2).
 
 insert_when_keep_while_true_on_self_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node())}),
+    S0 = khepri_machine:init(?MACH_PARAMS()),
     KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = 0}},
     Command = #put{path = [foo],
                    payload = khepri_payload:data(foo_value),
@@ -173,9 +162,7 @@ insert_when_keep_while_true_on_self_test() ->
     ?assertEqual([], SE).
 
 insert_when_keep_while_false_on_self_test() ->
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node())}),
+    S0 = khepri_machine:init(?MACH_PARAMS()),
     KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = 1}},
     Command = #put{path = [foo],
                    payload = khepri_payload:data(foo_value),
@@ -204,10 +191,7 @@ keep_while_still_true_after_command_test() ->
                 #put{path = [baz],
                      payload = khepri_payload:data(baz_value),
                      extra = #{keep_while => KeepWhile}}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
     Command = #put{path = [foo],
                    payload = khepri_payload:data(new_foo_value)},
@@ -243,10 +227,7 @@ keep_while_now_false_after_command_test() ->
                 #put{path = [baz],
                      payload = khepri_payload:data(baz_value),
                      extra = #{keep_while => KeepWhile}}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
     Command = #put{path = [foo, bar],
                    payload = khepri_payload:data(bar_value)},
@@ -282,10 +263,7 @@ recursive_automatic_cleanup_test() ->
                      extra = #{keep_while => KeepWhile}},
                 #put{path = [foo, bar, baz],
                      payload = khepri_payload:data(baz_value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
     Command = #delete{path = [foo, bar, baz]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -311,10 +289,7 @@ keep_while_now_false_after_delete_command_test() ->
                 #put{path = [baz],
                      payload = khepri_payload:data(baz_value),
                      extra = #{keep_while => KeepWhile}}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               member => khepri_cluster:node_to_member(
-                                           ?FUNCTION_NAME, node()),
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
     Command = #delete{path = [foo]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
