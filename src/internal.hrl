@@ -6,7 +6,8 @@
 %%
 
 -define(DEFAULT_RA_SYSTEM_NAME, khepri).
--define(DEFAULT_RA_CLUSTER_NAME, khepri).
+-define(DEFAULT_STORE_ID, khepri).
+-define(IS_STORE_ID(StoreId), is_atom(StoreId)).
 
 -define(INIT_DATA_VERSION, 1).
 -define(INIT_CHILD_LIST_VERSION, 1).

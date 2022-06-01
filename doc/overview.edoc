@@ -189,7 +189,7 @@ the first insert though.
 A Khepri store corresponds to one Ra cluster. In fact, the name of the Ra
 cluster is the name of the Khepri store. It is possible to have multiple
 database instances running on the same Erlang node or cluster by starting
-multiple Ra clusters. Note that it is called a "Ra cluster" but it can have a
+multiple Ra clusters. Note that it is called a "cluster" but it can have a
 single member.
 
 You can start a Khepri store using {@link start/0} up to {@link start/3}. See

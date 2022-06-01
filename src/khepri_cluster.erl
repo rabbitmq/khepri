@@ -19,7 +19,7 @@
 %%
 %% By default, Khepri uses `khepri' as the store ID (and thus Ra cluster name).
 %% This default can be overridden using an argument to the `start()' functions
-%% or the `default_ra_cluster_name' application environment variable.
+%% or the `default_store_id' application environment variable.
 %%
 %% Examples:
 %% <ul>
@@ -29,7 +29,7 @@
 %% <pre>{ok, my_store} = khepri:start("/var/lib/khepri", my_store).</pre></li>
 %% <li>Override the default store ID using an application environment variable:
 %% <pre>ok = application:set_env(
-%%        khepri, default_ra_cluster_name, my_store, [{persistent, true}]),
+%%        khepri, default_store_id, my_store, [{persistent, true}]),
 %%
 %% {ok, my_store} = khepri:start("/var/lib/khepri", my_store).</pre></li>
 %% </ul>
@@ -110,7 +110,7 @@
          nodes/1,
          locally_known_nodes/1,
          get_default_ra_system_or_data_dir/0,
-         get_default_ra_cluster_name/0,
+         get_default_store_id/0,
          get_store_ids/0]).
 
 %% Internal.
@@ -136,7 +136,6 @@
 
 -define(IS_RA_SYSTEM(RaSystem), is_atom(RaSystem)).
 -define(IS_DATA_DIR(DataDir), (is_list(DataDir) orelse is_binary(DataDir))).
--define(IS_CLUSTER_NAME(ClusterName), is_atom(ClusterName)).
 
 -type incomplete_ra_server_config() :: map().
 %% A Ra server config map.
@@ -190,54 +189,51 @@ start() ->
 %% @doc Starts a store.
 %%
 %% Calling this function is the same as calling `start(RaSystemOrDataDir,
-%% DefaultClusterName)' where `DefaultClusterName' is returned by {@link
-%% get_default_ra_cluster_name/0}.
+%% DefaultStoreId)' where `DefaultStoreId' is returned by {@link
+%% get_default_store_id/0}.
 %%
 %% @see start/2.
 
 start(RaSystemOrDataDir) ->
     case application:ensure_all_started(khepri) of
         {ok, _} ->
-            ClusterName = get_default_ra_cluster_name(),
-            start(RaSystemOrDataDir, ClusterName);
+            StoreId = get_default_store_id(),
+            start(RaSystemOrDataDir, StoreId);
         Error ->
             Error
     end.
 
--spec start(RaSystem | DataDir, ClusterName | RaServerConfig) -> Ret when
+-spec start(RaSystem | DataDir, StoreId | RaServerConfig) -> Ret when
       RaSystem :: atom(),
       DataDir :: file:filename_all(),
-      ClusterName :: ra:cluster_name(),
+      StoreId :: khepri:store_id(),
       RaServerConfig :: incomplete_ra_server_config(),
-      Ret :: khepri:ok(StoreId) | khepri:error(),
-      StoreId :: khepri:store_id().
+      Ret :: khepri:ok(StoreId) | khepri:error().
 %% @doc Starts a store.
 %%
 %% Calling this function is the same as calling `start(RaSystemOrDataDir,
-%% ClusterNameOrRaServerConfig, DefaultTimeout)' where `DefaultTimeout' is
+%% StoreIdOrRaServerConfig, DefaultTimeout)' where `DefaultTimeout' is
 %% returned by {@link khepri_app:get_default_timeout/0}.
 %%
 %% @param RaSystem the name of the Ra system.
 %% @param DataDir a directory to write data.
-%% @param ClusterName the name of the Ra cluster.
-%% @param RaServerConfig the skeleton of each Ra server's configuration
+%% @param StoreId the name of the Khepri store.
+%% @param RaServerConfig the skeleton of each Ra server's configuration.
 %%
 %% @see start/3.
 
-start(RaSystemOrDataDir, ClusterNameOrRaServerConfig) ->
-    %% FIXME: We force the cluster name to be an atom().
+start(RaSystemOrDataDir, StoreIdOrRaServerConfig) ->
     Timeout = khepri_app:get_default_timeout(),
-    start(RaSystemOrDataDir, ClusterNameOrRaServerConfig, Timeout).
+    start(RaSystemOrDataDir, StoreIdOrRaServerConfig, Timeout).
 
--spec start(RaSystem | DataDir, ClusterName | RaServerConfig, Timeout) ->
+-spec start(RaSystem | DataDir, StoreId | RaServerConfig, Timeout) ->
     Ret when
       RaSystem :: atom(),
       DataDir :: file:filename_all(),
-      ClusterName :: ra:cluster_name(),
+      StoreId :: khepri:store_id(),
       RaServerConfig :: incomplete_ra_server_config(),
       Timeout :: timeout(),
-      Ret :: khepri:ok(StoreId) | khepri:error(),
-      StoreId :: khepri:store_id().
+      Ret :: khepri:ok(StoreId) | khepri:error().
 %% @doc Starts a store.
 %%
 %% It accepts either a Ra system name (atom) or a data directory (string or
@@ -247,10 +243,10 @@ start(RaSystemOrDataDir, ClusterNameOrRaServerConfig) ->
 %% be created automatically if it doesn't exist. The Ra system will use the
 %% same name as the Khepri store.
 %%
-%% It accepts a Ra cluster name or a Ra server configuration as its second
-%% argument. If a cluster name is given, a Ra server configuration will be
-%% created based on it. If a Ra server configuration is given, the name of the
-%% Khepri store will be derived from it.
+%% It accepts a Khepri store ID or a Ra server configuration as its second
+%% argument. If a store ID is given, a Ra server configuration will be created
+%% based on it. If a Ra server configuration is given, the name of the Khepri
+%% store will be derived from it.
 %%
 %% If this is a new store, the Ra server is started and an election is
 %% triggered so that it becomes its own leader and is ready to process
@@ -262,51 +258,50 @@ start(RaSystemOrDataDir, ClusterNameOrRaServerConfig) ->
 %%
 %% @param RaSystem the name of the Ra system.
 %% @param DataDir a directory to write data.
-%% @param ClusterName the name of the Ra cluster.
-%% @param RaServerConfig the skeleton of each Ra server's configuration
+%% @param StoreId the name of the Khepri store.
+%% @param RaServerConfig the skeleton of each Ra server's configuration.
 %% @param TImeout a timeout.
 %%
 %% @returns the ID of the started store in an "ok" tuple, or an error tuple if
 %% the store couldn't be started.
 
-start(RaSystemOrDataDir, ClusterNameOrRaServerConfig, Timeout) ->
+start(RaSystemOrDataDir, StoreIdOrRaServerConfig, Timeout) ->
     case application:ensure_all_started(khepri) of
         {ok, _} ->
             ensure_ra_server_config_and_start(
-              RaSystemOrDataDir, ClusterNameOrRaServerConfig, Timeout);
+              RaSystemOrDataDir, StoreIdOrRaServerConfig, Timeout);
         Error ->
             Error
     end.
 
 -spec ensure_ra_server_config_and_start(
-        RaSystem | DataDir, ClusterName | RaServerConfig, Timeout) ->
+        RaSystem | DataDir, StoreId | RaServerConfig, Timeout) ->
     Ret when
       RaSystem :: atom(),
       DataDir :: file:filename_all(),
-      ClusterName :: ra:cluster_name(),
+      StoreId :: khepri:store_id(),
       RaServerConfig :: incomplete_ra_server_config(),
       Timeout :: timeout(),
-      Ret :: khepri:ok(StoreId) | khepri:error(),
-      StoreId :: khepri:store_id().
+      Ret :: khepri:ok(StoreId) | khepri:error().
 %% @private
 
 ensure_ra_server_config_and_start(
-  RaSystemOrDataDir, ClusterNameOrRaServerConfig, Timeout)
+  RaSystemOrDataDir, StoreIdOrRaServerConfig, Timeout)
   when (?IS_DATA_DIR(RaSystemOrDataDir) orelse
         ?IS_RA_SYSTEM(RaSystemOrDataDir)) andalso
-       (?IS_CLUSTER_NAME(ClusterNameOrRaServerConfig) orelse
-        is_map(ClusterNameOrRaServerConfig)) ->
-    %% If `cluster_name' in `ClusterNameOrRaServerConfig' is not an atom, it
-    %% will cause a cause clause exception below.
+       (?IS_STORE_ID(StoreIdOrRaServerConfig) orelse
+        is_map(StoreIdOrRaServerConfig)) ->
+    %% If the store ID derived from `StoreIdOrRaServerConfig' is not an atom,
+    %% it will cause a cause clause exception below.
     RaServerConfig =
-    case ClusterNameOrRaServerConfig of
-        _ when ?IS_CLUSTER_NAME(ClusterNameOrRaServerConfig) ->
-            #{cluster_name => ClusterNameOrRaServerConfig};
-        #{cluster_name := CN} when ?IS_CLUSTER_NAME(CN) ->
-            ClusterNameOrRaServerConfig;
-        #{} when not is_map_key(cluster_name, ClusterNameOrRaServerConfig) ->
-            ClusterNameOrRaServerConfig#{
-              cluster_name => get_default_ra_cluster_name()
+    case StoreIdOrRaServerConfig of
+        _ when ?IS_STORE_ID(StoreIdOrRaServerConfig) ->
+            #{cluster_name => StoreIdOrRaServerConfig};
+        #{cluster_name := CN} when ?IS_STORE_ID(CN) ->
+            StoreIdOrRaServerConfig;
+        #{} when not is_map_key(cluster_name, StoreIdOrRaServerConfig) ->
+            StoreIdOrRaServerConfig#{
+              cluster_name => get_default_store_id()
              }
     end,
     verify_ra_system_and_start(RaSystemOrDataDir, RaServerConfig, Timeout).
@@ -358,8 +353,8 @@ verify_ra_system_and_start(DataDir, RaServerConfig, Timeout)
 %% @private
 
 ensure_server_started(
-  RaSystem, #{cluster_name := ClusterName} = RaServerConfig, Timeout) ->
-    Lock = server_start_lock(ClusterName),
+  RaSystem, #{cluster_name := StoreId} = RaServerConfig, Timeout) ->
+    Lock = server_start_lock(StoreId),
     global:set_lock(Lock),
     try
         Ret = ensure_server_started_locked(RaSystem, RaServerConfig, Timeout),
@@ -381,32 +376,32 @@ ensure_server_started(
 %% @private
 
 ensure_server_started_locked(
-  RaSystem, #{cluster_name := ClusterName} = RaServerConfig, Timeout) ->
+  RaSystem, #{cluster_name := StoreId} = RaServerConfig, Timeout) ->
     ThisNode = node(),
-    ThisMember = node_to_member(ClusterName, ThisNode),
+    ThisMember = node_to_member(StoreId, ThisNode),
     ?LOG_DEBUG(
-       "Trying to restart local Ra server for cluster \"~s\" "
+       "Trying to restart local Ra server for store \"~s\" "
        "in Ra system \"~s\"",
-       [ClusterName, RaSystem]),
+       [StoreId, RaSystem]),
     case ra:restart_server(RaSystem, ThisMember) of
         {error, name_not_registered} ->
             ?LOG_DEBUG(
-               "Ra server for cluster \"~s\" not registered in Ra system "
+               "Ra server for store \"~s\" not registered in Ra system "
                "\"~s\", try to start a new one",
-               [ClusterName, RaSystem]),
+               [StoreId, RaSystem]),
             RaServerConfig1 = RaServerConfig#{id => ThisMember},
             case do_start_server(RaSystem, RaServerConfig1) of
                 ok ->
                     ok = trigger_election(RaServerConfig1, Timeout),
-                    {ok, ClusterName};
+                    {ok, StoreId};
                 Error ->
                     Error
             end;
         ok ->
             ok = remember_store(RaSystem, RaServerConfig),
-            {ok, ClusterName};
+            {ok, StoreId};
         {error, {already_started, _}} ->
-            {ok, ClusterName};
+            {ok, StoreId};
         Error ->
             Error
     end.
@@ -419,7 +414,7 @@ ensure_server_started_locked(
 
 do_start_server(RaSystem, RaServerConfig) ->
     RaServerConfig1 = complete_ra_server_config(RaServerConfig),
-    #{cluster_name := ClusterName} = RaServerConfig1,
+    #{cluster_name := StoreId} = RaServerConfig1,
     ?LOG_DEBUG(
        "Starting a Ra server with the following configuration:~n~p",
        [RaServerConfig1]),
@@ -427,14 +422,14 @@ do_start_server(RaSystem, RaServerConfig) ->
         ok ->
             ok = remember_store(RaSystem, RaServerConfig1),
             ?LOG_DEBUG(
-               "Started Ra server for cluster \"~s\"",
-               [ClusterName]),
+               "Started Ra server for store \"~s\"",
+               [StoreId]),
             ok;
         {error, _} = Error ->
             ?LOG_ERROR(
-               "Failed to start Ra server for cluster \"~s\" using the "
+               "Failed to start Ra server for store \"~s\" using the "
                "following Ra server configuration:~n~p",
-               [ClusterName, RaServerConfig1]),
+               [StoreId, RaServerConfig1]),
             Error
     end.
 
@@ -446,8 +441,8 @@ do_start_server(RaSystem, RaServerConfig) ->
 
 trigger_election(#{id := Member}, Timeout) ->
     trigger_election(Member, Timeout);
-trigger_election({ClusterName, _Node} = Member, Timeout) ->
-    ?LOG_DEBUG("Trigger election in store \"~s\"", [ClusterName]),
+trigger_election({StoreId, _Node} = Member, Timeout) ->
+    ?LOG_DEBUG("Trigger election in store \"~s\"", [StoreId]),
     ok = ra:trigger_election(Member, Timeout),
     ok.
 
@@ -455,15 +450,15 @@ trigger_election({ClusterName, _Node} = Member, Timeout) ->
       Ret :: ok | khepri:error().
 %% @doc Stops a store.
 %%
-%% Calling this function is the same as calling `stop(DefaultClusterName)'
-%% where `DefaultClusterName' is returned by {@link
-%% get_default_ra_cluster_name/0}.
+%% Calling this function is the same as calling `stop(DefaultStoreId)'
+%% where `DefaultStoreId' is returned by {@link
+%% get_default_store_id/0}.
 %%
 %% @see stop/1.
 
 stop() ->
-    ClusterName = get_default_ra_cluster_name(),
-    stop(ClusterName).
+    StoreId = get_default_store_id(),
+    stop(StoreId).
 
 -spec stop(StoreId) -> Ret when
       StoreId :: khepri:store_id(),
@@ -474,7 +469,7 @@ stop() ->
 %%
 %% @returns `ok' if it succeeds, an error tuple otherwise.
 
-stop(StoreId) ->
+stop(StoreId) when ?IS_STORE_ID(StoreId) ->
     Lock = server_start_lock(StoreId),
     global:set_lock(Lock),
     try
@@ -497,7 +492,7 @@ stop_locked(StoreId) ->
     case get_store_prop(StoreId, ra_system) of
         {ok, RaSystem} ->
             ?LOG_DEBUG(
-               "Stopping member ~0p in cluster \"~s\"",
+               "Stopping member ~0p in store \"~s\"",
                [ThisMember, StoreId]),
             case ra:stop_server(RaSystem, ThisMember) of
                 ok ->
@@ -524,13 +519,13 @@ wait_for_ra_server_exit({StoreId, _} = Member) ->
     %% in Ra is merged:
     %% https://github.com/rabbitmq/ra/pull/270
     ?LOG_DEBUG(
-       "Wait for Ra server ~0p to exit in cluster \"~s\"",
+       "Wait for Ra server ~0p to exit in store \"~s\"",
        [Member, StoreId]),
     MRef = erlang:monitor(process, Member),
     receive
         {'DOWN', MRef, _, _, Reason} ->
             ?LOG_DEBUG(
-               "Ra server ~0p in cluster \"~s\" exited: ~p",
+               "Ra server ~0p in store \"~s\" exited: ~p",
                [Member, StoreId, Reason]),
             ok
     end.
@@ -544,27 +539,27 @@ wait_for_ra_server_exit({StoreId, _} = Member) ->
 %% This function accepts the following forms:
 %% <ul>
 %% <li>`join(RemoteNode)'. Calling it is the same as calling
-%% `join(DefaultClusterName, RemoteNode)' where `DefaultClusterName' is
-%% returned by {@link get_default_ra_cluster_name/0}.</li>
+%% `join(DefaultStoreId, RemoteNode)' where `DefaultStoreId' is
+%% returned by {@link get_default_store_id/0}.</li>
 %% <li>`join(RemoteMember)'. Calling it is the same as calling
-%% `join(ClusterName, RemoteNode)' where `ClusterName' and `RemoteNode' are
+%% `join(StoreId, RemoteNode)' where `StoreId' and `RemoteNode' are
 %% derived from `RemoteMember'.</li>
 %% </ul>
 %%
 %% @see join/2.
 
 join(RemoteNode) when is_atom(RemoteNode) ->
-    ClusterName = get_default_ra_cluster_name(),
-    join(ClusterName, RemoteNode);
-join({ClusterName, RemoteNode} = _RemoteMember) ->
-    join(ClusterName, RemoteNode).
+    StoreId = get_default_store_id(),
+    join(StoreId, RemoteNode);
+join({StoreId, RemoteNode} = _RemoteMember) ->
+    join(StoreId, RemoteNode).
 
 -spec join(
-        RemoteMember | RemoteNode | ClusterName, Timeout | RemoteNode) ->
+        RemoteMember | RemoteNode | StoreId, Timeout | RemoteNode) ->
     Ret when
       RemoteMember :: ra:server_id(),
       RemoteNode :: node(),
-      ClusterName :: khepri:store_id(),
+      StoreId :: khepri:store_id(),
       Timeout :: timeout(),
       Ret :: ok | khepri:error().
 %% @doc Adds the local running Khepri store to a remote cluster.
@@ -572,13 +567,13 @@ join({ClusterName, RemoteNode} = _RemoteMember) ->
 %% This function accepts the following forms:
 %% <ul>
 %% <li>`join(RemoteNode, Timeout)'. Calling it is the same as calling
-%% `join(DefaultClusterName, RemoteNode, Timeout)' where `DefaultClusterName'
-%% is returned by {@link get_default_ra_cluster_name/0}.</li>
-%% <li>`join(ClusterName, RemoteNode)'. Calling it is the same as calling
-%% `join(ClusterName, RemoteNode, DefaultTimeout)' where `DefaultTimeout' is
+%% `join(DefaultStoreId, RemoteNode, Timeout)' where `DefaultStoreId'
+%% is returned by {@link get_default_store_id/0}.</li>
+%% <li>`join(StoreId, RemoteNode)'. Calling it is the same as calling
+%% `join(StoreId, RemoteNode, DefaultTimeout)' where `DefaultTimeout' is
 %% returned by {@link khepri_app:get_default_timeout/0}.</li>
 %% <li>`join(RemoteMember, Timeout)'. Calling it is the same as calling
-%% `join(ClusterName, RemoteNode, Timeout)' where `ClusterName' and
+%% `join(StoreId, RemoteNode, Timeout)' where `StoreId' and
 %% `RemoteNode' are derived from `RemoteMember'.</li>
 %% </ul>
 %%
@@ -586,17 +581,17 @@ join({ClusterName, RemoteNode} = _RemoteMember) ->
 
 join(RemoteNode, Timeout)
   when is_atom(RemoteNode) andalso ?IS_TIMEOUT(Timeout) ->
-    ClusterName = get_default_ra_cluster_name(),
-    join(ClusterName, RemoteNode, Timeout);
-join(ClusterName, RemoteNode)
-  when ?IS_CLUSTER_NAME(ClusterName) andalso is_atom(RemoteNode) ->
+    StoreId = get_default_store_id(),
+    join(StoreId, RemoteNode, Timeout);
+join(StoreId, RemoteNode)
+  when ?IS_STORE_ID(StoreId) andalso is_atom(RemoteNode) ->
     Timeout = khepri_app:get_default_timeout(),
-    join(ClusterName, RemoteNode, Timeout);
-join({ClusterName, RemoteNode} = _RemoteMember, Timeout) ->
-    join(ClusterName, RemoteNode, Timeout).
+    join(StoreId, RemoteNode, Timeout);
+join({StoreId, RemoteNode} = _RemoteMember, Timeout) ->
+    join(StoreId, RemoteNode, Timeout).
 
--spec join(ClusterName, RemoteMember | RemoteNode, Timeout) -> Ret when
-      ClusterName :: khepri:store_id(),
+-spec join(StoreId, RemoteMember | RemoteNode, Timeout) -> Ret when
+      StoreId :: khepri:store_id(),
       RemoteMember :: ra:server_id(),
       RemoteNode :: node(),
       Timeout :: timeout(),
@@ -612,31 +607,31 @@ join({ClusterName, RemoteNode} = _RemoteMember, Timeout) ->
 %% this join depends on it to succeed.
 %%
 %% If `RemoteMember' is specified, the remote node is derived from it. At the
-%% same time, the function asserts that the specified `ClusterName' matches
+%% same time, the function asserts that the specified `StoreId' matches
 %% the one derived from `RemoteMember'.
 %%
 %% As part of this function, the local Khepri store will reset. It means it
 %% will leave the cluster it is already part of (if any) and all its data
 %% removed.
 %%
-%% @param ClusterName the ID of the local Khepri store.
+%% @param StoreId the ID of the local Khepri store.
 %% @param RemoteNode the name of remote Erlang node running Khepri to join.
 %% @param Timeout the timeout.
 %%
 %% @returns `ok' if it succeeds, an error tuple otherwise.
 
-join(ClusterName, RemoteNode, Timeout) when is_atom(RemoteNode) ->
+join(StoreId, RemoteNode, Timeout) when is_atom(RemoteNode) ->
     %% We first ping the remote node. It serves two purposes:
     %% 1. Make sure we can reach it
     %% 2. Make sure they are connected before acquiring a lock, so that the
     %%    global lock is really global.
     case net_adm:ping(RemoteNode) of
         pong ->
-            Lock = server_start_lock(ClusterName),
+            Lock = server_start_lock(StoreId),
             global:set_lock(Lock),
             try
                 Ret = check_status_and_join_locked(
-                        ClusterName, RemoteNode, Timeout),
+                        StoreId, RemoteNode, Timeout),
                 global:del_lock(Lock),
                 Ret
             catch
@@ -647,27 +642,27 @@ join(ClusterName, RemoteNode, Timeout) when is_atom(RemoteNode) ->
         pang ->
             {error, {nodedown, RemoteNode}}
     end;
-join(ClusterName, {ClusterName, RemoteNode} = _RemoteMember, Timeout) ->
-    join(ClusterName, RemoteNode, Timeout).
+join(StoreId, {StoreId, RemoteNode} = _RemoteMember, Timeout) ->
+    join(StoreId, RemoteNode, Timeout).
 
--spec check_status_and_join_locked(ClusterName, RemoteNode, Timeout) ->
+-spec check_status_and_join_locked(StoreId, RemoteNode, Timeout) ->
     Ret when
-      ClusterName :: khepri:store_id(),
+      StoreId :: khepri:store_id(),
       RemoteNode :: node(),
       Timeout :: timeout(),
       Ret :: ok | khepri:error().
 %% @private
 
-check_status_and_join_locked(ClusterName, RemoteNode, Timeout) ->
+check_status_and_join_locked(StoreId, RemoteNode, Timeout) ->
     ThisNode = node(),
-    ThisMember = node_to_member(ClusterName, ThisNode),
-    RaServerRunning = erlang:is_pid(erlang:whereis(ClusterName)),
-    Prop1 = get_store_prop(ClusterName, ra_system),
-    Prop2 = get_store_prop(ClusterName, ra_server_config),
+    ThisMember = node_to_member(StoreId, ThisNode),
+    RaServerRunning = erlang:is_pid(erlang:whereis(StoreId)),
+    Prop1 = get_store_prop(StoreId, ra_system),
+    Prop2 = get_store_prop(StoreId, ra_server_config),
     case {RaServerRunning, Prop1, Prop2} of
         {true, {ok, RaSystem}, {ok, RaServerConfig}} ->
             reset_and_join_locked(
-              ClusterName, ThisMember, RaSystem, RaServerConfig,
+              StoreId, ThisMember, RaSystem, RaServerConfig,
               RemoteNode, Timeout);
         {false, {error, _} = Error, _} ->
             Error;
@@ -677,16 +672,16 @@ check_status_and_join_locked(ClusterName, RemoteNode, Timeout) ->
             ?LOG_ERROR(
                "Local Ra server ~0p not running for store \"~s\", "
                "but properties are still available: ~0p and ~0p",
-               [ThisMember, ClusterName, Prop1, Prop2]),
+               [ThisMember, StoreId, Prop1, Prop2]),
             throw(
               {ra_server_not_running_but_props_available,
-               ThisMember, ClusterName, Prop1, Prop2})
+               ThisMember, StoreId, Prop1, Prop2})
     end.
 
 -spec reset_and_join_locked(
-  ClusterName, ThisMember, RaSystem, RaServerConfig, RemoteNode, Timeout) ->
+  StoreId, ThisMember, RaSystem, RaServerConfig, RemoteNode, Timeout) ->
     Ret when
-      ClusterName :: khepri:store_id(),
+      StoreId :: khepri:store_id(),
       ThisMember :: ra:server_id(),
       RaSystem :: atom(),
       RaServerConfig :: ra_server:config(),
@@ -696,7 +691,7 @@ check_status_and_join_locked(ClusterName, RemoteNode, Timeout) ->
 %% @private
 
 reset_and_join_locked(
-  ClusterName, ThisMember, RaSystem, RaServerConfig, RemoteNode, Timeout) ->
+  StoreId, ThisMember, RaSystem, RaServerConfig, RemoteNode, Timeout) ->
     %% The local node is reset in case it is already a standalone elected
     %% leader (which would be the case after a successful call to
     %% `khepri_cluster:start()') or part of a cluster, and have any data.
@@ -714,13 +709,13 @@ reset_and_join_locked(
     %% node before resetting it? Like "if it has data in the Khepri database,
     %% abort". It may be difficult to make this kind of check atomic though.
     T0 = khepri_utils:start_timeout_window(Timeout),
-    case do_reset(RaSystem, ClusterName, ThisMember, Timeout) of
+    case do_reset(RaSystem, StoreId, ThisMember, Timeout) of
         ok ->
             NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
             case do_start_server(RaSystem, RaServerConfig) of
                 ok ->
                     do_join_locked(
-                      ClusterName, ThisMember, RemoteNode, NewTimeout);
+                      StoreId, ThisMember, RemoteNode, NewTimeout);
                 Error ->
                     Error
             end;
@@ -729,31 +724,31 @@ reset_and_join_locked(
     end.
 
 -spec do_join_locked(
-  ClusterName, ThisMember, RemoteNode, Timeout) ->
+  StoreId, ThisMember, RemoteNode, Timeout) ->
     Ret when
-      ClusterName :: khepri:store_id(),
+      StoreId :: khepri:store_id(),
       ThisMember :: ra:server_id(),
       RemoteNode :: node(),
       Timeout :: timeout(),
       Ret :: ok | khepri:error().
 %% @private
 
-do_join_locked(ClusterName, ThisMember, RemoteNode, Timeout) ->
-    RemoteMember = node_to_member(ClusterName, RemoteNode),
+do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
+    RemoteMember = node_to_member(StoreId, RemoteNode),
     ?LOG_DEBUG(
        "Adding this node (~0p) to the remote node's cluster (~0p)",
        [ThisMember, RemoteMember]),
     T1 = khepri_utils:start_timeout_window(Timeout),
     Ret1 = rpc:call(
              RemoteNode,
-             ra, add_member, [ClusterName, ThisMember, Timeout],
+             ra, add_member, [StoreId, ThisMember, Timeout],
              Timeout),
     Timeout1 = khepri_utils:end_timeout_window(Timeout, T1),
     case Ret1 of
-        {ok, _, _ClusterName} ->
+        {ok, _, _StoreId} ->
             ?LOG_DEBUG(
-               "Cluster \"~s\" successfully expanded",
-               [ClusterName]),
+               "Cluster for store \"~s\" successfully expanded",
+               [StoreId]),
             ok;
         {error, cluster_change_not_permitted} ->
             T2 = khepri_utils:start_timeout_window(Timeout1),
@@ -761,19 +756,19 @@ do_join_locked(ClusterName, ThisMember, RemoteNode, Timeout) ->
                "Remote cluster (reached through node node ~0p) is not ready "
                "for a membership change yet; waiting", [RemoteNode]),
             Ret2 = wait_for_remote_cluster_readyness(
-                     ClusterName, RemoteNode, Timeout1),
+                     StoreId, RemoteNode, Timeout1),
             Timeout2 = khepri_utils:end_timeout_window(Timeout1, T2),
             case Ret2 of
                 ok ->
                     do_join_locked(
-                      ClusterName, ThisMember, RemoteNode, Timeout2);
+                      StoreId, ThisMember, RemoteNode, Timeout2);
                 Error ->
                     Error
             end;
         Error ->
             ?LOG_ERROR(
                "Failed to expand cluster for store \"~s\": ~p; aborting",
-               [ClusterName, Error]),
+               [StoreId, Error]),
             %% After failing to join, the local Ra server is running
             %% standalone (after a reset) and needs an election to be in a
             %% working state again. We don't care about the result at this
@@ -785,32 +780,32 @@ do_join_locked(ClusterName, ThisMember, RemoteNode, Timeout) ->
             end
     end.
 
--spec wait_for_cluster_readyness(ClusterName, Timeout) ->
+-spec wait_for_cluster_readyness(StoreId, Timeout) ->
     Ret when
-      ClusterName :: khepri:store_id(),
+      StoreId :: khepri:store_id(),
       Timeout :: timeout(),
       Ret :: ok | khepri:error(timeout).
 %% @private
 
-wait_for_cluster_readyness(ClusterName, Timeout) ->
+wait_for_cluster_readyness(StoreId, Timeout) ->
     %% If querying the cluster members succeeds, we must have a quorum, right?
-    case members(ClusterName, Timeout) of
+    case members(StoreId, Timeout) of
         [_ | _]     -> ok;
         []          -> {error, timeout}
     end.
 
--spec wait_for_remote_cluster_readyness(ClusterName, RemoteNode, Timeout) ->
+-spec wait_for_remote_cluster_readyness(StoreId, RemoteNode, Timeout) ->
     Ret when
-      ClusterName :: khepri:store_id(),
+      StoreId :: khepri:store_id(),
       RemoteNode :: node(),
       Timeout :: timeout(),
       Ret :: ok | khepri:error().
 %% @private
 
-wait_for_remote_cluster_readyness(ClusterName, RemoteNode, Timeout) ->
+wait_for_remote_cluster_readyness(StoreId, RemoteNode, Timeout) ->
     Ret = rpc:call(
             RemoteNode,
-            khepri_cluster, wait_for_cluster_readyness, [ClusterName, Timeout],
+            khepri_cluster, wait_for_cluster_readyness, [StoreId, Timeout],
             Timeout),
     case Ret of
         {badrpc, _} -> {error, Ret};
@@ -822,8 +817,8 @@ wait_for_remote_cluster_readyness(ClusterName, RemoteNode, Timeout) ->
 %% @doc Resets the store on this Erlang node.
 
 reset() ->
-    ClusterName = get_default_ra_cluster_name(),
-    reset(ClusterName).
+    StoreId = get_default_store_id(),
+    reset(StoreId).
 
 -spec reset(StoreId | Timeout) -> Ret when
       StoreId :: khepri:store_id(),
@@ -833,10 +828,10 @@ reset() ->
 
 reset(Timeout)
   when ?IS_TIMEOUT(Timeout) ->
-    ClusterName = get_default_ra_cluster_name(),
-    reset(ClusterName, Timeout);
+    StoreId = get_default_store_id(),
+    reset(StoreId, Timeout);
 reset(StoreId)
-  when ?IS_CLUSTER_NAME(StoreId) ->
+  when ?IS_STORE_ID(StoreId) ->
     Timeout = khepri_app:get_default_timeout(),
     reset(StoreId, Timeout).
 
@@ -967,52 +962,52 @@ get_default_ra_system_or_data_dir() ->
 generate_default_data_dir() ->
     lists:flatten(io_lib:format("khepri#~s", [node()])).
 
--spec get_default_ra_cluster_name() -> ClusterName when
-      ClusterName :: khepri:store_id().
-%% @doc Returns the default Ra cluster name.
+-spec get_default_store_id() -> StoreId when
+      StoreId :: khepri:store_id().
+%% @doc Returns the default Khepri store ID.
 %%
-%% This is based on Khepri's `default_ra_cluster_name' application environment
+%% This is based on Khepri's `default_store_id' application environment
 %% variable. The variable can be set to an atom. The default is `khepri'.
 %%
-%% @returns the value of the `default_ra_cluster_name' application environment
+%% @returns the value of the `default_store_id' application environment
 %% variable.
 
-get_default_ra_cluster_name() ->
-    ClusterName = application:get_env(
-                    khepri, default_ra_cluster_name,
-                    ?DEFAULT_RA_CLUSTER_NAME),
+get_default_store_id() ->
+    StoreId = application:get_env(
+                    khepri, default_store_id,
+                    ?DEFAULT_STORE_ID),
     if
-        is_atom(ClusterName) ->
+        ?IS_STORE_ID(StoreId) ->
             ok;
         true ->
             ?LOG_ERROR(
-               "Invalid Ra cluster name set in `default_ra_cluster_name` "
+               "Invalid store ID set in `default_store_id` "
                "application environment: ~p",
-               [ClusterName]),
-            throw({invalid_ra_cluster_name, ClusterName})
+               [StoreId]),
+            throw({invalid_store_id, StoreId})
     end,
-    ClusterName.
+    StoreId.
 
-members(ClusterName) ->
+members(StoreId) ->
     Timeout = khepri_app:get_default_timeout(),
-    members(ClusterName, Timeout).
+    members(StoreId, Timeout).
 
-members(ClusterName, Timeout) ->
+members(StoreId, Timeout) ->
     ThisNode = node(),
-    ThisMember = node_to_member(ClusterName, ThisNode),
-    do_query_members(ClusterName, ThisMember, leader, Timeout).
+    ThisMember = node_to_member(StoreId, ThisNode),
+    do_query_members(StoreId, ThisMember, leader, Timeout).
 
-locally_known_members(ClusterName) ->
+locally_known_members(StoreId) ->
     Timeout = khepri_app:get_default_timeout(),
-    locally_known_members(ClusterName, Timeout).
+    locally_known_members(StoreId, Timeout).
 
-locally_known_members(ClusterName, Timeout) ->
+locally_known_members(StoreId, Timeout) ->
     ThisNode = node(),
-    ThisMember = node_to_member(ClusterName, ThisNode),
-    do_query_members(ClusterName, ThisMember, local, Timeout).
+    ThisMember = node_to_member(StoreId, ThisNode),
+    do_query_members(StoreId, ThisMember, local, Timeout).
 
-do_query_members(ClusterName, RaServer, QueryType, Timeout) ->
-    ?LOG_DEBUG("Query members in cluster \"~s\"", [ClusterName]),
+do_query_members(StoreId, RaServer, QueryType, Timeout) ->
+    ?LOG_DEBUG("Query members in store \"~s\"", [StoreId]),
     T0 = khepri_utils:start_timeout_window(Timeout),
     Arg = case QueryType of
               leader -> RaServer;
@@ -1021,8 +1016,8 @@ do_query_members(ClusterName, RaServer, QueryType, Timeout) ->
     case ra:members(Arg, Timeout) of
         {ok, Members, _} ->
             ?LOG_DEBUG(
-               "Found the following members in cluster \"~s\": ~p",
-               [ClusterName, Members]),
+               "Found the following members in store \"~s\": ~p",
+               [StoreId, Members]),
             Members;
         {error, noproc} = Error ->
             case khepri_utils:is_ra_server_alive(RaServer) of
@@ -1031,39 +1026,39 @@ do_query_members(ClusterName, RaServer, QueryType, Timeout) ->
                     NewTimeout = khepri_utils:sleep(
                                    ?NOPROC_RETRY_INTERVAL, NewTimeout0),
                     do_query_members(
-                      ClusterName, RaServer, QueryType, NewTimeout);
+                      StoreId, RaServer, QueryType, NewTimeout);
                 false ->
                     ?LOG_WARNING(
-                       "Failed to query members in cluster \"~s\": ~p",
-                       [ClusterName, Error]),
+                       "Failed to query members in store \"~s\": ~p",
+                       [StoreId, Error]),
                     []
             end;
         Error ->
             ?LOG_WARNING(
-               "Failed to query members in cluster \"~s\": ~p",
-               [ClusterName, Error]),
+               "Failed to query members in store \"~s\": ~p",
+               [StoreId, Error]),
             []
     end.
 
-nodes(ClusterName) ->
-    [Node || {_, Node} <- members(ClusterName)].
+nodes(StoreId) ->
+    [Node || {_, Node} <- members(StoreId)].
 
-locally_known_nodes(ClusterName) ->
-    [Node || {_, Node} <- locally_known_members(ClusterName)].
+locally_known_nodes(StoreId) ->
+    [Node || {_, Node} <- locally_known_members(StoreId)].
 
--spec node_to_member(ClusterName, Node) -> Member when
-      ClusterName :: ra:cluster_name(),
+-spec node_to_member(StoreId, Node) -> Member when
+      StoreId :: khepri:store_id(),
       Node :: node(),
       Member :: ra:server_id().
 %% @private
 
-node_to_member(ClusterName, Node) ->
-    {ClusterName, Node}.
+node_to_member(StoreId, Node) ->
+    {StoreId, Node}.
 
-server_start_lock(ClusterName) ->
-    {{khepri, ClusterName}, self()}.
+server_start_lock(StoreId) ->
+    {{khepri, StoreId}, self()}.
 
-complete_ra_server_config(#{cluster_name := ClusterName,
+complete_ra_server_config(#{cluster_name := StoreId,
                             id := Member} = RaServerConfig) ->
     %% We warn the caller if he sets `initial_members' that the setting will
     %% be ignored. The reason is we mandate the use of
@@ -1091,12 +1086,12 @@ complete_ra_server_config(#{cluster_name := ClusterName,
                               FriendlyName = lists:flatten(
                                                io_lib:format(
                                                  "Khepri store \"~s\"",
-                                                 [ClusterName])),
+                                                 [StoreId])),
                               RaServerConfig1#{friendly_name => FriendlyName}
                       end,
 
-    UId = ra:new_uid(ra_lib:to_binary(ClusterName)),
-    MachineConfig = #{store_id => ClusterName,
+    UId = ra:new_uid(ra_lib:to_binary(StoreId)),
+    MachineConfig = #{store_id => StoreId,
                       member => Member},
     Machine = {module, khepri_machine, MachineConfig},
     RaServerConfig2#{uid => UId,
@@ -1111,18 +1106,20 @@ complete_ra_server_config(#{cluster_name := ClusterName,
 %% @private
 
 remember_store(
-  RaSystem, #{cluster_name := ClusterName} = RaServerConfig) ->
+  RaSystem, #{cluster_name := StoreId} = RaServerConfig) ->
     StoreIds = persistent_term:get(?PT_STORE_IDS, #{}),
     Props = #{ra_system => RaSystem,
               ra_server_config => RaServerConfig},
-    StoreIds1 = StoreIds#{ClusterName => Props},
+    StoreIds1 = StoreIds#{StoreId => Props},
     persistent_term:put(?PT_STORE_IDS, StoreIds1),
     ok.
 
--spec get_store_prop(StoreId, PropName) -> PropValue when
+-spec get_store_prop(StoreId, PropName) -> Ret when
       StoreId :: khepri:store_id(),
-      PropName :: atom(),
-      PropValue :: any().
+      PropName :: ra_system | ra_server_config,
+      PropValue :: any(),
+      Ret :: khepri:ok(PropValue) |
+             khepri:error({not_a_khepri_store, StoreId}).
 %% @private
 
 get_store_prop(StoreId, PropName) ->

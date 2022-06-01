@@ -136,35 +136,35 @@ get_default_ra_system_or_data_dir_with_invalid_app_env_test() ->
     application:unset_env(
       khepri, default_ra_system, [{persistent, true}]).
 
-get_default_ra_cluster_name_with_no_app_env_test() ->
+get_default_store_id_with_no_app_env_test() ->
     ?assertEqual(
        khepri,
-       khepri_cluster:get_default_ra_cluster_name()).
+       khepri_cluster:get_default_store_id()).
 
-get_default_ra_cluster_name_with_atom_app_env_test() ->
-    ClusterName = my_cluster,
+get_default_store_id_with_atom_app_env_test() ->
+    StoreId = my_store,
     application:set_env(
-      khepri, default_ra_cluster_name, ClusterName, [{persistent, true}]),
+      khepri, default_store_id, StoreId, [{persistent, true}]),
     ?assertEqual(
-       ClusterName,
-       khepri_cluster:get_default_ra_cluster_name()),
+       StoreId,
+       khepri_cluster:get_default_store_id()),
     application:unset_env(
-      khepri, default_ra_cluster_name, [{persistent, true}]).
+      khepri, default_store_id, [{persistent, true}]).
 
-get_default_ra_cluster_name_with_invalid_app_env_test() ->
+get_default_store_id_with_invalid_app_env_test() ->
     Invalid = {invalid},
     application:set_env(
-      khepri, default_ra_cluster_name, Invalid, [{persistent, true}]),
+      khepri, default_store_id, Invalid, [{persistent, true}]),
     ?assertThrow(
-       {invalid_ra_cluster_name, Invalid},
-       khepri_cluster:get_default_ra_cluster_name()),
+       {invalid_store_id, Invalid},
+       khepri_cluster:get_default_store_id()),
     application:unset_env(
-      khepri, default_ra_cluster_name, [{persistent, true}]).
+      khepri, default_store_id, [{persistent, true}]).
 
 start_with_default_settings_test() ->
     DataDir = khepri_cluster:generate_default_data_dir(),
     ?assertNot(filelib:is_dir(DataDir)),
-    ?assertEqual({ok, ?DEFAULT_RA_CLUSTER_NAME}, khepri_cluster:start()),
+    ?assertEqual({ok, ?DEFAULT_STORE_ID}, khepri_cluster:start()),
     ?assert(filelib:is_dir(DataDir)),
     ?assertEqual(ok, khepri_cluster:stop()),
 
@@ -176,7 +176,7 @@ start_with_data_dir_in_args_test() ->
     DataDir = helpers:store_dir_name(?FUNCTION_NAME),
     ?assertNot(filelib:is_dir(DataDir)),
     ?assertEqual(
-       {ok, ?DEFAULT_RA_CLUSTER_NAME},
+       {ok, ?DEFAULT_STORE_ID},
        khepri_cluster:start(DataDir)),
     ?assert(filelib:is_dir(DataDir)),
     ?assertEqual(ok, khepri_cluster:stop()),
@@ -190,7 +190,7 @@ start_with_data_dir_in_app_env_test() ->
     ?assertNot(filelib:is_dir(DataDir)),
     application:set_env(
       khepri, default_ra_system, DataDir, [{persistent, true}]),
-    ?assertEqual({ok, ?DEFAULT_RA_CLUSTER_NAME}, khepri_cluster:start()),
+    ?assertEqual({ok, ?DEFAULT_STORE_ID}, khepri_cluster:start()),
     ?assert(filelib:is_dir(DataDir)),
     ?assertEqual(ok, khepri_cluster:stop()),
 
@@ -206,10 +206,10 @@ start_with_ra_system_in_args_test() ->
       store_dir := DataDir} = Props,
     ?assert(filelib:is_dir(DataDir)),
     ?assertEqual(
-       {ok, ?DEFAULT_RA_CLUSTER_NAME},
+       {ok, ?DEFAULT_STORE_ID},
        khepri_cluster:start(RaSystem)),
     ?assert(filelib:is_dir(DataDir)),
-    ?assertEqual(ok, khepri_cluster:stop(?DEFAULT_RA_CLUSTER_NAME)),
+    ?assertEqual(ok, khepri_cluster:stop(?DEFAULT_STORE_ID)),
     helpers:stop_ra_system(Props),
     ?assertNot(filelib:is_dir(DataDir)),
 
@@ -224,7 +224,7 @@ start_with_ra_system_in_app_env_test() ->
     ?assert(filelib:is_dir(DataDir)),
     application:set_env(
       khepri, default_ra_system, RaSystem, [{persistent, true}]),
-    ?assertEqual({ok, ?DEFAULT_RA_CLUSTER_NAME}, khepri_cluster:start()),
+    ?assertEqual({ok, ?DEFAULT_STORE_ID}, khepri_cluster:start()),
     ?assert(filelib:is_dir(DataDir)),
     ?assertEqual(ok, khepri_cluster:stop()),
     helpers:stop_ra_system(Props),

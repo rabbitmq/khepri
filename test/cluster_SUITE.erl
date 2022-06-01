@@ -111,7 +111,7 @@ end_per_testcase(_Testcase, Config) ->
 can_start_a_single_node(Config) ->
     Node = node(),
     #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
-    StoreId = ClusterName = RaSystem,
+    StoreId = RaSystem,
 
     ct:pal("Use database before starting it"),
     ?assertEqual(
@@ -124,7 +124,7 @@ can_start_a_single_node(Config) ->
     ct:pal("Start database"),
     ?assertEqual(
        {ok, StoreId},
-       khepri:start(RaSystem, ClusterName)),
+       khepri:start(RaSystem, StoreId)),
 
     ct:pal("Use database after starting it"),
     ?assertEqual(
@@ -157,7 +157,7 @@ can_start_a_single_node(Config) ->
 fail_to_start_with_bad_ra_server_config(Config) ->
     Node = node(),
     #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
-    StoreId = ClusterName = RaSystem,
+    StoreId = RaSystem,
 
     ct:pal("Start database"),
     ?assertExit(
@@ -165,7 +165,7 @@ fail_to_start_with_bad_ra_server_config(Config) ->
           {{timeout, tick}, not_a_timeout, tick_timeout}},
          _},
         _},
-       khepri:start(RaSystem, #{cluster_name => ClusterName,
+       khepri:start(RaSystem, #{cluster_name => StoreId,
                                 tick_timeout => not_a_timeout})),
 
     ThisMember = khepri_cluster:node_to_member(StoreId, node()),
@@ -195,12 +195,12 @@ fail_to_start_with_bad_ra_server_config(Config) ->
 initial_members_are_ignored(Config) ->
     Node = node(),
     #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
-    StoreId = ClusterName = RaSystem,
+    StoreId = RaSystem,
 
     ct:pal("Start database"),
     ?assertEqual(
        {ok, StoreId},
-       khepri:start(RaSystem, #{cluster_name => ClusterName,
+       khepri:start(RaSystem, #{cluster_name => StoreId,
                                 initial_members => [{StoreId, a},
                                                     {StoreId, b},
                                                     {StoreId, c}]})),
@@ -224,7 +224,7 @@ can_start_a_three_node_cluster(Config) ->
 
     %% We assume all nodes are using the same Ra system name & store ID.
     #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
-    StoreId = ClusterName = RaSystem,
+    StoreId = RaSystem,
 
     ct:pal("Use database before starting it"),
     lists:foreach(
@@ -245,41 +245,41 @@ can_start_a_three_node_cluster(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, ClusterName]))
+                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri_cluster, join, [ClusterName, Node3]))
+                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
       end, [Node1, Node2]),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:members() from node ~s", [Node]),
-              ExpectedMembers = lists:sort([{ClusterName, N} || N <- Nodes]),
+              ExpectedMembers = lists:sort([{StoreId, N} || N <- Nodes]),
               ?assertEqual(
                  ExpectedMembers,
                  lists:sort(
-                   rpc:call(Node, khepri_cluster, members, [ClusterName]))),
+                   rpc:call(Node, khepri_cluster, members, [StoreId]))),
               ?assertEqual(
                  ExpectedMembers,
                  lists:sort(
                    rpc:call(
                      Node, khepri_cluster, locally_known_members,
-                     [ClusterName]))),
+                     [StoreId]))),
 
               ExpectedNodes = lists:sort(Nodes),
               ?assertEqual(
                  ExpectedNodes,
                  lists:sort(
-                   rpc:call(Node, khepri_cluster, nodes, [ClusterName]))),
+                   rpc:call(Node, khepri_cluster, nodes, [StoreId]))),
               ?assertEqual(
                  ExpectedNodes,
                  lists:sort(
                    rpc:call(
                      Node, khepri_cluster, locally_known_nodes,
-                     [ClusterName])))
+                     [StoreId])))
       end, Nodes),
 
     ct:pal("Use database after starting it"),
@@ -388,7 +388,7 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
 
     %% We assume all nodes are using the same Ra system name & store ID.
     #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
-    StoreId = ClusterName = RaSystem,
+    StoreId = RaSystem,
 
     ct:pal("Start database + cluster nodes"),
     lists:foreach(
@@ -396,14 +396,14 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, ClusterName]))
+                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri_cluster, join, [ClusterName, Node3]))
+                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
       end, [Node1, Node2]),
 
     ct:pal("Use database after starting it"),
@@ -510,7 +510,7 @@ can_reset_a_cluster_member(Config) ->
 
     %% We assume all nodes are using the same Ra system name & store ID.
     #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
-    StoreId = ClusterName = RaSystem,
+    StoreId = RaSystem,
 
     ct:pal("Start database + cluster nodes"),
     lists:foreach(
@@ -518,14 +518,14 @@ can_reset_a_cluster_member(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, ClusterName]))
+                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri_cluster, join, [ClusterName, Node3]))
+                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
       end, [Node1, Node2]),
 
     ct:pal("Check membership on all nodes"),
@@ -535,7 +535,7 @@ can_reset_a_cluster_member(Config) ->
               ?assertEqual(
                  lists:sort(Nodes),
                  lists:sort(rpc:call(
-                              Node, khepri_cluster, nodes, [ClusterName])))
+                              Node, khepri_cluster, nodes, [StoreId])))
       end, Nodes),
 
     %% Reset the current leader.
@@ -557,7 +557,7 @@ can_reset_a_cluster_member(Config) ->
               ?assertEqual(
                  lists:sort(RunningNodes1),
                  lists:sort(rpc:call(
-                              Node, khepri_cluster, nodes, [ClusterName])))
+                              Node, khepri_cluster, nodes, [StoreId])))
       end, RunningNodes1),
 
     ok.
@@ -568,31 +568,31 @@ fail_to_join_if_not_started(Config) ->
 
     %% We assume all nodes are using the same Ra system name & store ID.
     #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
-    ClusterName = RaSystem,
+    StoreId = RaSystem,
 
     ct:pal("Cluster node"),
     ?assertEqual(
-       {error, {not_a_khepri_store, ClusterName}},
+       {error, {not_a_khepri_store, StoreId}},
        rpc:call(
-         Node1, khepri_cluster, join, [ClusterName, Node2])),
+         Node1, khepri_cluster, join, [StoreId, Node2])),
 
     ok.
 
 fail_to_join_non_existing_node(Config) ->
     Node = node(),
     #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
-    StoreId = ClusterName = RaSystem,
+    StoreId = RaSystem,
 
     ct:pal("Start database"),
     ?assertEqual(
        {ok, StoreId},
-       khepri:start(RaSystem, ClusterName)),
+       khepri:start(RaSystem, StoreId)),
 
     ct:pal("Cluster node"),
     RemoteNode = non_existing@localhost,
     ?assertEqual(
        {error, {nodedown, RemoteNode}},
-       khepri_cluster:join(ClusterName, RemoteNode)),
+       khepri_cluster:join(StoreId, RemoteNode)),
 
     ThisMember = khepri_cluster:node_to_member(StoreId, node()),
     ?assertEqual(
@@ -612,23 +612,23 @@ fail_to_join_non_existing_store(Config) ->
 
     %% We assume all nodes are using the same Ra system name & store ID.
     #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
-    StoreId = ClusterName = RaSystem,
+    StoreId = RaSystem,
 
     ct:pal("Start database"),
     ?assertEqual(
        {ok, StoreId},
-       rpc:call(Node1, khepri, start, [RaSystem, ClusterName])),
+       rpc:call(Node1, khepri, start, [RaSystem, StoreId])),
 
     ct:pal("Cluster node"),
     ?assertEqual(
        {error, noproc},
        rpc:call(
-         Node1, khepri_cluster, join, [ClusterName, Node2])),
+         Node1, khepri_cluster, join, [StoreId, Node2])),
 
     ?assertEqual(
        [khepri_cluster:node_to_member(StoreId, Node1)],
        rpc:call(
-         Node1, khepri_cluster, members, [ClusterName])),
+         Node1, khepri_cluster, members, [StoreId])),
 
     ct:pal("Stop database"),
     ?assertEqual(
