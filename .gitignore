@@ -5,7 +5,8 @@ erl_crash.dump
 /_build
 /_checkouts
 /doc/*
-!/doc/overview.edoc
 !/doc/khepri-logo.svg
+!/doc/overview.edoc
+!/doc/stylesheet.css
 /mix.lock
 /nonode@nohost/
