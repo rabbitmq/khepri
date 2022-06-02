@@ -6,5 +6,6 @@ erl_crash.dump
 /_checkouts
 /doc/*
 !/doc/overview.edoc
+!/doc/khepri-logo.svg
 /mix.lock
 /nonode@nohost/

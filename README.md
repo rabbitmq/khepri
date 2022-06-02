@@ -7,6 +7,8 @@
 Khepri is a tree-like replicated on-disk database library for Erlang and
 Elixir.
 
+<img align="right" width="100" src="/doc/khepri-logo.svg">
+
 ## The basics
 
 Data are stored in a **tree structure**. Each node in the tree is referenced by
@@ -230,5 +232,9 @@ rebar3 as test dialyzer
 
 This work is dual-licensed under the Apache License 2.0 and the Mozilla Public
 License 2.0. You can choose between one of them if you use this work.
+
+The logo (`doc/khepri-logo.svg`) is based on the following two resources:
+* https://www.svgrepo.com/svg/55105/rabbit (license: CC0)
+* https://www.svgrepo.com/svg/336625/database-point (license: MIT)
 
 SPDX-License-Identifier: Apache-2.0 OR MPL-2.0
