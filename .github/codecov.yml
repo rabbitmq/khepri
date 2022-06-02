@@ -1,0 +1,20 @@
+coverage:
+  status:
+    # The whole project must reach a coverage of 80% for the `codecov/project`
+    # check to succeed.
+    project:
+      default:
+        target: 80%
+        threshold: 5% # How much the coverage can decrease.
+        paths:
+          - "!.github/"
+
+    # The patch itself (i.e. the modified lines) must be 80% covered by tests
+    # for the `codecov/patch` check to succeed.
+    patch:
+      default:
+        target: 80%
+        threshold: 5%
+        paths:
+          - "!.github/"
+        informational: true
