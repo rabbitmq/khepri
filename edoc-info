@@ -1,0 +1,4 @@
+%% encoding: UTF-8
+{application,khepri}.
+{modules,[khepri,khepri_cluster,khepri_condition,khepri_evf,khepri_fun,
+          khepri_machine,khepri_path,khepri_payload,khepri_tx]}.
