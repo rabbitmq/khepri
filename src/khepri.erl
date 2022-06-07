@@ -15,9 +15,9 @@
 %% the API to use inside transaction functions is provided by {@link
 %% khepri_tx}.
 %%
-%% This module also provides functions to start and stop (in the future) a
-%% simple unclustered Khepri store. For more advanced setup and clustering,
-%% see {@link khepri_cluster}.
+%% This module also provides functions to start and stop a simple unclustered
+%% Khepri store. For more advanced setup and clustering, see {@link
+%% khepri_cluster}.
 %%
 %% == A Khepri store ==
 %%
@@ -31,8 +31,8 @@
 %%
 %% When a store is started, a store ID {@link store_id/0} is returned. This
 %% store ID is then used by the rest of this module's API. The returned store
-%% ID currently corresponds exactly to the Ra cluster name. Currently, it must
-%% be an atom; other types are unsupported.
+%% ID currently corresponds exactly to the Ra cluster name. It must be an atom
+%% though; other types are unsupported.
 %%
 %% == Interacting with the Khepri store ==
 %%
@@ -69,12 +69,11 @@
 -include("src/internal.hrl").
 
 -export([
-         %% Functions to start & stop (in the future) a Khepri store; for more
+         %% Functions to start & stop a Khepri store; for more
          %% advanced functions, including clustering, see `khepri_cluster'.
-         start/0,
-         start/1,
-         start/3,
-         reset/2,
+         start/0, start/1, start/2, start/3,
+         reset/0, reset/1, reset/2,
+         stop/0, stop/1,
          get_store_ids/0,
 
          %% Simple direct atomic operations & queries.
@@ -109,7 +108,7 @@
          transaction/1, transaction/2, transaction/3, transaction/4,
 
          info/0,
-         info/1]).
+         info/1, info/2]).
 
 -compile({no_auto_import, [get/2, put/2, erase/1]}).
 
@@ -118,7 +117,8 @@
 %% please Dialyzer. So for now, let's disable this specific check for the
 %% problematic functions.
 -if(?OTP_RELEASE >= 24).
--dialyzer({no_underspecs, [start/1, start/3,
+-dialyzer({no_underspecs, [start/1, start/2,
+                           stop/0, stop/1,
 
                            put/2, put/3,
                            create/2, create/3,
@@ -133,10 +133,7 @@
                            transaction/2, transaction/3]}).
 -endif.
 
-%% FIXME: The code currently expects that the Ra cluster name is an atom.
-%% However, Ra accepts binaries and strings as well. We should probably fix
-%% that at some point.
--type store_id() :: atom(). % ra:cluster_name().
+-type store_id() :: atom().
 %% ID of a Khepri store.
 %%
 %% This is the same as the Ra cluster name hosting the Khepri store.
@@ -239,23 +236,27 @@
 %% out is very small.</li>
 %% </ul>
 
--type command_options() :: #{async => async_option()}.
+-type command_options() :: #{timeout => timeout(),
+                             async => async_option()}.
 %% Options used in commands.
 %%
 %% Commands are {@link put/5}, {@link delete/3} and read-write {@link
 %% transaction/4}.
 %%
 %% <ul>
+%% <li>`timeout' is passed to Ra command processing function.</li>
 %% <li>`async' indicates the synchronous or asynchronous nature of the
 %% command; see {@link async_option()}.</li>
 %% </ul>
 
--type query_options() :: #{expect_specific_node => boolean(),
+-type query_options() :: #{timeout => timeout(),
+                           expect_specific_node => boolean(),
                            include_child_names => boolean(),
                            favor => favor_option()}.
 %% Options used in queries.
 %%
 %% <ul>
+%% <li>`timeout' is passed to Ra query processing function.</li>
 %% <li>`expect_specific_node' indicates if the path is expected to point to a
 %% specific tree node or could match many nodes.</li>
 %% <li>`include_child_names' indicates if child names should be included in
@@ -272,7 +273,7 @@
 
 -export_type([store_id/0,
               ok/1,
-              error/0,
+              error/0, error/1,
 
               data/0,
               payload_version/0,
@@ -293,64 +294,107 @@
 %% -------------------------------------------------------------------
 
 -spec start() -> Ret when
-      Ret :: ok(StoreId) | error(),
-      StoreId :: store_id().
-%% @doc Starts a store on the default Ra system.
-%%
-%% The store uses the default Ra cluster name and cluster friendly name.
+      Ret :: khepri:ok(StoreId) | khepri:error(),
+      StoreId :: khepri:store_id().
+%% @doc Starts a store.
 %%
 %% @see khepri_cluster:start/0.
 
 start() ->
     khepri_cluster:start().
 
--spec start(RaSystem) -> Ret when
+-spec start(RaSystem | DataDir) -> Ret when
       RaSystem :: atom(),
-      Ret :: ok(StoreId) | error(),
-      StoreId :: store_id().
-%% @doc Starts a store on the specified Ra system.
-%%
-%% The store uses the default Ra cluster name and cluster friendly name.
-%%
-%% @param RaSystem the name of the Ra system.
+      DataDir :: file:filename_all(),
+      Ret :: khepri:ok(StoreId) | khepri:error(),
+      StoreId :: khepri:store_id().
+%% @doc Starts a store.
 %%
 %% @see khepri_cluster:start/1.
 
-start(RaSystem) ->
-    khepri_cluster:start(RaSystem).
+start(RaSystemOrDataDir) ->
+    khepri_cluster:start(RaSystemOrDataDir).
 
--spec start(RaSystem, ClusterName, FriendlyName) -> Ret when
+-spec start(RaSystem | DataDir, StoreId | RaServerConfig) -> Ret when
       RaSystem :: atom(),
-      ClusterName :: ra:cluster_name(),
-      FriendlyName :: string(),
-      Ret :: ok(StoreId) | error(),
-      StoreId :: store_id().
-%% @doc Starts a store on the specified Ra system.
+      DataDir :: file:filename_all(),
+      StoreId :: store_id(),
+      RaServerConfig :: khepri_cluster:incomplete_ra_server_config(),
+      Ret :: khepri:ok(StoreId) | khepri:error(),
+      StoreId :: khepri:store_id().
+%% @doc Starts a store.
 %%
-%% @param RaSystem the name of the Ra system.
-%% @param ClusterName the name of the Ra cluster.
-%% @param FriendlyName the friendly name of the Ra cluster.
+%% @see khepri_cluster:start/2.
+
+start(RaSystemOrDataDir, StoreIdOrRaServerConfig) ->
+    khepri_cluster:start(RaSystemOrDataDir, StoreIdOrRaServerConfig).
+
+-spec start(RaSystem | DataDir, StoreId | RaServerConfig, Timeout) ->
+    Ret when
+      RaSystem :: atom(),
+      DataDir :: file:filename_all(),
+      StoreId :: store_id(),
+      RaServerConfig :: khepri_cluster:incomplete_ra_server_config(),
+      Timeout :: timeout(),
+      Ret :: khepri:ok(StoreId) | khepri:error(),
+      StoreId :: khepri:store_id().
+%% @doc Starts a store.
 %%
 %% @see khepri_cluster:start/3.
 
-start(RaSystem, ClusterName, FriendlyName) ->
-    khepri_cluster:start(RaSystem, ClusterName, FriendlyName).
+start(RaSystemOrDataDir, StoreIdOrRaServerConfig, Timeout) ->
+    khepri_cluster:start(
+      RaSystemOrDataDir, StoreIdOrRaServerConfig, Timeout).
 
--spec reset(RaSystem, ClusterName) -> Ret when
-      RaSystem :: atom(),
-      ClusterName :: ra:cluster_name(),
-      Ret :: ok | error() | {badrpc, any()}.
+-spec reset() -> Ret when
+      Ret :: ok | error().
 %% @doc Resets the store on this Erlang node.
 %%
-%% It does that by force-deleting the Ra local server.
+%% @see khepri_cluster:reset/0.
+
+reset() ->
+    khepri_cluster:reset().
+
+-spec reset(StoreId | Timeout) -> Ret when
+      StoreId :: khepri:store_id(),
+      Timeout :: timeout(),
+      Ret :: ok | khepri:error().
+%% @doc Resets the store on this Erlang node.
 %%
-%% @param RaSystem the name of the Ra system.
-%% @param ClusterName the name of the Ra cluster.
+%% @see khepri_cluster:reset/1.
+
+reset(StoreIdOrTimeout) ->
+    khepri_cluster:reset(StoreIdOrTimeout).
+
+-spec reset(StoreId, Timeout) -> Ret when
+      StoreId :: khepri:store_id(),
+      Timeout :: timeout(),
+      Ret :: ok | error().
+%% @doc Resets the store on this Erlang node.
 %%
 %% @see khepri_cluster:reset/2.
 
-reset(RaSystem, ClusterName) ->
-    khepri_cluster:reset(RaSystem, ClusterName).
+reset(StoreId, Timeout) ->
+    khepri_cluster:reset(StoreId, Timeout).
+
+-spec stop() -> Ret when
+      Ret :: ok | khepri:error().
+%% @doc Stops a store.
+%%
+%% @see khepri_cluster:stop/0.
+
+stop() ->
+    khepri_cluster:stop().
+
+-spec stop(StoreId) -> Ret when
+      StoreId :: khepri:store_id(),
+      Ret :: ok | khepri:error().
+%% @doc Stops a store.
+%%
+%% @see khepri_cluster:stop/1.
+
+stop(StoreId) ->
+    khepri_cluster:stop(StoreId).
 
 -spec get_store_ids() -> [StoreId] when
       StoreId :: store_id().
@@ -377,7 +421,7 @@ get_store_ids() ->
 %% @see put/3.
 
 put(PathPattern, Data) ->
-    put(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Data).
+    put(?DEFAULT_STORE_ID, PathPattern, Data).
 
 -spec put(StoreId, PathPattern, Data) -> Result when
       StoreId :: store_id(),
@@ -482,7 +526,7 @@ put(StoreId, PathPattern, Data, Options) ->
 %% Example:
 %% ```
 %% %% Insert a node at `/:foo/:bar', overwriting the previous value.
-%% Result = khepri:put(ra_cluster_name, [foo, bar], new_value),
+%% Result = khepri:put(StoreId, [foo, bar], new_value),
 %%
 %% %% Here is the content of `Result'.
 %% {ok, #{[foo, bar] => #{data => old_value,
@@ -491,7 +535,7 @@ put(StoreId, PathPattern, Data, Options) ->
 %%                        child_list_length => 0}}} = Result.
 %% '''
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the node to create or
 %%        modify.
 %% @param Data the Erlang term or function to store, or a {@link
@@ -520,7 +564,7 @@ put(StoreId, PathPattern, Data, Extra, Options) ->
 %% @see create/3.
 
 create(PathPattern, Data) ->
-    create(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Data).
+    create(?DEFAULT_STORE_ID, PathPattern, Data).
 
 -spec create(StoreId, PathPattern, Data) -> Result when
       StoreId :: store_id(),
@@ -574,7 +618,7 @@ create(StoreId, PathPattern, Data, Options) ->
 %% `#if_node_exists{exists = false}' condition on its last component.
 %% Otherwise, the behavior is that of {@link put/5}.
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the node to create or
 %%        modify.
 %% @param Data the Erlang term or function to store, or a {@link
@@ -608,7 +652,7 @@ create(StoreId, PathPattern, Data, Extra, Options) ->
 %% @see update/3.
 
 update(PathPattern, Data) ->
-    update(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Data).
+    update(?DEFAULT_STORE_ID, PathPattern, Data).
 
 -spec update(StoreId, PathPattern, Data) -> Result when
       StoreId :: store_id(),
@@ -662,7 +706,7 @@ update(StoreId, PathPattern, Data, Options) ->
 %% `#if_node_exists{exists = true}' condition on its last component.
 %% Otherwise, the behavior is that of {@link put/5}.
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the node to create or
 %%        modify.
 %% @param Data the Erlang term or function to store, or a {@link
@@ -697,7 +741,7 @@ update(StoreId, PathPattern, Data, Extra, Options) ->
 %% @see compare_and_swap/4.
 
 compare_and_swap(PathPattern, DataPattern, Data) ->
-    compare_and_swap(?DEFAULT_RA_CLUSTER_NAME, PathPattern, DataPattern, Data).
+    compare_and_swap(?DEFAULT_STORE_ID, PathPattern, DataPattern, Data).
 
 -spec compare_and_swap(StoreId, PathPattern, DataPattern, Data) -> Result when
       StoreId :: store_id(),
@@ -760,7 +804,7 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) ->
 %% `#if_data_matches{pattern = DataPattern}' condition on its last component.
 %% Otherwise, the behavior is that of {@link put/5}.
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the node to create or
 %%        modify.
 %% @param Data the Erlang term or function to store, or a {@link
@@ -808,7 +852,7 @@ do_put(StoreId, PathPattern, Payload, Extra, Options) ->
 %% @see clear_payload/2.
 
 clear_payload(PathPattern) ->
-    clear_payload(?DEFAULT_RA_CLUSTER_NAME, PathPattern).
+    clear_payload(?DEFAULT_STORE_ID, PathPattern).
 
 -spec clear_payload(StoreId, PathPattern) -> Result when
       StoreId :: store_id(),
@@ -855,7 +899,7 @@ clear_payload(StoreId, PathPattern, Options) ->
 %% In other words, the payload is set to {@link khepri_payload:no_payload()}.
 %% Otherwise, the behavior is that of {@link put/5}.
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the node to create or
 %%        modify.
 %% @param Extra extra options such as `keep_while' conditions.
@@ -883,7 +927,7 @@ clear_payload(StoreId, PathPattern, Extra, Options) ->
 %% @see delete/2.
 
 delete(PathPattern) ->
-    delete(?DEFAULT_RA_CLUSTER_NAME, PathPattern).
+    delete(?DEFAULT_STORE_ID, PathPattern).
 
 -spec delete
 (StoreId, PathPattern) -> Result when
@@ -910,7 +954,7 @@ delete(PathPattern) ->
 delete(StoreId, PathPattern) when is_atom(StoreId) ->
     delete(StoreId, PathPattern, #{});
 delete(PathPattern, Options) when is_map(Options) ->
-    delete(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Options).
+    delete(?DEFAULT_STORE_ID, PathPattern, Options).
 
 -spec delete(StoreId, PathPattern, Options) -> Result when
       StoreId :: store_id(),
@@ -930,7 +974,7 @@ delete(PathPattern, Options) when is_map(Options) ->
 %% Example:
 %% ```
 %% %% Delete the node at `/:foo/:bar'.
-%% Result = khepri:delete(ra_cluster_name, [foo, bar]),
+%% Result = khepri:delete(StoreId, [foo, bar]),
 %%
 %% %% Here is the content of `Result'.
 %% {ok, #{[foo, bar] => #{data => new_value,
@@ -939,7 +983,7 @@ delete(PathPattern, Options) when is_map(Options) ->
 %%                        child_list_length => 0}}} = Result.
 %% '''
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the nodes to delete.
 %% @param Options command options such as the command type.
 %%
@@ -963,7 +1007,7 @@ delete(StoreId, PathPattern, Options) ->
 %% @see exists/2.
 
 exists(PathPattern) ->
-    exists(?DEFAULT_RA_CLUSTER_NAME, PathPattern).
+    exists(?DEFAULT_STORE_ID, PathPattern).
 
 -spec exists
 (StoreId, PathPattern) -> Exists when
@@ -990,7 +1034,7 @@ exists(PathPattern) ->
 exists(StoreId, PathPattern) when is_atom(StoreId) ->
     exists(StoreId, PathPattern, #{});
 exists(PathPattern, Options) when is_map(Options) ->
-    exists(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Options).
+    exists(?DEFAULT_STORE_ID, PathPattern, Options).
 
 -spec exists(StoreId, PathPattern, Options) -> Exists when
       StoreId :: store_id(),
@@ -1006,7 +1050,7 @@ exists(PathPattern, Options) when is_map(Options) ->
 %% The `PathPattern' must point to a specific tree node and can't match
 %% multiple nodes.
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the nodes to check.
 %% @param Options query options such as `favor'.
 %%
@@ -1033,7 +1077,7 @@ exists(StoreId, PathPattern, Options) ->
 %% @see get/2.
 
 get(PathPattern) ->
-    get(?DEFAULT_RA_CLUSTER_NAME, PathPattern).
+    get(?DEFAULT_STORE_ID, PathPattern).
 
 -spec get
 (StoreId, PathPattern) -> Result when
@@ -1059,7 +1103,7 @@ get(PathPattern) ->
 get(StoreId, PathPattern) when is_atom(StoreId) ->
     get(StoreId, PathPattern, #{});
 get(PathPattern, Options) when is_map(Options) ->
-    get(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Options).
+    get(?DEFAULT_STORE_ID, PathPattern, Options).
 
 -spec get(StoreId, PathPattern, Options) -> Result when
       StoreId :: store_id(),
@@ -1085,7 +1129,7 @@ get(PathPattern, Options) when is_map(Options) ->
 %% Example:
 %% ```
 %% %% Query the node at `/:foo/:bar'.
-%% Result = khepri:get(ra_cluster_name, [foo, bar]),
+%% Result = khepri:get(StoreId, [foo, bar]),
 %%
 %% %% Here is the content of `Result'.
 %% {ok, #{[foo, bar] => #{data => new_value,
@@ -1094,7 +1138,7 @@ get(PathPattern, Options) when is_map(Options) ->
 %%                        child_list_length => 0}}} = Result.
 %% '''
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the nodes to get.
 %% @param Options query options such as `favor'.
 %%
@@ -1115,7 +1159,7 @@ get(StoreId, PathPattern, Options) ->
 %% @see get_node_props/2.
 
 get_node_props(PathPattern) ->
-    get_node_props(?DEFAULT_RA_CLUSTER_NAME, PathPattern).
+    get_node_props(?DEFAULT_STORE_ID, PathPattern).
 
 -spec get_node_props
 (StoreId, PathPattern) -> NodeProps when
@@ -1142,7 +1186,7 @@ get_node_props(PathPattern) ->
 get_node_props(StoreId, PathPattern) when is_atom(StoreId) ->
     get_node_props(StoreId, PathPattern, #{});
 get_node_props(PathPattern, Options) when is_map(Options) ->
-    get_node_props(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Options).
+    get_node_props(?DEFAULT_STORE_ID, PathPattern, Options).
 
 -spec get_node_props(StoreId, PathPattern, Options) -> NodeProps when
       StoreId :: store_id(),
@@ -1161,7 +1205,7 @@ get_node_props(PathPattern, Options) when is_map(Options) ->
 %% properties directly. If the node does not exist or if there are any errors,
 %% an exception is raised.
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the nodes to check.
 %% @param Options query options such as `favor'.
 %%
@@ -1192,7 +1236,7 @@ get_node_props(StoreId, PathPattern, Options) ->
 %% @see has_data/2.
 
 has_data(PathPattern) ->
-    has_data(?DEFAULT_RA_CLUSTER_NAME, PathPattern).
+    has_data(?DEFAULT_STORE_ID, PathPattern).
 
 -spec has_data
 (StoreId, PathPattern) -> HasData when
@@ -1219,7 +1263,7 @@ has_data(PathPattern) ->
 has_data(StoreId, PathPattern) when is_atom(StoreId) ->
     has_data(StoreId, PathPattern, #{});
 has_data(PathPattern, Options) when is_map(Options) ->
-    has_data(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Options).
+    has_data(?DEFAULT_STORE_ID, PathPattern, Options).
 
 -spec has_data(StoreId, PathPattern, Options) -> HasData when
       StoreId :: store_id(),
@@ -1235,7 +1279,7 @@ has_data(PathPattern, Options) when is_map(Options) ->
 %% The `PathPattern' must point to a specific tree node and can't match
 %% multiple nodes.
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the nodes to check.
 %% @param Options query options such as `favor'.
 %%
@@ -1264,7 +1308,7 @@ has_data(StoreId, PathPattern, Options) ->
 %% @see get_data/2.
 
 get_data(PathPattern) ->
-    get_data(?DEFAULT_RA_CLUSTER_NAME, PathPattern).
+    get_data(?DEFAULT_STORE_ID, PathPattern).
 
 -spec get_data
 (StoreId, PathPattern) -> Data when
@@ -1290,7 +1334,7 @@ get_data(PathPattern) ->
 get_data(StoreId, PathPattern) when is_atom(StoreId) ->
     get_data(StoreId, PathPattern, #{});
 get_data(PathPattern, Options) when is_map(Options) ->
-    get_data(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Options).
+    get_data(?DEFAULT_STORE_ID, PathPattern, Options).
 
 -spec get_data(StoreId, PathPattern, Options) -> Data when
       StoreId :: store_id(),
@@ -1313,7 +1357,7 @@ get_data(PathPattern, Options) when is_map(Options) ->
 %% <li>the node holds a stored procedure</li>
 %% </ul>
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the nodes to check.
 %% @param Options query options such as `favor'.
 %%
@@ -1342,7 +1386,7 @@ get_data(StoreId, PathPattern, Options) ->
 %% @see get_data_or/3.
 
 get_data_or(PathPattern, Default) ->
-    get_data_or(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Default).
+    get_data_or(?DEFAULT_STORE_ID, PathPattern, Default).
 
 -spec get_data_or
 (StoreId, PathPattern, Default) -> Data when
@@ -1372,7 +1416,7 @@ get_data_or(PathPattern, Default) ->
 get_data_or(StoreId, PathPattern, Default) when is_atom(StoreId) ->
     get_data_or(StoreId, PathPattern, Default, #{});
 get_data_or(PathPattern, Default, Options) when is_map(Options) ->
-    get_data_or(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Default, Options).
+    get_data_or(?DEFAULT_STORE_ID, PathPattern, Default, Options).
 
 -spec get_data_or(StoreId, PathPattern, Default, Options) -> Data when
       StoreId :: store_id(),
@@ -1396,7 +1440,7 @@ get_data_or(PathPattern, Default, Options) when is_map(Options) ->
 %% <li>the node holds a stored procedure</li>
 %% </ul>
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the nodes to check.
 %% @param Default the default term to return if there is no data.
 %% @param Options query options such as `favor'.
@@ -1430,7 +1474,7 @@ get_data_or(StoreId, PathPattern, Default, Options) ->
 %% @see has_sproc/2.
 
 has_sproc(PathPattern) ->
-    has_sproc(?DEFAULT_RA_CLUSTER_NAME, PathPattern).
+    has_sproc(?DEFAULT_STORE_ID, PathPattern).
 
 -spec has_sproc
 (StoreId, PathPattern) -> HasStoredProc when
@@ -1457,7 +1501,7 @@ has_sproc(PathPattern) ->
 has_sproc(StoreId, PathPattern) when is_atom(StoreId) ->
     has_sproc(StoreId, PathPattern, #{});
 has_sproc(PathPattern, Options) when is_map(Options) ->
-    has_sproc(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Options).
+    has_sproc(?DEFAULT_STORE_ID, PathPattern, Options).
 
 -spec has_sproc(StoreId, PathPattern, Options) -> HasStoredProc when
       StoreId :: store_id(),
@@ -1473,7 +1517,7 @@ has_sproc(PathPattern, Options) when is_map(Options) ->
 %% The `PathPattern' must point to a specific tree node and can't match
 %% multiple nodes.
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the nodes to check.
 %% @param Options query options such as `favor'.
 %%
@@ -1505,7 +1549,7 @@ has_sproc(StoreId, PathPattern, Options) ->
 %% @see run_sproc/3.
 
 run_sproc(PathPattern, Args) ->
-    run_sproc(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Args).
+    run_sproc(?DEFAULT_STORE_ID, PathPattern, Args).
 
 -spec run_sproc
 (StoreId, PathPattern, Args) -> Result when
@@ -1535,7 +1579,7 @@ run_sproc(PathPattern, Args) ->
 run_sproc(StoreId, PathPattern, Args) when is_atom(StoreId) ->
     run_sproc(StoreId, PathPattern, Args, #{});
 run_sproc(PathPattern, Args, Options) when is_map(Options) ->
-    run_sproc(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Args, Options).
+    run_sproc(?DEFAULT_STORE_ID, PathPattern, Args, Options).
 
 -spec run_sproc(StoreId, PathPattern, Args, Options) -> Result when
       StoreId :: store_id(),
@@ -1555,7 +1599,7 @@ run_sproc(PathPattern, Args, Options) when is_map(Options) ->
 %% The `Args' list must match the number of arguments expected by the stored
 %% procedure.
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the nodes to check.
 %% @param Args the list of args to pass to the stored procedure; its length
 %%        must be equal to the stored procedure arity.
@@ -1579,7 +1623,7 @@ run_sproc(StoreId, PathPattern, Args, Options) ->
 %% @see count/2.
 
 count(PathPattern) ->
-    count(?DEFAULT_RA_CLUSTER_NAME, PathPattern).
+    count(?DEFAULT_STORE_ID, PathPattern).
 
 -spec count
 (StoreId, PathPattern) -> Result when
@@ -1605,7 +1649,7 @@ count(PathPattern) ->
 count(StoreId, PathPattern) when is_atom(StoreId) ->
     count(StoreId, PathPattern, #{});
 count(PathPattern, Options) when is_map(Options) ->
-    count(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Options).
+    count(?DEFAULT_STORE_ID, PathPattern, Options).
 
 -spec count(StoreId, PathPattern, Options) -> Result when
       StoreId :: store_id(),
@@ -1625,13 +1669,13 @@ count(PathPattern, Options) when is_map(Options) ->
 %% Example:
 %% ```
 %% %% Query the node at `/:foo/:bar'.
-%% Result = khepri:count(ra_cluster_name, [foo, ?STAR]),
+%% Result = khepri:count(StoreId, [foo, ?STAR]),
 %%
 %% %% Here is the content of `Result'.
 %% {ok, 3} = Result.
 %% '''
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the nodes to count.
 %% @param Options query options such as `favor'.
 %%
@@ -1656,7 +1700,7 @@ count(StoreId, PathPattern, Options) ->
 
 register_trigger(TriggerId, EventFilter, StoredProcPath) ->
     register_trigger(
-      ?DEFAULT_RA_CLUSTER_NAME, TriggerId, EventFilter, StoredProcPath).
+      ?DEFAULT_STORE_ID, TriggerId, EventFilter, StoredProcPath).
 
 -spec register_trigger
 (StoreId, TriggerId, EventFilter, StoredProcPath) -> Ret when
@@ -1693,7 +1737,7 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath)
 register_trigger(TriggerId, EventFilter, StoredProcPath, Options)
   when is_map(Options) ->
     register_trigger(
-      ?DEFAULT_RA_CLUSTER_NAME, TriggerId, EventFilter, StoredProcPath,
+      ?DEFAULT_STORE_ID, TriggerId, EventFilter, StoredProcPath,
       Options).
 
 -spec register_trigger(
@@ -1746,7 +1790,7 @@ register_trigger(TriggerId, EventFilter, StoredProcPath, Options)
 %% if the Ra leader changes, therefore the stored procedure must be
 %% idempotent.
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param TriggerId the name of the trigger.
 %% @param EventFilter the event filter used to associate an event with a
 %%        stored procedure.
@@ -1771,7 +1815,7 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
 %% @see list/2.
 
 list(PathPattern) ->
-    list(?DEFAULT_RA_CLUSTER_NAME, PathPattern).
+    list(?DEFAULT_STORE_ID, PathPattern).
 
 -spec list
 (StoreId, PathPattern) -> Result when
@@ -1797,7 +1841,7 @@ list(PathPattern) ->
 list(StoreId, PathPattern) when is_atom(StoreId) ->
     list(StoreId, PathPattern, #{});
 list(PathPattern, Options) when is_map(Options) ->
-    list(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Options).
+    list(?DEFAULT_STORE_ID, PathPattern, Options).
 
 -spec list(StoreId, PathPattern, Options) -> Result when
       StoreId :: store_id(),
@@ -1812,7 +1856,7 @@ list(PathPattern, Options) when is_map(Options) ->
 %% Internally, an `#if_name_matches{regex = any}' condition is appended to the
 %% `PathPattern'. Otherwise, the behavior is that of {@link get/3}.
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the nodes to get.
 %% @param Options query options such as `favor'.
 %%
@@ -1838,7 +1882,7 @@ list(StoreId, PathPattern, Options) ->
 %% @see find/3.
 
 find(PathPattern, Condition) ->
-    find(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Condition).
+    find(?DEFAULT_STORE_ID, PathPattern, Condition).
 
 -spec find
 (StoreId, PathPattern, Condition) -> Result when
@@ -1867,7 +1911,7 @@ find(PathPattern, Condition) ->
 find(StoreId, PathPattern, Condition) when is_atom(StoreId) ->
     find(StoreId, PathPattern, Condition, #{});
 find(PathPattern, Condition, Options) when is_map(Options) ->
-    find(?DEFAULT_RA_CLUSTER_NAME, PathPattern, Condition, Options).
+    find(?DEFAULT_STORE_ID, PathPattern, Condition, Options).
 
 -spec find(StoreId, PathPattern, Condition, Options) -> Result when
       StoreId :: store_id(),
@@ -1887,7 +1931,7 @@ find(PathPattern, Condition, Options) when is_map(Options) ->
 %% ```
 %% %% Find nodes with data under `/:foo/:bar'.
 %% Result = khepri:find(
-%%            ra_cluster_name,
+%%            StoreId,
 %%            [foo, bar],
 %%            #if_has_data{has_data = true}),
 %%
@@ -1902,7 +1946,7 @@ find(PathPattern, Condition, Options) when is_map(Options) ->
 %%                                          child_list_length => 0}}} = Result.
 %% '''
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path indicating where to start the search from.
 %% @param Condition the condition nodes must match to be part of the result.
 %%
@@ -1928,7 +1972,7 @@ find(StoreId, PathPattern, Condition, Options) ->
 %% @see transaction/2.
 
 transaction(Fun) ->
-    transaction(?DEFAULT_RA_CLUSTER_NAME, Fun).
+    transaction(?DEFAULT_STORE_ID, Fun).
 
 -spec transaction
 (StoreId, Fun) -> Ret when
@@ -1962,7 +2006,7 @@ transaction(Fun) ->
 transaction(StoreId, Fun) when is_function(Fun) ->
     transaction(StoreId, Fun, auto);
 transaction(Fun, ReadWriteOrOptions) when is_function(Fun) ->
-    transaction(?DEFAULT_RA_CLUSTER_NAME, Fun, ReadWriteOrOptions).
+    transaction(?DEFAULT_STORE_ID, Fun, ReadWriteOrOptions).
 
 -spec transaction
 (StoreId, Fun, ReadWrite) -> Ret when
@@ -2014,7 +2058,7 @@ transaction(StoreId, Fun, Options)
 transaction(Fun, ReadWrite, Options)
   when is_atom(ReadWrite) andalso is_map(Options) ->
     transaction(
-      ?DEFAULT_RA_CLUSTER_NAME, Fun, ReadWrite, Options).
+      ?DEFAULT_STORE_ID, Fun, ReadWrite, Options).
 
 -spec transaction(StoreId, Fun, ReadWrite, Options) -> Ret when
       StoreId :: store_id(),
@@ -2060,7 +2104,7 @@ transaction(Fun, ReadWrite, Options)
 %% sent by message if the transaction is asynchronous and a correlation ID was
 %% specified.
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param Fun an arbitrary anonymous function.
 %% @param ReadWrite the read/write or read-only nature of the transaction.
 %% @param Options command options such as the command type.
@@ -2084,7 +2128,7 @@ transaction(StoreId, Fun, ReadWrite, Options) ->
 %% @see clear_store/1.
 
 clear_store() ->
-    clear_store(?DEFAULT_RA_CLUSTER_NAME).
+    clear_store(?DEFAULT_STORE_ID).
 
 -spec clear_store
 (StoreId) -> Result when
@@ -2108,7 +2152,7 @@ clear_store() ->
 clear_store(StoreId) when is_atom(StoreId) ->
     clear_store(StoreId, #{});
 clear_store(Options) when is_map(Options) ->
-    clear_store(?DEFAULT_RA_CLUSTER_NAME, Options).
+    clear_store(?DEFAULT_STORE_ID, Options).
 
 -spec clear_store(StoreId, Options) -> Result when
       StoreId :: store_id(),
@@ -2118,7 +2162,7 @@ clear_store(Options) when is_map(Options) ->
 %%
 %% Note that the root node will remain unmodified however.
 %%
-%% @param StoreId the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 %% @param Options command options such as the command type.
 %%
 %% @returns in the case of a synchronous delete, an `{ok, Result}' tuple with
@@ -2156,15 +2200,25 @@ info() ->
       StoreId :: store_id().
 %% @doc Lists the content of specified store on <em>stdout</em>.
 %%
-%% @param StoreID the name of the Ra cluster.
+%% @param StoreId the name of the Khepri store.
 
 info(StoreId) ->
+    info(StoreId, #{}).
+
+-spec info(StoreId, Options) -> ok when
+      StoreId :: store_id(),
+      Options :: query_options().
+%% @doc Lists the content of specified store on <em>stdout</em>.
+%%
+%% @param StoreId the name of the Khepri store.
+
+info(StoreId, Options) ->
     io:format("~n\033[1;32m== CLUSTER MEMBERS ==\033[0m~n~n", []),
     Nodes = lists:sort(
               [Node || {_, Node} <- khepri_cluster:members(StoreId)]),
     lists:foreach(fun(Node) -> io:format("~ts~n", [Node]) end, Nodes),
 
-    case khepri_machine:get_keep_while_conds_state(StoreId) of
+    case khepri_machine:get_keep_while_conds_state(StoreId, Options) of
         {ok, KeepWhileConds} when KeepWhileConds =/= #{} ->
             io:format("~n\033[1;32m== LIFETIME DEPS ==\033[0m~n", []),
             WatcherList = lists:sort(maps:keys(KeepWhileConds)),
@@ -2186,7 +2240,7 @@ info(StoreId) ->
             ok
     end,
 
-    case get(StoreId, [?STAR_STAR]) of
+    case get(StoreId, [?STAR_STAR], Options) of
         {ok, Result} ->
             io:format("~n\033[1;32m== TREE ==\033[0m~n~n●~n", []),
             Tree = khepri_utils:flat_struct_to_tree(Result),

@@ -69,7 +69,7 @@ get_store_info_on_non_existing_store_test_() ->
          "\033[1;32m== CLUSTER MEMBERS ==\033[0m\n"
          "\n",
          begin
-             khepri:info(non_existing_store),
+             khepri:info(non_existing_store, #{timeout => 1000}),
              ?capturedOutput
          end)]}.
 
@@ -134,5 +134,26 @@ get_store_info_with_keep_while_conds_test_() ->
          "\n",
          begin
              khepri:info(?FUNCTION_NAME),
+             ?capturedOutput
+         end)]}.
+
+get_all_stores_info_with_no_store_test() ->
+    ?assertEqual(
+       "No stores running\n",
+       begin
+           khepri:info(),
+           ?capturedOutput
+       end).
+
+get_all_stores_info_with_one_store_test_() ->
+    StoreId = ?FUNCTION_NAME,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         "Running stores:\n"
+         "  " ++ atom_to_list(StoreId) ++ "\n",
+         begin
+             khepri:info(),
              ?capturedOutput
          end)]}.

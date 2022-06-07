@@ -452,7 +452,7 @@ put_with_native_keep_while_cond_test_() ->
         ?_assertEqual(
            {ok, #{[foo] =>
                   #{[foo] => #if_child_list_length{count = {gt, 0}}}}},
-           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME))]}]}.
+           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME, #{}))]}]}.
 
 put_with_unix_string_keep_while_cond_test_() ->
     KeepWhile = #{"." => #if_child_list_length{count = {gt, 0}}},
@@ -474,7 +474,7 @@ put_with_unix_string_keep_while_cond_test_() ->
         ?_assertEqual(
            {ok, #{[foo] =>
                   #{[foo] => #if_child_list_length{count = {gt, 0}}}}},
-           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME))]}]}.
+           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME, #{}))]}]}.
 
 put_with_unix_binary_keep_while_cond_test_() ->
     KeepWhile = #{<<".">> => #if_child_list_length{count = {gt, 0}}},
@@ -496,7 +496,7 @@ put_with_unix_binary_keep_while_cond_test_() ->
         ?_assertEqual(
            {ok, #{[foo] =>
                   #{[foo] => #if_child_list_length{count = {gt, 0}}}}},
-           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME))]}]}.
+           khepri_machine:get_keep_while_conds_state(?FUNCTION_NAME, #{}))]}]}.
 
 create_in_ro_transaction_test_() ->
     {setup,

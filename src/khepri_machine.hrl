@@ -10,6 +10,7 @@
 
 -record(config,
         {store_id :: khepri:store_id(),
+         member :: ra:server_id(),
          snapshot_interval = ?SNAPSHOT_INTERVAL :: non_neg_integer()}).
 
 -record(khepri_machine,

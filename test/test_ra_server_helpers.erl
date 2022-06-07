@@ -20,70 +20,23 @@ setup(Testcase) ->
            consistent_query_interval_in_compromise,
            2),
 
-    RaSystem = Testcase,
-    StoreDir = store_dir_name(RaSystem),
-    _ = remove_store_dir(StoreDir),
-    Default = ra_system:default_config(),
-    RaSystemConfig = Default#{name => RaSystem,
-                              data_dir => StoreDir,
-                              wal_data_dir => StoreDir,
-                              wal_max_size_bytes => 16 * 1024,
-                              names => ra_system:derive_names(RaSystem)},
-    case ra_system:start(RaSystemConfig) of
-        {ok, RaSystemPid} ->
-            {ok, StoreId} = khepri:start(
-                              RaSystem,
-                              Testcase,
-                              atom_to_list(Testcase)),
-            ok = khepri_machine:clear_cache(StoreId),
-            #{ra_system => RaSystem,
-              ra_system_pid => RaSystemPid,
-              store_dir => StoreDir,
-              store_id => StoreId};
-        {error, _} = Error ->
-            throw(Error)
-    end.
+    #{ra_system := RaSystem} = Props = helpers:start_ra_system(Testcase),
+    {ok, StoreId} = khepri:start(RaSystem, Testcase),
+    Props#{store_id => StoreId}.
 
-cleanup(#{ra_system := RaSystem,
-          store_dir := StoreDir,
-          store_id := StoreId}) ->
-    ServerIds = khepri_cluster:members(StoreId),
-    _ = application:stop(khepri),
-    %% FIXME: This monitoring can go away when/if the following pull request
-    %% in Ra is merged:
-    %% https://github.com/rabbitmq/ra/pull/270
-    MRefs = [erlang:monitor(process, ServerId) || ServerId <- ServerIds],
-    ?assertMatch({ok, _}, ra:delete_cluster(ServerIds)),
+cleanup(#{store_id := StoreId} = Props) ->
+    Nodes = case khepri_cluster:nodes(StoreId) of
+                %% If the list is empty, assumed it was running on this node
+                %% but the store was stopped. This is the case in
+                %% app_starts_workers_test_() for instance.
+                [] -> [node()];
+                L  -> L
+            end,
     lists:foreach(
-      fun(MRef) -> receive {'DOWN', MRef, _, _, _} -> ok end end,
-      MRefs),
-    ?assertEqual(ok, supervisor:terminate_child(ra_systems_sup, RaSystem)),
-    ?assertEqual(ok, supervisor:delete_child(ra_systems_sup, RaSystem)),
-    _ = remove_store_dir(StoreDir),
+      fun(Node) ->
+              _ = rpc:call(Node, khepri, stop, [StoreId]),
+              ?assertEqual(
+                 ok,
+                 rpc:call(Node, helpers, stop_ra_system, [Props]))
+      end, Nodes),
     ok.
-
-store_dir_name(RaSystem) ->
-    lists:flatten(
-      io_lib:format("_test." ?MODULE_STRING ".~s", [RaSystem])).
-
-remove_store_dir(StoreDir) ->
-    OnWindows = case os:type() of
-                    {win32, _} -> true;
-                    _          -> false
-                end,
-    case file:del_dir_r(StoreDir) of
-        ok ->
-            ok;
-        {error, enoent} ->
-            ok;
-        {error, eexist} when OnWindows ->
-            %% FIXME: Some files are not deleted on Windows... Are they still
-            %% open in Ra?
-            io:format(
-              standard_error,
-              "Files remaining in ~ts: ~p~n",
-              [StoreDir, file:list_dir_all(StoreDir)]),
-            ok;
-        Error ->
-            throw(Error)
-    end.

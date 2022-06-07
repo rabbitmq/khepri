@@ -8,3 +8,11 @@
 -define(META, #{index => ?LINE,
                 term => 1,
                 system_time => ?LINE}).
+
+-define(MACH_PARAMS(),
+        #{store_id => ?FUNCTION_NAME,
+          member => khepri_cluster:this_member(?FUNCTION_NAME)}).
+-define(MACH_PARAMS(Commands),
+        #{store_id => ?FUNCTION_NAME,
+          member => khepri_cluster:this_member(?FUNCTION_NAME),
+          commands => Commands}).

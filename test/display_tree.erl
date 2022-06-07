@@ -25,8 +25,7 @@ complex_flat_struct_to_tree_test() ->
                      payload = khepri_payload:data(baz_value)},
                 #put{path = [baz, pouet],
                      payload = khepri_payload:data(pouet_value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Root,
@@ -359,8 +358,7 @@ flat_struct_with_children_before_parents_test() ->
 display_simple_tree_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(foo_value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Root,
@@ -398,8 +396,7 @@ display_large_tree_test() ->
                                   cupidatat, non, proident, sunt, in, culpa,
                                   qui, officia, deserunt, mollit, anim, id,
                                   est, laborum])}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Root,
@@ -455,8 +452,7 @@ display_tree_with_plaintext_lines_test() ->
                                   cupidatat, non, proident, sunt, in, culpa,
                                   qui, officia, deserunt, mollit, anim, id,
                                   est, laborum])}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Root,
@@ -512,8 +508,7 @@ display_tree_without_colors_test() ->
                                   cupidatat, non, proident, sunt, in, culpa,
                                   qui, officia, deserunt, mollit, anim, id,
                                   est, laborum])}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Root,
@@ -569,8 +564,7 @@ display_tree_with_plaintext_lines_and_without_colors_test() ->
                                   cupidatat, non, proident, sunt, in, culpa,
                                   qui, officia, deserunt, mollit, anim, id,
                                   est, laborum])}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Root,
@@ -610,8 +604,7 @@ display_tree_with_binary_key_test() ->
                      payload = khepri_payload:data(foo_value)},
                 #put{path = [bar],
                      payload = khepri_payload:data(bar_value)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Root,
@@ -635,8 +628,7 @@ display_tree_with_similar_atom_and_binary_keys_test() ->
                      payload = khepri_payload:data(foo_binary)},
                 #put{path = [foo],
                      payload = khepri_payload:data(foo_atom)}],
-    S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
-                               commands => Commands}),
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Root,
