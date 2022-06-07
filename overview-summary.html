@@ -187,11 +187,13 @@ the first insert though.</p>
 <p>A Khepri store corresponds to one Ra cluster. In fact, the name of the Ra
 cluster is the name of the Khepri store. It is possible to have multiple
 database instances running on the same Erlang node or cluster by starting
-multiple Ra clusters. Note that it is called a "Ra cluster" but it can have a
+multiple Ra clusters. Note that it is called a "cluster" but it can have a
 single member.</p>
 
-<p>By default, <a docgen-rel="seemfa" docgen-href="khepri#start/0" href="khepri.html#start-0"><code>khepri:start/0</code></a> starts a default store called <code>khepri</code>,
-based on Ra's default system. You can start a simple store using <a docgen-rel="seemfa" docgen-href="khepri#start/1" href="khepri.html#start-1"><code>khepri:start/1</code></a>. To configure a cluster, you need to use <a docgen-rel="seeerl" docgen-href="khepri_cluster" href="khepri_cluster.html"><code>khepri_cluster</code></a> to add or remove members.</p>
+<p>You can start a Khepri store using <a docgen-rel="seemfa" docgen-href="#start/0" href="#start-0"><code>start/0</code></a> up to <a docgen-rel="seemfa" docgen-href="#start/3" href="#start-3"><code>start/3</code></a>. See
+those functions to learn more about the configuration settings.</p>
+
+<p>To expand or shrink a cluster, <a docgen-rel="seemfa" docgen-href="khepri_cluster#join/1" href="khepri_cluster.html#join-1"><code>khepri_cluster:join/1</code></a> and <a docgen-rel="seemfa" docgen-href="khepri_cluster#reset/0" href="khepri_cluster.html#reset-0"><code>khepri_cluster:reset/0</code></a> allow a Khepri store node to join or leave a cluster.</p>
 
 <h3><a name="Khepri_API">Khepri API</a></h3>
 

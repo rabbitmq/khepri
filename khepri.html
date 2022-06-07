@@ -21,9 +21,8 @@
   atomic operations and queries on the database. In addition to that, <a docgen-rel="seemfa" docgen-href="#transaction/1" href="#transaction-1"><code>transaction/1</code></a> are the starting point to run transaction functions. However
   the API to use inside transaction functions is provided by <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a>.</p>
  
-  <p>This module also provides functions to start and stop (in the future) a
-  simple unclustered Khepri store. For more advanced setup and clustering,
-  see <a docgen-rel="seeerl" docgen-href="khepri_cluster" href="khepri_cluster.html"><code>khepri_cluster</code></a>.</p>
+  <p>This module also provides functions to start and stop a simple unclustered
+  Khepri store. For more advanced setup and clustering, see <a docgen-rel="seeerl" docgen-href="khepri_cluster" href="khepri_cluster.html"><code>khepri_cluster</code></a>.</p>
  
   <h3><a name="A_Khepri_store">A Khepri store</a></h3>
  
@@ -35,8 +34,8 @@ Khepri stores in parallel by creating multiple Ra clusters.</p>
  
   <p>When a store is started, a store ID <a docgen-rel="seemfa" docgen-href="#store_id/0" href="#store_id-0"><code>store_id/0</code></a> is returned. This  
 store ID is then used by the rest of this module's API. The returned store  
-ID currently corresponds exactly to the Ra cluster name. Currently, it must  
-be an atom; other types are unsupported.</p>
+ID currently corresponds exactly to the Ra cluster name. It must be an atom  
+though; other types are unsupported.</p>
  
   <h3><a name="Interacting_with_the_Khepri_store">Interacting with the Khepri store</a></h3>
  
@@ -94,12 +93,13 @@ added or removed).</p>
   are not reflected in this version.</p>
 
 <h3 class="typedecl"><a name="type-command_options">command_options()</a></h3>
-<p><code>command_options() = #{async =&gt; <a href="#type-async_option">async_option()</a>}</code></p>
+<p><code>command_options() = #{timeout =&gt; timeout(), async =&gt; <a href="#type-async_option">async_option()</a>}</code></p>
 <p><p>  Options used in commands.</p>
  
   <p>Commands are <a docgen-rel="seemfa" docgen-href="#put/5" href="#put-5"><code>put/5</code></a>, <a docgen-rel="seemfa" docgen-href="#delete/3" href="#delete-3"><code>delete/3</code></a> and read-write <a docgen-rel="seemfa" docgen-href="#transaction/4" href="#transaction-4"><code>transaction/4</code></a>.</p>
  
   <ul>
+  <li><code>timeout</code> is passed to Ra command processing function.</li>
   <li><code>async</code> indicates the synchronous or asynchronous nature of the
   command; see <a docgen-rel="seetype" docgen-href="#async_option/0" href="#type-async_option"><code>async_option()</code></a>.</li>
   </ul></p>
@@ -173,10 +173,11 @@ payload and child nodes.</p>
   each time the payload is added, modified or removed.</p>
 
 <h3 class="typedecl"><a name="type-query_options">query_options()</a></h3>
-<p><code>query_options() = #{expect_specific_node =&gt; boolean(), include_child_names =&gt; boolean(), favor =&gt; <a href="#type-favor_option">favor_option()</a>}</code></p>
+<p><code>query_options() = #{timeout =&gt; timeout(), expect_specific_node =&gt; boolean(), include_child_names =&gt; boolean(), favor =&gt; <a href="#type-favor_option">favor_option()</a>}</code></p>
 <p><p>  Options used in queries.</p>
  
   <ul>
+  <li><code>timeout</code> is passed to Ra query processing function.</li>
   <li><code>expect_specific_node</code> indicates if the path is expected to point to a
   specific tree node or could match many nodes.</li>
   <li><code>include_child_names</code> indicates if child names should be included in
@@ -191,8 +192,7 @@ payload and child nodes.</p>
 
 <h3 class="typedecl"><a name="type-store_id">store_id()</a></h3>
 <p><code>store_id() = atom()</code></p>
-<p><p> ra:cluster_name().  
-ID of a Khepri store.</p>
+<p><p>  ID of a Khepri store.</p>
  
   This is the same as the Ra cluster name hosting the Khepri store.</p>
 
@@ -201,10 +201,15 @@ ID of a Khepri store.</p>
 <p>  An ID to identify a registered trigger.</p>
 
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#start-0">start/0</a></td><td>Starts a store on the default Ra system.</td></tr>
-<tr><td valign="top"><a href="#start-1">start/1</a></td><td>Starts a store on the specified Ra system.</td></tr>
-<tr><td valign="top"><a href="#start-3">start/3</a></td><td>Starts a store on the specified Ra system.</td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#start-0">start/0</a></td><td>Starts a store.</td></tr>
+<tr><td valign="top"><a href="#start-1">start/1</a></td><td>Starts a store.</td></tr>
+<tr><td valign="top"><a href="#start-2">start/2</a></td><td>Starts a store.</td></tr>
+<tr><td valign="top"><a href="#start-3">start/3</a></td><td>Starts a store.</td></tr>
+<tr><td valign="top"><a href="#reset-0">reset/0</a></td><td>Resets the store on this Erlang node.</td></tr>
+<tr><td valign="top"><a href="#reset-1">reset/1</a></td><td>Resets the store on this Erlang node.</td></tr>
 <tr><td valign="top"><a href="#reset-2">reset/2</a></td><td>Resets the store on this Erlang node.</td></tr>
+<tr><td valign="top"><a href="#stop-0">stop/0</a></td><td>Stops a store.</td></tr>
+<tr><td valign="top"><a href="#stop-1">stop/1</a></td><td>Stops a store.</td></tr>
 <tr><td valign="top"><a href="#get_store_ids-0">get_store_ids/0</a></td><td>Returns the list of running stores.</td></tr>
 <tr><td valign="top"><a href="#put-2">put/2</a></td><td>Creates or modifies a specific tree node in the tree structure.</td></tr>
 <tr><td valign="top"><a href="#put-3">put/3</a></td><td>Creates or modifies a specific tree node in the tree structure.</td></tr>
@@ -301,6 +306,7 @@ result.</td></tr>
 <tr><td valign="top"><a href="#clear_store-2">clear_store/2</a></td><td>Wipes out the entire tree.</td></tr>
 <tr><td valign="top"><a href="#info-0">info/0</a></td><td>Lists the running stores on <em>stdout</em>.</td></tr>
 <tr><td valign="top"><a href="#info-1">info/1</a></td><td>Lists the content of specified store on <em>stdout</em>.</td></tr>
+<tr><td valign="top"><a href="#info-2">info/2</a></td><td>Lists the content of specified store on <em>stdout</em>.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -308,53 +314,83 @@ result.</td></tr>
 <h3 class="function"><a name="start-0">start/0</a></h3>
 <div class="spec">
 <p><code>start() -&gt; Ret</code>
-<ul class="definitions"><li><code>Ret = <a href="#type-ok">ok</a>(StoreId) | <a href="#type-error">error()</a></code></li><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li></ul></p>
+<ul class="definitions"><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(StoreId) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li></ul></p>
 <p></p>
-</div><p><p>Starts a store on the default Ra system.</p>
- 
-  The store uses the default Ra cluster name and cluster friendly name.
+</div><p>Starts a store.
  </p>
 <p><b>See also:</b> <a href="khepri_cluster.html#start-0">khepri_cluster:start/0</a>.</p>
 
 <h3 class="function"><a name="start-1">start/1</a></h3>
 <div class="spec">
-<p><code>start(RaSystem) -&gt; Ret</code>
-<ul class="definitions"><li><code>RaSystem = atom()</code></li><li><code>Ret = <a href="#type-ok">ok</a>(StoreId) | <a href="#type-error">error()</a></code></li><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li></ul></p>
-<p><code>RaSystem</code>: the name of the Ra system.
- <br>
-</p>
-</div><p><p>Starts a store on the specified Ra system.</p>
- 
-  The store uses the default Ra cluster name and cluster friendly name.
+<p><code>start(RaSystemOrDataDir::RaSystem | DataDir) -&gt; Ret</code>
+<ul class="definitions"><li><code>RaSystem = atom()</code></li><li><code>DataDir = <a href="/home/runner/work/khepri/kernel/doc/file.html#type-filename_all">file:filename_all()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(StoreId) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li></ul></p>
+<p></p>
+</div><p>Starts a store.
  </p>
 <p><b>See also:</b> <a href="khepri_cluster.html#start-1">khepri_cluster:start/1</a>.</p>
 
+<h3 class="function"><a name="start-2">start/2</a></h3>
+<div class="spec">
+<p><code>start(RaSystemOrDataDir::RaSystem | DataDir, StoreIdOrRaServerConfig::StoreId | RaServerConfig) -&gt; Ret</code>
+<ul class="definitions"><li><code>RaSystem = atom()</code></li><li><code>DataDir = <a href="/home/runner/work/khepri/kernel/doc/file.html#type-filename_all">file:filename_all()</a></code></li><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>RaServerConfig = <a href="/home/runner/work/khepri/khepri/doc/khepri_cluster.html#type-incomplete_ra_server_config">khepri_cluster:incomplete_ra_server_config()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(StoreId) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li></ul></p>
+<p></p>
+</div><p>Starts a store.
+ </p>
+<p><b>See also:</b> <a href="khepri_cluster.html#start-2">khepri_cluster:start/2</a>.</p>
+
 <h3 class="function"><a name="start-3">start/3</a></h3>
 <div class="spec">
-<p><code>start(RaSystem, ClusterName, FriendlyName) -&gt; Ret</code>
-<ul class="definitions"><li><code>RaSystem = atom()</code></li><li><code>ClusterName = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-cluster_name">ra:cluster_name()</a></code></li><li><code>FriendlyName = string()</code></li><li><code>Ret = <a href="#type-ok">ok</a>(StoreId) | <a href="#type-error">error()</a></code></li><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li></ul></p>
-<p><code>RaSystem</code>: the name of the Ra system.<br>
-<code>ClusterName</code>: the name of the Ra cluster.<br>
-<code>FriendlyName</code>: the friendly name of the Ra cluster.
- <br>
-</p>
-</div><p>Starts a store on the specified Ra system.
+<p><code>start(RaSystemOrDataDir::RaSystem | DataDir, StoreIdOrRaServerConfig::StoreId | RaServerConfig, Timeout) -&gt; Ret</code>
+<ul class="definitions"><li><code>RaSystem = atom()</code></li><li><code>DataDir = <a href="/home/runner/work/khepri/kernel/doc/file.html#type-filename_all">file:filename_all()</a></code></li><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>RaServerConfig = <a href="/home/runner/work/khepri/khepri/doc/khepri_cluster.html#type-incomplete_ra_server_config">khepri_cluster:incomplete_ra_server_config()</a></code></li><li><code>Timeout = timeout()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(StoreId) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li></ul></p>
+<p></p>
+</div><p>Starts a store.
  </p>
 <p><b>See also:</b> <a href="khepri_cluster.html#start-3">khepri_cluster:start/3</a>.</p>
 
+<h3 class="function"><a name="reset-0">reset/0</a></h3>
+<div class="spec">
+<p><code>reset() -&gt; Ret</code>
+<ul class="definitions"><li><code>Ret = ok | <a href="#type-error">error()</a></code></li></ul></p>
+<p></p>
+</div><p>Resets the store on this Erlang node.
+ </p>
+<p><b>See also:</b> <a href="khepri_cluster.html#reset-0">khepri_cluster:reset/0</a>.</p>
+
+<h3 class="function"><a name="reset-1">reset/1</a></h3>
+<div class="spec">
+<p><code>reset(StoreIdOrTimeout::StoreId | Timeout) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Timeout = timeout()</code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p></p>
+</div><p>Resets the store on this Erlang node.
+ </p>
+<p><b>See also:</b> <a href="khepri_cluster.html#reset-1">khepri_cluster:reset/1</a>.</p>
+
 <h3 class="function"><a name="reset-2">reset/2</a></h3>
 <div class="spec">
-<p><code>reset(RaSystem, ClusterName) -&gt; Ret</code>
-<ul class="definitions"><li><code>RaSystem = atom()</code></li><li><code>ClusterName = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-cluster_name">ra:cluster_name()</a></code></li><li><code>Ret = ok | <a href="#type-error">error()</a> | {badrpc, any()}</code></li></ul></p>
-<p><code>RaSystem</code>: the name of the Ra system.<br>
-<code>ClusterName</code>: the name of the Ra cluster.
- <br>
-</p>
-</div><p><p>Resets the store on this Erlang node.</p>
- 
-  It does that by force-deleting the Ra local server.
+<p><code>reset(StoreId, Timeout) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Timeout = timeout()</code></li><li><code>Ret = ok | <a href="#type-error">error()</a></code></li></ul></p>
+<p></p>
+</div><p>Resets the store on this Erlang node.
  </p>
 <p><b>See also:</b> <a href="khepri_cluster.html#reset-2">khepri_cluster:reset/2</a>.</p>
+
+<h3 class="function"><a name="stop-0">stop/0</a></h3>
+<div class="spec">
+<p><code>stop() -&gt; Ret</code>
+<ul class="definitions"><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p></p>
+</div><p>Stops a store.
+ </p>
+<p><b>See also:</b> <a href="khepri_cluster.html#stop-0">khepri_cluster:stop/0</a>.</p>
+
+<h3 class="function"><a name="stop-1">stop/1</a></h3>
+<div class="spec">
+<p><code>stop(StoreId) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p></p>
+</div><p>Stops a store.
+ </p>
+<p><b>See also:</b> <a href="khepri_cluster.html#stop-1">khepri_cluster:stop/1</a>.</p>
 
 <h3 class="function"><a name="get_store_ids-0">get_store_ids/0</a></h3>
 <div class="spec">
@@ -405,7 +441,7 @@ result.</td></tr>
 <div class="spec">
 <p><code>put(StoreId, PathPattern, Data, Extra, Options) -&gt; Result</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
 <code>Data</code>: the Erlang term or function to store, or a <a docgen-rel="seetype" docgen-href="khepri_payload#payload/0" href="khepri_payload.html#type-payload"><code>khepri_payload:payload()</code></a> structure.<br>
@@ -474,7 +510,7 @@ there was no properties or payload to return).</p>
  
   Example:
   <pre><code>%% Insert a node at `/:foo/:bar', overwriting the previous value.
-Result = khepri:put(ra_cluster_name, [foo, bar], new_value),
+Result = khepri:put(StoreId, [foo, bar], new_value),
  
 %% Here is the content of `Result'.
 {ok, #{[foo, bar] =&gt; #{data =&gt; old_value,
@@ -526,7 +562,7 @@ exist.</p>
 <div class="spec">
 <p><code>create(StoreId, PathPattern, Data, Extra, Options) -&gt; Result</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
 <code>Data</code>: the Erlang term or function to store, or a <a docgen-rel="seetype" docgen-href="khepri_payload#payload/0" href="khepri_payload.html#type-payload"><code>khepri_payload:payload()</code></a> structure.<br>
@@ -591,7 +627,7 @@ exists.</p>
 <div class="spec">
 <p><code>update(StoreId, PathPattern, Data, Extra, Options) -&gt; Result</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
 <code>Data</code>: the Erlang term or function to store, or a <a docgen-rel="seetype" docgen-href="khepri_payload#payload/0" href="khepri_payload.html#type-payload"><code>khepri_payload:payload()</code></a> structure.<br>
@@ -657,7 +693,7 @@ exists.</p>
 <div class="spec">
 <p><code>compare_and_swap(StoreId, PathPattern, DataPattern, Data, Extra, Options) -&gt; Result</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
 <code>Data</code>: the Erlang term or function to store, or a <a docgen-rel="seetype" docgen-href="khepri_payload#payload/0" href="khepri_payload.html#type-payload"><code>khepri_payload:payload()</code></a> structure.<br>
@@ -719,7 +755,7 @@ exists.</p>
 <div class="spec">
 <p><code>clear_payload(StoreId, PathPattern, Extra, Options) -&gt; Result</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the node to create or
          modify.<br>
 <code>Extra</code>: extra options such as <code>keep_while</code> conditions.<br>
@@ -773,7 +809,7 @@ exists.</p>
 <div class="spec">
 <p><code>delete(StoreId, PathPattern, Options) -&gt; Result</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to delete.<br>
 <code>Options</code>: command options such as the command type.
  <br>
@@ -793,7 +829,7 @@ properties and payload of that deleted node.</p>
  
   Example:
   <pre><code>%% Delete the node at `/:foo/:bar'.
-Result = khepri:delete(ra_cluster_name, [foo, bar]),
+Result = khepri:delete(StoreId, [foo, bar]),
  
 %% Here is the content of `Result'.
 {ok, #{[foo, bar] =&gt; #{data =&gt; new_value,
@@ -839,7 +875,7 @@ Result = khepri:delete(ra_cluster_name, [foo, bar]),
 <div class="spec">
 <p><code>exists(StoreId, PathPattern, Options) -&gt; Exists</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Exists = boolean()</code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
 <code>Options</code>: query options such as <code>favor</code>.
  <br>
@@ -893,7 +929,7 @@ Result = khepri:delete(ra_cluster_name, [foo, bar]),
 <div class="spec">
 <p><code>get(StoreId, PathPattern, Options) -&gt; Result</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to get.<br>
 <code>Options</code>: query options such as <code>favor</code>.
  <br>
@@ -918,7 +954,7 @@ map containing the properties and payload of that matching node.</p>
  
   Example:
   <pre><code>%% Query the node at `/:foo/:bar'.
-Result = khepri:get(ra_cluster_name, [foo, bar]),
+Result = khepri:get(StoreId, [foo, bar]),
  
 %% Here is the content of `Result'.
 {ok, #{[foo, bar] =&gt; #{data =&gt; new_value,
@@ -963,7 +999,7 @@ Result = khepri:get(ra_cluster_name, [foo, bar]),
 <div class="spec">
 <p><code>get_node_props(StoreId, PathPattern, Options) -&gt; NodeProps</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>NodeProps = <a href="#type-node_props">node_props()</a></code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
 <code>Options</code>: query options such as <code>favor</code>.
  <br>
@@ -1022,7 +1058,7 @@ multiple nodes.</p>
 <div class="spec">
 <p><code>has_data(StoreId, PathPattern, Options) -&gt; HasData</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasData = boolean()</code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
 <code>Options</code>: query options such as <code>favor</code>.
  <br>
@@ -1076,7 +1112,7 @@ multiple nodes.</p>
 <div class="spec">
 <p><code>get_data(StoreId, PathPattern, Options) -&gt; Data</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
 <code>Options</code>: query options such as <code>favor</code>.
  <br>
@@ -1140,7 +1176,7 @@ there is no data.</p>
 <div class="spec">
 <p><code>get_data_or(StoreId, PathPattern, Default, Options) -&gt; Data</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Default = <a href="#type-data">data()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Data = <a href="#type-data">data()</a></code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
 <code>Default</code>: the default term to return if there is no data.<br>
 <code>Options</code>: query options such as <code>favor</code>.
@@ -1204,7 +1240,7 @@ multiple nodes.</p>
 <div class="spec">
 <p><code>has_sproc(StoreId, PathPattern, Options) -&gt; HasStoredProc</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasStoredProc = boolean()</code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
 <code>Options</code>: query options such as <code>favor</code>.
  <br>
@@ -1261,7 +1297,7 @@ result.</p>
 <div class="spec">
 <p><code>run_sproc(StoreId, PathPattern, Args, Options) -&gt; Result</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Args = list()</code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = any()</code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
 <code>Args</code>: the list of args to pass to the stored procedure; its length
          must be equal to the stored procedure arity.<br>
@@ -1319,7 +1355,7 @@ multiple nodes.</p>
 <div class="spec">
 <p><code>count(StoreId, PathPattern, Options) -&gt; Result</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-ok">ok</a>(integer()) | <a href="#type-error">error()</a></code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to count.<br>
 <code>Options</code>: query options such as <code>favor</code>.
  <br>
@@ -1338,7 +1374,7 @@ consume less memory though, as the result map is not constructed.</p>
  
   Example:
   <pre><code>%% Query the node at `/:foo/:bar'.
-Result = khepri:count(ra_cluster_name, [foo, ?STAR]),
+Result = khepri:count(StoreId, [foo, ?STAR]),
  
 %% Here is the content of `Result'.
 {ok, 3} = Result.</code></pre>
@@ -1381,7 +1417,7 @@ Result = khepri:count(ra_cluster_name, [foo, ?STAR]),
 <div class="spec">
 <p><code>register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options) -&gt; Ret</code>
 <ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>TriggerId = <a href="#type-trigger_id">trigger_id()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a></code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Ret = ok | <a href="#type-error">error()</a></code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>TriggerId</code>: the name of the trigger.<br>
 <code>EventFilter</code>: the event filter used to associate an event with a
          stored procedure.<br>
@@ -1460,7 +1496,7 @@ is a map containing the event properties. Here is an example:</p>
 <div class="spec">
 <p><code>list(StoreId, PathPattern, Options) -&gt; Result</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to get.<br>
 <code>Options</code>: query options such as <code>favor</code>.
  <br>
@@ -1514,7 +1550,7 @@ is a map containing the event properties. Here is an example:</p>
 <div class="spec">
 <p><code>find(StoreId, PathPattern, Condition, Options) -&gt; Result</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Condition = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path indicating where to start the search from.<br>
 <code>Condition</code>: the condition nodes must match to be part of the result.
  <br>
@@ -1532,7 +1568,7 @@ direct child nodes.</p>
   Example:
   <pre><code>%% Find nodes with data under `/:foo/:bar'.
 Result = khepri:find(
-           ra_cluster_name,
+           StoreId,
            [foo, bar],
            #if_has_data{has_data = true}),
  
@@ -1606,7 +1642,7 @@ Result = khepri:find(
 <div class="spec">
 <p><code>transaction(StoreId, Fun, ReadWrite, Options) -&gt; Ret</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="#type-command_options">command_options()</a> | <a href="#type-query_options">query_options()</a></code></li><li><code>Ret = Atomic | Aborted | NoRetIfAsync</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>Fun</code>: an arbitrary anonymous function.<br>
 <code>ReadWrite</code>: the read/write or read-only nature of the transaction.<br>
 <code>Options</code>: command options such as the command type.
@@ -1687,7 +1723,7 @@ options.</p>
 <div class="spec">
 <p><code>clear_store(StoreId, Options) -&gt; Result</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = <a href="#type-result">result()</a></code></li></ul></p>
-<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>Options</code>: command options such as the command type.
  <br>
 </p>
@@ -1712,7 +1748,17 @@ options.</p>
 <div class="spec">
 <p><code>info(StoreId) -&gt; ok</code>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li></ul></p>
-<p></p>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
+</p>
+</div><p>Lists the content of specified store on <em>stdout</em>.
+ </p>
+
+<h3 class="function"><a name="info-2">info/2</a></h3>
+<div class="spec">
+<p><code>info(StoreId, Options) -&gt; ok</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
+</p>
 </div><p>Lists the content of specified store on <em>stdout</em>.
  </p>
 <hr>
