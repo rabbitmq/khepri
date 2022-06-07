@@ -304,6 +304,40 @@ result.</td></tr>
 <tr><td valign="top"><a href="#clear_store-0">clear_store/0</a></td><td>Wipes out the entire tree.</td></tr>
 <tr><td valign="top"><a href="#clear_store-1">clear_store/1</a></td><td>Wipes out the entire tree.</td></tr>
 <tr><td valign="top"><a href="#clear_store-2">clear_store/2</a></td><td>Wipes out the entire tree.</td></tr>
+<tr><td valign="top"><a href="#put%21-2">'put!'/2</a></td><td>Creates or modifies a specific tree node in the tree structure.</td></tr>
+<tr><td valign="top"><a href="#put%21-3">'put!'/3</a></td><td>Creates or modifies a specific tree node in the tree structure.</td></tr>
+<tr><td valign="top"><a href="#put%21-4">'put!'/4</a></td><td>Creates or modifies a specific tree node in the tree structure.</td></tr>
+<tr><td valign="top"><a href="#put%21-5">'put!'/5</a></td><td>Creates or modifies a specific tree node in the tree structure.</td></tr>
+<tr><td valign="top"><a href="#create%21-2">'create!'/2</a></td><td>Creates a specific tree node in the tree structure only if it does not  
+exist.</td></tr>
+<tr><td valign="top"><a href="#create%21-3">'create!'/3</a></td><td>Creates a specific tree node in the tree structure only if it does not  
+exist.</td></tr>
+<tr><td valign="top"><a href="#create%21-4">'create!'/4</a></td><td>Creates a specific tree node in the tree structure only if it does not  
+exist.</td></tr>
+<tr><td valign="top"><a href="#create%21-5">'create!'/5</a></td><td>Creates a specific tree node in the tree structure only if it does not  
+exist.</td></tr>
+<tr><td valign="top"><a href="#update%21-2">'update!'/2</a></td><td>Updates a specific tree node in the tree structure only if it already  
+exists.</td></tr>
+<tr><td valign="top"><a href="#update%21-3">'update!'/3</a></td><td>Updates a specific tree node in the tree structure only if it already  
+exists.</td></tr>
+<tr><td valign="top"><a href="#update%21-4">'update!'/4</a></td><td>Updates a specific tree node in the tree structure only if it already  
+exists.</td></tr>
+<tr><td valign="top"><a href="#update%21-5">'update!'/5</a></td><td>Updates a specific tree node in the tree structure only if it already  
+exists.</td></tr>
+<tr><td valign="top"><a href="#compare_and_swap%21-3">'compare_and_swap!'/3</a></td><td>Updates a specific tree node in the tree structure only if it already
+  exists and its data matches the given <code>DataPattern</code>.</td></tr>
+<tr><td valign="top"><a href="#compare_and_swap%21-4">'compare_and_swap!'/4</a></td><td>Updates a specific tree node in the tree structure only if it already
+  exists and its data matches the given <code>DataPattern</code>.</td></tr>
+<tr><td valign="top"><a href="#compare_and_swap%21-5">'compare_and_swap!'/5</a></td><td>Updates a specific tree node in the tree structure only if it already
+  exists and its data matches the given <code>DataPattern</code>.</td></tr>
+<tr><td valign="top"><a href="#compare_and_swap%21-6">'compare_and_swap!'/6</a></td><td>Updates a specific tree node in the tree structure only if it already
+  exists and its data matches the given <code>DataPattern</code>.</td></tr>
+<tr><td valign="top"><a href="#get%21-1">'get!'/1</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#get%21-2">'get!'/2</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#get%21-3">'get!'/3</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#delete%21-1">'delete!'/1</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#delete%21-2">'delete!'/2</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#delete%21-3">'delete!'/3</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#info-0">info/0</a></td><td>Lists the running stores on <em>stdout</em>.</td></tr>
 <tr><td valign="top"><a href="#info-1">info/1</a></td><td>Lists the content of specified store on <em>stdout</em>.</td></tr>
 <tr><td valign="top"><a href="#info-2">info/2</a></td><td>Lists the content of specified store on <em>stdout</em>.</td></tr>
@@ -1735,6 +1769,308 @@ options.</p>
 </div><p><p>Wipes out the entire tree.</p>
  
   Note that the root node will remain unmodified however.
+ </p>
+<p><b>See also:</b> <a href="#delete-3">delete/3</a>.</p>
+
+<h3 class="function"><a name="put%21-2">'put!'/2</a></h3>
+<div class="spec">
+<p><code>'put!'(PathPattern, Data) -&gt; NodePropsMap</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Creates or modifies a specific tree node in the tree structure.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#put/2" href="#put-2"><code>put/2</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. If
+  there is an error, an exception is thrown.
+ </p>
+<p><b>See also:</b> <a href="#put-2">put/2</a>.</p>
+
+<h3 class="function"><a name="put%21-3">'put!'/3</a></h3>
+<div class="spec">
+<p><code>'put!'(StoreId, PathPattern, Data) -&gt; NodePropsMap</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Creates or modifies a specific tree node in the tree structure.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#put/3" href="#put-3"><code>put/3</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. If
+  there is an error, an exception is thrown.
+ </p>
+<p><b>See also:</b> <a href="#put-3">put/3</a>.</p>
+
+<h3 class="function"><a name="put%21-4">'put!'/4</a></h3>
+<div class="spec">
+<p><code>'put!'(StoreId, PathPattern, Data, ExtraOrOptions::Extra | Options) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = NodePropsMap | NoRetIfAsync</code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<p></p>
+</div><p><p>Creates or modifies a specific tree node in the tree structure.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#put/4" href="#put-4"><code>put/4</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. If
+  there is an error, an exception is thrown.
+ </p>
+<p><b>See also:</b> <a href="#put-4">put/4</a>.</p>
+
+<h3 class="function"><a name="put%21-5">'put!'/5</a></h3>
+<div class="spec">
+<p><code>'put!'(StoreId, PathPattern, Data, Extra, Options) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = NodePropsMap | NoRetIfAsync</code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<p></p>
+</div><p><p>Creates or modifies a specific tree node in the tree structure.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#put/5" href="#put-5"><code>put/5</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. If
+  there is an error, an exception is thrown.
+ </p>
+<p><b>See also:</b> <a href="#put-5">put/5</a>.</p>
+
+<h3 class="function"><a name="create%21-2">'create!'/2</a></h3>
+<div class="spec">
+<p><code>'create!'(PathPattern, Data) -&gt; NodePropsMap</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Creates a specific tree node in the tree structure only if it does not  
+exist.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#create/2" href="#create-2"><code>create/2</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. If
+  there is an error, an exception is thrown.
+ </p>
+<p><b>See also:</b> <a href="#create-2">create/2</a>.</p>
+
+<h3 class="function"><a name="create%21-3">'create!'/3</a></h3>
+<div class="spec">
+<p><code>'create!'(StoreId, PathPattern, Data) -&gt; NodePropsMap</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Creates a specific tree node in the tree structure only if it does not  
+exist.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#create/3" href="#create-3"><code>create/3</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. If
+  there is an error, an exception is thrown.
+ </p>
+<p><b>See also:</b> <a href="#create-3">create/3</a>.</p>
+
+<h3 class="function"><a name="create%21-4">'create!'/4</a></h3>
+<div class="spec">
+<p><code>'create!'(StoreId, PathPattern, Data, ExtraOrOptions::Extra | Options) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = NodePropsMap | NoRetIfAsync</code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<p></p>
+</div><p><p>Creates a specific tree node in the tree structure only if it does not  
+exist.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#create/4" href="#create-4"><code>create/4</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. If
+  there is an error, an exception is thrown.
+ </p>
+<p><b>See also:</b> <a href="#create-4">create/4</a>.</p>
+
+<h3 class="function"><a name="create%21-5">'create!'/5</a></h3>
+<div class="spec">
+<p><code>'create!'(StoreId, PathPattern, Data, Extra, Options) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = NodePropsMap | NoRetIfAsync</code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<p></p>
+</div><p><p>Creates a specific tree node in the tree structure only if it does not  
+exist.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#create/5" href="#create-5"><code>create/5</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. If
+  there is an error, an exception is thrown.
+ </p>
+<p><b>See also:</b> <a href="#create-5">create/5</a>.</p>
+
+<h3 class="function"><a name="update%21-2">'update!'/2</a></h3>
+<div class="spec">
+<p><code>'update!'(PathPattern, Data) -&gt; NodePropsMap</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Updates a specific tree node in the tree structure only if it already  
+exists.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#update/2" href="#update-2"><code>update/2</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. If
+  there is an error, an exception is thrown.
+ </p>
+<p><b>See also:</b> <a href="#update-2">update/2</a>.</p>
+
+<h3 class="function"><a name="update%21-3">'update!'/3</a></h3>
+<div class="spec">
+<p><code>'update!'(StoreId, PathPattern, Data) -&gt; NodePropsMap</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Updates a specific tree node in the tree structure only if it already  
+exists.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#update/3" href="#update-3"><code>update/3</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. If
+  there is an error, an exception is thrown.
+ </p>
+<p><b>See also:</b> <a href="#update-3">update/3</a>.</p>
+
+<h3 class="function"><a name="update%21-4">'update!'/4</a></h3>
+<div class="spec">
+<p><code>'update!'(StoreId, PathPattern, Data, ExtraOrOptions::Extra | Options) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = NodePropsMap | NoRetIfAsync</code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<p></p>
+</div><p><p>Updates a specific tree node in the tree structure only if it already  
+exists.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#update/4" href="#update-4"><code>update/4</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. If
+  there is an error, an exception is thrown.
+ </p>
+<p><b>See also:</b> <a href="#update-4">update/4</a>.</p>
+
+<h3 class="function"><a name="update%21-5">'update!'/5</a></h3>
+<div class="spec">
+<p><code>'update!'(StoreId, PathPattern, Data, Extra, Options) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = NodePropsMap | NoRetIfAsync</code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<p></p>
+</div><p><p>Updates a specific tree node in the tree structure only if it already  
+exists.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#update/5" href="#update-5"><code>update/5</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. If
+  there is an error, an exception is thrown.
+ </p>
+<p><b>See also:</b> <a href="#update-5">update/5</a>.</p>
+
+<h3 class="function"><a name="compare_and_swap%21-3">'compare_and_swap!'/3</a></h3>
+<div class="spec">
+<p><code>'compare_and_swap!'(PathPattern, DataPattern, Data) -&gt; NodePropsMap</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Updates a specific tree node in the tree structure only if it already
+  exists and its data matches the given <code>DataPattern</code>.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#compare_and_swap/3" href="#compare_and_swap-3"><code>compare_and_swap/3</code></a> but
+  the result is unwrapped (from the <code>{ok, Result}</code> tuple) and returned
+  directly. If there is an error, an exception is thrown.
+ </p>
+<p><b>See also:</b> <a href="#compare_and_swap-3">compare_and_swap/3</a>.</p>
+
+<h3 class="function"><a name="compare_and_swap%21-4">'compare_and_swap!'/4</a></h3>
+<div class="spec">
+<p><code>'compare_and_swap!'(StoreId, PathPattern, DataPattern, Data) -&gt; NodePropsMap</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Updates a specific tree node in the tree structure only if it already
+  exists and its data matches the given <code>DataPattern</code>.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#compare_and_swap/4" href="#compare_and_swap-4"><code>compare_and_swap/4</code></a> but
+  the result is unwrapped (from the <code>{ok, Result}</code> tuple) and returned
+  directly. If there is an error, an exception is thrown.
+ </p>
+<p><b>See also:</b> <a href="#compare_and_swap-4">compare_and_swap/4</a>.</p>
+
+<h3 class="function"><a name="compare_and_swap%21-5">'compare_and_swap!'/5</a></h3>
+<div class="spec">
+<p><code>'compare_and_swap!'(StoreId, PathPattern, DataPattern, Data, ExtraOrOptions::Extra | Options) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = NodePropsMap | NoRetIfAsync</code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<p></p>
+</div><p><p>Updates a specific tree node in the tree structure only if it already
+  exists and its data matches the given <code>DataPattern</code>.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#compare_and_swap/5" href="#compare_and_swap-5"><code>compare_and_swap/5</code></a> but
+  the result is unwrapped (from the <code>{ok, Result}</code> tuple) and returned
+  directly. If there is an error, an exception is thrown.
+ </p>
+<p><b>See also:</b> <a href="#compare_and_swap-5">compare_and_swap/5</a>.</p>
+
+<h3 class="function"><a name="compare_and_swap%21-6">'compare_and_swap!'/6</a></h3>
+<div class="spec">
+<p><code>'compare_and_swap!'(StoreId, PathPattern, DataPattern, Data, Extra, Options) -&gt; Result</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="#type-data">data()</a> | function()</code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Options = <a href="#type-command_options">command_options()</a></code></li><li><code>Result = NodePropsMap | NoRetIfAsync</code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<p></p>
+</div><p><p>Updates a specific tree node in the tree structure only if it already
+  exists and its data matches the given <code>DataPattern</code>.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#compare_and_swap/6" href="#compare_and_swap-6"><code>compare_and_swap/6</code></a> but
+  the result is unwrapped (from the <code>{ok, Result}</code> tuple) and returned
+  directly. If there is an error, an exception is thrown.
+ </p>
+<p><b>See also:</b> <a href="#compare_and_swap-6">compare_and_swap/6</a>.</p>
+
+<h3 class="function"><a name="get%21-1">'get!'/1</a></h3>
+<div class="spec">
+<p><code>'get!'(PathPattern) -&gt; NodePropsMap</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Returns all tree nodes matching the path pattern.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#get/1" href="#get-1"><code>get/1</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. It
+  closer to Elixir conventions in pipelines however.
+ </p>
+<p><b>See also:</b> <a href="#get-1">get/1</a>.</p>
+
+<h3 class="function"><a name="get%21-2">'get!'/2</a></h3>
+<div class="spec">
+<p><code>'get!'(StoreId, PathPattern) -&gt; NodePropsMap</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li></ul></p><p><code>'get!'(PathPattern, Options) -&gt; NodePropsMap</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li></ul></p>
+<p></p>
+<p></p>
+</div><p><p>Returns all tree nodes matching the path pattern.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#get/2" href="#get-2"><code>get/2</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. It
+  closer to Elixir conventions in pipelines however.
+ </p>
+<p><b>See also:</b> <a href="#get-2">get/2</a>.</p>
+
+<h3 class="function"><a name="get%21-3">'get!'/3</a></h3>
+<div class="spec">
+<p><code>'get!'(StoreId, PathPattern, Options) -&gt; NodePropsMap</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Returns all tree nodes matching the path pattern.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#get/3" href="#get-3"><code>get/3</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. It
+  closer to Elixir conventions in pipelines however.
+ </p>
+<p><b>See also:</b> <a href="#get-3">get/3</a>.</p>
+
+<h3 class="function"><a name="delete%21-1">'delete!'/1</a></h3>
+<div class="spec">
+<p><code>'delete!'(PathPattern) -&gt; NodePropsMap</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Deletes all tree nodes matching the path pattern.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#delete/1" href="#delete-1"><code>delete/1</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. It
+  closer to Elixir conventions in pipelines however.
+ </p>
+<p><b>See also:</b> <a href="#delete-1">delete/1</a>.</p>
+
+<h3 class="function"><a name="delete%21-2">'delete!'/2</a></h3>
+<div class="spec">
+<p><code>'delete!'(StoreId, PathPattern) -&gt; NodePropsMap</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li></ul></p><p><code>'delete!'(PathPattern, Options) -&gt; NodePropsMap</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li></ul></p>
+<p></p>
+<p></p>
+</div><p><p>Deletes all tree nodes matching the path pattern.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#delete/2" href="#delete-2"><code>delete/2</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. It
+  closer to Elixir conventions in pipelines however.
+ </p>
+<p><b>See also:</b> <a href="#delete-2">delete/2</a>.</p>
+
+<h3 class="function"><a name="delete%21-3">'delete!'/3</a></h3>
+<div class="spec">
+<p><code>'delete!'(StoreId, PathPattern, Options) -&gt; NodePropsMap</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>NodePropsMap = <a href="#type-node_props_map">node_props_map()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Deletes all tree nodes matching the path pattern.</p>
+ 
+  Calling this function is the same as calling <a docgen-rel="seemfa" docgen-href="#delete/3" href="#delete-3"><code>delete/3</code></a> but the result
+  is unwrapped (from the <code>{ok, Result}</code> tuple) and returned directly. It
+  closer to Elixir conventions in pipelines however.
  </p>
 <p><b>See also:</b> <a href="#delete-3">delete/3</a>.</p>
 
