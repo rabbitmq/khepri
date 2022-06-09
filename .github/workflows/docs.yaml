@@ -18,7 +18,7 @@ jobs:
           rebar3-version: '3.18.0'
 
       - name: Change doc version to "Development branch"
-        run: gsed -E -i -e 's/^@version.*/@version Development branch/' doc/overview.edoc
+        run: sed -E -i -e 's/^@version.*/@version Development branch/' doc/overview.edoc
 
       - name: Generate
         run: rebar3 edoc
