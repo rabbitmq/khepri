@@ -233,7 +233,8 @@ rebar3 as test dialyzer
 This work is dual-licensed under the Apache License 2.0 and the Mozilla Public
 License 2.0. You can choose between one of them if you use this work.
 
-The logo (`doc/khepri-logo.svg`) is based on the following two resources:
+The logo (`doc/khepri-logo.svg`) and the favicon (`doc/khepri-favicon.svg`) are
+based on the following two resources:
 * https://www.svgrepo.com/svg/55105/rabbit (license: CC0)
 * https://www.svgrepo.com/svg/336625/database-point (license: MIT)
 
