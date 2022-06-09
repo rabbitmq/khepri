@@ -17,6 +17,9 @@ jobs:
           otp-version: 24
           rebar3-version: '3.16.1'
 
+      - name: Change doc version to "Development branch"
+        run: gsed -E -i -e 's/^@version.*/@version Development branch/' doc/overview.edoc
+
       - name: Generate
         run: rebar3 edoc
 
