@@ -24,6 +24,7 @@
          setup_node/0,
 
          can_start_a_single_node/1,
+         can_restart_a_single_node_with_ra_server_config/1,
          fail_to_start_with_bad_ra_server_config/1,
          initial_members_are_ignored/1,
          can_start_a_three_node_cluster/1,
@@ -37,6 +38,7 @@
 
 all() ->
     [can_start_a_single_node,
+     can_restart_a_single_node_with_ra_server_config,
      fail_to_start_with_bad_ra_server_config,
      initial_members_are_ignored,
      can_start_a_three_node_cluster,
@@ -66,6 +68,7 @@ end_per_group(_Group, _Config) ->
 
 init_per_testcase(Testcase, Config)
   when Testcase =:= can_start_a_single_node orelse
+       Testcase =:= can_restart_a_single_node_with_ra_server_config orelse
        Testcase =:= fail_to_start_with_bad_ra_server_config orelse
        Testcase =:= initial_members_are_ignored orelse
        Testcase =:= fail_to_join_non_existing_node ->
@@ -133,6 +136,69 @@ can_start_a_single_node(Config) ->
     ?assertEqual(
        {ok, #{[foo] => #{data => value2,
                          payload_version => 1,
+                         child_list_version => 1,
+                         child_list_length => 0}}},
+       khepri:get(StoreId, [foo])),
+
+    ct:pal("Stop database"),
+    ?assertEqual(
+       ok,
+       khepri:stop(StoreId)),
+
+    %% TODO: Verify that the server process exited.
+
+    ct:pal("Use database after stopping it"),
+    ?assertEqual(
+       {error, noproc},
+       khepri:put(StoreId, [foo], value3)),
+    ?assertEqual(
+       {error, noproc},
+       khepri:get(StoreId, [foo])),
+
+    ok.
+
+can_restart_a_single_node_with_ra_server_config(Config) ->
+    Node = node(),
+    #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
+    StoreId = RaSystem,
+
+    ct:pal("Start database"),
+    RaServerConfig = #{cluster_name => StoreId},
+    ?assertEqual(
+       {ok, StoreId},
+       khepri:start(RaSystem, RaServerConfig)),
+
+    ct:pal("Use database after starting it"),
+    ?assertEqual(
+       {ok, #{[foo] => #{}}},
+       khepri:put(StoreId, [foo], value1)),
+    ?assertEqual(
+       {ok, #{[foo] => #{data => value1,
+                         payload_version => 1,
+                         child_list_version => 1,
+                         child_list_length => 0}}},
+       khepri:get(StoreId, [foo])),
+
+    ct:pal("Stop database"),
+    ?assertEqual(
+       ok,
+       khepri:stop(StoreId)),
+
+    ct:pal("Restart database"),
+    ?assertEqual(
+       {ok, StoreId},
+       khepri:start(RaSystem, RaServerConfig)),
+
+    ct:pal("Use database after restarting it"),
+    ?assertEqual(
+       {ok, #{[foo] => #{data => value1,
+                         payload_version => 1,
+                         child_list_version => 1,
+                         child_list_length => 0}}},
+       khepri:put(StoreId, [foo], value2)),
+    ?assertEqual(
+       {ok, #{[foo] => #{data => value2,
+                         payload_version => 2,
                          child_list_version => 1,
                          child_list_length => 0}}},
        khepri:get(StoreId, [foo])),
@@ -389,6 +455,7 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
     %% We assume all nodes are using the same Ra system name & store ID.
     #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
     StoreId = RaSystem,
+    RaServerConfig = #{cluster_name => StoreId},
 
     ct:pal("Start database + cluster nodes"),
     lists:foreach(
@@ -396,7 +463,21 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
+                 rpc:call(Node, khepri, start, [RaSystem, RaServerConfig]))
+      end, Nodes),
+    %% This (gratuitous) restart of Khepri stores is to ensure the remembered
+    %% `RaServerConfig' contains everything we need in `join()' later. Indeed,
+    %% `join()' calls `do_start_server()' which assumes the presence of some
+    %% keys in `RaServerConfig'.
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- Restart Khepri store on node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 rpc:call(Node, khepri, stop, [StoreId])),
+              ?assertEqual(
+                 {ok, StoreId},
+                 rpc:call(Node, khepri, start, [RaSystem, RaServerConfig]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
@@ -451,7 +532,8 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
       [StoppedLeaderNode1]),
     ?assertEqual(
        {ok, StoreId},
-       rpc:call(StoppedLeaderNode1, khepri, start, [RaSystem, StoreId])),
+       rpc:call(
+         StoppedLeaderNode1, khepri, start, [RaSystem, RaServerConfig])),
     RunningNodes3 = RunningNodes2 ++ [StoppedLeaderNode1],
 
     ct:pal("Use database after having it running on 2 out of 3 nodes"),

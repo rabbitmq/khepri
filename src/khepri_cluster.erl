@@ -379,6 +379,7 @@ ensure_server_started(
 ensure_server_started_locked(
   RaSystem, #{cluster_name := StoreId} = RaServerConfig, Timeout) ->
     ThisMember = this_member(StoreId),
+    RaServerConfig1 = RaServerConfig#{id => ThisMember},
     ?LOG_DEBUG(
        "Trying to restart local Ra server for store \"~s\" "
        "in Ra system \"~s\"",
@@ -389,7 +390,6 @@ ensure_server_started_locked(
                "Ra server for store \"~s\" not registered in Ra system "
                "\"~s\", try to start a new one",
                [StoreId, RaSystem]),
-            RaServerConfig1 = RaServerConfig#{id => ThisMember},
             case do_start_server(RaSystem, RaServerConfig1) of
                 ok ->
                     ok = trigger_election(RaServerConfig1, Timeout),
@@ -398,7 +398,7 @@ ensure_server_started_locked(
                     Error
             end;
         ok ->
-            ok = remember_store(RaSystem, RaServerConfig),
+            ok = remember_store(RaSystem, RaServerConfig1),
             {ok, StoreId};
         {error, {already_started, _}} ->
             {ok, StoreId};
@@ -1114,8 +1114,8 @@ complete_ra_server_config(#{cluster_name := StoreId,
       RaServerConfig :: ra_server:ra_server_config().
 %% @private
 
-remember_store(
-  RaSystem, #{cluster_name := StoreId} = RaServerConfig) ->
+remember_store(RaSystem, #{cluster_name := StoreId} = RaServerConfig) ->
+    ?assert(maps:is_key(id, RaServerConfig)),
     StoreIds = persistent_term:get(?PT_STORE_IDS, #{}),
     Props = #{ra_system => RaSystem,
               ra_server_config => RaServerConfig},
