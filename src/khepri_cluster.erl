@@ -522,6 +522,11 @@ wait_for_ra_server_exit({StoreId, _} = Member) ->
        [Member, StoreId]),
     MRef = erlang:monitor(process, Member),
     receive
+        {'DOWN', MRef, _, _, noproc} ->
+            ?LOG_DEBUG(
+               "Ra server ~0p in store \"~s\" already exited",
+               [Member, StoreId]),
+            ok;
         {'DOWN', MRef, _, _, Reason} ->
             ?LOG_DEBUG(
                "Ra server ~0p in store \"~s\" exited: ~p",
