@@ -871,7 +871,7 @@ setup_node() ->
     ct:pal("Logger configuration: ~p", [logger:get_config()]),
 
     ok = application:set_env(
-           khepri, default_timeout, 2000, [{persistent, true}]),
+           khepri, default_timeout, 5000, [{persistent, true}]),
 
     ok.
 
