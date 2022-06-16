@@ -1025,7 +1025,14 @@ start_erlang_node(Name) ->
 get_leader_in_store(StoreId, [Node | _] = _RunningNodes) ->
     %% Query members; this is used to make sure there is an elected leader.
     ct:pal("Trying to figure who the leader is in \"~s\"", [StoreId]),
-    [_ | _] = rpc:call(Node, khepri_cluster, members, [StoreId]),
+    [_ | _] = Members = rpc:call(Node, khepri_cluster, members, [StoreId]),
+    Pids = [[Member, rpc:call(N, erlang, whereis, [RegName])]
+            || {RegName, N} = Member <- Members],
     LeaderId = rpc:call(Node, ra_leaderboard, lookup_leader, [StoreId]),
     ?assertNotEqual(undefined, LeaderId),
+    ct:pal(
+      "Leader: ~0p~n"
+      "Members:~n" ++
+      string:join([" - ~0p -> ~0p" || _ <- Pids], "\n"),
+      [LeaderId] ++ lists:flatten(Pids)),
     LeaderId.
