@@ -29,6 +29,7 @@
          fail_to_start_with_bad_ra_server_config/1,
          initial_members_are_ignored/1,
          can_start_a_three_node_cluster/1,
+         can_join_several_times_a_three_node_cluster/1,
          can_restart_nodes_in_a_three_node_cluster/1,
          can_reset_a_cluster_member/1,
          fail_to_join_if_not_started/1,
@@ -43,6 +44,7 @@ all() ->
      fail_to_start_with_bad_ra_server_config,
      initial_members_are_ignored,
      can_start_a_three_node_cluster,
+     can_join_several_times_a_three_node_cluster,
      can_restart_nodes_in_a_three_node_cluster,
      can_reset_a_cluster_member,
      fail_to_join_if_not_started,
@@ -80,6 +82,7 @@ init_per_testcase(Testcase, Config)
     [{ra_system_props, #{node() => Props}} | Config];
 init_per_testcase(Testcase, Config)
   when Testcase =:= can_start_a_three_node_cluster orelse
+       Testcase =:= can_join_several_times_a_three_node_cluster orelse
        Testcase =:= can_restart_nodes_in_a_three_node_cluster orelse
        Testcase =:= can_reset_a_cluster_member orelse
        Testcase =:= fail_to_join_if_not_started orelse
@@ -449,6 +452,75 @@ can_start_a_three_node_cluster(Config) ->
                  {error, {timeout, Member}},
                  rpc:call(Node, khepri, get, [StoreId, [foo]]))
       end, RunningNodes2),
+
+    ok.
+
+can_join_several_times_a_three_node_cluster(Config) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
+
+    %% We assume all nodes are using the same Ra system name & store ID.
+    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    StoreId = RaSystem,
+
+    ct:pal("Start database + cluster nodes"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
+      end, Nodes),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:join() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+      end, [Node1, Node2]),
+
+    ct:pal("Use database after starting it"),
+    ?assertEqual(
+       {ok, #{[foo] => #{}}},
+       rpc:call(Node1, khepri, put, [StoreId, [foo], value1])),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:get() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, #{[foo] => #{data => value1,
+                                   payload_version => 1,
+                                   child_list_version => 1,
+                                   child_list_length => 0}}},
+                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+      end, Nodes),
+
+    LeaderId1 = get_leader_in_store(StoreId, Nodes),
+    {StoreId, LeaderNode1} = LeaderId1,
+    OtherNodes1 = Nodes -- [LeaderNode1],
+
+    ct:pal("Make leader node join the cluster again"),
+    ?assertEqual(
+       ok,
+       rpc:call(
+         LeaderNode1, khepri_cluster, join, [StoreId, hd(OtherNodes1)])),
+
+    ct:pal("Use database after recreating the cluster it"),
+    ?assertEqual(
+       {ok, #{[foo] => #{data => value1,
+                         payload_version => 1,
+                         child_list_version => 1,
+                         child_list_length => 0}}},
+       rpc:call(LeaderNode1, khepri, put, [StoreId, [foo], value2])),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:get() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, #{[foo] => #{data => value2,
+                                   payload_version => 2,
+                                   child_list_version => 1,
+                                   child_list_length => 0}}},
+                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+      end, Nodes),
 
     ok.
 
