@@ -7,6 +7,7 @@
 
 -module(cluster_SUITE).
 
+-include_lib("kernel/include/logger.hrl").
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("common_test/include/ct.hrl").
 
@@ -54,7 +55,8 @@ groups() ->
     [].
 
 init_per_suite(Config) ->
-    setup_node(),
+    basic_logger_config(),
+    ok = cth_log_redirect:handle_remote_events(true),
     Config.
 
 end_per_suite(_Config) ->
@@ -72,6 +74,7 @@ init_per_testcase(Testcase, Config)
        Testcase =:= fail_to_start_with_bad_ra_server_config orelse
        Testcase =:= initial_members_are_ignored orelse
        Testcase =:= fail_to_join_non_existing_node ->
+    setup_node(),
     {ok, _} = application:ensure_all_started(khepri),
     Props = helpers:start_ra_system(Testcase),
     [{ra_system_props, #{node() => Props}} | Config];
@@ -96,6 +99,7 @@ init_per_testcase(Testcase, Config)
 init_per_testcase(Testcase, Config)
   when Testcase =:= can_use_default_store_on_single_node orelse
        Testcase =:= can_start_store_in_specified_data_dir_on_single_node ->
+    setup_node(),
     Config.
 
 end_per_testcase(Testcase, _Config)
@@ -931,29 +935,58 @@ can_start_store_in_specified_data_dir_on_single_node(_Config) ->
 %% Internal functions
 %% -------------------------------------------------------------------
 
+-define(LOGFMT_CONFIG, #{legacy_header => false,
+                         single_line => false,
+                         template => [time, " ", pid, ": ", msg, "\n"]}).
+
 setup_node() ->
-    _ = logger:set_primary_config(level, debug),
+    basic_logger_config(),
 
     %% We use an additional logger handler for messages tagged with a non-OTP
     %% domain because by default, `cth_log_redirect' drops them.
-    ok = logger:add_handler(
-           cth_log_redirect_any_domains, cth_log_redirect_any_domains,
-           #{}),
-
-    HandlerIds = [default, cth_log_redirect, cth_log_redirect_any_domains],
-    lists:foreach(
-      fun(HandlerId) ->
-              _ = logger:set_handler_config(
-                    HandlerId, formatter,
-                    {logger_formatter, #{single_line => true}}),
-              _ = logger:add_handler_filter(
-                    HandlerId, progress,
-                    {fun logger_filters:progress/2,stop})
-      end, HandlerIds),
-    ct:pal("Logger configuration: ~p", [logger:get_config()]),
+    GL = erlang:group_leader(),
+    GLNode = node(GL),
+    Ret = logger:add_handler(
+            cth_log_redirect_any_domains, cth_log_redirect_any_domains,
+            #{config => #{group_leader => GL,
+                          group_leader_node => GLNode}}),
+    case Ret of
+        ok                          -> ok;
+        {error, {already_exist, _}} -> ok
+    end,
+    ok = logger:set_handler_config(
+           cth_log_redirect_any_domains, formatter,
+           {logger_formatter, ?LOGFMT_CONFIG}),
+    ?LOG_INFO(
+       "Extended logger configuration (~s):~n~p",
+       [node(), logger:get_config()]),
 
     ok = application:set_env(
            khepri, default_timeout, 5000, [{persistent, true}]),
+
+    ok.
+
+basic_logger_config() ->
+    _ = logger:set_primary_config(level, debug),
+
+    HandlerIds = [HandlerId ||
+                  HandlerId <- logger:get_handler_ids(),
+                  HandlerId =:= default orelse
+                  HandlerId =:= cth_log_redirect],
+    lists:foreach(
+      fun(HandlerId) ->
+              ok = logger:set_handler_config(
+                    HandlerId, formatter,
+                    {logger_formatter, ?LOGFMT_CONFIG}),
+              _ = logger:add_handler_filter(
+                    HandlerId, progress,
+                    {fun logger_filters:progress/2,stop}),
+              _ = logger:remove_handler_filter(
+                    HandlerId, remote_gl)
+      end, HandlerIds),
+    ?LOG_INFO(
+       "Basic logger configuration (~s):~n~p",
+       [node(), logger:get_config()]),
 
     ok.
 
