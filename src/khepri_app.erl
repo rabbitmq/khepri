@@ -22,6 +22,7 @@
          config_change/3]).
 
 start(normal, []) ->
+    ok = khepri_utils:init_list_of_modules_to_skip(),
     khepri_sup:start_link().
 
 stop(_) ->
@@ -29,6 +30,7 @@ stop(_) ->
     lists:foreach(
       fun(StoreId) -> _ = khepri_cluster:stop(StoreId) end,
       StoreIds),
+    khepri_utils:clear_list_of_modules_to_skip(),
     ok.
 
 config_change(_Changed, _New, _Removed) ->

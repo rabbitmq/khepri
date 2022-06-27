@@ -19,6 +19,8 @@ app_starts_workers_test_() ->
        [?_assertMatch({ok, _}, application:ensure_all_started(khepri)),
         ?_assert(is_process_alive(whereis(khepri_event_handler))),
         ?_assertEqual([?FUNCTION_NAME], khepri:get_store_ids()),
+        ?_assert(khepri_utils:should_collect_code_for_module(some_mod)),
+        ?_assertNot(khepri_utils:should_collect_code_for_module(khepri_tx)),
         ?_assertEqual(ok, application:stop(khepri)),
         ?_assertEqual(undefined, whereis(khepri_event_handler)),
         ?_assertEqual([], khepri:get_store_ids()),
