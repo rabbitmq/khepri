@@ -22,6 +22,8 @@
          display_tree/2,
          display_tree/3,
          should_collect_code_for_module/1,
+         init_list_of_modules_to_skip/0,
+         clear_list_of_modules_to_skip/0,
          format_exception/4]).
 
 %% khepri:get_root/1 is unexported when compiled without `-DTEST'.
@@ -199,45 +201,43 @@ format_data(Data, _Options) ->
 %% Helpers to standalone function extraction.
 %% -------------------------------------------------------------------
 
+-define(PT_MODULES_TO_SKIP, {khepri, skipped_modules_in_code_collection}).
+
 should_collect_code_for_module(Module) ->
-    Modules = get_list_of_module_to_skip(),
+    Modules = persistent_term:get(?PT_MODULES_TO_SKIP),
     not maps:is_key(Module, Modules).
 
-get_list_of_module_to_skip() ->
-    Key = {?MODULE, skipped_modules_in_code_collection},
-    case persistent_term:get(Key, undefined) of
-        Modules when Modules =/= undefined ->
-            Modules;
-        undefined ->
-            InitialModules = #{erlang => true},
-            Applications = [erts,
-                            kernel,
-                            stdlib,
-                            mnesia,
-                            sasl,
-                            ssl,
-                            khepri],
-            Modules = lists:foldl(
-                        fun(App, Modules0) ->
-                                _ = application:load(App),
-                                case application:get_key(App, modules) of
-                                    {ok, Mods} ->
-                                        lists:foldl(
-                                          fun(Mod, Modules1) ->
-                                                  Modules1#{Mod => true}
-                                          end, Modules0, Mods);
-                                    undefined ->
-                                        Modules0
-                                end
-                        end, InitialModules, Applications),
-            persistent_term:put(Key, Modules),
+init_list_of_modules_to_skip() ->
+    InitialModules = #{erlang => true},
+    Applications = [erts,
+                    kernel,
+                    stdlib,
+                    mnesia,
+                    sasl,
+                    ssl,
+                    khepri],
+    LoadedApps = [App ||
+                  {App, _Desc, _Vsn} <- application:loaded_applications()],
+    ?assert(lists:member(khepri, LoadedApps)),
+    Modules = lists:foldl(
+                fun(App, Modules0) ->
+                        _ = case lists:member(App, LoadedApps) of
+                                true  -> ok;
+                                false -> application:load(App)
+                            end,
+                        {ok, Mods} = application:get_key(App, modules),
+                        lists:foldl(
+                          fun(Mod, Modules1) ->
+                                  Modules1#{Mod => true}
+                          end, Modules0, Mods)
+                end, InitialModules, Applications),
+    ?assert(maps:is_key(khepri, Modules)),
+    persistent_term:put(?PT_MODULES_TO_SKIP, Modules),
+    ok.
 
-            %% Applications which were not loaded before this function are not
-            %% unloaded now: we have no way to determine if another process
-            %% could have loaded them in parallel.
-
-            Modules
-    end.
+clear_list_of_modules_to_skip() ->
+    _ = persistent_term:erase(?PT_MODULES_TO_SKIP),
+    ok.
 
 -if(?OTP_RELEASE >= 24).
 format_exception(Class, Reason, Stacktrace, Options) ->
