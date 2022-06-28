@@ -110,7 +110,7 @@ Ret = khepri:get("/:emails/alice"),
 "alice@example.org" = khepri:get_data_or("/:emails/alice", undefined).
 ```
 
-The `khepri:get/0` function and many other ones accept a "path pattern".
+The `khepri:get/1` function and many other ones accept a "path pattern".
 Therefore it is possible to get several nodes in a single call. The result is a
 map where keys are the path to each node which matched the path pattern, and
 the values are a map of properties. The data payload of the node is one of
@@ -174,8 +174,8 @@ the database itself and automatically execute it after some event occurs.
     StoredProcPath = [path, to, stored_procedure],
 
     Fun = fun(Props) ->
-              #{path := Path},
-                on_action => Action} = Props
+              #{path := Path,
+                on_action := Action} = Props
           end,
 
     khepri:put(StoreId, StoredProcPath, Fun).
