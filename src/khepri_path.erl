@@ -217,7 +217,25 @@ compile(PathPattern) ->
 %%
 %% The Unix-like string can be either an Erlang string or an Erlang binary.
 %%
+%% The conversion may be done at compilation-time instead of runtime by
+%% adding the `khepri_path_transform' parse-transform to a module which
+%% calls `khepri:from_string/1' on literal strings, binaries or lists.
+%%
+%% ```
+%% -compile({parse_transform, khepri_path_transform}).
+%% '''
+%%
+%% Or use the `erlc' option `` +'{parse_transform, khepri_path_transform}' ''.
+%%
 %% For convenience, a native path is also accepted and returned as-is.
+%%
+%% Examples:
+%% ```
+%% > khepri_path:from_string("/:emails/alice").
+%% [emails, <<"alice">>]
+%% > khepri_path:from_string("/stock/wood/*").
+%% [stock, wood, #if_name_matches{regex = any}]
+%% '''
 
 from_string("/" ++ MaybeString) ->
     from_string(MaybeString, [?ROOT_NODE]);
