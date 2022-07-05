@@ -218,6 +218,14 @@ compile(PathPattern) ->
 %% The Unix-like string can be either an Erlang string or an Erlang binary.
 %%
 %% For convenience, a native path is also accepted and returned as-is.
+%%
+%% Examples:
+%% ```
+%% > khepri_path:from_string("/:emails/alice").
+%% [emails, <<"alice">>]
+%% > khepri_path:from_string("/stock/wood/*").
+%% [stock, wood, #if_name_matches{regex = any}]
+%% '''
 
 from_string("/" ++ MaybeString) ->
     from_string(MaybeString, [?ROOT_NODE]);
