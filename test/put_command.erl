@@ -48,7 +48,8 @@ initialize_machine_with_genesis_data_test() ->
 
 insert_a_node_at_the_root_of_an_empty_db_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
-    Command = #put{path = [foo],
+    Path = [foo],
+    Command = #put{path = Path,
                    payload = khepri_payload:data(value)},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
@@ -65,16 +66,16 @@ insert_a_node_at_the_root_of_an_empty_db_test() ->
                payload = khepri_payload:data(value)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 insert_a_node_at_the_root_of_an_empty_db_with_conditions_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
-    Command = #put{path = [#if_all{conditions =
-                                   [foo,
-                                    #if_any{conditions =
-                                            [#if_node_exists{exists = false},
-                                             #if_payload_version{version = 1}
-                                            ]}]}],
+    Path = [#if_all{conditions = [foo,
+                                  #if_any{conditions =
+                                          [#if_node_exists{exists = false},
+                                           #if_payload_version{version = 1}
+                                          ]}]}],
+    Command = #put{path = Path,
                    payload = khepri_payload:data(value)},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
@@ -91,14 +92,15 @@ insert_a_node_at_the_root_of_an_empty_db_with_conditions_test() ->
                payload = khepri_payload:data(value)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 overwrite_an_existing_node_data_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(value1)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
-    Command = #put{path = [foo],
+    Path = [foo],
+    Command = #put{path = Path,
                    payload = khepri_payload:data(value2)},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
@@ -119,11 +121,12 @@ overwrite_an_existing_node_data_test() ->
                                    payload_version => 1,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 insert_a_node_with_path_containing_dot_and_dot_dot_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
-    Command = #put{path = [foo, ?PARENT_NODE, foo, bar, ?THIS_NODE],
+    Path = [foo, ?PARENT_NODE, foo, bar, ?THIS_NODE],
+    Command = #put{path = Path,
                    payload = khepri_payload:data(value)},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
@@ -144,11 +147,12 @@ insert_a_node_with_path_containing_dot_and_dot_dot_test() ->
                     payload = khepri_payload:data(value)}}}}},
        Root),
     ?assertEqual({ok, #{[foo, bar] => #{}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 insert_a_node_under_an_nonexisting_parents_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
-    Command = #put{path = [foo, bar, baz, qux],
+    Path = [foo, bar, baz, qux],
+    Command = #put{path = Path,
                    payload = khepri_payload:data(value)},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
@@ -177,16 +181,15 @@ insert_a_node_under_an_nonexisting_parents_test() ->
                               payload = khepri_payload:data(value)}}}}}}}}},
        Root),
     ?assertEqual({ok, #{[foo, bar, baz, qux] => #{}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 insert_a_node_with_condition_true_on_self_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(value1)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
-    Command = #put{path = [#if_all{conditions =
-                                   [foo,
-                                    #if_data_matches{pattern = value1}]}],
+    Path = [#if_all{conditions = [foo, #if_data_matches{pattern = value1}]}],
+    Command = #put{path = Path,
                    payload = khepri_payload:data(value2)},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
@@ -206,7 +209,7 @@ insert_a_node_with_condition_true_on_self_test() ->
                                    payload_version => 1,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 insert_a_node_with_condition_false_on_self_test() ->
     Commands = [#put{path = [foo],
@@ -239,10 +242,11 @@ insert_a_node_with_condition_true_on_self_using_dot_test() ->
                      payload = khepri_payload:data(value1)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
-    Command = #put{path = [foo,
-                           #if_all{conditions =
-                                   [?THIS_NODE,
-                                    #if_data_matches{pattern = value1}]}],
+    Path = [foo,
+            #if_all{conditions =
+                    [?THIS_NODE,
+                     #if_data_matches{pattern = value1}]}],
+    Command = #put{path = Path,
                    payload = khepri_payload:data(value2)},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
@@ -262,7 +266,7 @@ insert_a_node_with_condition_true_on_self_using_dot_test() ->
                                    payload_version => 1,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 insert_a_node_with_condition_false_on_self_using_dot_test() ->
     Commands = [#put{path = [foo],
@@ -296,10 +300,11 @@ insert_a_node_with_condition_true_on_parent_test() ->
                      payload = khepri_payload:data(value1)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
-    Command = #put{path = [#if_all{conditions =
-                                   [foo,
-                                    #if_data_matches{pattern = value1}]},
-                           bar],
+    Path = [#if_all{conditions =
+                    [foo,
+                     #if_data_matches{pattern = value1}]},
+            bar],
+    Command = #put{path = Path,
                    payload = khepri_payload:data(bar_value)},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
@@ -321,7 +326,7 @@ insert_a_node_with_condition_true_on_parent_test() ->
                     payload = khepri_payload:data(bar_value)}}}}},
        Root),
     ?assertEqual({ok, #{[foo, bar] => #{}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 insert_a_node_with_condition_false_on_parent_test() ->
     Commands = [#put{path = [foo],
@@ -359,9 +364,10 @@ insert_a_node_with_if_node_exists_true_on_self_test() ->
                      payload = khepri_payload:data(value1)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
-    Command1 = #put{path = [#if_all{conditions =
-                                    [foo,
-                                     #if_node_exists{exists = true}]}],
+    Path1 = [#if_all{conditions =
+                     [foo,
+                      #if_node_exists{exists = true}]}],
+    Command1 = #put{path = Path1,
                     payload = khepri_payload:data(value2)},
     {S1, Ret1, SE1} = khepri_machine:apply(?META, Command1, S0),
     Root = khepri_machine:get_root(S1),
@@ -382,7 +388,7 @@ insert_a_node_with_if_node_exists_true_on_self_test() ->
                                    payload_version => 1,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret1),
-    ?assertEqual([], SE1),
+    ?assertEqual([{aux, {evict, Path1}}], SE1),
 
     Compiled = khepri_condition:compile(
                  #if_all{conditions =
@@ -427,9 +433,8 @@ insert_a_node_with_if_node_exists_false_on_self_test() ->
                      condition => #if_node_exists{exists = false}}}}, Ret1),
     ?assertEqual([], SE1),
 
-    Command2 = #put{path = [#if_all{conditions =
-                                    [baz,
-                                     #if_node_exists{exists = false}]}],
+    Path2 = [#if_all{conditions = [baz, #if_node_exists{exists = false}]}],
+    Command2 = #put{path = Path2,
                     payload = khepri_payload:data(value2)},
     {S2, Ret2, SE2} = khepri_machine:apply(?META, Command2, S0),
     Root = khepri_machine:get_root(S2),
@@ -450,17 +455,16 @@ insert_a_node_with_if_node_exists_false_on_self_test() ->
                payload = khepri_payload:data(value2)}}},
        Root),
     ?assertEqual({ok, #{[baz] => #{}}}, Ret2),
-    ?assertEqual([], SE2).
+    ?assertEqual([{aux, {evict, Path2}}], SE2).
 
 insert_a_node_with_if_node_exists_true_on_parent_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(value1)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
-    Command1 = #put{path = [#if_all{conditions =
-                                    [foo,
-                                     #if_node_exists{exists = true}]},
-                            bar],
+    Path = [#if_all{conditions = [foo, #if_node_exists{exists = true}]},
+            bar],
+    Command1 = #put{path = Path,
                     payload = khepri_payload:data(bar_value)},
     {S1, Ret1, SE1} = khepri_machine:apply(?META, Command1, S0),
     Root = khepri_machine:get_root(S1),
@@ -482,7 +486,7 @@ insert_a_node_with_if_node_exists_true_on_parent_test() ->
                     payload = khepri_payload:data(bar_value)}}}}},
        Root),
     ?assertEqual({ok, #{[foo, bar] => #{}}}, Ret1),
-    ?assertEqual([], SE1),
+    ?assertEqual([{aux, {evict, Path}}], SE1),
 
     Compiled = khepri_condition:compile(
                  #if_all{conditions =
@@ -529,10 +533,9 @@ insert_a_node_with_if_node_exists_false_on_parent_test() ->
                      condition => #if_node_exists{exists = false}}}}, Ret1),
     ?assertEqual([], SE1),
 
-    Command2 = #put{path = [#if_all{conditions =
-                                    [baz,
-                                     #if_node_exists{exists = false}]},
-                            bar],
+    Path2 = [#if_all{conditions = [baz, #if_node_exists{exists = false}]},
+             bar],
+    Command2 = #put{path = Path2,
                     payload = khepri_payload:data(bar_value)},
     {S2, Ret2, SE2} = khepri_machine:apply(?META, Command2, S0),
     Root = khepri_machine:get_root(S2),
@@ -557,7 +560,7 @@ insert_a_node_with_if_node_exists_false_on_parent_test() ->
                     payload = khepri_payload:data(bar_value)}}}}},
        Root),
     ?assertEqual({ok, #{[baz, bar] => #{}}}, Ret2),
-    ?assertEqual([], SE2).
+    ?assertEqual([{aux, {evict, Path2}}], SE2).
 
 insert_with_a_path_matching_many_nodes_test() ->
     Commands = [#put{path = [foo],
@@ -583,7 +586,8 @@ clear_payload_in_an_existing_node_test() ->
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
-    Command = #put{path = [foo],
+    Path = [foo],
+    Command = #put{path = Path,
                    payload = ?NO_PAYLOAD},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
@@ -604,7 +608,7 @@ clear_payload_in_an_existing_node_test() ->
                                    payload_version => 1,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 put_command_bumps_applied_command_count_test() ->
     Commands = [#put{path = [foo],
@@ -617,24 +621,28 @@ put_command_bumps_applied_command_count_test() ->
 
     ?assertEqual(#{}, S0#khepri_machine.metrics),
 
-    Command1 = #put{path = [bar],
+    Path1 = [bar],
+    Command1 = #put{path = Path1,
                     payload = ?NO_PAYLOAD},
     {S1, _, SE1} = khepri_machine:apply(?META, Command1, S0),
 
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
-    ?assertEqual([], SE1),
+    ?assertEqual([{aux, {evict, Path1}}], SE1),
 
-    Command2 = #put{path = [baz],
+    Path2 = [baz],
+    Command2 = #put{path = Path2,
                     payload = ?NO_PAYLOAD},
     {S2, _, SE2} = khepri_machine:apply(?META, Command2, S1),
 
     ?assertEqual(#{applied_command_count => 2}, S2#khepri_machine.metrics),
-    ?assertEqual([], SE2),
+    ?assertEqual([{aux, {evict, Path2}}], SE2),
 
-    Command3 = #put{path = [qux],
+    Path3 = [qux],
+    Command3 = #put{path = Path3,
                     payload = ?NO_PAYLOAD},
     Meta = ?META,
     {S3, _, SE3} = khepri_machine:apply(Meta, Command3, S2),
 
     ?assertEqual(#{}, S3#khepri_machine.metrics),
-    ?assertEqual([{release_cursor, maps:get(index, Meta), S3}], SE3).
+    ?assertEqual([{release_cursor, maps:get(index, Meta), S3},
+                  {aux, {evict, Path3}}], SE3).

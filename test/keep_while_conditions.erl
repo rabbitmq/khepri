@@ -64,7 +64,8 @@ insert_when_keep_while_true_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
     KeepWhile = #{[foo] => #if_node_exists{exists = true}},
-    Command = #put{path = [baz],
+    Path = [baz],
+    Command = #put{path = Path,
                    payload = khepri_payload:data(baz_value),
                    extra = #{keep_while => KeepWhile}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -94,7 +95,7 @@ insert_when_keep_while_true_test() ->
        #{[foo] => #{[baz] => ok}},
        KeepWhileCondsRevIdx),
     ?assertEqual({ok, #{[baz] => #{}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 insert_when_keep_while_false_test() ->
     Commands = [#put{path = [foo],
@@ -141,7 +142,8 @@ insert_when_keep_while_false_test() ->
 insert_when_keep_while_true_on_self_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
     KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = 0}},
-    Command = #put{path = [foo],
+    Path = [foo],
+    Command = #put{path = Path,
                    payload = khepri_payload:data(foo_value),
                    extra = #{keep_while => KeepWhile}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -159,12 +161,13 @@ insert_when_keep_while_true_on_self_test() ->
                payload = khepri_payload:data(foo_value)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 insert_when_keep_while_false_on_self_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
     KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = 1}},
-    Command = #put{path = [foo],
+    Path = [foo],
+    Command = #put{path = Path,
                    payload = khepri_payload:data(foo_value),
                    extra = #{keep_while => KeepWhile}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -182,7 +185,7 @@ insert_when_keep_while_false_on_self_test() ->
                payload = khepri_payload:data(foo_value)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 keep_while_still_true_after_command_test() ->
     KeepWhile = #{[foo] => #if_child_list_length{count = 0}},
@@ -193,7 +196,8 @@ keep_while_still_true_after_command_test() ->
                      extra = #{keep_while => KeepWhile}}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
-    Command = #put{path = [foo],
+    Path = [foo],
+    Command = #put{path = Path,
                    payload = khepri_payload:data(new_foo_value)},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
@@ -218,7 +222,7 @@ keep_while_still_true_after_command_test() ->
                                    payload_version => 1,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 keep_while_now_false_after_command_test() ->
     KeepWhile = #{[foo] => #if_child_list_length{count = 0}},
@@ -229,7 +233,8 @@ keep_while_now_false_after_command_test() ->
                      extra = #{keep_while => KeepWhile}}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
-    Command = #put{path = [foo, bar],
+    Path = [foo, bar],
+    Command = #put{path = Path,
                    payload = khepri_payload:data(bar_value)},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
@@ -251,7 +256,7 @@ keep_while_now_false_after_command_test() ->
                        payload = khepri_payload:data(bar_value)}}}}},
        Root),
     ?assertEqual({ok, #{[foo, bar] => #{}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 recursive_automatic_cleanup_test() ->
     KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = {gt, 0}}},
@@ -265,7 +270,8 @@ recursive_automatic_cleanup_test() ->
                      payload = khepri_payload:data(baz_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
-    Command = #delete{path = [foo, bar, baz]},
+    Path = [foo, bar, baz],
+    Command = #delete{path = Path},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -280,7 +286,7 @@ recursive_automatic_cleanup_test() ->
                                              payload_version => 1,
                                              child_list_version => 1,
                                              child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 keep_while_now_false_after_delete_command_test() ->
     KeepWhile = #{[foo] => #if_node_exists{exists = true}},
@@ -291,7 +297,8 @@ keep_while_now_false_after_delete_command_test() ->
                      extra = #{keep_while => KeepWhile}}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
-    Command = #delete{path = [foo]},
+    Path = [foo],
+    Command = #delete{path = Path},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -306,4 +313,4 @@ keep_while_now_false_after_delete_command_test() ->
                                    payload_version => 1,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
