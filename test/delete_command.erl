@@ -19,29 +19,32 @@
 
 delete_non_existing_node_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
-    Command = #delete{path = [foo]},
+    Path = [foo],
+    Command = #delete{path = Path},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
 
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({ok, #{}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 delete_non_existing_node_under_non_existing_parent_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
-    Command = #delete{path = [foo, bar, baz]},
+    Path = [foo, bar, baz],
+    Command = #delete{path = Path},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
 
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({ok, #{}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 delete_existing_node_with_data_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(foo_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Command = #delete{path = [foo]},
+    Path = [foo],
+    Command = #delete{path = Path},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -56,13 +59,14 @@ delete_existing_node_with_data_test() ->
                                    payload_version => 1,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 delete_existing_node_with_data_using_dot_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(foo_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Command = #delete{path = [foo, ?THIS_NODE]},
+    Path = [foo, ?THIS_NODE],
+    Command = #delete{path = Path},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -77,13 +81,14 @@ delete_existing_node_with_data_using_dot_test() ->
                                    payload_version => 1,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 delete_existing_node_with_child_nodes_test() ->
     Commands = [#put{path = [foo, bar],
                      payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Command = #delete{path = [foo]},
+    Path = [foo],
+    Command = #delete{path = Path},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -97,12 +102,13 @@ delete_existing_node_with_child_nodes_test() ->
     ?assertEqual({ok, #{[foo] => #{payload_version => 1,
                                    child_list_version => 1,
                                    child_list_length => 1}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 delete_a_node_deep_into_the_tree_test() ->
     Commands = [#put{path = [foo, bar, baz, qux],
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+    Path = [foo, bar, baz],
     Command = #delete{path = [foo, bar, baz]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
@@ -126,7 +132,7 @@ delete_a_node_deep_into_the_tree_test() ->
     ?assertEqual({ok, #{[foo, bar, baz] => #{payload_version => 1,
                                              child_list_version => 1,
                                              child_list_length => 1}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 delete_existing_node_with_condition_true_test() ->
     Commands = [#put{path = [foo],
@@ -134,7 +140,8 @@ delete_existing_node_with_condition_true_test() ->
                 #put{path = [bar],
                      payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Command = #delete{path = [#if_data_matches{pattern = bar_value}]},
+    Path = [#if_data_matches{pattern = bar_value}],
+    Command = #delete{path = Path},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -152,7 +159,7 @@ delete_existing_node_with_condition_true_test() ->
                                    payload_version => 1,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 delete_existing_node_with_condition_false_test() ->
     Commands = [#put{path = [foo],
@@ -160,7 +167,8 @@ delete_existing_node_with_condition_false_test() ->
                 #put{path = [bar],
                      payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Command = #delete{path = [#if_data_matches{pattern = other_value}]},
+    Path = [#if_data_matches{pattern = other_value}],
+    Command = #delete{path = Path},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -178,7 +186,7 @@ delete_existing_node_with_condition_false_test() ->
                   payload = khepri_payload:data(bar_value)}}},
        Root),
     ?assertEqual({ok, #{}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 delete_existing_node_with_condition_true_using_dot_test() ->
     Commands = [#put{path = [foo],
@@ -186,11 +194,11 @@ delete_existing_node_with_condition_true_using_dot_test() ->
                 #put{path = [bar],
                      payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Command = #delete{path =
-                      [bar,
-                       #if_all{conditions =
-                               [?THIS_NODE,
-                                #if_data_matches{pattern = bar_value}]}]},
+    Path = [bar,
+            #if_all{conditions =
+                    [?THIS_NODE,
+                     #if_data_matches{pattern = bar_value}]}],
+    Command = #delete{path = Path},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -208,7 +216,7 @@ delete_existing_node_with_condition_true_using_dot_test() ->
                                    payload_version => 1,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 delete_existing_node_with_condition_false_using_dot_test() ->
     Commands = [#put{path = [foo],
@@ -216,11 +224,11 @@ delete_existing_node_with_condition_false_using_dot_test() ->
                 #put{path = [bar],
                      payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Command = #delete{path =
-                      [bar,
-                       #if_all{conditions =
-                               [?THIS_NODE,
-                                #if_data_matches{pattern = other_value}]}]},
+    Path = [bar,
+            #if_all{conditions =
+                    [?THIS_NODE,
+                     #if_data_matches{pattern = other_value}]}],
+    Command = #delete{path = Path},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -238,7 +246,7 @@ delete_existing_node_with_condition_false_using_dot_test() ->
                   payload = khepri_payload:data(bar_value)}}},
        Root),
     ?assertEqual({ok, #{}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 delete_many_nodes_at_once_test() ->
     Commands = [#put{path = [foo],
@@ -248,7 +256,8 @@ delete_many_nodes_at_once_test() ->
                 #put{path = [baz],
                      payload = khepri_payload:data(baz_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Command = #delete{path = [#if_name_matches{regex = "a"}]},
+    Path = [#if_name_matches{regex = "a"}],
+    Command = #delete{path = Path},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -270,7 +279,7 @@ delete_many_nodes_at_once_test() ->
                                    payload_version => 1,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, {evict, Path}}], SE).
 
 delete_command_bumps_applied_command_count_test() ->
     Commands = [#delete{path = [foo]}],
@@ -282,21 +291,25 @@ delete_command_bumps_applied_command_count_test() ->
 
     ?assertEqual(#{}, S0#khepri_machine.metrics),
 
-    Command1 = #delete{path = [bar]},
+    Path1 = [bar],
+    Command1 = #delete{path = Path1},
     {S1, _, SE1} = khepri_machine:apply(?META, Command1, S0),
 
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
-    ?assertEqual([], SE1),
+    ?assertEqual([{aux, {evict, Path1}}], SE1),
 
-    Command2 = #delete{path = [baz]},
+    Path2 = [baz],
+    Command2 = #delete{path = Path2},
     {S2, _, SE2} = khepri_machine:apply(?META, Command2, S1),
 
     ?assertEqual(#{applied_command_count => 2}, S2#khepri_machine.metrics),
-    ?assertEqual([], SE2),
+    ?assertEqual([{aux, {evict, Path2}}], SE2),
 
-    Command3 = #delete{path = [qux]},
+    Path3 = [qux],
+    Command3 = #delete{path = Path3},
     Meta = ?META,
     {S3, _, SE3} = khepri_machine:apply(Meta, Command3, S2),
 
     ?assertEqual(#{}, S3#khepri_machine.metrics),
-    ?assertEqual([{release_cursor, maps:get(index, Meta), S3}], SE3).
+    ?assertEqual([{release_cursor, maps:get(index, Meta), S3},
+                  {aux, {evict, Path3}}], SE3).

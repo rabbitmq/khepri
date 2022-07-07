@@ -38,7 +38,9 @@
 -export([get_keep_while_conds_state/2]).
 -export([init/1,
          apply/3,
-         state_enter/2]).
+         state_enter/2,
+         init_aux/1,
+         handle_aux/6]).
 %% For internal use only.
 -export([clear_cache/1,
          ack_triggers_execution/2,
@@ -99,6 +101,9 @@
 
 -type state() :: #?MODULE{}.
 %% State of this Ra state machine.
+
+-type aux_state() :: #khepri_machine_aux{}.
+%% Auxiliary state for this Ra state machine.
 
 -type query_fun() :: fun((state()) -> any()).
 %% Function representing a query and used {@link process_query/3}.
@@ -993,6 +998,30 @@ emitted_triggers_to_side_effects(
 emitted_triggers_to_side_effects(_StateName, _State) ->
     [].
 
+-spec init_aux(StoreId :: khepri:store_id()) -> aux_state().
+%% @private
+
+init_aux(StoreId) ->
+    Cache = khepri_query_cache:init(StoreId),
+    #khepri_machine_aux{query_cache = Cache}.
+
+-spec handle_aux(RaState, Type, Command, AuxState, LogState, MachineState) ->
+    {no_reply, AuxState, LogState} when
+      RaState :: ra_server:ra_state(),
+      Type :: {call, ra:from()} | cast,
+      Command :: term(),
+      AuxState :: aux_state(),
+      LogState :: ra_log:state(),
+      MachineState :: state().
+%% @private
+
+handle_aux(_RaState, cast, {evict, Key}, AuxState, LogState, _MachineState) ->
+    #khepri_machine_aux{query_cache = Cache} = AuxState,
+    khepri_query_cache:evict(Cache, Key),
+    {no_reply, AuxState, LogState};
+handle_aux(_RaState, _Type, _Command, AuxState, LogState, _MachineState) ->
+    {no_reply, AuxState, LogState}.
+
 %% -------------------------------------------------------------------
 %% Internal functions.
 %% -------------------------------------------------------------------
@@ -1337,7 +1366,8 @@ insert_or_update_node(
                                    keep_while_conds_revidx =
                                    KeepWhileCondsRevIdx2},
             {State2, SideEffects} = create_tree_change_side_effects(
-                                      State, State1, Ret2, KeepWhileAftermath),
+                                      State, State1, Ret2, KeepWhileAftermath,
+                                      PathPattern),
             {State2, {ok, Ret2}, SideEffects};
         Error ->
             ?assertMatch({error, _}, Error),
@@ -1369,7 +1399,8 @@ insert_or_update_node(
                                    keep_while_conds_revidx =
                                    KeepWhileCondsRevIdx1},
             {State2, SideEffects} = create_tree_change_side_effects(
-                                      State, State1, Ret2, KeepWhileAftermath),
+                                      State, State1, Ret2, KeepWhileAftermath,
+                                      PathPattern),
             {State2, {ok, Ret2}, SideEffects};
         Error ->
             ?assertMatch({error, _}, Error),
@@ -1448,7 +1479,8 @@ delete_matching_nodes(
                                    keep_while_conds = KeepWhileConds1,
                                    keep_while_conds_revidx = KeepWhileCondsRevIdx1},
             {State2, SideEffects} = create_tree_change_side_effects(
-                                      State, State1, Ret2, KeepWhileAftermath),
+                                      State, State1, Ret2, KeepWhileAftermath,
+                                      PathPattern),
             {State2, {ok, Ret2}, SideEffects};
         Error ->
             {State, Error}
@@ -1471,9 +1503,10 @@ delete_matching_nodes_cb(_, {interrupted, _, _}, Result) ->
 
 create_tree_change_side_effects(
   #?MODULE{triggers = Triggers} = _InitialState,
-  NewState, _Ret, _KeepWhileAftermath)
+  NewState, _Ret, _KeepWhileAftermath, PathPattern)
   when Triggers =:= #{} ->
-    {NewState, []};
+    EvictCacheEntryEffect = {aux, {evict, PathPattern}},
+    {NewState, [EvictCacheEntryEffect]};
 create_tree_change_side_effects(
   %% We want to consider the new state (with the updated tree), but we want
   %% to use triggers from the initial state, in case they were updated too.
@@ -1483,7 +1516,7 @@ create_tree_change_side_effects(
            emitted_triggers = EmittedTriggers} = _InitialState,
   #?MODULE{config = #config{store_id = StoreId},
            root = Root} = NewState,
-  Ret, KeepWhileAftermath) ->
+  Ret, KeepWhileAftermath, PathPattern) ->
     %% We make a map where for each affected tree node, we indicate the type
     %% of change.
     Changes0 = maps:merge(Ret, KeepWhileAftermath),
@@ -1509,11 +1542,14 @@ create_tree_change_side_effects(
 
     %% We still emit a `mod_call' effect to wake up the event handler process
     %% so it doesn't have to poll the internal list.
-    SideEffect = {mod_call,
-                  khepri_event_handler,
-                  handle_triggered_sprocs,
-                  [StoreId, TriggeredStoredProcs]},
-    {NewState1, [SideEffect]}.
+    TriggeredSprocEffect = {mod_call,
+                            khepri_event_handler,
+                            handle_triggered_sprocs,
+                            [StoreId, TriggeredStoredProcs]},
+
+    EvictCacheEntryEffect = {aux, {evict, PathPattern}},
+
+    {NewState1, [TriggeredSprocEffect, EvictCacheEntryEffect]}.
 
 list_triggered_sprocs(Root, Changes, Triggers) ->
     TriggeredStoredProcs =
