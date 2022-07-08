@@ -215,13 +215,15 @@ get(StoreId, PathPattern, Options) ->
                end,
     case lists:all(fun(C) -> ?IS_PATH_COMPONENT(C) end, PathPattern1) of
         true ->
+            CachedOptions = maps:without([timeout, favor], Options),
+            CacheKey = {PathPattern1, CachedOptions},
             CacheCallback = fun(Server, Result, CacheTimeout) ->
                                     khepri_query_cache:store_remote(
-                                      Server, PathPattern1, Result,
+                                      Server, CacheKey, Result,
                                       CacheTimeout)
                             end,
             T0 = khepri_utils:start_timeout_window(Timeout),
-            case get_from_cache(StoreId, PathPattern, QueryType, Timeout) of
+            case get_from_cache(StoreId, CacheKey, QueryType, Timeout) of
                 {ok, Value} ->
                     Value;
                 error ->
@@ -237,9 +239,9 @@ get(StoreId, PathPattern, Options) ->
               StoreId, QueryFun, QueryType, CacheCallback, Timeout)
     end.
 
--spec get_from_cache(StoreId, PathPattern, QueryType, timeout()) -> Result when
+-spec get_from_cache(StoreId, CacheKey, QueryType, timeout()) -> Result when
     StoreId :: khepri:store_id(),
-    PathPattern :: khepri_path:native_pattern(),
+    CacheKey :: khepri_query_cache:key(),
     QueryType :: local | leader | consistent,
     Result :: {ok, CachedValue} | error,
     CachedValue :: khepri:result().
@@ -247,20 +249,20 @@ get(StoreId, PathPattern, Options) ->
 %%
 %% @private
 
-get_from_cache(_StoreId, _PathPattern, consistent, _Timeout) ->
+get_from_cache(_StoreId, _CacheKey, consistent, _Timeout) ->
     %% `consistent' queries must not use the cache.
     error;
-get_from_cache(StoreId, PathPattern, leader, Timeout) ->
+get_from_cache(StoreId, CacheKey, leader, Timeout) ->
     %% Query the cache of the cached leader.
     case khepri_cluster:get_cached_leader(StoreId) of
         undefined ->
             error;
         Leader ->
-            khepri_query_cache:lookup_remote(Leader, PathPattern, Timeout)
+            khepri_query_cache:lookup_remote(Leader, CacheKey, Timeout)
     end;
-get_from_cache(StoreId, PathPattern, local, _Timeout) ->
+get_from_cache(StoreId, CacheKey, local, _Timeout) ->
     Cache = khepri_query_cache:from_store_id(StoreId),
-    khepri_query_cache:lookup(Cache, PathPattern).
+    khepri_query_cache:lookup(Cache, CacheKey).
 
 -spec count(StoreId, PathPattern, Options) -> Result when
       StoreId :: khepri:store_id(),

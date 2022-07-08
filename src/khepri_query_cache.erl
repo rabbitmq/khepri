@@ -14,7 +14,9 @@
 -opaque cache() :: atom().
 %% An identifier for a query cache.
 
--export_type([cache/0]).
+-type key() :: {khepri_path:native_path(), khepri:query_options()}.
+
+-export_type([cache/0, key/0]).
 
 -export([init/1,
          lookup/2,
@@ -22,7 +24,6 @@
          store/3,
          store_remote/4,
          evict/2,
-         reset/1,
          from_store_id/1]).
 
 -spec init(khepri:store_id()) -> cache().
@@ -39,67 +40,59 @@ init(StoreId) ->
         end,
     Name.
 
--spec lookup(cache(), khepri_path:native_pattern()) ->
-    khepri:ok(term()) | error.
+-spec lookup(cache(), key()) -> khepri:ok(term()) | error.
 %% @doc Looks up the value of `PathPattern' in the `Cache', returning
 %% `error' if not present in the cache.
 
-lookup(Cache, PathPattern) ->
-    case ets:lookup(Cache, PathPattern) of
-        [{PathPattern, Value}] ->
+lookup(Cache, Key) ->
+    case ets:lookup(Cache, Key) of
+        [{Key, Value}] ->
             {ok, Value};
         _ ->
             error
     end.
 
--spec lookup_remote(ra:server_id(), khepri_path:native_pattern(), timeout()) ->
+-spec lookup_remote(ra:server_id(), key(), timeout()) ->
     khepri:ok(term()) | error.
 %% @doc Looks up the value for `PathPattern' in the {@link cache()} on
 %% `ServerId''s node.
 
-lookup_remote({StoreId, Node}, PathPattern, _Timeout) when Node =:= node() ->
-    lookup(from_store_id(StoreId), PathPattern);
-lookup_remote({StoreId, Node}, PathPattern, Timeout) ->
+lookup_remote({StoreId, Node}, Key, _Timeout) when Node =:= node() ->
+    lookup(from_store_id(StoreId), Key);
+lookup_remote({StoreId, Node}, Key, Timeout) ->
     Cache = from_store_id(StoreId),
-    case rpc:call(Node, ?MODULE, lookup, [Cache, PathPattern], Timeout) of
+    case rpc:call(Node, ?MODULE, lookup, [Cache, Key], Timeout) of
         {badrpc, _Reason} ->
             error;
         Value ->
             Value
     end.
 
--spec store(cache(), khepri_path:native_path(), term()) -> ok.
+-spec store(cache(), key(), term()) -> ok.
 %% @doc Stores `Value' in the given `Cache' for the given `PathPattern'.
 
-store(Cache, PathPattern, Value) ->
-    ets:insert(Cache, {PathPattern, Value}),
+store(Cache, Key, Value) ->
+    ets:insert(Cache, {Key, Value}),
     ok.
 
--spec store_remote(RaServer, Path, Value, timeout()) -> ok when
+-spec store_remote(RaServer, Key, Value, timeout()) -> ok when
     RaServer :: ra:server_id(),
-    Path :: khepri_path:native_path(),
+    Key :: key(),
     Value :: term().
 %% @doc Stores `Value' in `RaServer''s {@link cache()}.
 
-store_remote({StoreId, Node}, PathPattern, Value, _Timeout) when Node =:= node() ->
-    store(from_store_id(StoreId), PathPattern, Value);
-store_remote({StoreId, Node}, PathPattern, Value, Timeout) ->
+store_remote({StoreId, Node}, Key, Value, _Timeout) when Node =:= node() ->
+    store(from_store_id(StoreId), Key, Value);
+store_remote({StoreId, Node}, Key, Value, Timeout) ->
     Cache = from_store_id(StoreId),
-    rpc:call(Node, ?MODULE, store, [Cache, PathPattern, Value], Timeout),
+    rpc:call(Node, ?MODULE, store, [Cache, Key, Value], Timeout),
     ok.
 
--spec evict(cache(), khepri_path:native_pattern()) -> ok.
-%% @doc Removes the `PathPattern' entry from the `Cache'.
+-spec evict(cache(), key()) -> ok.
+%% @doc Removes the `Key' entry from the `Cache'.
 
-evict(Cache, PathPattern) ->
-    ets:delete(Cache, PathPattern),
-    ok.
-
--spec reset(cache()) -> ok.
-%% @doc Resets the `Cache' by deleting all objects.
-
-reset(Cache) ->
-    ets:delete_all_objects(Cache),
+evict(Cache, Key) ->
+    ets:delete(Cache, Key),
     ok.
 
 from_store_id(StoreId) ->
