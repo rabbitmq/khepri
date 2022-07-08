@@ -200,10 +200,43 @@ put(_StoreId, PathPattern, Payload, _Extra, _Options) ->
 get(StoreId, PathPattern, Options) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
-    Query = fun(#?MODULE{root = Root}) ->
-                    find_matching_nodes(Root, PathPattern1, Options)
-            end,
-    process_query(StoreId, Query, Options).
+    QueryType = select_query_type(StoreId, Options),
+    Timeout = get_timeout(Options),
+    T0 = khepri_utils:start_timeout_window(Timeout),
+    case get_from_cache(StoreId, PathPattern1, QueryType, Timeout) of
+        {ok, CachedValue} ->
+            {ok, CachedValue};
+        error ->
+            QueryTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+            QueryFun = fun(#?MODULE{root = Root}) ->
+                               find_matching_nodes(Root, PathPattern1, Options)
+                       end,
+            process_query(StoreId, QueryFun, QueryType, QueryTimeout)
+    end.
+
+-spec get_from_cache(StoreId, PathPattern, QueryType, timeout()) -> Result when
+    StoreId :: khepri:store_id(),
+    PathPattern :: khepri_path:native_pattern(),
+    QueryType :: local | leader | consistent,
+    Result :: khepri:ok(khepri:node_props_map()) | error.
+%% @doc Looks up a `PathPattern' in `StoreId''s `Cache'.
+%%
+%% @private
+
+get_from_cache(_StoreId, _PathPattern, consistent, _Timeout) ->
+    %% `consistent' queries must not use the cache.
+    error;
+get_from_cache(StoreId, PathPattern, leader, Timeout) ->
+    %% Query the cache of the cached leader.
+    case khepri_cluster:get_cached_leader(StoreId) of
+        undefined ->
+            error;
+        Leader ->
+            khepri_query_cache:lookup_remote(Leader, PathPattern, Timeout)
+    end;
+get_from_cache(StoreId, PathPattern, local, _Timeout) ->
+    Cache = khepri_query_cache:from_store_id(StoreId),
+    khepri_query_cache:lookup(Cache, PathPattern).
 
 -spec count(StoreId, PathPattern, Options) -> Result when
       StoreId :: khepri:store_id(),
@@ -577,10 +610,22 @@ select_command_type(#{async := {Correlation, Priority}})
 process_query(StoreId, QueryFun, Options) ->
     QueryType = select_query_type(StoreId, Options),
     Timeout = get_timeout(Options),
-    case QueryType of
-        local -> process_local_query(StoreId, QueryFun, Timeout);
-        _     -> process_non_local_query(StoreId, QueryFun, QueryType, Timeout)
-    end.
+    process_query(StoreId, QueryFun, QueryType, Timeout).
+
+-spec process_query(StoreId, QueryFun, QueryType, timeout()) -> Ret when
+    StoreId :: khepri:store_id(),
+    QueryFun :: query_fun(),
+    QueryType :: local | leader | consistent,
+    Ret :: any().
+%% Same as `process_query/3' but with `QueryType' and `Timeout' determined
+%% from `Options'.
+%%
+%% @private
+
+process_query(StoreId, QueryFun, local, Timeout) ->
+    process_local_query(StoreId, QueryFun, Timeout);
+process_query(StoreId, QueryFun, QueryType, Timeout) ->
+    process_non_local_query(StoreId, QueryFun, QueryType, Timeout).
 
 -spec process_local_query(StoreId, QueryFun, Timeout) -> Ret when
       StoreId :: khepri:store_id(),
