@@ -689,7 +689,7 @@ process_non_local_query(StoreId, QueryFun, QueryType, Timeout)
       Ret :: any().
 
 process_query_response(
-  StoreId, RaServer, IsLeader, _QueryFun, consistent, _Timeout,
+  StoreId, RaServer, IsLeader, _QueryFun, consistent, Timeout,
   {ok, Ret, NewLeaderId}) ->
     case IsLeader of
         true ->
@@ -698,10 +698,11 @@ process_query_response(
         false ->
             khepri_cluster:cache_leader(StoreId, NewLeaderId)
     end,
+    store_in_cache(RaServer, Ret, Timeout),
     just_did_consistent_call(StoreId),
     Ret;
 process_query_response(
-  StoreId, RaServer, IsLeader, _QueryFun, _QueryType, _Timeout,
+  StoreId, RaServer, IsLeader, _QueryFun, _QueryType, Timeout,
   {ok, {_RaIndex, Ret}, NewLeaderId}) ->
     case IsLeader of
         true ->
@@ -710,6 +711,7 @@ process_query_response(
         false ->
             khepri_cluster:cache_leader(StoreId, NewLeaderId)
     end,
+    store_in_cache(RaServer, Ret, Timeout),
     Ret;
 process_query_response(
   _StoreId, _RaServer, _IsLeader, _QueryFun, _QueryType, _Timeout,
@@ -740,6 +742,25 @@ process_query_response(
   _StoreId, _RaServer, _IsLeader, _QueryFun, _QueryType, _Timeout,
   {error, _} = Error) ->
     Error.
+
+-spec store_in_cache(RaServer, Return, timeout()) -> ok when
+    RaServer :: ra:server_id(),
+    Return :: khepri:result().
+%% @doc Stores `Return''s value in the `RaServer''s {@link khepri_query_cache:cache()}
+
+store_in_cache(RaServer, {ok, Value}, Timeout)
+  when is_map(Value) andalso map_size(Value) == 1 ->
+    [{PathPattern, _}] = maps:to_list(Value),
+    case lists:all(fun(C) -> ?IS_PATH_COMPONENT(C) end, PathPattern) of
+        true ->
+            %% Only paths (not patterns) may be stored for now.
+            khepri_query_cache:store_remote(
+              RaServer, PathPattern, Value, Timeout);
+        false ->
+            ok
+    end;
+store_in_cache(_RaServer, _Value, _Timeout) ->
+    ok.
 
 -spec select_query_type(StoreId, Options) -> QueryType when
       StoreId :: khepri:store_id(),
