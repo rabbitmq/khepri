@@ -424,7 +424,8 @@ can_start_a_three_node_cluster(Config) ->
                                    payload_version => 2,
                                    child_list_version => 1,
                                    child_list_length => 0}}},
-                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+                 rpc:call(Node, khepri, get, [StoreId, [foo],
+                                              #{use_cache => false}]))
       end, RunningNodes1),
 
     LeaderId2 = get_leader_in_store(StoreId, RunningNodes1),
@@ -519,7 +520,8 @@ can_join_several_times_a_three_node_cluster(Config) ->
                                    payload_version => 2,
                                    child_list_version => 1,
                                    child_list_length => 0}}},
-                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+                 rpc:call(Node, khepri, get, [StoreId, [foo],
+                                              #{use_cache => false}]))
       end, Nodes),
 
     ok.
@@ -657,7 +659,8 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
                                    payload_version => 2,
                                    child_list_version => 1,
                                    child_list_length => 0}}},
-                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+                 rpc:call(Node, khepri, get, [StoreId, [foo],
+                                              #{use_cache => false}]))
       end, RunningNodes3),
 
     ok.
