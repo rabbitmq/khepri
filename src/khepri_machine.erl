@@ -213,9 +213,11 @@ get(StoreId, PathPattern, Options) ->
     QueryFun = fun(#?MODULE{root = Root}) ->
                        find_matching_nodes(Root, PathPattern1, Options)
                end,
-    case lists:all(fun(C) -> ?IS_PATH_COMPONENT(C) end, PathPattern1) of
-        true ->
-            CachedOptions = maps:without([timeout, favor], Options),
+    IsPath = lists:all(fun(C) -> ?IS_PATH_COMPONENT(C) end, PathPattern1),
+    UseCache = maps:get(use_cache, Options, true),
+    if
+        IsPath andalso UseCache ->
+            CachedOptions = maps:without([timeout, favor, use_cache], Options),
             CacheKey = {PathPattern1, CachedOptions},
             CacheCallback = fun(Server, Result, CacheTimeout) ->
                                     khepri_query_cache:store_remote(
@@ -233,7 +235,7 @@ get(StoreId, PathPattern, Options) ->
                       StoreId, QueryFun, QueryType, CacheCallback,
                       RemainingTimeout)
             end;
-        false ->
+        true ->
             CacheCallback = fun(_, _, _) -> ok end,
             process_query(
               StoreId, QueryFun, QueryType, CacheCallback, Timeout)

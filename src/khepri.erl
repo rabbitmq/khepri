@@ -260,7 +260,8 @@
 -type query_options() :: #{timeout => timeout(),
                            expect_specific_node => boolean(),
                            include_child_names => boolean(),
-                           favor => favor_option()}.
+                           favor => favor_option(),
+                           use_cache => boolean()}.
 %% Options used in queries.
 %%
 %% <ul>
@@ -271,6 +272,10 @@
 %% the returned node properties map.</li>
 %% <li>`favor' indicates where to put the cursor between freshness of the
 %% returned data and low latency of queries; see {@link favor_option()}.</li>
+%% <li>`use_cache' may be used to control whether the query cache should be
+%% used for the query. When `true', the query cache is checked for the queried
+%% path and the result is cached. When `false', the query cache is not checked
+%% or updated. `true' is the default.</li>
 %% </ul>
 
 -type ok(Type) :: {ok, Type}.
