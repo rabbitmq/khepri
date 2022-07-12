@@ -2147,7 +2147,9 @@ replace_label(
             Instruction;
         {f, OldLabel} ->
             NewLabel = maps:get({Module, OldLabel}, LabelMap),
-            setelement(Pos, Instruction, {f, NewLabel})
+            setelement(Pos, Instruction, {f, NewLabel});
+        nofail ->
+            Instruction
     end.
 
 -spec gen_module_name(State) -> Module when
