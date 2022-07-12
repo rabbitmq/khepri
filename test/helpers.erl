@@ -9,10 +9,15 @@
 
 -include_lib("stdlib/include/assert.hrl").
 
--export([start_ra_system/1,
+-export([init_list_of_modules_to_skip/0,
+         start_ra_system/1,
          stop_ra_system/1,
          store_dir_name/1,
          remove_store_dir/1]).
+
+init_list_of_modules_to_skip() ->
+    _ = application:load(khepri),
+    khepri_utils:init_list_of_modules_to_skip().
 
 start_ra_system(RaSystem) ->
     {ok, _} = application:ensure_all_started(ra),
