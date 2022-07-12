@@ -27,6 +27,7 @@
 
 -define(make_standalone_fun(Expression),
         begin
+            helpers:init_list_of_modules_to_skip(),
             __Fun = fun() -> Expression end,
             khepri_tx:to_standalone_fun(__Fun, rw)
         end).
@@ -838,6 +839,7 @@ denied_re_version_test() ->
        end).
 
 when_readwrite_mode_is_true_test() ->
+    helpers:init_list_of_modules_to_skip(),
     ?assert(
        is_record(khepri_tx:to_standalone_fun(
                    fun() ->
@@ -887,6 +889,7 @@ when_readwrite_mode_is_true_test() ->
                  standalone_fun)).
 
 when_readwrite_mode_is_false_test() ->
+    helpers:init_list_of_modules_to_skip(),
     ?assert(
        is_function(khepri_tx:to_standalone_fun(
                      fun() ->
@@ -942,6 +945,7 @@ when_readwrite_mode_is_false_test() ->
                    0)).
 
 when_readwrite_mode_is_auto_test() ->
+    helpers:init_list_of_modules_to_skip(),
     ?assert(
        is_function(khepri_tx:to_standalone_fun(
                      fun() ->
@@ -1008,6 +1012,7 @@ make_fun(9)  -> fun(_, _, _, _, _, _, _, _, _) -> result end;
 make_fun(10) -> fun(_, _, _, _, _, _, _, _, _, _) -> result end.
 
 list_in_fun_env_test() ->
+    helpers:init_list_of_modules_to_skip(),
     List = make_list(),
     StandaloneFun = khepri_tx:to_standalone_fun(
                       fun() -> List end,
@@ -1017,6 +1022,7 @@ list_in_fun_env_test() ->
     ?assertEqual(List, khepri_fun:exec(StandaloneFun, [])).
 
 map_in_fun_env_test() ->
+    helpers:init_list_of_modules_to_skip(),
     Map = make_map(),
     StandaloneFun = khepri_tx:to_standalone_fun(
                       fun() -> Map end,
@@ -1026,6 +1032,7 @@ map_in_fun_env_test() ->
     ?assertEqual(Map, khepri_fun:exec(StandaloneFun, [])).
 
 tuple_in_fun_env_test() ->
+    helpers:init_list_of_modules_to_skip(),
     Tuple = make_tuple(),
     StandaloneFun = khepri_tx:to_standalone_fun(
                       fun() -> Tuple end,
@@ -1035,6 +1042,7 @@ tuple_in_fun_env_test() ->
     ?assertEqual(Tuple, khepri_fun:exec(StandaloneFun, [])).
 
 binary_in_fun_env_test() ->
+    helpers:init_list_of_modules_to_skip(),
     Binary = make_binary(),
     StandaloneFun = khepri_tx:to_standalone_fun(
                       fun() -> Binary end,
@@ -1044,6 +1052,7 @@ binary_in_fun_env_test() ->
     ?assertEqual(Binary, khepri_fun:exec(StandaloneFun, [])).
 
 fun0_in_fun_env_test() ->
+    helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(0),
     StandaloneFun = khepri_tx:to_standalone_fun(
                       fun() -> Fun() end,
@@ -1053,6 +1062,7 @@ fun0_in_fun_env_test() ->
     ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
 
 fun1_in_fun_env_test() ->
+    helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(1),
     StandaloneFun = khepri_tx:to_standalone_fun(
                       fun() -> Fun(1) end,
@@ -1062,6 +1072,7 @@ fun1_in_fun_env_test() ->
     ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
 
 fun2_in_fun_env_test() ->
+    helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(2),
     self() ! Fun,
     receive Fun -> ok end,
@@ -1073,6 +1084,7 @@ fun2_in_fun_env_test() ->
     ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
 
 fun3_in_fun_env_test() ->
+    helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(3),
     StandaloneFun = khepri_tx:to_standalone_fun(
                       fun() -> Fun(1, 2, 3) end,
@@ -1082,6 +1094,7 @@ fun3_in_fun_env_test() ->
     ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
 
 fun4_in_fun_env_test() ->
+    helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(4),
     StandaloneFun = khepri_tx:to_standalone_fun(
                       fun() -> Fun(1, 2, 3, 4) end,
@@ -1091,6 +1104,7 @@ fun4_in_fun_env_test() ->
     ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
 
 fun5_in_fun_env_test() ->
+    helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(5),
     StandaloneFun = khepri_tx:to_standalone_fun(
                       fun() -> Fun(1, 2, 3, 4, 5) end,
@@ -1100,6 +1114,7 @@ fun5_in_fun_env_test() ->
     ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
 
 fun6_in_fun_env_test() ->
+    helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(6),
     StandaloneFun = khepri_tx:to_standalone_fun(
                       fun() -> Fun(1, 2, 3, 4, 5, 6) end,
@@ -1109,6 +1124,7 @@ fun6_in_fun_env_test() ->
     ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
 
 fun7_in_fun_env_test() ->
+    helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(7),
     StandaloneFun = khepri_tx:to_standalone_fun(
                       fun() -> Fun(1, 2, 3, 4, 5, 6, 7) end,
@@ -1118,6 +1134,7 @@ fun7_in_fun_env_test() ->
     ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
 
 fun8_in_fun_env_test() ->
+    helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(8),
     StandaloneFun = khepri_tx:to_standalone_fun(
                       fun() -> Fun(1, 2, 3, 4, 5, 6, 7, 8) end,
@@ -1127,6 +1144,7 @@ fun8_in_fun_env_test() ->
     ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
 
 fun9_in_fun_env_test() ->
+    helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(9),
     StandaloneFun = khepri_tx:to_standalone_fun(
                       fun() -> Fun(1, 2, 3, 4, 5, 6, 7, 8, 9) end,
@@ -1136,6 +1154,7 @@ fun9_in_fun_env_test() ->
     ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
 
 fun10_in_fun_env_test() ->
+    helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(10),
     StandaloneFun = khepri_tx:to_standalone_fun(
                       fun() -> Fun(1, 2, 3, 4, 5, 6, 7, 8, 9, 10) end,
@@ -1145,6 +1164,7 @@ fun10_in_fun_env_test() ->
     ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
 
 exec_with_regular_fun_test() ->
+    helpers:init_list_of_modules_to_skip(),
     Fun = khepri_tx:to_standalone_fun(
             fun() -> result end,
             ro),
@@ -1152,6 +1172,7 @@ exec_with_regular_fun_test() ->
     ?assertEqual(result, khepri_fun:exec(Fun, [])).
 
 exec_standalone_fun_multiple_times_test() ->
+    helpers:init_list_of_modules_to_skip(),
     StandaloneFun = khepri_tx:to_standalone_fun(
                       fun() -> result end,
                       rw),
@@ -1159,6 +1180,7 @@ exec_standalone_fun_multiple_times_test() ->
     ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
 
 exec_with_standalone_fun_test() ->
+    helpers:init_list_of_modules_to_skip(),
     StandaloneFun = khepri_tx:to_standalone_fun(
                       fun() -> result end,
                       rw),
@@ -1170,6 +1192,7 @@ exec_with_standalone_fun_test() ->
     ?assertEqual(result, khepri_fun:exec(StandaloneFun, [])).
 
 record_matching_fun_clause_test() ->
+    helpers:init_list_of_modules_to_skip(),
     StandaloneFun = khepri_fun:to_standalone_fun(
                       fun mod_used_for_transactions:outer_function/2,
                       #{}),
