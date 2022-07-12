@@ -1279,18 +1279,21 @@ pass1_process_instructions(
     Comment = {'%', VarInfo},
     pass1_process_instructions(Rest, State1, [Instruction1, Comment | Result]);
 pass1_process_instructions(
-  [{get_map_elements, _Fail, Src, {list, _}} = Instruction | Rest],
+  [{get_map_elements, _Fail, Src, {list, List}} = Instruction | Rest],
   State,
   Result) ->
     State1 = ensure_instruction_is_permitted(Instruction, State),
     Src1 = fix_type_tagged_beam_register(Src),
+    List1 = [fix_type_tagged_beam_register(I)
+             || I <- List],
     Instruction1 = setelement(3, Instruction, Src1),
+    Instruction2 = setelement(4, Instruction1, {list, List1}),
 
     Reg = get_reg_from_type_tagged_beam_register(Src1),
     Type = {t_map, any, any},
     VarInfo = {var_info, Reg, [{type, Type}]},
     Comment = {'%', VarInfo},
-    pass1_process_instructions(Rest, State1, [Instruction1, Comment | Result]);
+    pass1_process_instructions(Rest, State1, [Instruction2, Comment | Result]);
 pass1_process_instructions(
   [{put_map_assoc, _Fail, Src, _Dst, _Live, {list, _}} = Instruction | Rest],
   State,

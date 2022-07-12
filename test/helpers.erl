@@ -16,7 +16,7 @@
          remove_store_dir/1]).
 
 init_list_of_modules_to_skip() ->
-    application:load(khepri),
+    _ = application:load(khepri),
     khepri_utils:init_list_of_modules_to_skip().
 
 start_ra_system(RaSystem) ->

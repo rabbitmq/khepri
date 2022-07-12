@@ -1208,9 +1208,28 @@ record_matching_fun_clause_test() ->
     ok.
 
 extracting_unexported_external_function_test() ->
+    helpers:init_list_of_modules_to_skip(),
     ?assertThrow(
        {call_to_unexported_function,
         {mod_used_for_transactions, inner_function, 2}},
        khepri_fun:to_standalone_fun(
          fun mod_used_for_transactions:inner_function/2,
          #{})).
+
+get_map_elements_arguments_are_correctly_disassembled_test() ->
+    helpers:init_list_of_modules_to_skip(),
+    Path = [node()],
+    Result = khepri:get(Path),
+    Fun = fun() ->
+                  case Result of
+                      {ok, #{Path := #{data := S}}} -> S;
+                      _                             -> undefined
+                  end
+          end,
+    StandaloneFun = khepri_tx:to_standalone_fun(Fun, rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    %% Here, we don't really care about the transaction result. We mostly want
+    %% to make sure the function is loaded to detect any incorrectly
+    %% disassembled instruction arguments (they may not be validated at
+    %% compile time apparently).
+    ?assertEqual(undefined, khepri_fun:exec(StandaloneFun, [])).
