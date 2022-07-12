@@ -237,7 +237,7 @@ allowed_case_block_test() ->
 allowed_case_block_with_different_tuple_arities_test() ->
     ?assertStandaloneFun(
        begin
-           case {a, b, c} of
+           case khepri_tx:get([foo]) of
                {_, _, _} -> three;
                {_, _} ->    two;
                {_} ->       one
