@@ -1237,3 +1237,21 @@ get_map_elements_arguments_are_correctly_disassembled_test() ->
     %% disassembled instruction arguments (they may not be validated at
     %% compile time apparently).
     ?assertEqual(undefined, khepri_fun:exec(StandaloneFun, [])).
+
+is_tuple_arguments_are_correctly_disassembled_test() ->
+    helpers:init_list_of_modules_to_skip(),
+    Path = [node()],
+    Result = khepri:put(store_id, Path, value, #{async => true}),
+    Fun = fun() ->
+                  case Result of
+                      ok         -> atom;
+                      {error, _} -> tuple
+                  end
+          end,
+    StandaloneFun = khepri_tx:to_standalone_fun(Fun, rw),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    %% Here, we don't really care about the transaction result. We mostly want
+    %% to make sure the function is loaded to detect any incorrectly
+    %% disassembled instruction arguments (they may not be validated at
+    %% compile time apparently).
+    ?assertEqual(atom, khepri_fun:exec(StandaloneFun, [])).

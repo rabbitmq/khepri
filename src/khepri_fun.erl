@@ -1112,6 +1112,16 @@ pass1_process_instructions(
                    Fail, [Ctx, Stride, {string, String}]},
     pass1_process_instructions([Instruction | Rest], State, Result);
 pass1_process_instructions(
+  [{test, IsTuple, _Fail, Args} = Instruction | Rest],
+  State,
+  Result)
+  when IsTuple =:= is_tuple orelse IsTuple =:= is_tagged_tuple ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    Args1 = [fix_type_tagged_beam_register(I)
+             || I <- Args],
+    Instruction1 = setelement(4, Instruction, Args1),
+    pass1_process_instructions(Rest, State1, [Instruction1 | Result]);
+pass1_process_instructions(
   [{raise, Fail, Args, Dst} | Rest],
   State,
   Result) ->
