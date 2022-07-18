@@ -984,8 +984,10 @@ pass1_process_instructions(Instructions, State) ->
 %%   2. records all calls that need their code to be copied and
 %%   3. records jump labels.
 %%
-%% The third group of clauses infers type information and match contexts
-%% and adds comments to satisfy the compiler's validator pass.
+%% The third group of clauses infers type information and match contexts and
+%% adds comments to satisfy the compiler's validator pass. It also patches
+%% incorrectly decoded instructions for errors which couldn't be easily
+%% detected from a function clause by the first group.
 
 %% First group.
 
@@ -1111,16 +1113,6 @@ pass1_process_instructions(
     Instruction = {test, bs_match_string,
                    Fail, [Ctx, Stride, {string, String}]},
     pass1_process_instructions([Instruction | Rest], State, Result);
-pass1_process_instructions(
-  [{test, IsTuple, _Fail, Args} = Instruction | Rest],
-  State,
-  Result)
-  when IsTuple =:= is_tuple orelse IsTuple =:= is_tagged_tuple ->
-    State1 = ensure_instruction_is_permitted(Instruction, State),
-    Args1 = [fix_type_tagged_beam_register(I)
-             || I <- Args],
-    Instruction1 = setelement(4, Instruction, Args1),
-    pass1_process_instructions(Rest, State1, [Instruction1 | Result]);
 pass1_process_instructions(
   [{raise, Fail, Args, Dst} | Rest],
   State,
@@ -1261,6 +1253,7 @@ pass1_process_instructions(
     pass1_process_instructions(Rest, State3, [Instruction1 | Result]);
 
 %% Third group.
+
 pass1_process_instructions(
   [{get_tuple_element, Src, Element, _Dest} = Instruction | Rest],
   State,
@@ -1338,6 +1331,16 @@ pass1_process_instructions(
     VarInfo = {var_info, Var, [{type, Type}]},
     Comment = {'%', VarInfo},
     pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+pass1_process_instructions(
+  [{test, IsTuple, _Fail, Args} = Instruction | Rest],
+  State,
+  Result)
+  when IsTuple =:= is_tuple orelse IsTuple =:= is_tagged_tuple ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    Args1 = [fix_type_tagged_beam_register(I)
+             || I <- Args],
+    Instruction1 = setelement(4, Instruction, Args1),
+    pass1_process_instructions(Rest, State1, [Instruction1 | Result]);
 
 pass1_process_instructions(
   [Instruction | Rest],
