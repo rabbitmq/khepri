@@ -507,6 +507,8 @@ ensure_instruction_is_permitted({arithfbif, _, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted({badmatch, _}) ->
     ok;
+ensure_instruction_is_permitted({badrecord, _}) ->
+    ok;
 ensure_instruction_is_permitted({bif, Bif, _, Args, _}) ->
     Arity = length(Args),
     ensure_bif_is_valid(Bif, Arity);

@@ -542,7 +542,7 @@ denied_module_info_1_test() ->
            _ = lists:module_info(compile)
        end).
 
--record(record, {}).
+-record(record, {field}).
 
 allowed_erlang_module_api_test() ->
     %% The compiler optimization will replace many of the following calls
@@ -643,6 +643,10 @@ allowed_erlang_module_api_test() ->
            _ = erlang:size(Binary),
            _ = erlang:throw(Term)
        end).
+
+allowed_record_test() ->
+    Record = persistent_term:get(record, undefined),
+    ?assertStandaloneFun(Record#record.field).
 
 denied_builtin_make_ref_0_test() ->
     ?assertToFunThrow(
