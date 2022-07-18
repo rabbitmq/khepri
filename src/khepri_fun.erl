@@ -1255,6 +1255,14 @@ pass1_process_instructions(
 %% Third group.
 
 pass1_process_instructions(
+  [{bif, _Operation, _Fail, Args, _Dst} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    Args1 = [fix_type_tagged_beam_register(I) || I <- Args],
+    Instruction1 = setelement(4, Instruction, Args1),
+    pass1_process_instructions(Rest, State1, [Instruction1 | Result]);
+pass1_process_instructions(
   [{get_tuple_element, Src, Element, _Dest} = Instruction | Rest],
   State,
   Result) ->
