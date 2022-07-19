@@ -1259,7 +1259,7 @@ pass1_process_instructions(
   State,
   Result) ->
     State1 = ensure_instruction_is_permitted(Instruction, State),
-    Args1 = [fix_type_tagged_beam_register(I) || I <- Args],
+    Args1 = fix_type_tagged_beam_registers(Args),
     Instruction1 = setelement(4, Instruction, Args1),
     pass1_process_instructions(Rest, State1, [Instruction1 | Result]);
 pass1_process_instructions(
@@ -1295,8 +1295,7 @@ pass1_process_instructions(
   Result) ->
     State1 = ensure_instruction_is_permitted(Instruction, State),
     Src1 = fix_type_tagged_beam_register(Src),
-    List1 = [fix_type_tagged_beam_register(I)
-             || I <- List],
+    List1 = fix_type_tagged_beam_registers(List),
     Instruction1 = setelement(3, Instruction, Src1),
     Instruction2 = setelement(4, Instruction1, {list, List1}),
 
@@ -1344,7 +1343,7 @@ pass1_process_instructions(
   State,
   Result) ->
     State1 = ensure_instruction_is_permitted(Instruction, State),
-    Args1 = [fix_type_tagged_beam_register(I) || I <- Args],
+    Args1 = fix_type_tagged_beam_registers(Args),
     Instruction1 = setelement(4, Instruction, Args1),
     pass1_process_instructions(Rest, State1, [Instruction1 | Result]);
 
@@ -1853,8 +1852,25 @@ fix_integer({u, U}) -> U;
 fix_integer({i, I}) -> {integer, I};
 fix_integer(Other)  -> Other.
 
-fix_type_tagged_beam_register({tr, Reg, {Type, _, _}}) -> {tr, Reg, Type};
-fix_type_tagged_beam_register(Other)                   -> Other.
+%% The compiler in Erlang 25 adds type information in the form of "typed
+%% registers" (`tr') to allow the JIT to do some optimizations. See:
+%% https://www.erlang.org/blog/type-based-optimizations-in-the-jit/
+%%
+%% `beam_disasm' decodes the typed registers but leaves them in their encoded
+%% form inside the beam file. We need to recover the proper typed register
+%% form.
+
+fix_type_tagged_beam_register({tr, Reg, {TypeUnion, _Min, _Max}}) ->
+    %% TODO: We could use `Min' and `Max' to improve the decoded typed
+    %% register, but 1), they are badly decoded by `beam_disasm' (unsigned
+    %% instead of signed) and 2)is there any benefit at this point?
+    {tr, Reg, TypeUnion};
+fix_type_tagged_beam_register(Other) ->
+    Other.
+
+fix_type_tagged_beam_registers(TypesInfo) when is_list(TypesInfo) ->
+    [fix_type_tagged_beam_register(TypeInfo)
+     || TypeInfo <- TypesInfo].
 
 get_reg_from_type_tagged_beam_register({tr, Reg, _}) -> Reg;
 get_reg_from_type_tagged_beam_register(Reg)          -> Reg.
