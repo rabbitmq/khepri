@@ -38,7 +38,9 @@
 -export([get_keep_while_conds_state/2]).
 -export([init/1,
          apply/3,
-         state_enter/2]).
+         state_enter/2,
+         init_aux/1,
+         handle_aux/6]).
 %% For internal use only.
 -export([clear_cache/1,
          ack_triggers_execution/2,
@@ -100,8 +102,14 @@
 -type state() :: #?MODULE{}.
 %% State of this Ra state machine.
 
+-type aux_state() :: #khepri_machine_aux{}.
+%% Auxiliary state for this Ra state machine.
+
 -type query_fun() :: fun((state()) -> any()).
 %% Function representing a query and used {@link process_query/3}.
+
+-type cache_callback() ::
+    fun((ra:server_id(), khepri_path:native_path(), timeout()) -> ok).
 
 -type walk_down_the_tree_extra() :: #{include_root_props =>
                                       boolean(),
@@ -200,10 +208,63 @@ put(_StoreId, PathPattern, Payload, _Extra, _Options) ->
 get(StoreId, PathPattern, Options) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
-    Query = fun(#?MODULE{root = Root}) ->
-                    find_matching_nodes(Root, PathPattern1, Options)
-            end,
-    process_query(StoreId, Query, Options).
+    QueryType = select_query_type(StoreId, Options),
+    Timeout = get_timeout(Options),
+    QueryFun = fun(#?MODULE{root = Root}) ->
+                       find_matching_nodes(Root, PathPattern1, Options)
+               end,
+    IsPath = lists:all(fun(C) -> ?IS_PATH_COMPONENT(C) end, PathPattern1),
+    UseCache = maps:get(use_cache, Options, true),
+    if
+        IsPath andalso UseCache ->
+            CachedOptions = maps:without([timeout, favor, use_cache], Options),
+            CacheKey = {PathPattern1, CachedOptions},
+            CacheCallback = fun(Server, Result, CacheTimeout) ->
+                                    khepri_query_cache:store_remote(
+                                      Server, CacheKey, Result,
+                                      CacheTimeout)
+                            end,
+            T0 = khepri_utils:start_timeout_window(Timeout),
+            case get_from_cache(StoreId, CacheKey, QueryType, Timeout) of
+                {ok, Value} ->
+                    Value;
+                error ->
+                    RemainingTimeout = khepri_utils:end_timeout_window(
+                                         Timeout, T0),
+                    process_query(
+                      StoreId, QueryFun, QueryType, CacheCallback,
+                      RemainingTimeout)
+            end;
+        true ->
+            CacheCallback = fun(_, _, _) -> ok end,
+            process_query(
+              StoreId, QueryFun, QueryType, CacheCallback, Timeout)
+    end.
+
+-spec get_from_cache(StoreId, CacheKey, QueryType, timeout()) -> Result when
+    StoreId :: khepri:store_id(),
+    CacheKey :: khepri_query_cache:key(),
+    QueryType :: local | leader | consistent,
+    Result :: {ok, CachedValue} | error,
+    CachedValue :: khepri:result().
+%% @doc Looks up a `PathPattern' in `StoreId''s `Cache'.
+%%
+%% @private
+
+get_from_cache(_StoreId, _CacheKey, consistent, _Timeout) ->
+    %% `consistent' queries must not use the cache.
+    error;
+get_from_cache(StoreId, CacheKey, leader, Timeout) ->
+    %% Query the cache of the cached leader.
+    case khepri_cluster:get_cached_leader(StoreId) of
+        undefined ->
+            error;
+        Leader ->
+            khepri_query_cache:lookup_remote(Leader, CacheKey, Timeout)
+    end;
+get_from_cache(StoreId, CacheKey, local, _Timeout) ->
+    Cache = khepri_query_cache:from_store_id(StoreId),
+    khepri_query_cache:lookup(Cache, CacheKey).
 
 -spec count(StoreId, PathPattern, Options) -> Result when
       StoreId :: khepri:store_id(),
@@ -576,33 +637,55 @@ select_command_type(#{async := {Correlation, Priority}})
 
 process_query(StoreId, QueryFun, Options) ->
     QueryType = select_query_type(StoreId, Options),
+    CacheCallback = fun(_, _, _) -> ok end,
     Timeout = get_timeout(Options),
-    case QueryType of
-        local -> process_local_query(StoreId, QueryFun, Timeout);
-        _     -> process_non_local_query(StoreId, QueryFun, QueryType, Timeout)
-    end.
+    process_query(StoreId, QueryFun, QueryType, CacheCallback, Timeout).
 
--spec process_local_query(StoreId, QueryFun, Timeout) -> Ret when
+-spec process_query(StoreId, QueryFun, QueryType, CacheCallback, Timeout) ->
+    Ret when
       StoreId :: khepri:store_id(),
       QueryFun :: query_fun(),
+      QueryType :: local | leader | consistent,
+      CacheCallback :: cache_callback(),
+      Timeout :: timeout(),
+      Ret :: any().
+%% Same as `process_query/3' but with `QueryType' and `Timeout' determined
+%% from `Options'.
+%%
+%% @private
+
+process_query(StoreId, QueryFun, local, CacheCallback, Timeout) ->
+    process_local_query(StoreId, QueryFun, CacheCallback, Timeout);
+process_query(StoreId, QueryFun, QueryType, CacheCallback, Timeout) ->
+    process_non_local_query(
+      StoreId, QueryFun, QueryType, CacheCallback, Timeout).
+
+-spec process_local_query(StoreId, QueryFun, CacheCallback, Timeout) ->
+    Ret when
+      StoreId :: khepri:store_id(),
+      QueryFun :: query_fun(),
+      CacheCallback :: cache_callback(),
       Timeout :: timeout(),
       Ret :: any().
 
-process_local_query(StoreId, QueryFun, Timeout) ->
+process_local_query(StoreId, QueryFun, CacheCallback, Timeout) ->
     LocalServerId = {StoreId, node()},
     Ret = ra:local_query(LocalServerId, QueryFun, Timeout),
     process_query_response(
-      StoreId, LocalServerId, false, QueryFun, local, Timeout, Ret).
+      StoreId, LocalServerId, false, QueryFun, local, CacheCallback,
+      Timeout, Ret).
 
--spec process_non_local_query(StoreId, QueryFun, QueryType, Timeout) ->
+-spec process_non_local_query(
+        StoreId, QueryFun, QueryType, CacheCallback, Timeout) ->
     Ret when
       StoreId :: khepri:store_id(),
       QueryFun :: query_fun(),
       QueryType :: leader | consistent,
+      CacheCallback :: cache_callback(),
       Timeout :: timeout(),
       Ret :: any().
 
-process_non_local_query(StoreId, QueryFun, QueryType, Timeout)
+process_non_local_query(StoreId, QueryFun, QueryType, CacheCallback, Timeout)
   when QueryType =:= leader orelse
        QueryType =:= consistent ->
     T0 = khepri_utils:start_timeout_window(Timeout),
@@ -618,17 +701,18 @@ process_non_local_query(StoreId, QueryFun, QueryType, Timeout)
     %% never block the query and let the caller continue?
     process_query_response(
       StoreId, RaServer, LeaderId =/= undefined, QueryFun, QueryType,
-      NewTimeout, Ret).
+      CacheCallback, NewTimeout, Ret).
 
 -spec process_query_response(
-        StoreId, RaServer, IsLeader, QueryFun, QueryType, Timeout,
-        Response) ->
+        StoreId, RaServer, IsLeader, QueryFun, QueryType, CacheCallback,
+        Timeout, Response) ->
     Ret when
       StoreId :: khepri:store_id(),
       RaServer :: ra:server_id(),
       IsLeader :: boolean(),
       QueryFun :: query_fun(),
       QueryType :: local | leader | consistent,
+      CacheCallback :: cache_callback(),
       Timeout :: timeout(),
       Response :: {ok, {RaIndex, any()}, NewLeaderId} |
                   {ok, any(), NewLeaderId} |
@@ -639,7 +723,7 @@ process_non_local_query(StoreId, QueryFun, QueryType, Timeout)
       Ret :: any().
 
 process_query_response(
-  StoreId, RaServer, IsLeader, _QueryFun, consistent, _Timeout,
+  StoreId, RaServer, IsLeader, _QueryFun, consistent, CacheCallback, Timeout,
   {ok, Ret, NewLeaderId}) ->
     case IsLeader of
         true ->
@@ -648,10 +732,11 @@ process_query_response(
         false ->
             khepri_cluster:cache_leader(StoreId, NewLeaderId)
     end,
+    CacheCallback(RaServer, Ret, Timeout),
     just_did_consistent_call(StoreId),
     Ret;
 process_query_response(
-  StoreId, RaServer, IsLeader, _QueryFun, _QueryType, _Timeout,
+  StoreId, RaServer, IsLeader, _QueryFun, _QueryType, CacheCallback, Timeout,
   {ok, {_RaIndex, Ret}, NewLeaderId}) ->
     case IsLeader of
         true ->
@@ -660,35 +745,37 @@ process_query_response(
         false ->
             khepri_cluster:cache_leader(StoreId, NewLeaderId)
     end,
+    CacheCallback(RaServer, Ret, Timeout),
     Ret;
 process_query_response(
-  _StoreId, _RaServer, _IsLeader, _QueryFun, _QueryType, _Timeout,
-  {timeout, _} = TimedOut) ->
+  _StoreId, _RaServer, _IsLeader, _QueryFun, _QueryType, _CacheCallback,
+  _Timeout, {timeout, _} = TimedOut) ->
     {error, TimedOut};
 process_query_response(
-  StoreId, _RaServer, true = _IsLeader, QueryFun, QueryType, Timeout,
-  {error, noproc})
+  StoreId, _RaServer, true = _IsLeader, QueryFun, QueryType, CacheCallback,
+  Timeout, {error, noproc})
   when QueryType =/= local andalso ?HAS_TIME_LEFT(Timeout) ->
     %% The cached leader is no more. We simply clear the cache
     %% entry and retry. It may time out eventually.
     khepri_cluster:clear_cached_leader(StoreId),
-    process_non_local_query(StoreId, QueryFun, QueryType, Timeout);
+    process_non_local_query(StoreId, QueryFun, QueryType, CacheCallback, Timeout);
 process_query_response(
-  StoreId, RaServer, false = _IsLeader, QueryFun, QueryType, Timeout,
-  {error, noproc} = Error)
+  StoreId, RaServer, false = _IsLeader, QueryFun, QueryType, CacheCallback,
+  Timeout, {error, noproc} = Error)
   when QueryType =/= local andalso ?HAS_TIME_LEFT(Timeout) ->
     case khepri_utils:is_ra_server_alive(RaServer) of
         true ->
             %% The follower doesn't know about the new leader yet. Retry again
             %% after waiting a bit.
             NewTimeout = khepri_utils:sleep(?NOPROC_RETRY_INTERVAL, Timeout),
-            process_non_local_query(StoreId, QueryFun, QueryType, NewTimeout);
+            process_non_local_query(
+              StoreId, QueryFun, QueryType, CacheCallback, NewTimeout);
         false ->
             Error
     end;
 process_query_response(
-  _StoreId, _RaServer, _IsLeader, _QueryFun, _QueryType, _Timeout,
-  {error, _} = Error) ->
+  _StoreId, _RaServer, _IsLeader, _QueryFun, _QueryType, _CacheCallback,
+  _Timeout, {error, _} = Error) ->
     Error.
 
 -spec select_query_type(StoreId, Options) -> QueryType when
@@ -947,6 +1034,30 @@ emitted_triggers_to_side_effects(
     [SideEffect];
 emitted_triggers_to_side_effects(_StateName, _State) ->
     [].
+
+-spec init_aux(StoreId :: khepri:store_id()) -> aux_state().
+%% @private
+
+init_aux(StoreId) ->
+    Cache = khepri_query_cache:init(StoreId),
+    #khepri_machine_aux{query_cache = Cache}.
+
+-spec handle_aux(RaState, Type, Command, AuxState, LogState, MachineState) ->
+    {no_reply, AuxState, LogState} when
+      RaState :: ra_server:ra_state(),
+      Type :: {call, ra:from()} | cast,
+      Command :: term(),
+      AuxState :: aux_state(),
+      LogState :: ra_log:state(),
+      MachineState :: state().
+%% @private
+
+handle_aux(_RaState, cast, {evict, Key}, AuxState, LogState, _MachineState) ->
+    #khepri_machine_aux{query_cache = Cache} = AuxState,
+    khepri_query_cache:evict(Cache, Key),
+    {no_reply, AuxState, LogState};
+handle_aux(_RaState, _Type, _Command, AuxState, LogState, _MachineState) ->
+    {no_reply, AuxState, LogState}.
 
 %% -------------------------------------------------------------------
 %% Internal functions.
@@ -1292,7 +1403,8 @@ insert_or_update_node(
                                    keep_while_conds_revidx =
                                    KeepWhileCondsRevIdx2},
             {State2, SideEffects} = create_tree_change_side_effects(
-                                      State, State1, Ret2, KeepWhileAftermath),
+                                      State, State1, Ret2, KeepWhileAftermath,
+                                      PathPattern),
             {State2, {ok, Ret2}, SideEffects};
         Error ->
             ?assertMatch({error, _}, Error),
@@ -1324,7 +1436,8 @@ insert_or_update_node(
                                    keep_while_conds_revidx =
                                    KeepWhileCondsRevIdx1},
             {State2, SideEffects} = create_tree_change_side_effects(
-                                      State, State1, Ret2, KeepWhileAftermath),
+                                      State, State1, Ret2, KeepWhileAftermath,
+                                      PathPattern),
             {State2, {ok, Ret2}, SideEffects};
         Error ->
             ?assertMatch({error, _}, Error),
@@ -1403,7 +1516,8 @@ delete_matching_nodes(
                                    keep_while_conds = KeepWhileConds1,
                                    keep_while_conds_revidx = KeepWhileCondsRevIdx1},
             {State2, SideEffects} = create_tree_change_side_effects(
-                                      State, State1, Ret2, KeepWhileAftermath),
+                                      State, State1, Ret2, KeepWhileAftermath,
+                                      PathPattern),
             {State2, {ok, Ret2}, SideEffects};
         Error ->
             {State, Error}
@@ -1426,9 +1540,10 @@ delete_matching_nodes_cb(_, {interrupted, _, _}, Result) ->
 
 create_tree_change_side_effects(
   #?MODULE{triggers = Triggers} = _InitialState,
-  NewState, _Ret, _KeepWhileAftermath)
+  NewState, _Ret, _KeepWhileAftermath, PathPattern)
   when Triggers =:= #{} ->
-    {NewState, []};
+    EvictCacheEntryEffect = {aux, {evict, PathPattern}},
+    {NewState, [EvictCacheEntryEffect]};
 create_tree_change_side_effects(
   %% We want to consider the new state (with the updated tree), but we want
   %% to use triggers from the initial state, in case they were updated too.
@@ -1438,7 +1553,7 @@ create_tree_change_side_effects(
            emitted_triggers = EmittedTriggers} = _InitialState,
   #?MODULE{config = #config{store_id = StoreId},
            root = Root} = NewState,
-  Ret, KeepWhileAftermath) ->
+  Ret, KeepWhileAftermath, PathPattern) ->
     %% We make a map where for each affected tree node, we indicate the type
     %% of change.
     Changes0 = maps:merge(Ret, KeepWhileAftermath),
@@ -1464,11 +1579,14 @@ create_tree_change_side_effects(
 
     %% We still emit a `mod_call' effect to wake up the event handler process
     %% so it doesn't have to poll the internal list.
-    SideEffect = {mod_call,
-                  khepri_event_handler,
-                  handle_triggered_sprocs,
-                  [StoreId, TriggeredStoredProcs]},
-    {NewState1, [SideEffect]}.
+    TriggeredSprocEffect = {mod_call,
+                            khepri_event_handler,
+                            handle_triggered_sprocs,
+                            [StoreId, TriggeredStoredProcs]},
+
+    EvictCacheEntryEffect = {aux, {evict, PathPattern}},
+
+    {NewState1, [TriggeredSprocEffect, EvictCacheEntryEffect]}.
 
 list_triggered_sprocs(Root, Changes, Triggers) ->
     TriggeredStoredProcs =

@@ -25,3 +25,5 @@
                event_filter := khepri_evf:event_filter()}},
          emitted_triggers = [] :: [khepri_machine:triggered()],
          metrics = #{} :: #{applied_command_count => non_neg_integer()}}).
+
+-record(khepri_machine_aux, {query_cache :: khepri_query_cache:cache()}).

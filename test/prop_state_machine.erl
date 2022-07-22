@@ -52,7 +52,7 @@ initial_state() ->
 
 command(_State) ->
     elements([{call, khepri, put, [?STORE_ID, path(), payload()]},
-              {call, khepri, get, [?STORE_ID, path()]},
+              {call, khepri, get, [?STORE_ID, path(), #{use_cache => false}]},
               {call, khepri, delete, [?STORE_ID, path()]}]).
 
 precondition(_State, _Command) ->
@@ -61,7 +61,7 @@ precondition(_State, _Command) ->
 next_state(
   #state{} = State,
   _Result,
-  {call, khepri, get, [_StoreId, _Path]}) ->
+  {call, khepri, get, [_StoreId, _Path, _Options]}) ->
     State;
 next_state(
   #state{entries = Entries} = State,
@@ -80,7 +80,7 @@ next_state(
 
 postcondition(
   #state{entries = Entries},
-  {call, khepri, get, [_StoreId, Path]},
+  {call, khepri, get, [_StoreId, Path, _Options]},
   Result) ->
     result_is_ok(Result, Entries, Path, {ok, #{}});
 postcondition(
