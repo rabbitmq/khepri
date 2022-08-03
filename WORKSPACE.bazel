@@ -1,0 +1,98 @@
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "bazel_skylib",
+    sha256 = "af87959afe497dc8dfd4c6cb66e1279cb98ccc84284619ebfec27d9c09a903de",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.2.0/bazel-skylib-1.2.0.tar.gz",
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.2.0/bazel-skylib-1.2.0.tar.gz",
+    ],
+)
+
+load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
+
+bazel_skylib_workspace()
+
+http_archive(
+    name = "io_buildbuddy_buildbuddy_toolchain",
+    sha256 = "a2a5cccec251211e2221b1587af2ce43c36d32a42f5d881737db3b546a536510",
+    strip_prefix = "buildbuddy-toolchain-829c8a574f706de5c96c54ca310f139f4acda7dd",
+    urls = ["https://github.com/buildbuddy-io/buildbuddy-toolchain/archive/829c8a574f706de5c96c54ca310f139f4acda7dd.tar.gz"],
+)
+
+load("@io_buildbuddy_buildbuddy_toolchain//:deps.bzl", "buildbuddy_deps")
+
+buildbuddy_deps()
+
+load("@io_buildbuddy_buildbuddy_toolchain//:rules.bzl", "buildbuddy")
+
+buildbuddy(
+    name = "buildbuddy_toolchain",
+    llvm = True,
+)
+
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+
+git_repository(
+    name = "rbe",
+    commit = "f68402af3e31018e8bbff1d24a5ccc43ca4ad4c6",  # linux-rbe branch
+    remote = "https://github.com/rabbitmq/rbe-erlang-platform.git",
+)
+
+git_repository(
+    name = "rules_erlang",
+    remote = "https://github.com/rabbitmq/rules_erlang.git",
+    tag = "3.3.0",
+)
+
+load(
+    "@rules_erlang//:rules_erlang.bzl",
+    "rules_erlang_dependencies",
+)
+
+rules_erlang_dependencies()
+
+register_toolchains(
+    "//bzl/toolchains:erlang_toolchain_external",
+    "//bzl/toolchains:erlang_toolchain_23",
+    "//bzl/toolchains:erlang_toolchain_24",
+    "//bzl/toolchains:erlang_toolchain_25",
+)
+
+load("@rules_erlang//:hex_pm.bzl", "hex_pm_erlang_app")
+
+hex_pm_erlang_app(
+    name = "ra",
+    sha256 = "24001b370c23690af3fe42ddca353c71c45d1edc1a0e56f9c1bf30bd4c37d14e",
+    version = "2.1.0",
+)
+
+hex_pm_erlang_app(
+    name = "seshat",
+    sha256 = "20d820acbeef9d07298ee863d0c9d06f8e620acba100939ebb2925e4d6b0dfc7",
+    version = "0.3.2",
+)
+
+hex_pm_erlang_app(
+    name = "aten",
+    sha256 = "64d40a8cf0ddfea4e13af00b7327f0925147f83612d0627d9506cbffe90c13ef",
+    version = "0.5.8",
+)
+
+hex_pm_erlang_app(
+    name = "gen_batch_server",
+    sha256 = "c3e6a1a2a0fb62aee631a98cfa0fd8903e9562422cbf72043953e2fb1d203017",
+    version = "0.8.8",
+)
+
+hex_pm_erlang_app(
+    name = "proper",
+    sha256 = "18285842185bd33efbda97d134a5cb5a0884384db36119fee0e3cfa488568cbb",
+    version = "1.4.0",
+)
+
+hex_pm_erlang_app(
+    name = "cth_readable",
+    sha256 = "686541a22efe6ca5a41a047b39516c2dd28fb3cade5f24a2f19145b3967f9d80",
+    version = "1.5.1",
+)

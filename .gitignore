@@ -12,3 +12,6 @@ erl_crash.dump
 !/doc/stylesheet.css
 /mix.lock
 /nonode@nohost/
+
+/user.bazelrc
+/bazel-*

@@ -1,0 +1,71 @@
+load("@rules_erlang//:erlang_app.bzl", "erlang_app", "test_erlang_app")
+load("@rules_erlang//:xref2.bzl", "xref")
+load("@rules_erlang//:dialyze.bzl", "DEFAULT_PLT_APPS", "dialyze", "plt")
+load("@rules_erlang//:ct.bzl", "ct_suite")
+load(":eunit.bzl", "eunit")
+
+NAME = "khepri"
+
+VERSION = "0.4.3"
+
+EXTRA_APPS = [
+    "compiler",
+]
+
+DEPS = [
+    "@ra//:erlang_app",
+    "@gen_batch_server//:erlang_app",
+]
+
+RUNTIME_DEPS = [
+    "@aten//:erlang_app",
+    "@seshat//:erlang_app",
+]
+
+erlang_app(
+    app_name = NAME,
+    app_version = VERSION,
+    extra_apps = EXTRA_APPS,
+    runtime_deps = RUNTIME_DEPS,
+    deps = DEPS,
+)
+
+test_erlang_app(
+    app_name = NAME,
+    app_version = VERSION,
+    extra_apps = EXTRA_APPS,
+    runtime_deps = RUNTIME_DEPS,
+    deps = DEPS,
+)
+
+xref()
+
+plt(
+    name = "base_plt",
+    apps = DEFAULT_PLT_APPS + EXTRA_APPS,
+    deps = DEPS + RUNTIME_DEPS,
+)
+
+dialyze(
+    size = "small",
+    dialyzer_opts = [
+        "-Wunderspecs",
+        "-Wunknown",
+        "-Wunmatched_returns",
+    ],
+    plt = ":base_plt",
+)
+
+suites = glob(["test/*_SUITE.erl"])
+[ct_suite(
+    name = f.replace("test/", "").replace(".erl", ""),
+    deps = [
+        "@cth_readable//:erlang_app"
+    ],
+) for f in suites]
+
+eunit(
+    deps = [
+        "@proper//:erlang_app"
+    ],
+)
