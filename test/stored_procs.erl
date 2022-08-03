@@ -120,9 +120,6 @@ execute_crashing_sproc_test_() ->
       }]}.
 
 crashing_sproc_stacktrace_test_() ->
-    {ok, Cwd} = file:get_cwd(),
-    File1 = filename:join([Cwd, "test/mod_used_for_transactions.erl"]),
-    File2 = filename:join([Cwd, "test/stored_procs.erl"]),
     StoredProcPath = [sproc],
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
@@ -136,17 +133,19 @@ crashing_sproc_stacktrace_test_() ->
               fun mod_used_for_transactions:crashing_fun/0))},
 
         {"Execute the stored procedure",
-         ?_assertMatch(
+         fun() ->
             {throw,
              "Expected crash",
              [{_GeneratedModuleName, run,0, [{file, File1}, {line, _}]},
               {stored_procs, _, _, [{file, File2}, {line, _}]}
-              | _]},
-            try
-                khepri:run_sproc(
-                  ?FUNCTION_NAME, StoredProcPath, [])
-            catch
-                Class:Reason:Stacktrace ->
-                    {Class, Reason, Stacktrace}
-            end)}]
+              | _]} = try
+                          khepri:run_sproc(
+                            ?FUNCTION_NAME, StoredProcPath, [])
+                      catch
+                          Class:Reason:Stacktrace ->
+                              {Class, Reason, Stacktrace}
+                      end,
+            ?assertEqual("mod_used_for_transactions.erl", filename:basename(File1)),
+            ?assertEqual("stored_procs.erl", filename:basename(File2))
+         end}]
       }]}.
