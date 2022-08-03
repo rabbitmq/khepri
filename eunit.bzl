@@ -16,7 +16,7 @@ def eunit(
     srcs = native.glob(["test/**/*.erl"], exclude = native.glob(["test/*_SUITE.erl"])) if srcs == None else srcs
     erlang_bytecode(
         name = "test_case_beam_files",
-        hdrs = native.glob(["include/*.hrl", "src/*.hrl"]),
+        hdrs = native.glob(["include/*.hrl", "src/*.hrl", "test/*.hrl"]),
         srcs = srcs,
         erlc_opts = erlc_opts,
         dest = "test",
