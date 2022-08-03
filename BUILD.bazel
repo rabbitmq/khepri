@@ -2,6 +2,7 @@ load("@rules_erlang//:erlang_app.bzl", "erlang_app", "test_erlang_app")
 load("@rules_erlang//:xref2.bzl", "xref")
 load("@rules_erlang//:dialyze.bzl", "DEFAULT_PLT_APPS", "dialyze", "plt")
 load("@rules_erlang//:ct.bzl", "ct_suite")
+load("@rules_erlang//:erlang_bytecode.bzl", "erlang_bytecode")
 load(":eunit.bzl", "eunit")
 
 NAME = "khepri"
@@ -56,16 +57,42 @@ dialyze(
     plt = ":base_plt",
 )
 
+helpers = [
+    "test/cth_log_redirect_any_domains.erl",
+    "test/helpers.erl",
+]
+
+erlang_bytecode(
+    name = "test_helpers",
+    srcs = helpers,
+    hdrs = glob(["test/*.hrl"]),
+    deps = [
+        ":test_erlang_app",
+    ],
+    dest = "test",
+    testonly = True,
+)
+
 suites = glob(["test/*_SUITE.erl"])
 [ct_suite(
     name = f.replace("test/", "").replace(".erl", ""),
     deps = [
-        "@cth_readable//:erlang_app"
+        "@cth_readable//:erlang_app",
+    ],
+    additional_beam = [
+        ":test_helpers",
     ],
 ) for f in suites]
 
 eunit(
+    srcs = glob(
+        ["test/*.erl"],
+        exclude = suites + helpers,
+    ),
     deps = [
-        "@proper//:erlang_app"
+        "@proper//:erlang_app",
     ],
+    additional_beam = [
+        ":test_helpers",
+    ]
 )
