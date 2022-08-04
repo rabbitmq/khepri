@@ -86,13 +86,18 @@ hex_pm_erlang_app(
 )
 
 hex_pm_erlang_app(
-    name = "proper",
-    sha256 = "18285842185bd33efbda97d134a5cb5a0884384db36119fee0e3cfa488568cbb",
-    version = "1.4.0",
-)
-
-hex_pm_erlang_app(
     name = "cth_readable",
     sha256 = "686541a22efe6ca5a41a047b39516c2dd28fb3cade5f24a2f19145b3967f9d80",
     version = "1.5.1",
+)
+
+load("@rules_erlang//:github.bzl", "github_erlang_app")
+
+# proper on git master addresses compilation warnings from OTP25
+github_erlang_app(
+    name = "proper",
+    org = "proper-testing",
+    ref = "bfd7d862dd5082eeca65c192a7021d0e4de5973e",
+    version = "bfd7d862dd5082eeca65c192a7021d0e4de5973e",
+    sha256 = "081a17c6bfce7203c53f64f0b2c43ed530dad3f0b1220c88b58f03674ab4d979"
 )
