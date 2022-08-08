@@ -1003,11 +1003,11 @@ delete(PathPattern, Options) when is_map(Options) ->
 delete(StoreId, PathPattern, Options) ->
     khepri_machine:delete(StoreId, PathPattern, Options).
 
--spec exists(PathPattern) -> Exists when
+-spec exists(PathPattern) -> Exists | Error when
       PathPattern :: khepri_path:pattern(),
-      Exists :: boolean().
-%% @doc Returns `true' if the tree node pointed to by the given path exists,
-%% otherwise `false'.
+      Exists :: boolean(),
+      Error :: error().
+%% @doc Indicates if the tree node pointed to by the given path exists or not.
 %%
 %% Calling this function is the same as calling `exists(StoreId, PathPattern)'
 %% with the default store ID.
@@ -1018,16 +1018,17 @@ exists(PathPattern) ->
     exists(?DEFAULT_STORE_ID, PathPattern).
 
 -spec exists
-(StoreId, PathPattern) -> Exists when
+(StoreId, PathPattern) -> Exists | Error when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
-      Exists :: boolean();
-(PathPattern, Options) -> Exists when
+      Exists :: boolean(),
+      Error :: error();
+(PathPattern, Options) -> Exists | Error when
       PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
-      Exists :: boolean().
-%% @doc Returns `true' if the tree node pointed to by the given path exists,
-%% otherwise `false'.
+      Exists :: boolean(),
+      Error :: error().
+%% @doc Indicates if the tree node pointed to by the given path exists or not.
 %%
 %% This function accepts the following two forms:
 %% <ul>
@@ -1044,13 +1045,13 @@ exists(StoreId, PathPattern) when is_atom(StoreId) ->
 exists(PathPattern, Options) when is_map(Options) ->
     exists(?DEFAULT_STORE_ID, PathPattern, Options).
 
--spec exists(StoreId, PathPattern, Options) -> Exists when
+-spec exists(StoreId, PathPattern, Options) -> Exists | Error when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
-      Exists :: boolean().
-%% @doc Returns `true' if the tree node pointed to by the given path exists,
-%% otherwise `false'.
+      Exists :: boolean(),
+      Error :: error().
+%% @doc Indicates if the tree node pointed to by the given path exists or not.
 %%
 %% The `PathPattern' can be provided as native path (a list of node names and
 %% conditions) or as a string. See {@link khepri_path:from_string/1}.
@@ -1062,16 +1063,17 @@ exists(PathPattern, Options) when is_map(Options) ->
 %% @param PathPattern the path (or path pattern) to the nodes to check.
 %% @param Options query options such as `favor'.
 %%
-%% @returns `true' if tree the node exists, `false' if it does not exist or if
-%% there was any error.
+%% @returns `true' if tree the node exists, `false' if it does not, or an
+%% `{error, Reason}' tuple.
 %%
 %% @see get/3.
 
 exists(StoreId, PathPattern, Options) ->
     Options1 = Options#{expect_specific_node => true},
     case get(StoreId, PathPattern, Options1) of
-        {ok, _} -> true;
-        _       -> false
+        {ok, _}                      -> true;
+        {error, {node_not_found, _}} -> false;
+        Error                        -> Error
     end.
 
 -spec get(PathPattern) -> Result when
@@ -1232,11 +1234,12 @@ get_node_props(StoreId, PathPattern, Options) ->
             throw(Error)
     end.
 
--spec has_data(PathPattern) -> HasData when
+-spec has_data(PathPattern) -> HasData | Error when
       PathPattern :: khepri_path:pattern(),
-      HasData :: boolean().
-%% @doc Returns `true' if the tree node pointed to by the given path has data,
-%% otherwise `false'.
+      HasData :: boolean(),
+      Error :: error().
+%% @doc Indicates if the tree node pointed to by the given path has data or
+%% not.
 %%
 %% Calling this function is the same as calling `has_data(StoreId,
 %% PathPattern)' with the default store ID.
@@ -1247,16 +1250,18 @@ has_data(PathPattern) ->
     has_data(?DEFAULT_STORE_ID, PathPattern).
 
 -spec has_data
-(StoreId, PathPattern) -> HasData when
+(StoreId, PathPattern) -> HasData | Error when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
-      HasData :: boolean();
-(PathPattern, Options) -> HasData when
+      HasData :: boolean(),
+      Error :: error();
+(PathPattern, Options) -> HasData | Error when
       PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
-      HasData :: boolean().
-%% @doc Returns `true' if the tree node pointed to by the given path has data,
-%% otherwise `false'.
+      HasData :: boolean(),
+      Error :: error().
+%% @doc Indicates if the tree node pointed to by the given path has data or
+%% not.
 %%
 %% This function accepts the following two forms:
 %% <ul>
@@ -1273,13 +1278,14 @@ has_data(StoreId, PathPattern) when is_atom(StoreId) ->
 has_data(PathPattern, Options) when is_map(Options) ->
     has_data(?DEFAULT_STORE_ID, PathPattern, Options).
 
--spec has_data(StoreId, PathPattern, Options) -> HasData when
+-spec has_data(StoreId, PathPattern, Options) -> HasData | Error when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
-      HasData :: boolean().
-%% @doc Returns `true' if the tree node pointed to by the given path has data,
-%% otherwise `false'.
+      HasData :: boolean(),
+      Error :: error().
+%% @doc Indicates if the tree node pointed to by the given path has data or
+%% not.
 %%
 %% The `PathPattern' can be provided as native path (a list of node names and
 %% conditions) or as a string. See {@link khepri_path:from_string/1}.
@@ -1292,7 +1298,7 @@ has_data(PathPattern, Options) when is_map(Options) ->
 %% @param Options query options such as `favor'.
 %%
 %% @returns `true' if tree the node holds data, `false' if it does not exist,
-%% has no payload, holds a stored procedure or if there was any error.
+%% has no payload, holds a stored procedure, or an `{error, Reason}' tuple.
 %%
 %% @see get/3.
 
@@ -1301,8 +1307,10 @@ has_data(StoreId, PathPattern, Options) ->
         NodeProps = get_node_props(StoreId, PathPattern, Options),
         maps:is_key(data, NodeProps)
     catch
-        throw:{error, _} ->
-            false
+        throw:{error, {node_not_found, _}} ->
+            false;
+        throw:{error, _} = Error ->
+            Error
     end.
 
 -spec get_data(PathPattern) -> Data when
@@ -1470,11 +1478,12 @@ get_data_or(StoreId, PathPattern, Default, Options) ->
             Default
     end.
 
--spec has_sproc(PathPattern) -> HasStoredProc when
+-spec has_sproc(PathPattern) -> HasStoredProc | Error when
       PathPattern :: khepri_path:pattern(),
-      HasStoredProc :: boolean().
-%% @doc Returns `true' if the tree node pointed to by the given path holds a
-%% stored procedure, otherwise `false'.
+      HasStoredProc :: boolean(),
+      Error :: error().
+%% @doc Indicates if the tree node pointed to by the given path holds a stored
+%% procedure or not.
 %%
 %% Calling this function is the same as calling `has_sproc(StoreId,
 %% PathPattern)' with the default store ID.
@@ -1485,16 +1494,18 @@ has_sproc(PathPattern) ->
     has_sproc(?DEFAULT_STORE_ID, PathPattern).
 
 -spec has_sproc
-(StoreId, PathPattern) -> HasStoredProc when
+(StoreId, PathPattern) -> HasStoredProc | Error when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
-      HasStoredProc :: boolean();
-(PathPattern, Options) -> HasStoredProc when
+      HasStoredProc :: boolean(),
+      Error :: error();
+(PathPattern, Options) -> HasStoredProc | Error when
       PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
-      HasStoredProc :: boolean().
-%% @doc Returns `true' if the tree node pointed to by the given path holds a
-%% stored procedure, otherwise `false'.
+      HasStoredProc :: boolean(),
+      Error :: error().
+%% @doc Indicates if the tree node pointed to by the given path holds a stored
+%% procedure or not.
 %%
 %% This function accepts the following two forms:
 %% <ul>
@@ -1511,13 +1522,14 @@ has_sproc(StoreId, PathPattern) when is_atom(StoreId) ->
 has_sproc(PathPattern, Options) when is_map(Options) ->
     has_sproc(?DEFAULT_STORE_ID, PathPattern, Options).
 
--spec has_sproc(StoreId, PathPattern, Options) -> HasStoredProc when
+-spec has_sproc(StoreId, PathPattern, Options) -> HasStoredProc | Error when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: query_options(),
-      HasStoredProc :: boolean().
-%% @doc Returns `true' if the tree node pointed to by the given path holds a
-%% stored procedure, otherwise `false'.
+      HasStoredProc :: boolean(),
+      Error :: error().
+%% @doc Indicates if the tree node pointed to by the given path holds a stored
+%% procedure or not.
 %%
 %% The `PathPattern' can be provided as native path (a list of node names and
 %% conditions) or as a string. See {@link khepri_path:from_string/1}.
@@ -1530,18 +1542,19 @@ has_sproc(PathPattern, Options) when is_map(Options) ->
 %% @param Options query options such as `favor'.
 %%
 %% @returns `true' if the node holds a stored procedure, `false' if it does
-%% not exist, has no payload, holds data or if there was any error.
+%% not exist, has no payload, holds data, or an `{error, Reason}' tuple.
 %%
 %% @see get/3.
 
 has_sproc(StoreId, PathPattern, Options) ->
-    Options1 = Options#{expect_specific_node => true},
-    case get(StoreId, PathPattern, Options1) of
-        {ok, Result} ->
-            [NodeProps] = maps:values(Result),
-            maps:is_key(sproc, NodeProps);
-        _ ->
-            false
+    try
+        NodeProps = get_node_props(StoreId, PathPattern, Options),
+        maps:is_key(sproc, NodeProps)
+    catch
+        throw:{error, {node_not_found, _}} ->
+            false;
+        throw:{error, _} = Error ->
+            Error
     end.
 
 -spec run_sproc(PathPattern, Args) -> Result when
