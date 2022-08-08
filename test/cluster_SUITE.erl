@@ -1229,6 +1229,11 @@ start_n_nodes(NamePrefix, Count) ->
                  start_erlang_node(Name)
              end || I <- lists:seq(1, Count)],
     ct:pal("Started nodes: ~p", [[Node || {Node, _Peer} <- Nodes]]),
+
+    %% We add all nodes to the test coverage report.
+    CoveredNodes = [Node || {Node, _Peer} <- Nodes],
+    {ok, _} = cover:start([node() | CoveredNodes]),
+
     CodePath = code:get_path(),
     lists:foreach(
       fun({Node, _Peer}) ->
