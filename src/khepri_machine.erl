@@ -1051,7 +1051,7 @@ gather_node_props(#node{stat = #{payload_version := DVersion,
     case Payload of
         #p_data{data = Data}  -> Result1#{data => Data};
         #p_sproc{sproc = Fun} -> Result1#{sproc => Fun};
-        _                            -> Result1
+        _                     -> Result1
     end.
 
 -spec to_absolute_keep_while(BasePath, KeepWhile) -> KeepWhile when
