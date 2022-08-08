@@ -81,7 +81,10 @@ check_node_exists_test_() ->
          {ok, #{[foo] => #{}}},
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assert(khepri:exists(?FUNCTION_NAME, [foo])),
-      ?_assertNot(khepri:exists(?FUNCTION_NAME, [bar]))]}.
+      ?_assertNot(khepri:exists(?FUNCTION_NAME, [bar])),
+      ?_assertMatch(
+         {error, {possibly_matching_many_nodes_denied, _}},
+         khepri:exists(?FUNCTION_NAME, [?STAR]))]}.
 
 check_node_has_data_on_non_existing_node_test_() ->
     {setup,
@@ -100,7 +103,10 @@ check_node_has_data_on_existing_node_test_() ->
          {ok, #{[baz] => #{}}},
          khepri:create(?FUNCTION_NAME, [baz], baz_value)),
       ?_assertNot(khepri:has_data(?FUNCTION_NAME, [foo])),
-      ?_assert(khepri:has_data(?FUNCTION_NAME, [baz]))]}.
+      ?_assert(khepri:has_data(?FUNCTION_NAME, [baz])),
+      ?_assertMatch(
+         {error, {possibly_matching_many_nodes_denied, _}},
+         khepri:has_data(?FUNCTION_NAME, [?STAR]))]}.
 
 check_node_has_sproc_on_non_existing_node_test_() ->
     {setup,
@@ -119,7 +125,10 @@ check_node_has_sproc_on_existing_node_test_() ->
          {ok, #{[baz] => #{}}},
          khepri:create(?FUNCTION_NAME, [baz], fun() -> baz_value end)),
       ?_assertNot(khepri:has_sproc(?FUNCTION_NAME, [foo])),
-      ?_assert(khepri:has_sproc(?FUNCTION_NAME, [baz]))]}.
+      ?_assert(khepri:has_sproc(?FUNCTION_NAME, [baz])),
+      ?_assertMatch(
+         {error, {possibly_matching_many_nodes_denied, _}},
+         khepri:has_sproc(?FUNCTION_NAME, [?STAR]))]}.
 
 get_node_props_on_non_existing_node_test_() ->
     {setup,
