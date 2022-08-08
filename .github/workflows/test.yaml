@@ -60,6 +60,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: _build/test/covertool/khepri.covertool.xml
-          flags: erlang:${{ matrix.otp_version }},os:${{ matrix.os }}
+          flags: erlang-${{ matrix.otp_version }},os-${{ matrix.os }}
           name: Erlang/OTP ${{ matrix.otp_version }} on ${{ matrix.os }}
           verbose: true # optional (default = false)
