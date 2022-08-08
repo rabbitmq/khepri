@@ -492,16 +492,18 @@ process_sync_command(StoreId, Command, Options) ->
             Ret;
         {timeout, _} = TimedOut ->
             {error, TimedOut};
-        {error, noproc}
-          when LeaderId =/= undefined andalso ?HAS_TIME_LEFT(Timeout) ->
+        {error, Reason}
+          when LeaderId =/= undefined andalso ?HAS_TIME_LEFT(Timeout) andalso
+               (Reason == noproc orelse Reason == nodedown) ->
             %% The cached leader is no more. We simply clear the cache
             %% entry and retry.
             khepri_cluster:clear_cached_leader(StoreId),
             NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
             Options1 = Options#{timeout => NewTimeout},
             process_sync_command(StoreId, Command, Options1);
-        {error, noproc} = Error
-          when LeaderId =:= undefined andalso ?HAS_TIME_LEFT(Timeout) ->
+        {error, Reason} = Error
+          when LeaderId =:= undefined andalso ?HAS_TIME_LEFT(Timeout) andalso
+               (Reason == noproc orelse Reason == nodedown) ->
             case khepri_utils:is_ra_server_alive(RaServer) of
                 true ->
                     %% The follower doesn't know about the new leader yet.
@@ -667,16 +669,18 @@ process_query_response(
     {error, TimedOut};
 process_query_response(
   StoreId, _RaServer, true = _IsLeader, QueryFun, QueryType, Timeout,
-  {error, noproc})
-  when QueryType =/= local andalso ?HAS_TIME_LEFT(Timeout) ->
+  {error, Reason})
+  when QueryType =/= local andalso ?HAS_TIME_LEFT(Timeout) andalso
+       (Reason == noproc orelse Reason == nodedown) ->
     %% The cached leader is no more. We simply clear the cache
     %% entry and retry. It may time out eventually.
     khepri_cluster:clear_cached_leader(StoreId),
     process_non_local_query(StoreId, QueryFun, QueryType, Timeout);
 process_query_response(
   StoreId, RaServer, false = _IsLeader, QueryFun, QueryType, Timeout,
-  {error, noproc} = Error)
-  when QueryType =/= local andalso ?HAS_TIME_LEFT(Timeout) ->
+  {error, Reason} = Error)
+  when QueryType =/= local andalso ?HAS_TIME_LEFT(Timeout) andalso
+       (Reason == noproc orelse Reason == nodedown)->
     case khepri_utils:is_ra_server_alive(RaServer) of
         true ->
             %% The follower doesn't know about the new leader yet. Retry again

@@ -36,7 +36,9 @@
          fail_to_join_non_existing_node/1,
          fail_to_join_non_existing_store/1,
          can_use_default_store_on_single_node/1,
-         can_start_store_in_specified_data_dir_on_single_node/1]).
+         can_start_store_in_specified_data_dir_on_single_node/1,
+         handle_leader_down_on_three_node_cluster_command/1,
+         handle_leader_down_on_three_node_cluster_response/1]).
 
 all() ->
     [can_start_a_single_node,
@@ -51,7 +53,9 @@ all() ->
      fail_to_join_non_existing_node,
      fail_to_join_non_existing_store,
      can_use_default_store_on_single_node,
-     can_start_store_in_specified_data_dir_on_single_node].
+     can_start_store_in_specified_data_dir_on_single_node,
+     handle_leader_down_on_three_node_cluster_command,
+     handle_leader_down_on_three_node_cluster_response].
 
 groups() ->
     [].
@@ -86,7 +90,9 @@ init_per_testcase(Testcase, Config)
        Testcase =:= can_restart_nodes_in_a_three_node_cluster orelse
        Testcase =:= can_reset_a_cluster_member orelse
        Testcase =:= fail_to_join_if_not_started orelse
-       Testcase =:= fail_to_join_non_existing_store ->
+       Testcase =:= fail_to_join_non_existing_store orelse
+       Testcase =:= handle_leader_down_on_three_node_cluster_command orelse
+       Testcase =:= handle_leader_down_on_three_node_cluster_response ->
     Nodes = start_n_nodes(Testcase, 3),
     PropsPerNode0 = [begin
                          {ok, _} = rpc:call(
@@ -96,9 +102,9 @@ init_per_testcase(Testcase, Config)
                                    Node, helpers, start_ra_system,
                                    [Testcase]),
                          {Node, Props}
-                     end || Node <- Nodes],
+                     end || {Node, _Peer} <- Nodes],
     PropsPerNode = maps:from_list(PropsPerNode0),
-    [{ra_system_props, PropsPerNode} | Config];
+    [{ra_system_props, PropsPerNode}, {peer_nodes, Nodes} | Config];
 init_per_testcase(Testcase, Config)
   when Testcase =:= can_use_default_store_on_single_node orelse
        Testcase =:= can_start_store_in_specified_data_dir_on_single_node ->
@@ -113,7 +119,7 @@ end_per_testcase(_Testcase, Config) ->
     PropsPerNode = ?config(ra_system_props, Config),
     maps:fold(
       fun(Node, Props, Acc) ->
-              ok = rpc:call(Node, helpers, stop_ra_system, [Props]),
+              _ = rpc:call(Node, helpers, stop_ra_system, [Props]),
               Acc
       end, ok, PropsPerNode),
     ok.
@@ -662,6 +668,157 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
 
     ok.
 
+handle_leader_down_on_three_node_cluster_command(Config) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    PeerPerNode = ?config(peer_nodes, Config),
+    [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
+    %% We assume all nodes are using the same Ra system name & store ID.
+    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    StoreId = RaSystem,
+    RaServerConfig = #{cluster_name => StoreId},
+
+    ct:pal("Start database + cluster nodes"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 rpc:call(Node, khepri, start, [RaSystem, RaServerConfig]))
+      end, Nodes),
+    %% This (gratuitous) restart of Khepri stores is to ensure the remembered
+    %% `RaServerConfig' contains everything we need in `join()' later. Indeed,
+    %% `join()' calls `do_start_server()' which assumes the presence of some
+    %% keys in `RaServerConfig'.
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- Restart Khepri store on node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 rpc:call(Node, khepri, stop, [StoreId])),
+              ?assertEqual(
+                 {ok, StoreId},
+                 rpc:call(Node, khepri, start, [RaSystem, RaServerConfig]))
+      end, Nodes),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:join() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+      end, [Node1, Node2]),
+
+    ct:pal("Use database after starting it"),
+    ?assertEqual(
+       {ok, #{[foo] => #{}}},
+       rpc:call(Node1, khepri, put, [StoreId, [foo], value1])),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:get() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, #{[foo] => #{data => value1,
+                                   payload_version => 1,
+                                   child_list_version => 1,
+                                   child_list_length => 0}}},
+                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+      end, Nodes),
+
+    %% Stop the current leader.
+    LeaderId1 = get_leader_in_store(StoreId, Nodes),
+    {StoreId, StoppedLeaderNode1} = LeaderId1,
+    RunningNodes1 = Nodes -- [StoppedLeaderNode1],
+    Peer = proplists:get_value(StoppedLeaderNode1, PeerPerNode),
+
+    ct:pal(
+      "Stop database on leader node ~s (quorum is maintained)",
+      [StoppedLeaderNode1]),
+    ?assertEqual(ok, stop_erlang_node(StoppedLeaderNode1, Peer)),
+
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:put() in node ~s", [Node]),
+              ?assertMatch(
+                 {ok, #{[foo] := #{}}},
+                 rpc:call(Node, khepri, put, [StoreId, [foo], value1]))
+      end, RunningNodes1),
+    ok.
+
+handle_leader_down_on_three_node_cluster_response(Config) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    PeerPerNode = ?config(peer_nodes, Config),
+    [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
+    %% We assume all nodes are using the same Ra system name & store ID.
+    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    StoreId = RaSystem,
+    RaServerConfig = #{cluster_name => StoreId},
+
+    ct:pal("Start database + cluster nodes"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 rpc:call(Node, khepri, start, [RaSystem, RaServerConfig]))
+      end, Nodes),
+    %% This (gratuitous) restart of Khepri stores is to ensure the remembered
+    %% `RaServerConfig' contains everything we need in `join()' later. Indeed,
+    %% `join()' calls `do_start_server()' which assumes the presence of some
+    %% keys in `RaServerConfig'.
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- Restart Khepri store on node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 rpc:call(Node, khepri, stop, [StoreId])),
+              ?assertEqual(
+                 {ok, StoreId},
+                 rpc:call(Node, khepri, start, [RaSystem, RaServerConfig]))
+      end, Nodes),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:join() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+      end, [Node1, Node2]),
+
+    ct:pal("Use database after starting it"),
+    ?assertEqual(
+       {ok, #{[foo] => #{}}},
+       rpc:call(Node1, khepri, put, [StoreId, [foo], value1])),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:get() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, #{[foo] => #{data => value1,
+                                   payload_version => 1,
+                                   child_list_version => 1,
+                                   child_list_length => 0}}},
+                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+      end, Nodes),
+
+    %% Stop the current leader.
+    LeaderId1 = get_leader_in_store(StoreId, Nodes),
+    {StoreId, StoppedLeaderNode1} = LeaderId1,
+    RunningNodes1 = Nodes -- [StoppedLeaderNode1],
+    Peer = proplists:get_value(StoppedLeaderNode1, PeerPerNode),
+
+    ct:pal(
+      "Stop database on leader node ~s (quorum is maintained)",
+      [StoppedLeaderNode1]),
+    ?assertEqual(ok, stop_erlang_node(StoppedLeaderNode1, Peer)),
+
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:get() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, #{[foo] => #{data => value1,
+                                   payload_version => 1,
+                                   child_list_version => 1,
+                                   child_list_length => 0}}},
+                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+      end, RunningNodes1),
+    ok.
+
 can_reset_a_cluster_member(Config) ->
     PropsPerNode = ?config(ra_system_props, Config),
     [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
@@ -1071,10 +1228,15 @@ start_n_nodes(NamePrefix, Count) ->
                  ct:pal("- ~s", [Name]),
                  start_erlang_node(Name)
              end || I <- lists:seq(1, Count)],
-    ct:pal("Started nodes: ~p", [Nodes]),
+    ct:pal("Started nodes: ~p", [[Node || {Node, _Peer} <- Nodes]]),
+
+    %% We add all nodes to the test coverage report.
+    CoveredNodes = [Node || {Node, _Peer} <- Nodes],
+    {ok, _} = cover:start([node() | CoveredNodes]),
+
     CodePath = code:get_path(),
     lists:foreach(
-      fun(Node) ->
+      fun({Node, _Peer}) ->
               rpc:call(Node, code, add_pathsz, [CodePath]),
               ok = rpc:call(Node, ?MODULE, setup_node, [])
       end, Nodes),
@@ -1083,15 +1245,20 @@ start_n_nodes(NamePrefix, Count) ->
 -if(?OTP_RELEASE >= 25).
 start_erlang_node(Name) ->
     Name1 = list_to_atom(Name),
-    {ok, _, Node} = peer:start(#{name => Name1,
-                                 wait_boot => infinity}),
-    Node.
+    {ok, Peer, Node} = peer:start(#{name => Name1,
+                                    wait_boot => infinity}),
+    {Node, Peer}.
+stop_erlang_node(_Node, Peer) ->
+    ok = peer:stop(Peer).
 -else.
 start_erlang_node(Name) ->
     Name1 = list_to_atom(Name),
     Options = [{monitor_master, true}],
     {ok, Node} = ct_slave:start(Name1, Options),
-    Node.
+    {Node, Node}.
+stop_erlang_node(_Node, Node) ->
+    {ok, _} = ct_slave:stop(Node),
+    ok.
 -endif.
 
 get_leader_in_store(StoreId, [Node | _] = _RunningNodes) ->
