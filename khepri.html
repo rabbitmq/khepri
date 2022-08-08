@@ -247,24 +247,21 @@ exists.</td></tr>
 <tr><td valign="top"><a href="#delete-1">delete/1</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#delete-3">delete/3</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
-<tr><td valign="top"><a href="#exists-1">exists/1</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path exists,
-  otherwise <code>false</code>.</td></tr>
-<tr><td valign="top"><a href="#exists-2">exists/2</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path exists,
-  otherwise <code>false</code>.</td></tr>
-<tr><td valign="top"><a href="#exists-3">exists/3</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path exists,
-  otherwise <code>false</code>.</td></tr>
+<tr><td valign="top"><a href="#exists-1">exists/1</a></td><td>Indicates if the tree node pointed to by the given path exists or not.</td></tr>
+<tr><td valign="top"><a href="#exists-2">exists/2</a></td><td>Indicates if the tree node pointed to by the given path exists or not.</td></tr>
+<tr><td valign="top"><a href="#exists-3">exists/3</a></td><td>Indicates if the tree node pointed to by the given path exists or not.</td></tr>
 <tr><td valign="top"><a href="#get-1">get/1</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#get-2">get/2</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#get-3">get/3</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#get_node_props-1">get_node_props/1</a></td><td>Returns the tree node properties associated with the given node path.</td></tr>
 <tr><td valign="top"><a href="#get_node_props-2">get_node_props/2</a></td><td>Returns the tree node properties associated with the given node path.</td></tr>
 <tr><td valign="top"><a href="#get_node_props-3">get_node_props/3</a></td><td>Returns the tree node properties associated with the given node path.</td></tr>
-<tr><td valign="top"><a href="#has_data-1">has_data/1</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path has data,
-  otherwise <code>false</code>.</td></tr>
-<tr><td valign="top"><a href="#has_data-2">has_data/2</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path has data,
-  otherwise <code>false</code>.</td></tr>
-<tr><td valign="top"><a href="#has_data-3">has_data/3</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path has data,
-  otherwise <code>false</code>.</td></tr>
+<tr><td valign="top"><a href="#has_data-1">has_data/1</a></td><td>Indicates if the tree node pointed to by the given path has data or  
+not.</td></tr>
+<tr><td valign="top"><a href="#has_data-2">has_data/2</a></td><td>Indicates if the tree node pointed to by the given path has data or  
+not.</td></tr>
+<tr><td valign="top"><a href="#has_data-3">has_data/3</a></td><td>Indicates if the tree node pointed to by the given path has data or  
+not.</td></tr>
 <tr><td valign="top"><a href="#get_data-1">get_data/1</a></td><td>Returns the data associated with the given node path.</td></tr>
 <tr><td valign="top"><a href="#get_data-2">get_data/2</a></td><td>Returns the data associated with the given node path.</td></tr>
 <tr><td valign="top"><a href="#get_data-3">get_data/3</a></td><td>Returns the data associated with the given node path.</td></tr>
@@ -274,12 +271,12 @@ there is no data.</td></tr>
 there is no data.</td></tr>
 <tr><td valign="top"><a href="#get_data_or-4">get_data_or/4</a></td><td>Returns the data associated with the given node path, or <code>Default</code> if  
 there is no data.</td></tr>
-<tr><td valign="top"><a href="#has_sproc-1">has_sproc/1</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path holds a
-  stored procedure, otherwise <code>false</code>.</td></tr>
-<tr><td valign="top"><a href="#has_sproc-2">has_sproc/2</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path holds a
-  stored procedure, otherwise <code>false</code>.</td></tr>
-<tr><td valign="top"><a href="#has_sproc-3">has_sproc/3</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path holds a
-  stored procedure, otherwise <code>false</code>.</td></tr>
+<tr><td valign="top"><a href="#has_sproc-1">has_sproc/1</a></td><td>Indicates if the tree node pointed to by the given path holds a stored  
+procedure or not.</td></tr>
+<tr><td valign="top"><a href="#has_sproc-2">has_sproc/2</a></td><td>Indicates if the tree node pointed to by the given path holds a stored  
+procedure or not.</td></tr>
+<tr><td valign="top"><a href="#has_sproc-3">has_sproc/3</a></td><td>Indicates if the tree node pointed to by the given path holds a stored  
+procedure or not.</td></tr>
 <tr><td valign="top"><a href="#run_sproc-2">run_sproc/2</a></td><td>Runs the stored procedure pointed to by the given path and returns the  
 result.</td></tr>
 <tr><td valign="top"><a href="#run_sproc-3">run_sproc/3</a></td><td>Runs the stored procedure pointed to by the given path and returns the  
@@ -875,11 +872,10 @@ Result = khepri:delete(StoreId, [foo, bar]),
 
 <h3 class="function"><a name="exists-1">exists/1</a></h3>
 <div class="spec">
-<p><code>exists(PathPattern) -&gt; Exists</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Exists = boolean()</code></li></ul></p>
+<p><code>exists(PathPattern) -&gt; Exists | Error</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Exists = boolean()</code></li><li><code>Error = <a href="#type-error">error()</a></code></li></ul></p>
 <p></p>
-</div><p><p>Returns <code>true</code> if the tree node pointed to by the given path exists,
-  otherwise <code>false</code>.</p>
+</div><p><p>Indicates if the tree node pointed to by the given path exists or not.</p>
  
   Calling this function is the same as calling <code>exists(StoreId, PathPattern)</code>
   with the default store ID.
@@ -888,13 +884,12 @@ Result = khepri:delete(StoreId, [foo, bar]),
 
 <h3 class="function"><a name="exists-2">exists/2</a></h3>
 <div class="spec">
-<p><code>exists(StoreId, PathPattern) -&gt; Exists</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Exists = boolean()</code></li></ul></p><p><code>exists(PathPattern, Options) -&gt; Exists</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Exists = boolean()</code></li></ul></p>
+<p><code>exists(StoreId, PathPattern) -&gt; Exists | Error</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Exists = boolean()</code></li><li><code>Error = <a href="#type-error">error()</a></code></li></ul></p><p><code>exists(PathPattern, Options) -&gt; Exists | Error</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Exists = boolean()</code></li><li><code>Error = <a href="#type-error">error()</a></code></li></ul></p>
 <p></p>
 <p></p>
-</div><p><p>Returns <code>true</code> if the tree node pointed to by the given path exists,
-  otherwise <code>false</code>.</p>
+</div><p><p>Indicates if the tree node pointed to by the given path exists or not.</p>
  
   This function accepts the following two forms:
   <ul>
@@ -908,18 +903,17 @@ Result = khepri:delete(StoreId, [foo, bar]),
 
 <h3 class="function"><a name="exists-3">exists/3</a></h3>
 <div class="spec">
-<p><code>exists(StoreId, PathPattern, Options) -&gt; Exists</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Exists = boolean()</code></li></ul></p>
+<p><code>exists(StoreId, PathPattern, Options) -&gt; Exists | Error</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>Exists = boolean()</code></li><li><code>Error = <a href="#type-error">error()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
 <code>Options</code>: query options such as <code>favor</code>.
  <br>
 </p>
-<p>returns: <code>true</code> if tree the node exists, <code>false</code> if it does not exist or if
-  there was any error.
+<p>returns: <code>true</code> if tree the node exists, <code>false</code> if it does not, or an
+  <code>{error, Reason}</code> tuple.
  </p>
-</div><p><p>Returns <code>true</code> if the tree node pointed to by the given path exists,
-  otherwise <code>false</code>.</p>
+</div><p><p>Indicates if the tree node pointed to by the given path exists or not.</p>
  
   <p>The <code>PathPattern</code> can be provided as native path (a list of node names and
   conditions) or as a string. See <a docgen-rel="seemfa" docgen-href="khepri_path#from_string/1" href="khepri_path.html#from_string-1"><code>khepri_path:from_string/1</code></a>.</p>
@@ -1058,11 +1052,11 @@ multiple nodes.</p>
 
 <h3 class="function"><a name="has_data-1">has_data/1</a></h3>
 <div class="spec">
-<p><code>has_data(PathPattern) -&gt; HasData</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>HasData = boolean()</code></li></ul></p>
+<p><code>has_data(PathPattern) -&gt; HasData | Error</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>HasData = boolean()</code></li><li><code>Error = <a href="#type-error">error()</a></code></li></ul></p>
 <p></p>
-</div><p><p>Returns <code>true</code> if the tree node pointed to by the given path has data,
-  otherwise <code>false</code>.</p>
+</div><p><p>Indicates if the tree node pointed to by the given path has data or  
+not.</p>
  
   Calling this function is the same as calling <code>has_data(StoreId,
   PathPattern)</code> with the default store ID.
@@ -1071,13 +1065,13 @@ multiple nodes.</p>
 
 <h3 class="function"><a name="has_data-2">has_data/2</a></h3>
 <div class="spec">
-<p><code>has_data(StoreId, PathPattern) -&gt; HasData</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>HasData = boolean()</code></li></ul></p><p><code>has_data(PathPattern, Options) -&gt; HasData</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasData = boolean()</code></li></ul></p>
+<p><code>has_data(StoreId, PathPattern) -&gt; HasData | Error</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>HasData = boolean()</code></li><li><code>Error = <a href="#type-error">error()</a></code></li></ul></p><p><code>has_data(PathPattern, Options) -&gt; HasData | Error</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasData = boolean()</code></li><li><code>Error = <a href="#type-error">error()</a></code></li></ul></p>
 <p></p>
 <p></p>
-</div><p><p>Returns <code>true</code> if the tree node pointed to by the given path has data,
-  otherwise <code>false</code>.</p>
+</div><p><p>Indicates if the tree node pointed to by the given path has data or  
+not.</p>
  
   This function accepts the following two forms:
   <ul>
@@ -1091,18 +1085,18 @@ multiple nodes.</p>
 
 <h3 class="function"><a name="has_data-3">has_data/3</a></h3>
 <div class="spec">
-<p><code>has_data(StoreId, PathPattern, Options) -&gt; HasData</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasData = boolean()</code></li></ul></p>
+<p><code>has_data(StoreId, PathPattern, Options) -&gt; HasData | Error</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasData = boolean()</code></li><li><code>Error = <a href="#type-error">error()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
 <code>Options</code>: query options such as <code>favor</code>.
  <br>
 </p>
 <p>returns: <code>true</code> if tree the node holds data, <code>false</code> if it does not exist,
-  has no payload, holds a stored procedure or if there was any error.
+  has no payload, holds a stored procedure, or an <code>{error, Reason}</code> tuple.
  </p>
-</div><p><p>Returns <code>true</code> if the tree node pointed to by the given path has data,
-  otherwise <code>false</code>.</p>
+</div><p><p>Indicates if the tree node pointed to by the given path has data or  
+not.</p>
  
   <p>The <code>PathPattern</code> can be provided as native path (a list of node names and
   conditions) or as a string. See <a docgen-rel="seemfa" docgen-href="khepri_path#from_string/1" href="khepri_path.html#from_string-1"><code>khepri_path:from_string/1</code></a>.</p>
@@ -1240,11 +1234,11 @@ multiple nodes.</p>
 
 <h3 class="function"><a name="has_sproc-1">has_sproc/1</a></h3>
 <div class="spec">
-<p><code>has_sproc(PathPattern) -&gt; HasStoredProc</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>HasStoredProc = boolean()</code></li></ul></p>
+<p><code>has_sproc(PathPattern) -&gt; HasStoredProc | Error</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>HasStoredProc = boolean()</code></li><li><code>Error = <a href="#type-error">error()</a></code></li></ul></p>
 <p></p>
-</div><p><p>Returns <code>true</code> if the tree node pointed to by the given path holds a
-  stored procedure, otherwise <code>false</code>.</p>
+</div><p><p>Indicates if the tree node pointed to by the given path holds a stored  
+procedure or not.</p>
  
   Calling this function is the same as calling <code>has_sproc(StoreId,
   PathPattern)</code> with the default store ID.
@@ -1253,13 +1247,13 @@ multiple nodes.</p>
 
 <h3 class="function"><a name="has_sproc-2">has_sproc/2</a></h3>
 <div class="spec">
-<p><code>has_sproc(StoreId, PathPattern) -&gt; HasStoredProc</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>HasStoredProc = boolean()</code></li></ul></p><p><code>has_sproc(PathPattern, Options) -&gt; HasStoredProc</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasStoredProc = boolean()</code></li></ul></p>
+<p><code>has_sproc(StoreId, PathPattern) -&gt; HasStoredProc | Error</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>HasStoredProc = boolean()</code></li><li><code>Error = <a href="#type-error">error()</a></code></li></ul></p><p><code>has_sproc(PathPattern, Options) -&gt; HasStoredProc | Error</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasStoredProc = boolean()</code></li><li><code>Error = <a href="#type-error">error()</a></code></li></ul></p>
 <p></p>
 <p></p>
-</div><p><p>Returns <code>true</code> if the tree node pointed to by the given path holds a
-  stored procedure, otherwise <code>false</code>.</p>
+</div><p><p>Indicates if the tree node pointed to by the given path holds a stored  
+procedure or not.</p>
  
   This function accepts the following two forms:
   <ul>
@@ -1273,18 +1267,18 @@ multiple nodes.</p>
 
 <h3 class="function"><a name="has_sproc-3">has_sproc/3</a></h3>
 <div class="spec">
-<p><code>has_sproc(StoreId, PathPattern, Options) -&gt; HasStoredProc</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasStoredProc = boolean()</code></li></ul></p>
+<p><code>has_sproc(StoreId, PathPattern, Options) -&gt; HasStoredProc | Error</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="#type-query_options">query_options()</a></code></li><li><code>HasStoredProc = boolean()</code></li><li><code>Error = <a href="#type-error">error()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to check.<br>
 <code>Options</code>: query options such as <code>favor</code>.
  <br>
 </p>
 <p>returns: <code>true</code> if the node holds a stored procedure, <code>false</code> if it does
-  not exist, has no payload, holds data or if there was any error.
+  not exist, has no payload, holds data, or an <code>{error, Reason}</code> tuple.
  </p>
-</div><p><p>Returns <code>true</code> if the tree node pointed to by the given path holds a
-  stored procedure, otherwise <code>false</code>.</p>
+</div><p><p>Indicates if the tree node pointed to by the given path holds a stored  
+procedure or not.</p>
  
   <p>The <code>PathPattern</code> can be provided as native path (a list of node names and
   conditions) or as a string. See <a docgen-rel="seemfa" docgen-href="khepri_path#from_string/1" href="khepri_path.html#from_string-1"><code>khepri_path:from_string/1</code></a>.</p>
