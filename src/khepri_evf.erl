@@ -32,7 +32,7 @@
 %% <li>`priority': a {@link priority()}</li>
 %% </ul>
 %%
-%% A Khepri path, wether it is a native path or a Unix-like path, can be used
+%% A Khepri path, whether it is a native path or a Unix-like path, can be used
 %% as a tree event filter. It will be automatically converted to a tree event
 %% filter with default properties.
 

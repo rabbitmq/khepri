@@ -31,7 +31,7 @@
 %% <pre>ok = application:set_env(
 %%        khepri, default_store_id, my_store, [{persistent, true}]),
 %%
-%% {ok, my_store} = khepri:start("/var/lib/khepri", my_store).</pre></li>
+%% {ok, my_store} = khepri:start().</pre></li>
 %% </ul>
 %%
 %% == The data directory and the Ra system ==
@@ -75,7 +75,7 @@
 %% == Managing Ra cluster members ==
 %%
 %% A Khepri/Ra cluster can be expanded by telling a node to join a remote
-%% cluster. Node that the Khepri store/Ra server to add to the cluster must run
+%% cluster. Note that the Khepri store/Ra server to add to the cluster must run
 %% before it can join.
 %%
 %% ```
@@ -143,7 +143,7 @@
 %%
 %% This configuration map can lack the required parameters, Khepri will fill
 %% them if necessary. Important parameters for Khepri (e.g. `machine') will be
-%% overriden anyway.
+%% overridden anyway.
 %%
 %% @see ra_server:ra_server_config/0.
 

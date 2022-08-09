@@ -508,7 +508,7 @@ put(StoreId, PathPattern, Data, Options) ->
 %%
 %% The payload must be one of the following form:
 %% <ul>
-%% <li>An explicit absense of payload ({@link khepri_payload:no_payload()}),
+%% <li>An explicit absence of payload ({@link khepri_payload:no_payload()}),
 %% using the marker returned by {@link khepri_payload:none/0}, meaning there
 %% will be no payload attached to the node and the existing payload will be
 %% discarded if any</li>

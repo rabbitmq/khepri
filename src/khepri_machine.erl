@@ -73,6 +73,7 @@
 %% Commands specific to this Ra machine.
 
 -type machine_init_args() :: #{store_id := khepri:store_id(),
+                               member := ra:server_id(),
                                snapshot_interval => non_neg_integer(),
                                commands => [command()],
                                atom() => any()}.
