@@ -51,7 +51,7 @@ the primary reason why the RabbitMQ team started to explore other options.</p>
 
 <p>Because RabbitMQ already uses an implementation of the Raft consensus algorithm
 for its quorum queues, it was decided to leverage that library for all
-metadata. That's how Khepri was borned.</p>
+metadata. That's how Khepri was borne.</p>
 
 <p>Thanks to Ra and Raft, it is <strong>clear how Khepri will behave during a
 network partition and recover from it</strong>. This makes it more comfortable
@@ -67,7 +67,7 @@ work in progress.
 
 <h4><a name="Tree_nodes">Tree nodes</a></h4>
 
-Data in Khepri are organized as <em>tree nodes</em> (<a docgen-rel="seetype" docgen-href="khepri_machine#tree_node/0" href="khepri_machine.html#type-tree_node"><code>khepri_machine:tree_node()</code></a>) in a tree structure. Every tree nodes have:
+Data in Khepri are organized as <em>tree nodes</em> (<a docgen-rel="seetype" docgen-href="khepri_machine#tree_node/0" href="khepri_machine.html#type-tree_node"><code>khepri_machine:tree_node()</code></a>) in a tree structure. Every tree node has:
 <ul>
 <li>a <a href="#Node_ID">node ID</a></li>
 <li>a <a href="#Payload">payload</a> (optional)</li>
@@ -121,7 +121,7 @@ nodes were added or removed (<a docgen-rel="seetype" docgen-href="khepri#child_l
 
 A path is a list of node IDs, from the root (unnamed) tree node to the target
 (<a docgen-rel="seetype" docgen-href="khepri_path#path/0" href="khepri_path.html#type-path"><code>khepri_path:path()</code></a>). For instance:
-<pre><code>%% Points to "/:stock/:wood/oak" in the tree showed above:
+<pre><code>%% Points to "/:stock/:wood/oak" in the tree shown above:
 Path = [stock, wood, &lt;&lt;"oak"&gt;&gt;].</code></pre>
 
 It is possible to target multiple tree nodes at once by using a <em>path
@@ -159,9 +159,9 @@ relative paths:
 
 <h4><a name="Tree_node_lifetime">Tree node lifetime</a></h4>
 
-<p>A tree node's lifetime starts when it is inserted the first time, until it is
-removed from the tree. However, intermediary tree nodes created on the way
-remain in the tree long after the leaf node was removed.</p>
+<p>A tree node's lifetime starts when it is inserted the first time and ends when
+it is removed from the tree. However, intermediary tree nodes created on the
+way remain in the tree long after the leaf node was removed.</p>
 
 <p>For instance, when <code>[stock, wood, &lt;&lt;"walnut"&gt;&gt;]</code> was inserted, the intermediary
 tree nodes <code>stock</code> and <code>wood</code> were created if they were missing. After
@@ -214,7 +214,7 @@ true = khepri:exists([stock, wood, &lt;&lt;"lime tree"&gt;&gt;]),
 
 {ok, _} = khepri:delete([stock, wood, &lt;&lt;"lime tree"&gt;&gt;]).</code></pre>
 
-<p>Inside transaction funtions, <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> must be used instead of <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a>. The former provides the same API, except for functions which don't
+<p>Inside transaction functions, <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> must be used instead of <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a>. The former provides the same API, except for functions which don't
 make sense in the context of a transaction function.</p>
 
 <p>The public API is built on top of a low-level internal API, provided by the
@@ -405,9 +405,9 @@ EventFilter = khepri_evf:tree([stock, wood, &lt;&lt;"oak"&gt;&gt;], %% Required
                               #{on_actions =&gt; [delete], %% Optional
                                 priority =&gt; 10}),       %% Optional
 
-%% For ease of use, some terms can be automatically converted to an event %
-%filter. Here, a Unix-like path could be used as a tree event % filter, though
-%it would have default properties unlike the previous line:
+%% For ease of use, some terms can be automatically converted to an event
+%% filter. Here, a Unix-like path could be used as a tree event filter, though
+%% it would have default properties unlike the previous line:
 EventFilter = "/:stock/:wood/oak".
 
 ok = khepri:register_trigger(
@@ -438,8 +438,8 @@ registered as well.</p>
 containing properties of the emitted event:</p>
 
 <pre><code>my_stored_procedure(Props) -&gt;
-    #{path := Path},
-      on_action =&gt; Action} = Props.</code></pre>
+    #{path := Path,
+      on_action := Action} = Props.</code></pre>
 
 <p><code>Path</code> is the path to the tree node created, updated or deleted.</p>
 
@@ -448,7 +448,7 @@ containing properties of the emitted event:</p>
 <p>The return value of this stored procedure is ignored in the context of a
 trigger.</p>
 
-<h4><a name="Execution_guaranties">Execution guaranties</a></h4>
+<h4><a name="Execution_guarantees">Execution guarantees</a></h4>
 
 <p>The stored procedure associated with a trigger (event filter) is executed on
 the Ra leader node.</p>

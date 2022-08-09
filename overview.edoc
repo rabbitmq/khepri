@@ -42,7 +42,7 @@ the primary reason why the RabbitMQ team started to explore other options.
 
 Because RabbitMQ already uses an implementation of the Raft consensus algorithm
 for its quorum queues, it was decided to leverage that library for all
-metadata. That's how Khepri was borned.
+metadata. That's how Khepri was borne.
 
 Thanks to Ra and Raft, it is <strong>clear how Khepri will behave during a
 network partition and recover from it</strong>. This makes it more comfortable
@@ -59,7 +59,7 @@ work in progress.
 === Tree nodes ===
 
 Data in Khepri are organized as <em>tree nodes</em> ({@link
-khepri_machine:tree_node()}) in a tree structure. Every tree nodes have:
+khepri_machine:tree_node()}) in a tree structure. Every tree node has:
 <ul>
 <li>a <a href="#Node_ID">node ID</a></li>
 <li>a <a href="#Payload">payload</a> (optional)</li>
@@ -117,7 +117,7 @@ The equivalent of a <em>key</em> in a key/value store is a <em>path</em>
 A path is a list of node IDs, from the root (unnamed) tree node to the target
 ({@link khepri_path:path()}). For instance:
 ```
-%% Points to "/:stock/:wood/oak" in the tree showed above:
+%% Points to "/:stock/:wood/oak" in the tree shown above:
 Path = [stock, wood, <<"oak">>].
 '''
 
@@ -158,9 +158,9 @@ Relative paths are useful when putting conditions on
 
 === Tree node lifetime ===
 
-A tree node's lifetime starts when it is inserted the first time, until it is
-removed from the tree. However, intermediary tree nodes created on the way
-remain in the tree long after the leaf node was removed.
+A tree node's lifetime starts when it is inserted the first time and ends when
+it is removed from the tree. However, intermediary tree nodes created on the
+way remain in the tree long after the leaf node was removed.
 
 For instance, when `[stock, wood, <<"walnut">>]' was inserted, the intermediary
 tree nodes `stock' and `wood' were created if they were missing. After
@@ -218,7 +218,7 @@ true = khepri:exists([stock, wood, <<"lime tree">>]),
 {ok, _} = khepri:delete([stock, wood, <<"lime tree">>]).
 '''
 
-Inside transaction funtions, {@link khepri_tx} must be used instead of {@link
+Inside transaction functions, {@link khepri_tx} must be used instead of {@link
 khepri}. The former provides the same API, except for functions which don't
 make sense in the context of a transaction function.
 
@@ -418,9 +418,9 @@ EventFilter = khepri_evf:tree([stock, wood, <<"oak">>], %% Required
                               #{on_actions => [delete], %% Optional
                                 priority => 10}),       %% Optional
 
-%% For ease of use, some terms can be automatically converted to an event %
-%filter. Here, a Unix-like path could be used as a tree event % filter, though
-%it would have default properties unlike the previous line:
+%% For ease of use, some terms can be automatically converted to an event
+%% filter. Here, a Unix-like path could be used as a tree event filter, though
+%% it would have default properties unlike the previous line:
 EventFilter = "/:stock/:wood/oak".
 
 ok = khepri:register_trigger(
@@ -453,8 +453,8 @@ containing properties of the emitted event:
 
 ```
 my_stored_procedure(Props) ->
-    #{path := Path},
-      on_action => Action} = Props.
+    #{path := Path,
+      on_action := Action} = Props.
 '''
 
 `Path' is the path to the tree node created, updated or deleted.
@@ -464,7 +464,7 @@ my_stored_procedure(Props) ->
 The return value of this stored procedure is ignored in the context of a
 trigger.
 
-=== Execution guaranties ===
+=== Execution guarantees ===
 
 The stored procedure associated with a trigger (event filter) is executed on
 the Ra leader node.

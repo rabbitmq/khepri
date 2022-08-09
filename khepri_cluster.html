@@ -39,7 +39,7 @@ must be an atom, even though Ra accepts other Erlang types as cluster names.</p>
   <pre><code>ok = application:set_env(
        khepri, default_store_id, my_store, [{persistent, true}]),
  
-{ok, my_store} = khepri:start("/var/lib/khepri", my_store).</code></pre></li>
+{ok, my_store} = khepri:start().</code></pre></li>
   </ul>
  
   <h3><a name="The_data_directory_and_the_Ra_system">The data directory and the Ra system</a></h3>
@@ -81,7 +81,7 @@ running Ra system are accepted.</p>
   <h3><a name="Managing_Ra_cluster_members">Managing Ra cluster members</a></h3>
  
   <p>A Khepri/Ra cluster can be expanded by telling a node to join a remote  
-cluster. Node that the Khepri store/Ra server to add to the cluster must run  
+cluster. Note that the Khepri store/Ra server to add to the cluster must run  
 before it can join.</p>
  
   <pre><code>%% Start the local Khepri store.
@@ -102,7 +102,7 @@ ok = khepri_cluster:reset().</code></pre>
  
   This configuration map can lack the required parameters, Khepri will fill
   them if necessary. Important parameters for Khepri (e.g. <code>machine</code>) will be
-  overriden anyway.
+  overridden anyway.
  </p>
 
 <h2><a name="index">Function Index</a></h2>
