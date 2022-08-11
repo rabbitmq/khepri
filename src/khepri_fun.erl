@@ -1290,6 +1290,14 @@ pass1_process_instructions(
     Comment = {'%', VarInfo},
     pass1_process_instructions(Rest, State1, [Instruction1, Comment | Result]);
 pass1_process_instructions(
+  [{gc_bif, _Operation, _Fail, _, Args, _Dst} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    Args1 = fix_type_tagged_beam_registers(Args),
+    Instruction1 = setelement(5, Instruction, Args1),
+    pass1_process_instructions(Rest, State1, [Instruction1 | Result]);
+pass1_process_instructions(
   [{get_map_elements, _Fail, Src, {list, List}} = Instruction | Rest],
   State,
   Result) ->
@@ -2108,6 +2116,9 @@ pass2_process_instruction(
     ModRepr = {atom, GeneratedModuleName},
     NameRepr = {atom, Name},
     {func_info, ModRepr, NameRepr, Arity};
+pass2_process_instruction(
+  {gc_bif, _, _, _, _, _} = Instruction, State) ->
+    replace_label(Instruction, 3, State);
 pass2_process_instruction(
   {get_map_elements, _, _, _} = Instruction, State) ->
     replace_label(Instruction, 2, State);
