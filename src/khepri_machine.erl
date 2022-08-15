@@ -206,7 +206,6 @@ get(StoreId, PathPattern, Options) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     QueryType = select_query_type(StoreId, Options),
-    Timeout = get_timeout(Options),
     QueryFun = fun(#?MODULE{root = Root}) ->
                        find_matching_nodes(Root, PathPattern1, Options)
                end,
@@ -215,19 +214,18 @@ get(StoreId, PathPattern, Options) ->
     if
         UseCache andalso IsLowLatency ->
             Cache = khepri_query_cache:from_store_id(StoreId),
-            T0 = khepri_utils:start_timeout_window(Timeout),
             case khepri_query_cache:lookup(Cache, PathPattern1) of
                 {ok, CachedValue} ->
                     CachedValue;
                 error ->
-                    RemainingTimeout = khepri_utils:end_timeout_window(
-                                         Timeout, T0),
+                    Timeout = get_timeout(Options),
                     Ret = process_query(
-                            StoreId, QueryFun, QueryType, RemainingTimeout),
+                            StoreId, QueryFun, QueryType, Timeout),
                     khepri_query_cache:store(Cache, PathPattern1, Ret),
                     Ret
             end;
         true ->
+            Timeout = get_timeout(Options),
             process_query(StoreId, QueryFun, QueryType, Timeout)
     end.
 
