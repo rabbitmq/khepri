@@ -275,7 +275,7 @@
 %% <li>`use_cache' may be used to control whether the query cache should be
 %% used for the query. When `true', the query cache is checked for the queried
 %% path and the result is cached. When `false', the query cache is not checked
-%% or updated. `true' is the default.</li>
+%% or updated. `false' is the default.</li>
 %% </ul>
 
 -type ok(Type) :: {ok, Type}.

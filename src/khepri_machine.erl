@@ -214,7 +214,7 @@ get(StoreId, PathPattern, Options) ->
                        find_matching_nodes(Root, PathPattern1, Options)
                end,
     IsPath = lists:all(fun(C) -> ?IS_PATH_COMPONENT(C) end, PathPattern1),
-    UseCache = maps:get(use_cache, Options, true),
+    UseCache = maps:get(use_cache, Options, false),
     if
         IsPath andalso UseCache ->
             CachedOptions = maps:without([timeout, favor, use_cache], Options),
