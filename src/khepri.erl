@@ -29,7 +29,7 @@
 %% start/1} or {@link start/3}. To setup a cluster, see {@link
 %% khepri_cluster}.
 %%
-%% When a store is started, a store ID {@link store_id/0} is returned. This
+%% When a store is started, a store ID {@link store_id()} is returned. This
 %% store ID is then used by the rest of this module's API. The returned store
 %% ID currently corresponds exactly to the Ra cluster name. It must be an atom
 %% though; other types are unsupported.
