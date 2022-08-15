@@ -10,12 +10,12 @@
 %% @hidden
 
 -module(khepri_query_cache).
+-include("khepri.hrl").
 
 -opaque cache() :: atom().
 %% An identifier for a query cache.
 
--type key() :: khepri_path:native_path().
-%% TODO: allow patterns
+-type key() :: khepri_path:native_pattern().
 
 -export_type([cache/0, key/0]).
 
@@ -33,7 +33,7 @@ init(StoreId) ->
     Name = from_store_id(StoreId),
     _ = case ets:info(Name) of
             undefined ->
-                ets:new(Name, [public, named_table, {read_concurrency, true}]);
+                ets:new(Name, [public, named_table]);
             _ ->
                 ok
         end,
@@ -61,9 +61,30 @@ store(Cache, Key, Value) ->
 -spec evict(cache(), key()) -> ok.
 %% @doc Removes the `Key' entry from the `Cache'.
 
-evict(Cache, Key) ->
-    ets:delete(Cache, Key),
+evict(Cache, PathPattern) ->
+    KeyPattern = path_pattern_to_pattern_match(PathPattern),
+    ets:match_delete(Cache, {KeyPattern, '_'}),
     ok.
+
+path_pattern_to_pattern_match(PathPattern) ->
+    path_pattern_to_pattern_match(lists:reverse(PathPattern), []).
+
+path_pattern_to_pattern_match([], Acc) ->
+    Acc;
+path_pattern_to_pattern_match([?STAR_STAR | Rest], _Acc) ->
+    %% Note: this creates an improper list with `` '_' '' at the tail.
+    %% This is equivalent to a pattern match such as
+    %%     [component1, component2 | _]
+    %% and describes that the tail can match anything.
+    path_pattern_to_pattern_match(Rest, '_');
+path_pattern_to_pattern_match([Condition | Rest], Acc)
+  when ?IS_CONDITION(Condition) ->
+    path_pattern_to_pattern_match(Rest, ['_' | Acc]);
+path_pattern_to_pattern_match([Component | Rest], Acc) ->
+    path_pattern_to_pattern_match(Rest, [Component | Acc]).
+
+-spec from_store_id(khepri:store_id()) -> cache().
+%% @doc Determines the name of the query cache from the store ID.
 
 from_store_id(StoreId) ->
     case persistent_term:get({?MODULE, StoreId}, undefined) of

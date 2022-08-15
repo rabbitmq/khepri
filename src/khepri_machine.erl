@@ -210,11 +210,10 @@ get(StoreId, PathPattern, Options) ->
     QueryFun = fun(#?MODULE{root = Root}) ->
                        find_matching_nodes(Root, PathPattern1, Options)
                end,
-    IsPath = lists:all(fun(C) -> ?IS_PATH_COMPONENT(C) end, PathPattern1),
     UseCache = maps:get(use_cache, Options, false),
     IsLowLatency = maps:get(favor, Options, undefined) == low_latency,
     if
-        IsPath andalso UseCache andalso IsLowLatency ->
+        UseCache andalso IsLowLatency ->
             Cache = khepri_query_cache:from_store_id(StoreId),
             T0 = khepri_utils:start_timeout_window(Timeout),
             case khepri_query_cache:lookup(Cache, PathPattern1) of
