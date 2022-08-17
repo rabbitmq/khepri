@@ -1290,6 +1290,14 @@ pass1_process_instructions(
     Comment = {'%', VarInfo},
     pass1_process_instructions(Rest, State1, [Instruction1, Comment | Result]);
 pass1_process_instructions(
+  [{fconv, Src, _Dst} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    Src1 = fix_type_tagged_beam_register(Src),
+    Instruction1 = setelement(2, Instruction, Src1),
+    pass1_process_instructions(Rest, State1, [Instruction1 | Result]);
+pass1_process_instructions(
   [{gc_bif, _Operation, _Fail, _, Args, _Dst} = Instruction | Rest],
   State,
   Result) ->
