@@ -808,10 +808,19 @@ allowed_proplists_api_test() ->
        end).
 
 allowed_sets_api_test() ->
-    ?assertStandaloneFun(
-       begin
-           _ = sets:new()
-       end).
+    ListA = mask([a, b, c]),
+    ListB = mask([b, d]),
+    StandaloneFun = ?make_standalone_fun(
+                      begin
+                          SetA = sets:from_list(ListA),
+                          SetB = sets:from_list(ListB),
+                          sets:subtract(SetA, SetB)
+                      end),
+    SetC = khepri_fun:exec(StandaloneFun, []),
+    ?assert(sets:is_element(a, SetC)),
+    ?assertNot(sets:is_element(b, SetC)),
+    ?assert(sets:is_element(c, SetC)),
+    ?assertNot(sets:is_element(d, SetC)).
 
 allowed_string_api_test() ->
     ?assertStandaloneFun(
