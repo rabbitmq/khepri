@@ -1290,6 +1290,22 @@ pass1_process_instructions(
     Comment = {'%', VarInfo},
     pass1_process_instructions(Rest, State1, [Instruction1, Comment | Result]);
 pass1_process_instructions(
+  [{fconv, Src, _Dst} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    Src1 = fix_type_tagged_beam_register(Src),
+    Instruction1 = setelement(2, Instruction, Src1),
+    pass1_process_instructions(Rest, State1, [Instruction1 | Result]);
+pass1_process_instructions(
+  [{gc_bif, _Operation, _Fail, _, Args, _Dst} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    Args1 = fix_type_tagged_beam_registers(Args),
+    Instruction1 = setelement(5, Instruction, Args1),
+    pass1_process_instructions(Rest, State1, [Instruction1 | Result]);
+pass1_process_instructions(
   [{get_map_elements, _Fail, Src, {list, List}} = Instruction | Rest],
   State,
   Result) ->
@@ -1329,6 +1345,21 @@ pass1_process_instructions(
     VarInfo = {var_info, Var, [accepts_match_context]},
     Comment = {'%', VarInfo},
     pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+pass1_process_instructions(
+  [{test, has_map_fields, _Fail, Src, {list, List}} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    Src1 = fix_type_tagged_beam_register(Src),
+    List1 = fix_type_tagged_beam_registers(List),
+    Instruction1 = setelement(4, Instruction, Src1),
+    Instruction2 = setelement(5, Instruction1, {list, List1}),
+
+    Reg = get_reg_from_type_tagged_beam_register(Src1),
+    Type = {t_map, any, any},
+    VarInfo = {var_info, Reg, [{type, Type}]},
+    Comment = {'%', VarInfo},
+    pass1_process_instructions(Rest, State1, [Instruction2, Comment | Result]);
 pass1_process_instructions(
   [{test, test_arity, _Fail, [Var, Arity]} = Instruction | Rest],
   State,
@@ -2108,6 +2139,9 @@ pass2_process_instruction(
     ModRepr = {atom, GeneratedModuleName},
     NameRepr = {atom, Name},
     {func_info, ModRepr, NameRepr, Arity};
+pass2_process_instruction(
+  {gc_bif, _, _, _, _, _} = Instruction, State) ->
+    replace_label(Instruction, 3, State);
 pass2_process_instruction(
   {get_map_elements, _, _, _} = Instruction, State) ->
     replace_label(Instruction, 2, State);
