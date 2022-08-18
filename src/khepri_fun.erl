@@ -323,10 +323,45 @@ to_standalone_fun1(Fun, Options) ->
       Fun :: fun(),
       State :: #state{},
       StandaloneFun :: standalone_fun().
+%% @doc Extracts the given anonymous function
+%%
+%% Parallel calls to handle a function that is not yet in the cache will
+%% simultaneously call {@link code:get_object_code/1}. This server call then
+%% becomes very slow, and later all the processes still have to update the
+%% cache - with exactly the same value. Ensuring that only one process tries to
+%% process the function and update the cache yields much faster parallel
+%% execution times, while the other process then also hit the new cache value
+%% and not the processing function path.
+%%
 %% @private
 %% @hidden
 
 to_standalone_fun2(Fun, State) ->
+    case to_cached_standalone_fun(Fun, State) of
+        undefined ->
+            Lock = {{khepri_fun, Fun}, self()},
+            global:set_lock(Lock, [node()]),
+            try
+                case to_cached_standalone_fun(Fun, State) of
+                    undefined             -> to_standalone_fun3(Fun, State);
+                    StandaloneFunAndState -> StandaloneFunAndState
+                end
+            after
+                global:del_lock(Lock, [node()])
+            end;
+        StandaloneFunAndState ->
+            StandaloneFunAndState
+    end.
+
+-spec to_cached_standalone_fun(Fun, State) ->
+    {StandaloneFun, State} | undefined when
+      Fun :: fun(),
+      State :: #state{},
+      StandaloneFun :: standalone_fun().
+%% @private
+%% @hidden
+
+to_cached_standalone_fun(Fun, State) ->
     case get_cached_standalone_fun(State) of
         #standalone_fun{} = StandaloneFunWithoutEnv ->
             %% We need to set the environment for this specific call of the
@@ -337,7 +372,7 @@ to_standalone_fun2(Fun, State) ->
         fun_kept ->
             {Fun, State};
         undefined ->
-            to_standalone_fun3(Fun, State)
+            undefined
     end.
 
 -spec to_standalone_fun3(Fun, State) -> {StandaloneFun, State} when
