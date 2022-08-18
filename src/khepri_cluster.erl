@@ -127,13 +127,11 @@
          generate_default_data_dir/0]).
 -endif.
 
--if(?OTP_RELEASE >= 24).
 -dialyzer({no_underspecs, [start/1,
                            stop/0, stop/1,
                            stop_locked/1,
                            join/2,
                            wait_for_remote_cluster_readyness/3]}).
--endif.
 
 -define(IS_RA_SYSTEM(RaSystem), is_atom(RaSystem)).
 -define(IS_DATA_DIR(DataDir), (is_list(DataDir) orelse is_binary(DataDir))).

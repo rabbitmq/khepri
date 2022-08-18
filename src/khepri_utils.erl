@@ -239,43 +239,5 @@ clear_list_of_modules_to_skip() ->
     _ = persistent_term:erase(?PT_MODULES_TO_SKIP),
     ok.
 
--if(?OTP_RELEASE >= 24).
 format_exception(Class, Reason, Stacktrace, Options) ->
     erl_error:format_exception(Class, Reason, Stacktrace, Options).
--else.
-format_exception(Class, Reason, Stacktrace, Options) ->
-    Column = case Options of
-                 #{column := C} when is_integer(C) andalso C > 1 -> C;
-                 _                                               -> 1
-             end,
-    Prefix = string:chars($\s, Column - 1),
-    StacktraceStrs = [begin
-                          case proplists:get_value(line, Props) of
-                              undefined when is_list(ArgListOrArity) ->
-                                  io_lib:format(
-                                    Prefix ++ " ~ts:~ts/~b~n" ++
-                                    Prefix ++ "     args: ~p",
-                                    [Mod, Fun, length(ArgListOrArity),
-                                     ArgListOrArity]);
-                              undefined when is_integer(ArgListOrArity) ->
-                                  io_lib:format(
-                                    Prefix ++ " ~ts:~ts/~b",
-                                    [Mod, Fun, ArgListOrArity]);
-                              Line when is_list(ArgListOrArity) ->
-                                  io_lib:format(
-                                    Prefix ++ " ~ts:~ts/~b, line ~b~n" ++
-                                    Prefix ++ "     args: ~p",
-                                    [Mod, Fun, length(ArgListOrArity), Line,
-                                     ArgListOrArity]);
-                              Line when is_integer(ArgListOrArity) ->
-                                  io_lib:format(
-                                    Prefix ++ " ~ts:~ts/~b, line ~b",
-                                    [Mod, Fun, ArgListOrArity, Line])
-                          end
-                      end
-                      || {Mod, Fun, ArgListOrArity, Props} <- Stacktrace],
-    io_lib:format(
-      Prefix ++ "exception ~s: ~p~n"
-      "~ts",
-      [Class, Reason, string:join(StacktraceStrs, "\n")]).
--endif.
