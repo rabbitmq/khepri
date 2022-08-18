@@ -81,12 +81,10 @@
 %% (but not all). I believe the specs are correct, but can't figure out how to
 %% please Dialyzer. So for now, let's disable this specific check for the
 %% problematic functions.
--if(?OTP_RELEASE >= 24).
 -dialyzer({no_underspecs, [exists/1,
                            has_data/1, has_data/2,
                            get_data/1, get_data/2,
                            get_data_or/2, get_data_or/3]}).
--endif.
 
 -type tx_fun_result() :: any() | no_return().
 -type tx_fun() :: fun(() -> tx_fun_result()).

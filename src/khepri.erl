@@ -124,7 +124,6 @@
 %% (but not all). I believe the specs are correct, but can't figure out how to
 %% please Dialyzer. So for now, let's disable this specific check for the
 %% problematic functions.
--if(?OTP_RELEASE >= 24).
 -dialyzer({no_underspecs, [start/1, start/2,
                            stop/0, stop/1,
 
@@ -139,7 +138,6 @@
                            has_sproc/2,
                            run_sproc/3,
                            transaction/2, transaction/3]}).
--endif.
 
 -type store_id() :: atom().
 %% ID of a Khepri store.
