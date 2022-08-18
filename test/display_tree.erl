@@ -30,7 +30,11 @@ complex_flat_struct_to_tree_test() ->
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Root,
                          [#if_path_matches{regex = any}],
-                         #{}),
+                         #{props_to_return => [payload,
+                                               payload_version,
+                                               child_list_version,
+                                               child_list_length],
+                           include_root_props => true}),
 
     ?assertEqual(
        #{payload_version => 1,
@@ -363,7 +367,7 @@ display_simple_tree_test() ->
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Root,
                          [#if_path_matches{regex = any}],
-                         #{}),
+                         #{props_to_return => [payload, payload_version]}),
     Tree = khepri_utils:flat_struct_to_tree(FlatStruct),
 
     ?assertEqual(ok, khepri_utils:display_tree(Tree)),
@@ -401,7 +405,7 @@ display_large_tree_test() ->
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Root,
                          [#if_path_matches{regex = any}],
-                         #{}),
+                         #{props_to_return => [payload, payload_version]}),
     Tree = khepri_utils:flat_struct_to_tree(FlatStruct),
 
     ?assertEqual(ok, khepri_utils:display_tree(Tree)),
@@ -457,7 +461,7 @@ display_tree_with_plaintext_lines_test() ->
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Root,
                          [#if_path_matches{regex = any}],
-                         #{}),
+                         #{props_to_return => [payload, payload_version]}),
     Tree = khepri_utils:flat_struct_to_tree(FlatStruct),
 
     ?assertEqual(ok, khepri_utils:display_tree(Tree, #{lines => false})),
@@ -513,7 +517,7 @@ display_tree_without_colors_test() ->
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Root,
                          [#if_path_matches{regex = any}],
-                         #{}),
+                         #{props_to_return => [payload, payload_version]}),
     Tree = khepri_utils:flat_struct_to_tree(FlatStruct),
 
     ?assertEqual(ok, khepri_utils:display_tree(Tree, #{colors => false})),
@@ -569,7 +573,7 @@ display_tree_with_plaintext_lines_and_without_colors_test() ->
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Root,
                          [#if_path_matches{regex = any}],
-                         #{}),
+                         #{props_to_return => [payload, payload_version]}),
     Tree = khepri_utils:flat_struct_to_tree(FlatStruct),
 
     ?assertEqual(ok, khepri_utils:display_tree(Tree, #{lines => false,
@@ -609,7 +613,7 @@ display_tree_with_binary_key_test() ->
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Root,
                          [#if_path_matches{regex = any}],
-                         #{}),
+                         #{props_to_return => [payload, payload_version]}),
     Tree = khepri_utils:flat_struct_to_tree(FlatStruct),
 
     ?assertEqual(ok, khepri_utils:display_tree(Tree)),
@@ -633,7 +637,7 @@ display_tree_with_similar_atom_and_binary_keys_test() ->
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Root,
                          [#if_path_matches{regex = any}],
-                         #{}),
+                         #{props_to_return => [payload, payload_version]}),
     Tree = khepri_utils:flat_struct_to_tree(FlatStruct),
 
     ?assertEqual(ok, khepri_utils:display_tree(Tree)),

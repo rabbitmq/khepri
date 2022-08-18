@@ -46,6 +46,7 @@
 -include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
+-include("src/khepri_error.hrl").
 
 -export([compile/1,
          from_string/1,
@@ -227,7 +228,7 @@ from_string(Binary) when is_binary(Binary) ->
     String = erlang:binary_to_list(Binary),
     from_string(String);
 from_string(NotPath) ->
-    throw({invalid_path, #{path => NotPath}}).
+    ?report_invalid_path(NotPath).
 
 -spec from_binary(String) -> PathPattern when
       String :: pattern(),
@@ -257,12 +258,7 @@ from_binary(MaybeString) ->
 %% @private
 
 sigil_p(PathPattern, _Options) ->
-    try
-        from_string(PathPattern)
-    catch
-        throw:Reason:Stacktrace ->
-            erlang:raise(error, Reason, Stacktrace)
-    end.
+    from_string(PathPattern).
 
 -spec sigil_P(PathPattern, Options) -> NativePathPattern when
       PathPattern :: pattern(),
@@ -279,12 +275,7 @@ sigil_p(PathPattern, _Options) ->
 %% @private
 
 sigil_P(PathPattern, _Options) ->
-    try
-        from_string(PathPattern)
-    catch
-        throw:Reason:Stacktrace ->
-            erlang:raise(error, Reason, Stacktrace)
-    end.
+    from_string(PathPattern).
 
 from_string([Component | _] = Rest, ReversedPath)
   when ?IS_NODE_ID(Component) orelse
@@ -318,8 +309,7 @@ from_string([], ReversedPath) ->
 
 from_string(Rest, ReversedPath) ->
     NotPath = lists:reverse(ReversedPath) ++ Rest,
-    throw({invalid_path, #{path => NotPath,
-                           tail => Rest}}).
+    ?report_invalid_path(NotPath).
 
 parse_atom_from_string(Rest, ReversedPath) ->
     parse_atom_from_string(Rest, "", ReversedPath).
@@ -617,8 +607,4 @@ realpath([], Result) ->
     lists:reverse(Result).
 
 pattern_includes_root_node(Path) ->
-    pattern_includes_root_node1(realpath(Path)).
-
-pattern_includes_root_node1([#if_name_matches{regex = any}]) -> true;
-pattern_includes_root_node1([#if_path_matches{regex = any}]) -> true;
-pattern_includes_root_node1(_)                               -> false.
+    [] =:= realpath(Path).

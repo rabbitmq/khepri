@@ -201,15 +201,20 @@ if_data_matches_matching_test() ->
                       #if_data_matches{pattern = {a, '_'}}),
     ?assert(
        khepri_condition:is_met(
-         CompiledCond2, foo, #{data => {a, b}})),
+         CompiledCond2, foo, #{data => {a, b},
+                               payload_version => 1,
+                               child_list_version => 1})),
     ?assertEqual(
        {false, CompiledCond2},
        khepri_condition:is_met(
-         CompiledCond2, foo, #{})),
+         CompiledCond2, foo, #{payload_version => 1,
+                               child_list_version => 1})),
     ?assertEqual(
        {false, CompiledCond2},
        khepri_condition:is_met(
-         CompiledCond2, foo, #{data => other})),
+         CompiledCond2, foo, #{data => other,
+                               payload_version => 1,
+                               child_list_version => 1})),
 
     ?assert(
        khepri_condition:is_met(
@@ -232,30 +237,40 @@ if_data_matches_matching_test() ->
                                                      {'>=', '$1', 10}]}),
     ?assert(
        khepri_condition:is_met(
-         CompiledCond3, foo, #{data => {a, 10}})),
+         CompiledCond3, foo, #{data => {a, 10},
+                               payload_version => 1,
+                               child_list_version => 1})),
     ?assertEqual(
        {false, CompiledCond3},
        khepri_condition:is_met(
-         CompiledCond3, foo, #{})),
+         CompiledCond3, foo, #{payload_version => 1,
+                               child_list_version => 1})),
     ?assertEqual(
        {false, CompiledCond3},
        khepri_condition:is_met(
-         CompiledCond3, foo, #{data => {a, 9}})),
+         CompiledCond3, foo, #{data => {a, 9},
+                               payload_version => 1,
+                               child_list_version => 1})),
     ?assertEqual(
        {false, CompiledCond3},
        khepri_condition:is_met(
-         CompiledCond3, foo, #{data => {a, not_integer}})),
+         CompiledCond3, foo, #{data => {a, not_integer},
+                               payload_version => 1,
+                               child_list_version => 1})),
     ?assertEqual(
        {false, CompiledCond3},
        khepri_condition:is_met(
-         CompiledCond3, foo, #{data => other})),
+         CompiledCond3, foo, #{data => other,
+                               payload_version => 1,
+                               child_list_version => 1})),
     ok.
 
 if_payload_version_matching_test() ->
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(#if_payload_version{version = 2}),
-         foo, #{payload_version => 2})),
+         foo, #{payload_version => 2,
+                child_list_version => 1})),
 
     ?assert(
        khepri_condition:is_met(
@@ -284,7 +299,8 @@ if_child_list_version_matching_test() ->
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(#if_child_list_version{version = 2}),
-         foo, #{child_list_version => 2})),
+         foo, #{payload_version => 1,
+                child_list_version => 2})),
 
     ?assert(
        khepri_condition:is_met(
@@ -313,7 +329,9 @@ if_child_list_length_matching_test() ->
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(#if_child_list_length{count = 2}),
-         foo, #{child_list_length => 2})),
+         foo, #{payload_version => 1,
+                child_list_version => 1,
+                child_list_length => 2})),
 
     ?assert(
        khepri_condition:is_met(
@@ -341,7 +359,9 @@ if_not_matching_test() ->
        khepri_condition:is_met(
          khepri_condition:compile(#if_not{condition =
                                           #if_child_list_length{count = 2}}),
-         foo, #{child_list_length => 2})),
+         foo, #{payload_version => 1,
+                child_list_version => 1,
+                child_list_length => 2})),
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(

@@ -194,7 +194,11 @@ keep_while_still_true_after_command_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
     Command = #put{path = [foo],
-                   payload = khepri_payload:data(new_foo_value)},
+                   payload = khepri_payload:data(new_foo_value),
+                   options = #{props_to_return => [payload,
+                                                   payload_version,
+                                                   child_list_version,
+                                                   child_list_length]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -265,7 +269,11 @@ recursive_automatic_cleanup_test() ->
                      payload = khepri_payload:data(baz_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
-    Command = #delete{path = [foo, bar, baz]},
+    Command = #delete{path = [foo, bar, baz],
+                      options = #{props_to_return => [payload,
+                                                      payload_version,
+                                                      child_list_version,
+                                                      child_list_length]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -291,7 +299,11 @@ keep_while_now_false_after_delete_command_test() ->
                      extra = #{keep_while => KeepWhile}}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
-    Command = #delete{path = [foo]},
+    Command = #delete{path = [foo],
+                      options = #{props_to_return => [payload,
+                                                      payload_version,
+                                                      child_list_version,
+                                                      child_list_length]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 

@@ -22,7 +22,7 @@ insert_a_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{[foo] => #{}}},
+         ok,
          khepri:put(
            ?FUNCTION_NAME, [foo], khepri_payload:data(foo_value)))]}.
 
@@ -31,10 +31,7 @@ query_a_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{[foo] => #{data => foo_value,
-                           payload_version => 1,
-                           child_list_version => 1,
-                           child_list_length => 0}}},
+         {ok, foo_value},
          begin
              _ = khepri:put(
                    ?FUNCTION_NAME, [foo], khepri_payload:data(foo_value)),
@@ -48,10 +45,7 @@ delete_a_node_test_() ->
      [{inorder,
        [{"Adding and deleting key/value",
          ?_assertEqual(
-            {ok, #{[foo] => #{data => foo_value,
-                              payload_version => 1,
-                              child_list_version => 1,
-                              child_list_length => 0}}},
+            ok,
             begin
                 _ = khepri:put(
                       ?FUNCTION_NAME, [foo],
@@ -59,8 +53,8 @@ delete_a_node_test_() ->
                 khepri:delete(?FUNCTION_NAME, [foo])
             end)},
         {"Checking the deleted key is gone",
-         ?_assertEqual(
-            {ok, #{}},
+         ?_assertMatch(
+            {error, {node_not_found, _}},
             khepri:get(?FUNCTION_NAME, [foo]))}]}
      ]}.
 
@@ -71,7 +65,7 @@ query_keep_while_conds_state_test_() ->
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [{inorder,
        [?_assertEqual(
-           {ok, #{[foo] => #{}}},
+           ok,
            khepri:put(
              ?FUNCTION_NAME,
              [foo],
@@ -90,7 +84,7 @@ use_unix_string_path_in_keep_while_cond_test_() ->
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [{inorder,
        [?_assertEqual(
-           {ok, #{[foo] => #{}}},
+           ok,
            khepri:put(
              ?FUNCTION_NAME,
              [foo],
@@ -109,7 +103,7 @@ use_unix_binary_path_in_keep_while_cond_test_() ->
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [{inorder,
        [?_assertEqual(
-           {ok, #{[foo] => #{}}},
+           ok,
            khepri:put(
              ?FUNCTION_NAME,
              [foo],
@@ -125,15 +119,20 @@ use_an_invalid_path_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_path, #{path := not_a_list}},
+     [?_assertError(
+         {khepri,
+          invalid_path,
+          "Invalid path or path pattern passed to khepri_path:from_string/1:\n"
+          "not_a_list"},
          khepri:put(
            ?FUNCTION_NAME,
            not_a_list,
            ?NO_PAYLOAD)),
-      ?_assertThrow(
-         {invalid_path, #{path := ["not_a_component"],
-                          tail := ["not_a_component"]}},
+      ?_assertError(
+         {khepri,
+          invalid_path,
+          "Invalid path or path pattern passed to khepri_path:from_string/2:\n"
+          "[\"not_a_component\"]"},
          khepri:put(
            ?FUNCTION_NAME,
            ["not_a_component"],

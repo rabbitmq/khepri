@@ -28,23 +28,29 @@
 -include("src/internal.hrl").
 -include("src/khepri_machine.hrl").
 
--export([put/5,
-         get/3,
+-export([get/3,
          count/3,
+         put/5,
          delete/3,
          transaction/4,
          run_sproc/4,
          register_trigger/5]).
 -export([get_keep_while_conds_state/2]).
+
+%% ra_machine callbacks.
 -export([init/1,
          apply/3,
          state_enter/2]).
+
 %% For internal use only.
 -export([clear_cache/1,
          ack_triggers_execution/2,
+         set_default_options/1,
          find_matching_nodes/3,
-         insert_or_update_node/4,
-         delete_matching_nodes/2]).
+         count_matching_nodes/3,
+         insert_or_update_node/5,
+         delete_matching_nodes/3,
+         handle_tx_exception/1]).
 
 -ifdef(TEST).
 -export([are_keep_while_conditions_met/2,
@@ -125,7 +131,20 @@
 -type ok(Type1, Type2) :: {ok, Type1, Type2}.
 -type ok(Type1, Type2, Type3) :: {ok, Type1, Type2, Type3}.
 
--export_type([state/0,
+-type common_ret() :: khepri:ok(khepri_adv:node_props_map()) |
+                      khepri:error().
+
+-type tx_ret() :: khepri:ok(khepri_tx:tx_fun_result()) |
+                  khepri_tx:tx_abort() |
+                  no_return().
+
+-type async_ret() :: ok.
+
+-export_type([common_ret/0,
+              tx_ret/0,
+              async_ret/0,
+
+              state/0,
               machine_config/0,
               tree_node/0,
               stat/0,
@@ -140,14 +159,62 @@
 %% TODO: Verify arguments carefully to avoid the construction of an invalid
 %% command.
 
--spec put(StoreId, PathPattern, Payload, Extra, Options) -> Result when
+%% TODO: Accept only one Extra+Options argument and filter/split them.
+
+-spec get(StoreId, PathPattern, Options) -> Ret when
+      StoreId :: khepri:store_id(),
+      PathPattern :: khepri_path:pattern(),
+      Options :: khepri:query_options() | khepri:tree_options(),
+      Ret :: khepri_machine:common_ret().
+%% @doc Returns all tree nodes matching the given path pattern.
+%%
+%% @param StoreId the name of the Ra cluster.
+%% @param PathPattern the path (or path pattern) to the nodes to get.
+%% @param Options query options such as `favor'.
+%%
+%% @returns an `{ok, NodePropsMap}' tuple with a map with zero, one or more
+%% entries, or an `{error, Reason}' tuple.
+
+get(StoreId, PathPattern, Options) when ?IS_STORE_ID(StoreId) ->
+    PathPattern1 = khepri_path:from_string(PathPattern),
+    khepri_path:ensure_is_valid(PathPattern1),
+    {QueryOptions, TreeOptions} = split_query_options(Options),
+    Query = fun(#?MODULE{root = Root}) ->
+                    find_matching_nodes(Root, PathPattern1, TreeOptions)
+            end,
+    process_query(StoreId, Query, QueryOptions).
+
+-spec count(StoreId, PathPattern, Options) -> Ret when
+      StoreId :: khepri:store_id(),
+      PathPattern :: khepri_path:pattern(),
+      Options :: khepri:query_options() | khepri:tree_options(),
+      Ret :: khepri:ok(Count) | khepri:error(),
+      Count :: non_neg_integer().
+%% @doc Counts all tree nodes matching the path pattern.
+%%
+%% @param StoreId the name of the Ra cluster.
+%% @param PathPattern the path (or path pattern) to the nodes to count.
+%% @param Options query options such as `favor'.
+%%
+%% @returns an `{ok, Count}' tuple with the number of matching tree nodes, or
+%% an `{error, Reason}' tuple.
+
+count(StoreId, PathPattern, Options) when ?IS_STORE_ID(StoreId) ->
+    PathPattern1 = khepri_path:from_string(PathPattern),
+    khepri_path:ensure_is_valid(PathPattern1),
+    {QueryOptions, TreeOptions} = split_query_options(Options),
+    Query = fun(#?MODULE{root = Root}) ->
+                    count_matching_nodes(Root, PathPattern1, TreeOptions)
+            end,
+    process_query(StoreId, Query, QueryOptions).
+
+-spec put(StoreId, PathPattern, Payload, Extra, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Payload :: khepri_payload:payload(),
       Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:command_options(),
-      Result :: khepri:result() | NoRetIfAsync,
-      NoRetIfAsync :: ok.
+      Options :: khepri:command_options() | khepri:tree_options(),
+      Ret :: khepri_machine:common_ret() | khepri_machine:async_ret().
 %% @doc Creates or modifies a specific tree node in the tree structure.
 %%
 %% @param StoreId the name of the Ra cluster.
@@ -157,15 +224,15 @@
 %% @param Extra extra options such as `keep_while' conditions.
 %% @param Options command options such as the command type.
 %%
-%% @returns in the case of a synchronous put, an `{ok, Result}' tuple with a
-%% map with one entry, or an `{error, Reason}' tuple; in the case of an
-%% asynchronous put, always `ok' (the actual return value may be sent by a
-%% message if a correlation ID was specified).
+%% @returns in the case of a synchronous put, an `{ok, NodePropsMap}' tuple
+%% with a map with zero, one or more entries, or an `{error, Reason}' tuple;
+%% in the case of an asynchronous put, always `ok' (the actual return value
+%% may be sent by a message if a correlation ID was specified).
 %%
 %% @private
 
 put(StoreId, PathPattern, Payload, Extra, Options)
-  when ?IS_KHEPRI_PAYLOAD(Payload) ->
+  when ?IS_STORE_ID(StoreId) andalso ?IS_KHEPRI_PAYLOAD(Payload) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     Payload1 = khepri_payload:prepare(Payload),
@@ -177,89 +244,45 @@ put(StoreId, PathPattern, Payload, Extra, Options)
                  _ ->
                      Extra
              end,
+    {CommandOptions, TreeOptions} = split_command_options(Options),
     Command = #put{path = PathPattern1,
                    payload = Payload1,
-                   extra = Extra1},
-    process_command(StoreId, Command, Options);
+                   extra = Extra1,
+                   options = TreeOptions},
+    process_command(StoreId, Command, CommandOptions);
 put(_StoreId, PathPattern, Payload, _Extra, _Options) ->
     throw({invalid_payload, PathPattern, Payload}).
 
--spec get(StoreId, PathPattern, Options) -> Result when
+-spec delete(StoreId, PathPattern, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Options :: khepri:query_options(),
-      Result :: khepri:result().
-%% @doc Returns all tree nodes matching the path pattern.
-%%
-%% @param StoreId the name of the Ra cluster.
-%% @param PathPattern the path (or path pattern) to the nodes to get.
-%% @param Options query options such as `favor'.
-%%
-%% @returns an `{ok, Result}' tuple with a map with zero, one or more entries,
-%% or an `{error, Reason}' tuple.
-
-get(StoreId, PathPattern, Options) ->
-    PathPattern1 = khepri_path:from_string(PathPattern),
-    khepri_path:ensure_is_valid(PathPattern1),
-    Query = fun(#?MODULE{root = Root}) ->
-                    find_matching_nodes(Root, PathPattern1, Options)
-            end,
-    process_query(StoreId, Query, Options).
-
--spec count(StoreId, PathPattern, Options) -> Result when
-      StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
-      Options :: khepri:query_options(),
-      Result :: khepri:ok(integer()) | khepri:error().
-%% @doc Counts all tree nodes matching the path pattern.
-%%
-%% @param StoreId the name of the Ra cluster.
-%% @param PathPattern the path (or path pattern) to the nodes to count.
-%% @param Options query options such as `favor'.
-%%
-%% @returns an `{ok, Count}' tuple with the number of matching tree nodes, or
-%% an `{error, Reason}' tuple.
-
-count(StoreId, PathPattern, Options) ->
-    PathPattern1 = khepri_path:from_string(PathPattern),
-    khepri_path:ensure_is_valid(PathPattern1),
-    Query = fun(#?MODULE{root = Root}) ->
-                    count_matching_nodes(Root, PathPattern1, Options)
-            end,
-    process_query(StoreId, Query, Options).
-
--spec delete(StoreId, PathPattern, Options) -> Result when
-      StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
-      Options :: khepri:command_options(),
-      Result :: khepri:result() | NoRetIfAsync,
-      NoRetIfAsync :: ok.
+      Options :: khepri:command_options() | khepri:tree_options(),
+      Ret :: khepri_machine:common_ret() | khepri_machine:async_ret().
 %% @doc Deletes all tree nodes matching the path pattern.
 %%
 %% @param StoreId the name of the Ra cluster.
 %% @param PathPattern the path (or path pattern) to the nodes to delete.
 %% @param Options command options such as the command type.
 %%
-%% @returns in the case of a synchronous delete, an `{ok, Result}' tuple with
-%% a map with zero, one or more entries, or an `{error, Reason}' tuple; in the
-%% case of an asynchronous put, always `ok' (the actual return value may be
-%% sent by a message if a correlation ID was specified).
+%% @returns in the case of a synchronous delete, an `{ok, NodePropsMap}' tuple
+%% with a map with zero, one or more entries, or an `{error, Reason}' tuple;
+%% in the case of an asynchronous put, always `ok' (the actual return value
+%% may be sent by a message if a correlation ID was specified).
 
-delete(StoreId, PathPattern, Options) ->
+delete(StoreId, PathPattern, Options) when ?IS_STORE_ID(StoreId) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
-    Command = #delete{path = PathPattern1},
-    process_command(StoreId, Command, Options).
+    {CommandOptions, TreeOptions} = split_command_options(Options),
+    Command = #delete{path = PathPattern1,
+                      options = TreeOptions},
+    process_command(StoreId, Command, CommandOptions).
 
 -spec transaction(StoreId, Fun, ReadWrite, Options) -> Ret when
       StoreId :: khepri:store_id(),
       Fun :: khepri_tx:tx_fun(),
       ReadWrite :: ro | rw | auto,
       Options :: khepri:command_options() | khepri:query_options(),
-      Ret :: Atomic | Aborted | NoRetIfAsync,
-      Atomic :: {atomic, khepri_tx:tx_fun_result()},
-      Aborted :: khepri_tx:tx_abort(),
-      NoRetIfAsync :: ok.
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
 %% @doc Runs a transaction and returns the result.
 %%
 %% @param StoreId the name of the Ra cluster.
@@ -267,82 +290,96 @@ delete(StoreId, PathPattern, Options) ->
 %% @param ReadWrite the read/write or read-only nature of the transaction.
 %% @param Options command options such as the command type.
 %%
-%% @returns in the case of a synchronous transaction, `{atomic, Result}' where
-%% `Result' is the return value of `Fun', or `{aborted, Reason}' if the
+%% @returns in the case of a synchronous transaction, `{ok, Result}' where
+%% `Result' is the return value of `Fun', or `{error, Reason}' if the
 %% anonymous function was aborted; in the case of an asynchronous transaction,
 %% always `ok' (the actual return value may be sent by a message if a
 %% correlation ID was specified).
 
 transaction(StoreId, Fun, auto = ReadWrite, Options)
-  when is_function(Fun, 0) ->
-    case khepri_tx:to_standalone_fun(Fun, ReadWrite) of
+  when ?IS_STORE_ID(StoreId) andalso is_function(Fun, 0) ->
+    case khepri_tx_adv:to_standalone_fun(Fun, ReadWrite) of
         #standalone_fun{} = StandaloneFun ->
             readwrite_transaction(StoreId, StandaloneFun, Options);
         _ ->
             readonly_transaction(StoreId, Fun, Options)
     end;
 transaction(StoreId, Fun, rw = ReadWrite, Options)
-  when is_function(Fun, 0) ->
-    StandaloneFun = khepri_tx:to_standalone_fun(Fun, ReadWrite),
+  when ?IS_STORE_ID(StoreId) andalso is_function(Fun, 0) ->
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(Fun, ReadWrite),
     readwrite_transaction(StoreId, StandaloneFun, Options);
-transaction(StoreId, Fun, ro, Options) when is_function(Fun, 0) ->
+transaction(StoreId, Fun, ro, Options)
+  when ?IS_STORE_ID(StoreId) andalso is_function(Fun, 0) ->
     readonly_transaction(StoreId, Fun, Options);
-transaction(_StoreId, Fun, _ReadWrite, _Options) when is_function(Fun) ->
+transaction(StoreId, Fun, _ReadWrite, _Options)
+  when ?IS_STORE_ID(StoreId) andalso is_function(Fun) ->
     {arity, Arity} = erlang:fun_info(Fun, arity),
     throw({invalid_tx_fun, {requires_args, Arity}});
-transaction(_StoreId, Term, _ReadWrite, _Options) ->
+transaction(StoreId, Term, _ReadWrite, _Options)
+  when ?IS_STORE_ID(StoreId) ->
     throw({invalid_tx_fun, Term}).
 
 -spec readonly_transaction(StoreId, Fun, Options) -> Ret when
       StoreId :: khepri:store_id(),
       Fun :: khepri_tx:tx_fun(),
       Options :: khepri:query_options(),
-      Ret :: Atomic | Aborted,
-      Atomic :: {atomic, khepri_tx:tx_fun_result()},
-      Aborted :: khepri_tx:tx_abort().
+      Ret :: khepri_machine:tx_ret().
 
 readonly_transaction(StoreId, Fun, Options) when is_function(Fun, 0) ->
     Query = fun(State) ->
                     %% It is a read-only transaction, therefore we assert that
                     %% the state is unchanged and that there are no side
                     %% effects.
-                    {State, Ret, []} = khepri_tx:run(State, Fun, false),
+                    {State, Ret, []} = khepri_tx_adv:run(State, Fun, false),
                     Ret
             end,
     case process_query(StoreId, Query, Options) of
-        {exception, _, {aborted, _} = Aborted, _} ->
-            Aborted;
-        {exception, Class, Reason, Stacktrace} ->
-            erlang:raise(Class, Reason, Stacktrace);
+        {exception, _, _, _} = Exception ->
+            handle_tx_exception(Exception);
         Ret ->
-            {atomic, Ret}
+            {ok, Ret}
     end.
 
 -spec readwrite_transaction(StoreId, Fun, Options) -> Ret when
       StoreId :: khepri:store_id(),
       Fun :: khepri_fun:standalone_fun(),
       Options :: khepri:command_options(),
-      Ret :: Atomic | Aborted | NoRetIfAsync,
-      Atomic :: {atomic, khepri_tx:tx_fun_result()},
-      Aborted :: khepri_tx:tx_abort(),
-      NoRetIfAsync :: ok.
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
 
 readwrite_transaction(StoreId, StandaloneFun, Options) ->
     Command = #tx{'fun' = StandaloneFun},
     case process_command(StoreId, Command, Options) of
-        {exception, _, {aborted, _} = Aborted, _} ->
-            Aborted;
-        {exception, Class, Reason, Stacktrace} ->
-            erlang:raise(Class, Reason, Stacktrace);
+        {exception, _, _, _} = Exception ->
+            handle_tx_exception(Exception);
         ok = Ret ->
             CommandType = select_command_type(Options),
             case CommandType of
-                sync          -> {atomic, Ret};
+                sync          -> {ok, Ret};
                 {async, _, _} -> Ret
             end;
         Ret ->
-            {atomic, Ret}
+            {ok, Ret}
     end.
+
+handle_tx_exception(
+  {exception, _, {aborted, Reason}, _}) ->
+    {error, Reason};
+handle_tx_exception(
+  {exception, error, {khepri, _, _} = Reason, _Stacktrace}) ->
+    %% If the exception is a programming misuse of Khepri, we
+    %% re-throw a new exception instead of using `erlang:raise()'.
+    %%
+    %% The reason is that the default stacktrace is limited to 8 frames by
+    %% default (see `erlang:system_flag(backtrace_depth, Depth)' to reconfigure
+    %% it). Most if not all of those 8 frames might be taken by Khepri's
+    %% internal calls, making the stacktrace uninformative to the caller.
+    %%
+    %% By throwing a new exception, we increase the chance that there
+    %% is a frame pointing to the transaction function.
+    erlang:error(Reason);
+handle_tx_exception(
+  {exception, Class, Reason, Stacktrace}) ->
+    erlang:raise(Class, Reason, Stacktrace).
 
 -spec run_sproc(StoreId, PathPattern, Args, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -366,16 +403,17 @@ readwrite_transaction(StoreId, StandaloneFun, Options) ->
 %% exception if the node does not exist, does not hold a stored procedure or
 %% if there was an error.
 
-run_sproc(StoreId, PathPattern, Args, Options) when is_list(Args) ->
+run_sproc(StoreId, PathPattern, Args, Options)
+  when ?IS_STORE_ID(StoreId) andalso is_list(Args) ->
     Options1 = Options#{expect_specific_node => true},
     case get(StoreId, PathPattern, Options1) of
-        {ok, Result} ->
-            [Value] = maps:values(Result),
+        {ok, NodePropsMap} ->
+            [Value] = maps:values(NodePropsMap),
             case Value of
                 #{sproc := StandaloneFun} ->
                     khepri_sproc:run(StandaloneFun, Args);
                 _ ->
-                    [Path] = maps:keys(Result),
+                    [Path] = maps:keys(NodePropsMap),
                     throw({invalid_sproc_fun,
                            {no_sproc, Path, Value}})
             end;
@@ -404,7 +442,8 @@ run_sproc(StoreId, PathPattern, Args, Options) when is_list(Args) ->
 %% @returns `ok' if the trigger was registered, an `{error, Reason}' tuple
 %% otherwise.
 
-register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
+register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options)
+  when ?IS_STORE_ID(StoreId) ->
     EventFilter1 = khepri_evf:wrap(EventFilter),
     StoredProcPath1 = khepri_path:from_string(StoredProcPath),
     khepri_path:ensure_is_valid(StoredProcPath1),
@@ -425,14 +464,15 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
 %%
 %% @private
 
-ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
+ack_triggers_execution(StoreId, TriggeredStoredProcs)
+  when ?IS_STORE_ID(StoreId) ->
     Command = #ack_triggered{triggered = TriggeredStoredProcs},
     process_command(StoreId, Command, #{}).
 
 -spec get_keep_while_conds_state(StoreId, Options) -> Ret when
       StoreId :: khepri:store_id(),
       Options :: khepri:query_options(),
-      Ret :: {ok, keep_while_conds_map()} | khepri:error().
+      Ret :: khepri:ok(keep_while_conds_map()) | khepri:error().
 %% @doc Returns the `keep_while' conditions internal state.
 %%
 %% The returned state consists of all the `keep_while' condition set so far.
@@ -444,12 +484,77 @@ ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
 %%
 %% @private
 
-get_keep_while_conds_state(StoreId, Options) ->
+get_keep_while_conds_state(StoreId, Options)
+  when ?IS_STORE_ID(StoreId) ->
     Query = fun(#?MODULE{keep_while_conds = KeepWhileConds}) ->
                     {ok, KeepWhileConds}
             end,
     Options1 = Options#{favor => consistency},
     process_query(StoreId, Query, Options1).
+
+-spec split_query_options(Options) -> {QueryOptions, TreeOptions} when
+      Options :: QueryOptions | TreeOptions,
+      QueryOptions :: khepri:query_options(),
+      TreeOptions :: khepri:tree_options().
+%% @private
+
+split_query_options(Options) ->
+    Options1 = set_default_options(Options),
+    maps:fold(
+      fun
+          (Option, Value, {Q, T}) when
+                Option =:= timeout orelse
+                Option =:= favor ->
+              Q1 = Q#{Option => Value},
+              {Q1, T};
+          (props_to_return, [], {Q, T}) ->
+              {Q, T};
+          (Option, Value, {Q, T}) when
+                Option =:= expect_specific_node orelse
+                Option =:= props_to_return orelse
+                Option =:= include_root_props ->
+              T1 = T#{Option => Value},
+              {Q, T1}
+      end, {#{}, #{}}, Options1).
+
+-spec split_command_options(Options) -> {CommandOptions, TreeOptions} when
+      Options :: CommandOptions | TreeOptions,
+      CommandOptions :: khepri:command_options(),
+      TreeOptions :: khepri:tree_options().
+%% @private
+
+split_command_options(Options) ->
+    Options1 = set_default_options(Options),
+    maps:fold(
+      fun
+          (Option, Value, {C, T}) when
+                Option =:= timeout orelse
+                Option =:= async ->
+              C1 = C#{Option => Value},
+              {C1, T};
+          (props_to_return, [], {C, T}) ->
+              {C, T};
+          (Option, Value, {C, T}) when
+                Option =:= expect_specific_node orelse
+                Option =:= props_to_return orelse
+                Option =:= include_root_props ->
+              T1 = T#{Option => Value},
+              {C, T1}
+      end, {#{}, #{}}, Options1).
+
+-define(DEFAULT_PROPS_TO_RETURN, [payload,
+                                  payload_version]).
+
+set_default_options(Options) ->
+    %% By default, return payload-related properties. The caller can set
+    %% `props_to_return' to `none' to get a minimal return value.
+    Options1 = case Options of
+                   #{props_to_return := _} ->
+                       Options;
+                   _ ->
+                       Options#{props_to_return => ?DEFAULT_PROPS_TO_RETURN}
+               end,
+    Options1.
 
 -spec process_command(StoreId, Command, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -843,15 +948,16 @@ init(#{store_id := StoreId,
 %% TODO: Handle unknown/invalid commands.
 apply(
   Meta,
-  #put{path = PathPattern, payload = Payload, extra = Extra},
+  #put{path = PathPattern, payload = Payload, extra = Extra,
+       options = Options},
   State) ->
-    Ret = insert_or_update_node(State, PathPattern, Payload, Extra),
+    Ret = insert_or_update_node(State, PathPattern, Payload, Extra, Options),
     bump_applied_command_count(Ret, Meta);
 apply(
   Meta,
-  #delete{path = PathPattern},
+  #delete{path = PathPattern, options = Options},
   State) ->
-    Ret = delete_matching_nodes(State, PathPattern),
+    Ret = delete_matching_nodes(State, PathPattern, Options),
     bump_applied_command_count(Ret, Meta);
 apply(
   Meta,
@@ -861,7 +967,7 @@ apply(
               false -> fun() -> khepri_fun:exec(StandaloneFun, []) end;
               true  -> StandaloneFun
           end,
-    Ret = khepri_tx:run(State, Fun, true),
+    Ret = khepri_tx_adv:run(State, Fun, true),
     bump_applied_command_count(Ret, Meta);
 apply(
   Meta,
@@ -1036,28 +1142,42 @@ remove_node_child_nodes(
 
 -spec gather_node_props(Node, Options) -> NodeProps when
       Node :: tree_node(),
-      Options :: khepri:command_options() | khepri:query_options(),
+      Options :: khepri:tree_options(),
       NodeProps :: khepri:node_props().
 
-gather_node_props(#node{stat = #{payload_version := DVersion,
+gather_node_props(#node{stat = #{payload_version := PVersion,
                                  child_list_version := CVersion},
                         payload = Payload,
                         child_nodes = Children},
-                  Options) ->
-    Result0 = #{payload_version => DVersion,
-                child_list_version => CVersion,
-                child_list_length => maps:size(Children)},
-    Result1 = case Options of
-                  #{include_child_names := true} ->
-                      Result0#{child_names => maps:keys(Children)};
-                  _ ->
-                      Result0
-              end,
-    case Payload of
-        #p_data{data = Data}  -> Result1#{data => Data};
-        #p_sproc{sproc = Fun} -> Result1#{sproc => Fun};
-        _                     -> Result1
-    end.
+                  #{props_to_return := WantedProps}) ->
+    lists:foldl(
+      fun
+          (payload_version, Acc) ->
+              Acc#{payload_version => PVersion};
+          (child_list_version, Acc) ->
+              Acc#{child_list_version => CVersion};
+          (child_list_length, Acc) ->
+              Acc#{child_list_length => maps:size(Children)};
+          (child_names, Acc) ->
+              Acc#{child_names => maps:keys(Children)};
+          (payload, Acc) ->
+              case Payload of
+                  #p_data{data = Data}  -> Acc#{data => Data};
+                  #p_sproc{sproc = Fun} -> Acc#{sproc => Fun};
+                  _                     -> Acc
+              end;
+          (has_payload, Acc) ->
+              case Payload of
+                  #p_data{data = _}   -> Acc#{has_data => true};
+                  #p_sproc{sproc = _} -> Acc#{is_sproc => true};
+                  _                   -> Acc
+              end
+      end, #{}, WantedProps);
+gather_node_props(#node{}, _Options) ->
+    #{}.
+
+gather_node_props_for_error(Node) ->
+    gather_node_props(Node, #{props_to_return => ?DEFAULT_PROPS_TO_RETURN}).
 
 -spec to_absolute_keep_while(BasePath, KeepWhile) -> KeepWhile when
       BasePath :: khepri_path:native_path(),
@@ -1081,10 +1201,14 @@ are_keep_while_conditions_met(_, KeepWhile)
   when KeepWhile =:= #{} ->
     true;
 are_keep_while_conditions_met(Root, KeepWhile) ->
+    TreeOptions = #{props_to_return => [payload,
+                                        payload_version,
+                                        child_list_version,
+                                        child_list_length]},
     maps:fold(
       fun
           (Path, Condition, true) ->
-              case find_matching_nodes(Root, Path, #{}) of
+              case find_matching_nodes(Root, Path, TreeOptions) of
                   {ok, Result} when Result =/= #{} ->
                       are_keep_while_conditions_met1(Result, Condition);
                   {ok, _} ->
@@ -1149,39 +1273,44 @@ update_keep_while_conds_revidx(
 -spec find_matching_nodes(Root, PathPattern, Options) -> Result when
       Root :: tree_node(),
       PathPattern :: khepri_path:native_pattern(),
-      Options :: khepri:query_options(),
-      Result :: khepri:result().
+      Options :: khepri:tree_options(),
+      Result :: khepri_machine:common_ret().
 %% @private
 
 find_matching_nodes(Root, PathPattern, Options) ->
-    IncludeRootProps = khepri_path:pattern_includes_root_node(PathPattern),
+    IncludeRootProps = maps:get(
+                         include_root_props, Options,
+                         khepri_path:pattern_includes_root_node(PathPattern)),
     Extra = #{include_root_props => IncludeRootProps},
     do_find_matching_nodes(Root, PathPattern, Options, Extra, #{}).
 
 -spec count_matching_nodes(Root, PathPattern, Options) -> Result when
       Root :: tree_node(),
       PathPattern :: khepri_path:native_pattern(),
-      Options :: khepri:query_options(),
+      Options :: khepri:tree_options(),
       Result :: khepri:ok(integer()) | khepri:error().
 %% @private
 
 count_matching_nodes(Root, PathPattern, Options) ->
-    Extra = #{include_root_props => false},
+    IncludeRootProps = maps:get(
+                         include_root_props, Options,
+                         khepri_path:pattern_includes_root_node(PathPattern)),
+    Extra = #{include_root_props => IncludeRootProps},
     do_find_matching_nodes(Root, PathPattern, Options, Extra, 0).
 
 -spec do_find_matching_nodes
 (Root, PathPattern, Options, Extra, Map) -> Result when
       Root :: tree_node(),
       PathPattern :: khepri_path:native_pattern(),
-      Options :: khepri:query_options(),
+      Options :: khepri:tree_options(),
       Extra :: #{include_root_props => boolean()},
       Map :: map(),
-      Result :: khepri:result();
+      Result :: khepri_machine:common_ret();
 (Root, PathPattern, Options, Extra, Integer) ->
     Result when
       Root :: tree_node(),
       PathPattern :: khepri_path:native_pattern(),
-      Options :: khepri:query_options(),
+      Options :: khepri:tree_options(),
       Extra :: #{include_root_props => boolean()},
       Integer :: integer(),
       Result :: khepri:ok(integer()) | khepri:error().
@@ -1227,13 +1356,15 @@ find_matching_nodes_cb(
 find_matching_nodes_cb(_, {interrupted, _, _}, _, Result) ->
     {ok, keep, Result}.
 
--spec insert_or_update_node(State, PathPattern, Payload, Extra) -> Ret when
+-spec insert_or_update_node(State, PathPattern, Payload, Extra, Options) ->
+    Ret when
       State :: state(),
       PathPattern :: khepri_path:native_pattern(),
       Payload :: khepri_payload:payload(),
       Extra :: #{keep_while => khepri_condition:native_keep_while()},
+      Options :: khepri:tree_options(),
       Ret :: {State, Result} | {State, Result, ra_machine:effects()},
-      Result :: khepri:result().
+      Result :: khepri_machine:common_ret().
 %% @private
 
 insert_or_update_node(
@@ -1241,10 +1372,11 @@ insert_or_update_node(
            keep_while_conds = KeepWhileConds,
            keep_while_conds_revidx = KeepWhileCondsRevIdx} = State,
   PathPattern, Payload,
-  #{keep_while := KeepWhile}) ->
+  #{keep_while := KeepWhile},
+  Options) ->
     Fun = fun(Path, Node, {_, _, Result}) ->
                   Ret = insert_or_update_node_cb(
-                          Path, Node, Payload, Result),
+                          Path, Node, Payload, Options, Result),
                   case Ret of
                       {ok, Node1, Result1} when Result1 =/= #{} ->
                           AbsKeepWhile = to_absolute_keep_while(
@@ -1275,9 +1407,12 @@ insert_or_update_node(
                           Error
                   end
           end,
-    %% TODO: Should we support setting many nodes with the same value?
+    WorkOnWhat = case Options of
+                     #{expect_specific_node := true} -> specific_node;
+                     _                               -> many_nodes
+                 end,
     Ret1 = walk_down_the_tree(
-             Root, PathPattern, specific_node,
+             Root, PathPattern, WorkOnWhat,
              #{keep_while_conds => KeepWhileConds,
                keep_while_conds_revidx => KeepWhileCondsRevIdx,
                keep_while_aftermath => #{}},
@@ -1308,13 +1443,17 @@ insert_or_update_node(
            keep_while_conds = KeepWhileConds,
            keep_while_conds_revidx = KeepWhileCondsRevIdx} = State,
   PathPattern, Payload,
-  _Extra) ->
+  _Extra, Options) ->
     Fun = fun(Path, Node, Result) ->
                   insert_or_update_node_cb(
-                    Path, Node, Payload, Result)
+                    Path, Node, Payload, Options, Result)
           end,
+    WorkOnWhat = case Options of
+                     #{expect_specific_node := true} -> specific_node;
+                     _                               -> many_nodes
+                 end,
     Ret1 = walk_down_the_tree(
-             Root, PathPattern, specific_node,
+             Root, PathPattern, WorkOnWhat,
              #{keep_while_conds => KeepWhileConds,
                keep_while_conds_revidx => KeepWhileCondsRevIdx,
                keep_while_aftermath => #{}},
@@ -1337,17 +1476,18 @@ insert_or_update_node(
     end.
 
 insert_or_update_node_cb(
-  Path, #node{} = Node, Payload, Result) ->
+  Path, #node{} = Node, Payload, Options, Result) ->
     case maps:is_key(Path, Result) of
         false ->
             Node1 = set_node_payload(Node, Payload),
-            NodeProps = gather_node_props(Node, #{}),
+            NodeProps = gather_node_props(Node, Options),
             {ok, Node1, Result#{Path => NodeProps}};
         true ->
             {ok, Node, Result}
     end;
 insert_or_update_node_cb(
-  Path, {interrupted, node_not_found = Reason, Info}, Payload, Result) ->
+  Path, {interrupted, node_not_found = Reason, Info}, Payload, _Options,
+  Result) ->
     %% We store the payload when we reached the target node only, not in the
     %% parent nodes we have to create in between.
     IsTarget = maps:get(node_is_target, Info),
@@ -1362,7 +1502,7 @@ insert_or_update_node_cb(
         false ->
             {error, {Reason, Info}}
     end;
-insert_or_update_node_cb(_, {interrupted, Reason, Info}, _, _) ->
+insert_or_update_node_cb(_, {interrupted, Reason, Info}, _, _, _) ->
     {error, {Reason, Info}}.
 
 can_continue_update_after_node_not_found(#{condition := Condition}) ->
@@ -1382,31 +1522,35 @@ can_continue_update_after_node_not_found1(#if_any{conditions = Conds}) ->
 can_continue_update_after_node_not_found1(_) ->
     false.
 
--spec delete_matching_nodes(State, PathPattern) -> Ret when
+-spec delete_matching_nodes(State, PathPattern, Options) -> Ret when
       State :: state(),
       PathPattern :: khepri_path:native_pattern(),
+      Options :: khepri:tree_options(),
       Ret :: {State, Result} | {State, Result, ra_machine:effects()},
-      Result :: khepri:result().
+      Result :: khepri_machine:common_ret().
 %% @private
 
 delete_matching_nodes(
   #?MODULE{root = Root,
            keep_while_conds = KeepWhileConds,
            keep_while_conds_revidx = KeepWhileCondsRevIdx} = State,
-  PathPattern) ->
+  PathPattern,
+  Options) ->
     Ret1 = do_delete_matching_nodes(
              PathPattern, Root,
              #{keep_while_conds => KeepWhileConds,
                keep_while_conds_revidx => KeepWhileCondsRevIdx,
-               keep_while_aftermath => #{}}),
+               keep_while_aftermath => #{}},
+             Options),
     case Ret1 of
         {ok, Root1, #{keep_while_conds := KeepWhileConds1,
                       keep_while_conds_revidx := KeepWhileCondsRevIdx1,
                       keep_while_aftermath := KeepWhileAftermath},
          Ret2} ->
-            State1 = State#?MODULE{root = Root1,
-                                   keep_while_conds = KeepWhileConds1,
-                                   keep_while_conds_revidx = KeepWhileCondsRevIdx1},
+            State1 = State#?MODULE{
+                              root = Root1,
+                              keep_while_conds = KeepWhileConds1,
+                              keep_while_conds_revidx = KeepWhileCondsRevIdx1},
             {State2, SideEffects} = create_tree_change_side_effects(
                                       State, State1, Ret2, KeepWhileAftermath),
             {State2, {ok, Ret2}, SideEffects};
@@ -1414,19 +1558,25 @@ delete_matching_nodes(
             {State, Error}
     end.
 
-do_delete_matching_nodes(PathPattern, Root, Extra) ->
-    Fun = fun delete_matching_nodes_cb/3,
-    walk_down_the_tree(Root, PathPattern, many_nodes, Extra, Fun, #{}).
+do_delete_matching_nodes(PathPattern, Root, Extra, Options) ->
+    Fun = fun(Path, Node, Result) ->
+                  delete_matching_nodes_cb(Path, Node, Options, Result)
+          end,
+    WorkOnWhat = case Options of
+                     #{expect_specific_node := true} -> specific_node;
+                     _                               -> many_nodes
+                 end,
+    walk_down_the_tree(Root, PathPattern, WorkOnWhat, Extra, Fun, #{}).
 
-delete_matching_nodes_cb([] = Path, #node{} = Node, Result) ->
+delete_matching_nodes_cb([] = Path, #node{} = Node, Options, Result) ->
     Node1 = remove_node_payload(Node),
     Node2 = remove_node_child_nodes(Node1),
-    NodeProps = gather_node_props(Node, #{}),
+    NodeProps = gather_node_props(Node, Options),
     {ok, Node2, Result#{Path => NodeProps}};
-delete_matching_nodes_cb(Path, #node{} = Node, Result) ->
-    NodeProps = gather_node_props(Node, #{}),
+delete_matching_nodes_cb(Path, #node{} = Node, Options, Result) ->
+    NodeProps = gather_node_props(Node, Options),
     {ok, delete, Result#{Path => NodeProps}};
-delete_matching_nodes_cb(_, {interrupted, _, _}, Result) ->
+delete_matching_nodes_cb(_, {interrupted, _, _}, _Options, Result) ->
     {ok, keep, Result}.
 
 create_tree_change_side_effects(
@@ -1564,10 +1714,15 @@ does_path_match(
     %% Query the tree node, required to evaluate the condition.
     ReversedPath1 = [Component | ReversedPath],
     CurrentPath = lists:reverse(ReversedPath1),
+    TreeOptions = #{expect_specific_node => true,
+                    props_to_return => [payload,
+                                        payload_version,
+                                        child_list_version,
+                                        child_list_length]},
     {ok, #{CurrentPath := Node}} = khepri_machine:find_matching_nodes(
                                      Root,
                                      lists:reverse([Component | ReversedPath]),
-                                     #{expect_specific_node => true}),
+                                     TreeOptions),
     case khepri_condition:is_met(Condition, Component, Node) of
         true ->
             ConditionMatchesGrandchildren =
@@ -1585,8 +1740,13 @@ does_path_match(
     end.
 
 find_stored_proc(Root, StoredProcPath) ->
+    TreeOptions = #{expect_specific_node => true,
+                    props_to_return => [payload,
+                                        payload_version,
+                                        child_list_version,
+                                        child_list_length]},
     Ret = khepri_machine:find_matching_nodes(
-            Root, StoredProcPath, #{expect_specific_node => true}),
+            Root, StoredProcPath, TreeOptions),
     %% Non-existing nodes and nodes which are not stored procedures are
     %% ignored.
     case Ret of
@@ -1747,7 +1907,7 @@ walk_down_the_tree1(
                       mismatching_node,
                       #{node_name => CurrentName,
                         node_path => lists:reverse(ReversedPath),
-                        node_props => gather_node_props(CurrentNode, #{}),
+                        node_props => gather_node_props_for_error(CurrentNode),
                         condition => Cond},
                       PathPattern, WorkOnWhat, ReversedPath,
                       ReversedParentTree, Extra, Fun, FunAcc)
@@ -1770,7 +1930,8 @@ walk_down_the_tree1(
                               #{node_name => ChildName,
                                 node_path => lists:reverse(
                                                [ChildName | ReversedPath]),
-                                node_props => gather_node_props(Child, #{}),
+                                node_props => gather_node_props_for_error(
+                                                Child),
                                 condition => Cond},
                               PathPattern, WorkOnWhat,
                               [ChildName | ReversedPath],
@@ -1796,7 +1957,8 @@ walk_down_the_tree1(
             %% The caller expects that the path matches a single specific node
             %% (no matter if it exists or not), but the condition could match
             %% several nodes.
-            {error, {possibly_matching_many_nodes_denied, Condition}}
+            BadPathPattern = lists:reverse([Condition | ReversedPath]),
+            {error, {possibly_matching_many_nodes_denied, BadPathPattern}}
     end;
 walk_down_the_tree1(
   #node{child_nodes = Children} = CurrentNode,
@@ -1831,11 +1993,11 @@ walk_down_the_tree1(
             %% conditions on child nodes.
             {error, targets_parent_node};
         _ ->
-            %% There is a special case if the current node is the root node
-            %% and the pattern is of the form of e.g. [#if_name_matches{regex
-            %% = any}]. In this situation, we consider the condition should be
-            %% compared to that root node as well. This allows to get its
-            %% props and payload atomically in a single suery.
+            %% There is a special case if the current node is the root node.
+            %% The caller can request that the root node's properties are
+            %% included. This is true by default if the path is `[]'. This
+            %% allows to get its props and payload atomically in a single
+            %% query.
             IsRoot = ReversedPath =:= [],
             IncludeRootProps = maps:get(include_root_props, Extra, false),
             Ret0 = case IsRoot andalso IncludeRootProps of
@@ -1863,19 +2025,26 @@ walk_down_the_tree1(
                              Error
                      end, Ret0, Children),
             case Ret1 of
-                {ok, CurrentNode, Extra2, FunAcc2} ->
+                {ok, CurrentNode, Extra, FunAcc2} ->
                     %% The current node didn't change, no need to update the
                     %% tree and evaluate keep_while conditions.
-                    ?assertEqual(Extra, Extra2),
                     StartingNode = starting_node_in_rev_parent_tree(
                                      ReversedParentTree, CurrentNode),
                     {ok, StartingNode, Extra, FunAcc2};
                 {ok, CurrentNode1, Extra2, FunAcc2} ->
-                    %% Because of the loop, payload & child list versions may
-                    %% have been increased multiple times. We want them to
-                    %% increase once for the whole (atomic) operation.
-                    CurrentNode2 = squash_version_bumps(
-                                     CurrentNode, CurrentNode1),
+                    CurrentNode2 = case CurrentNode1 of
+                                       CurrentNode ->
+                                           CurrentNode;
+                                       _ ->
+                                           %% Because of the loop, payload &
+                                           %% child list versions may have
+                                           %% been increased multiple times.
+                                           %% We want them to increase once
+                                           %% for the whole (atomic)
+                                           %% operation.
+                                           squash_version_bumps(
+                                             CurrentNode, CurrentNode1)
+                                   end,
                     walk_back_up_the_tree(
                       CurrentNode2, ReversedPath, ReversedParentTree,
                       Extra2, FunAcc2);
@@ -2146,7 +2315,11 @@ walk_back_up_the_tree(
     %% Evaluate keep_while of nodes which depend on ChildName (it is
     %% modified) at the end of walk_back_up_the_tree().
     Path = lists:reverse(WholeReversedPath),
-    NodeProps = gather_node_props(Child, #{}),
+    TreeOptions = #{props_to_return => [payload,
+                                        payload_version,
+                                        child_list_version,
+                                        child_list_length]},
+    NodeProps = gather_node_props(Child, TreeOptions),
     KeepWhileAftermath1 = KeepWhileAftermath#{Path => NodeProps},
 
     %% No need to evaluate keep_while of ParentNode, its child_count is
@@ -2346,7 +2519,7 @@ is_parent_being_removed1([], _) ->
 remove_expired_nodes([], Root, Extra, FunAcc) ->
     {ok, Root, Extra, FunAcc};
 remove_expired_nodes([PathToRemove | Rest], Root, Extra, FunAcc) ->
-    case do_delete_matching_nodes(PathToRemove, Root, Extra) of
+    case do_delete_matching_nodes(PathToRemove, Root, Extra, #{}) of
         {ok, Root1, Extra1, _} ->
             remove_expired_nodes(Rest, Root1, Extra1, FunAcc)
     end.

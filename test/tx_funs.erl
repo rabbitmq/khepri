@@ -29,7 +29,7 @@
         fun() ->
             helpers:init_list_of_modules_to_skip(),
             __Fun = fun() -> Expression end,
-            khepri_tx:to_standalone_fun(__Fun, rw)
+            khepri_tx_adv:to_standalone_fun(__Fun, rw)
         end()).
 
 -define(assertStandaloneFun(Expression),
@@ -59,21 +59,19 @@ allowed_khepri_tx_api_test() ->
            _ = khepri_tx:get([foo], #{}),
            _ = khepri_tx:exists([foo]),
            _ = khepri_tx:has_data([foo]),
-           _ = khepri_tx:list([foo]),
-           _ = khepri_tx:find([foo], ?STAR),
            _ = khepri_tx:delete([foo]),
            _ = khepri_tx:abort(error),
            _ = khepri_tx:is_transaction()
        end).
 
-denied_khepri_tx_run_3_test() ->
+denied_khepri_tx_adv_run_3_test() ->
     MachineState = #khepri_machine{
                       config = #config{store_id = ?FUNCTION_NAME,
                                        member = {?FUNCTION_NAME, node()}}
                      },
     ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {khepri_tx, run, 3}}},
-       _ = khepri_tx:run(MachineState, fun() -> ok end, true)).
+       {invalid_tx_fun, {call_denied, {khepri_tx_adv, run, 3}}},
+       _ = khepri_tx_adv:run(MachineState, fun() -> ok end, true)).
 
 allowed_erlang_expressions_add_test() ->
     One = mask(1),
@@ -276,7 +274,7 @@ allowed_list_comprehension_with_funs_test() ->
 allowed_list_comprehension_with_multiple_qualifiers_test() ->
     ?assertStandaloneFun(
        begin
-           {ok, Nodes} = khepri_tx:list([?ROOT_NODE]),
+           {ok, Nodes} = khepri_tx:get_many([?STAR]),
            [Data ||
             Path <- lists:sort(maps:keys(Nodes)),
             #{data := Data} <- [maps:get(Path, Nodes)]]
@@ -899,14 +897,14 @@ denied_re_version_test() ->
 when_readwrite_mode_is_true_test() ->
     helpers:init_list_of_modules_to_skip(),
     ?assert(
-       is_record(khepri_tx:to_standalone_fun(
+       is_record(khepri_tx_adv:to_standalone_fun(
                    fun() ->
                            khepri_tx:get([foo])
                    end,
                    rw),
                  standalone_fun)),
     ?assert(
-       is_record(khepri_tx:to_standalone_fun(
+       is_record(khepri_tx_adv:to_standalone_fun(
                    fun() ->
                            khepri_tx:put([foo], khepri_payload:data(value))
                    end,
@@ -914,7 +912,7 @@ when_readwrite_mode_is_true_test() ->
                  standalone_fun)),
     ?assertThrow(
        {invalid_tx_fun, {call_denied, {self, 0}}},
-       khepri_tx:to_standalone_fun(
+       khepri_tx_adv:to_standalone_fun(
          fun() ->
                  _ = khepri_tx:get([foo]),
                  self() ! message
@@ -922,26 +920,26 @@ when_readwrite_mode_is_true_test() ->
          rw)),
     ?assertThrow(
        {invalid_tx_fun, {call_denied, {self, 0}}},
-       khepri_tx:to_standalone_fun(
+       khepri_tx_adv:to_standalone_fun(
          fun() ->
                  _ = khepri_tx:put([foo], khepri_payload:data(value)),
                  self() ! message
          end,
          rw)),
     ?assert(
-       is_record(khepri_tx:to_standalone_fun(
+       is_record(khepri_tx_adv:to_standalone_fun(
                    fun mod_used_for_transactions:exported/0,
                    rw),
                  standalone_fun)),
     ?assert(
-       is_function(khepri_tx:to_standalone_fun(
+       is_function(khepri_tx_adv:to_standalone_fun(
                      fun dict:new/0,
                      rw),
                    0)),
 
     Fun = fun() -> khepri_tx:delete([foo]) end,
     ?assert(
-       is_record(khepri_tx:to_standalone_fun(
+       is_record(khepri_tx_adv:to_standalone_fun(
                    fun() -> Fun() end,
                    rw),
                  standalone_fun)).
@@ -949,7 +947,7 @@ when_readwrite_mode_is_true_test() ->
 when_readwrite_mode_is_false_test() ->
     helpers:init_list_of_modules_to_skip(),
     ?assert(
-       is_function(khepri_tx:to_standalone_fun(
+       is_function(khepri_tx_adv:to_standalone_fun(
                      fun() ->
                              khepri_tx:get([foo])
                      end,
@@ -958,7 +956,7 @@ when_readwrite_mode_is_false_test() ->
     %% In the following case, `to_standalone()' works, but the transaction
     %% will abort once executed.
     ?assert(
-       is_function(khepri_tx:to_standalone_fun(
+       is_function(khepri_tx_adv:to_standalone_fun(
                      fun() ->
                              khepri_tx:put(
                                [foo], khepri_payload:data(value))
@@ -966,7 +964,7 @@ when_readwrite_mode_is_false_test() ->
                      ro),
                    0)),
     ?assert(
-       is_function(khepri_tx:to_standalone_fun(
+       is_function(khepri_tx_adv:to_standalone_fun(
                      fun() ->
                              _ = khepri_tx:get([foo]),
                              self() ! message
@@ -976,7 +974,7 @@ when_readwrite_mode_is_false_test() ->
     %% In the following case, `to_standalone()' works, but the transaction
     %% will abort once executed.
     ?assert(
-       is_function(khepri_tx:to_standalone_fun(
+       is_function(khepri_tx_adv:to_standalone_fun(
                      fun() ->
                              _ = khepri_tx:put(
                                    [foo], khepri_payload:data(value)),
@@ -985,19 +983,19 @@ when_readwrite_mode_is_false_test() ->
                      ro),
                    0)),
     ?assert(
-       is_function(khepri_tx:to_standalone_fun(
+       is_function(khepri_tx_adv:to_standalone_fun(
                      fun mod_used_for_transactions:exported/0,
                      ro),
                    0)),
     ?assert(
-       is_function(khepri_tx:to_standalone_fun(
+       is_function(khepri_tx_adv:to_standalone_fun(
                      fun dict:new/0,
                      ro),
                    0)),
 
     Fun = fun() -> khepri_tx:delete([foo]) end,
     ?assert(
-       is_function(khepri_tx:to_standalone_fun(
+       is_function(khepri_tx_adv:to_standalone_fun(
                      fun() -> Fun() end,
                      ro),
                    0)).
@@ -1005,21 +1003,21 @@ when_readwrite_mode_is_false_test() ->
 when_readwrite_mode_is_auto_test() ->
     helpers:init_list_of_modules_to_skip(),
     ?assert(
-       is_function(khepri_tx:to_standalone_fun(
+       is_function(khepri_tx_adv:to_standalone_fun(
                      fun() ->
                              khepri_tx:get([foo])
                      end,
                      auto),
                    0)),
     ?assert(
-       is_record(khepri_tx:to_standalone_fun(
+       is_record(khepri_tx_adv:to_standalone_fun(
                    fun() ->
                            khepri_tx:put([foo], khepri_payload:data(value))
                    end,
                    auto),
                  standalone_fun)),
     ?assert(
-       is_function(khepri_tx:to_standalone_fun(
+       is_function(khepri_tx_adv:to_standalone_fun(
                      fun() ->
                              _ = khepri_tx:get([foo]),
                              self() ! message
@@ -1028,26 +1026,26 @@ when_readwrite_mode_is_auto_test() ->
                    0)),
     ?assertThrow(
        {invalid_tx_fun, {call_denied, {self, 0}}},
-       khepri_tx:to_standalone_fun(
+       khepri_tx_adv:to_standalone_fun(
          fun() ->
                  _ = khepri_tx:put([foo], khepri_payload:data(value)),
                  self() ! message
          end,
          auto)),
     ?assert(
-       is_function(khepri_tx:to_standalone_fun(
+       is_function(khepri_tx_adv:to_standalone_fun(
                      fun mod_used_for_transactions:exported/0,
                      auto),
                    0)),
     ?assert(
-       is_function(khepri_tx:to_standalone_fun(
+       is_function(khepri_tx_adv:to_standalone_fun(
                      fun dict:new/0,
                      auto),
                    0)),
 
     Fun = fun() -> khepri_tx:delete([foo]) end,
     ?assert(
-       is_record(khepri_tx:to_standalone_fun(
+       is_record(khepri_tx_adv:to_standalone_fun(
                    fun() -> Fun() end,
                    auto),
                  standalone_fun)).
@@ -1084,7 +1082,7 @@ make_fun(10) -> fun(_, _, _, _, _, _, _, _, _, _) -> result end.
 list_in_fun_env_test() ->
     helpers:init_list_of_modules_to_skip(),
     List = make_list(),
-    StandaloneFun = khepri_tx:to_standalone_fun(
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(
                       fun() -> List end,
                       rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
@@ -1094,7 +1092,7 @@ list_in_fun_env_test() ->
 map_in_fun_env_test() ->
     helpers:init_list_of_modules_to_skip(),
     Map = make_map(),
-    StandaloneFun = khepri_tx:to_standalone_fun(
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(
                       fun() -> Map end,
                       rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
@@ -1104,7 +1102,7 @@ map_in_fun_env_test() ->
 tuple_in_fun_env_test() ->
     helpers:init_list_of_modules_to_skip(),
     Tuple = make_tuple(),
-    StandaloneFun = khepri_tx:to_standalone_fun(
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(
                       fun() -> Tuple end,
                       rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
@@ -1114,7 +1112,7 @@ tuple_in_fun_env_test() ->
 binary_in_fun_env_test() ->
     helpers:init_list_of_modules_to_skip(),
     Binary = make_binary(),
-    StandaloneFun = khepri_tx:to_standalone_fun(
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(
                       fun() -> Binary end,
                       rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
@@ -1124,7 +1122,7 @@ binary_in_fun_env_test() ->
 fun0_in_fun_env_test() ->
     helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(0),
-    StandaloneFun = khepri_tx:to_standalone_fun(
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(
                       fun() -> Fun() end,
                       rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
@@ -1134,7 +1132,7 @@ fun0_in_fun_env_test() ->
 fun1_in_fun_env_test() ->
     helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(1),
-    StandaloneFun = khepri_tx:to_standalone_fun(
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(
                       fun() -> Fun(1) end,
                       rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
@@ -1146,7 +1144,7 @@ fun2_in_fun_env_test() ->
     Fun = make_fun(2),
     self() ! Fun,
     receive Fun -> ok end,
-    StandaloneFun = khepri_tx:to_standalone_fun(
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(
                       fun() -> Fun(1, 2) end,
                       rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
@@ -1156,7 +1154,7 @@ fun2_in_fun_env_test() ->
 fun3_in_fun_env_test() ->
     helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(3),
-    StandaloneFun = khepri_tx:to_standalone_fun(
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(
                       fun() -> Fun(1, 2, 3) end,
                       rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
@@ -1166,7 +1164,7 @@ fun3_in_fun_env_test() ->
 fun4_in_fun_env_test() ->
     helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(4),
-    StandaloneFun = khepri_tx:to_standalone_fun(
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(
                       fun() -> Fun(1, 2, 3, 4) end,
                       rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
@@ -1176,7 +1174,7 @@ fun4_in_fun_env_test() ->
 fun5_in_fun_env_test() ->
     helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(5),
-    StandaloneFun = khepri_tx:to_standalone_fun(
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(
                       fun() -> Fun(1, 2, 3, 4, 5) end,
                       rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
@@ -1186,7 +1184,7 @@ fun5_in_fun_env_test() ->
 fun6_in_fun_env_test() ->
     helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(6),
-    StandaloneFun = khepri_tx:to_standalone_fun(
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(
                       fun() -> Fun(1, 2, 3, 4, 5, 6) end,
                       rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
@@ -1196,7 +1194,7 @@ fun6_in_fun_env_test() ->
 fun7_in_fun_env_test() ->
     helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(7),
-    StandaloneFun = khepri_tx:to_standalone_fun(
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(
                       fun() -> Fun(1, 2, 3, 4, 5, 6, 7) end,
                       rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
@@ -1206,7 +1204,7 @@ fun7_in_fun_env_test() ->
 fun8_in_fun_env_test() ->
     helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(8),
-    StandaloneFun = khepri_tx:to_standalone_fun(
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(
                       fun() -> Fun(1, 2, 3, 4, 5, 6, 7, 8) end,
                       rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
@@ -1216,7 +1214,7 @@ fun8_in_fun_env_test() ->
 fun9_in_fun_env_test() ->
     helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(9),
-    StandaloneFun = khepri_tx:to_standalone_fun(
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(
                       fun() -> Fun(1, 2, 3, 4, 5, 6, 7, 8, 9) end,
                       rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
@@ -1226,7 +1224,7 @@ fun9_in_fun_env_test() ->
 fun10_in_fun_env_test() ->
     helpers:init_list_of_modules_to_skip(),
     Fun = make_fun(10),
-    StandaloneFun = khepri_tx:to_standalone_fun(
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(
                       fun() -> Fun(1, 2, 3, 4, 5, 6, 7, 8, 9, 10) end,
                       rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
@@ -1235,7 +1233,7 @@ fun10_in_fun_env_test() ->
 
 exec_with_regular_fun_test() ->
     helpers:init_list_of_modules_to_skip(),
-    Fun = khepri_tx:to_standalone_fun(
+    Fun = khepri_tx_adv:to_standalone_fun(
             fun() -> result end,
             ro),
     ?assert(is_function(Fun)),
@@ -1243,7 +1241,7 @@ exec_with_regular_fun_test() ->
 
 exec_standalone_fun_multiple_times_test() ->
     helpers:init_list_of_modules_to_skip(),
-    StandaloneFun = khepri_tx:to_standalone_fun(
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(
                       fun() -> result end,
                       rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
@@ -1251,7 +1249,7 @@ exec_standalone_fun_multiple_times_test() ->
 
 exec_with_standalone_fun_test() ->
     helpers:init_list_of_modules_to_skip(),
-    StandaloneFun = khepri_tx:to_standalone_fun(
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(
                       fun() -> result end,
                       rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
@@ -1296,7 +1294,7 @@ get_map_elements_arguments_are_correctly_disassembled_test() ->
                       _                             -> undefined
                   end
           end,
-    StandaloneFun = khepri_tx:to_standalone_fun(Fun, rw),
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(Fun, rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
     %% Here, we don't really care about the transaction result. We mostly want
     %% to make sure the function is loaded to detect any incorrectly
@@ -1314,7 +1312,7 @@ is_tuple_arguments_are_correctly_disassembled_test() ->
                       {error, _} -> tuple
                   end
           end,
-    StandaloneFun = khepri_tx:to_standalone_fun(Fun, rw),
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(Fun, rw),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
     %% Here, we don't really care about the transaction result. We mostly want
     %% to make sure the function is loaded to detect any incorrectly

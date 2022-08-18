@@ -43,10 +43,10 @@ get_store_ids_with_running_store_test_() ->
 %     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
 %     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
 %     [?_assertEqual(
-%         {ok, #{}},
+%         ok,
 %         khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
 %      ?_assertEqual(
-%         {ok, #{}},
+%         ok,
 %         khepri:create(?FUNCTION_NAME, [baz], baz_value)),
 %      ?_assertEqual(
 %         begin
@@ -59,10 +59,10 @@ get_store_info_on_non_existing_store_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{[foo, bar] => #{}}},
+         ok,
          khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
       ?_assertEqual(
-         {ok, #{[baz] => #{}}},
+         ok,
          khepri:create(?FUNCTION_NAME, [baz], baz_value)),
       ?_assertEqual(
          "\n"
@@ -78,10 +78,10 @@ get_store_info_on_running_store_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{[foo, <<"bar">>] => #{}}},
+         ok,
          khepri:create(?FUNCTION_NAME, [foo, <<"bar">>], bar_value)),
       ?_assertEqual(
-         {ok, #{[baz] => #{}}},
+         ok,
          khepri:create(?FUNCTION_NAME, [baz], baz_value)),
       ?_assertEqual(
          "\n"
@@ -110,7 +110,7 @@ get_store_info_with_keep_while_conds_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{[foo] => #{}}},
+         ok,
          khepri:put(
            ?FUNCTION_NAME, [foo], khepri_payload:data(foo_value),
            #{keep_while => KeepWhile})),

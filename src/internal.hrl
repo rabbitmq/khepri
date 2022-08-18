@@ -53,9 +53,11 @@
 -record(put, {path :: khepri_path:native_pattern(),
               payload = ?NO_PAYLOAD :: khepri_payload:payload(),
               extra = #{} :: #{keep_while =>
-                               khepri_condition:native_keep_while()}}).
+                               khepri_condition:native_keep_while()},
+              options = #{} :: khepri:tree_options()}).
 
--record(delete, {path :: khepri_path:native_pattern()}).
+-record(delete, {path :: khepri_path:native_pattern(),
+                 options  = #{} :: khepri:tree_options()}).
 
 -record(tx, {'fun' :: khepri_fun:standalone_fun()}).
 
@@ -71,3 +73,49 @@
                     event_filter :: khepri_evf:event_filter(),
                     sproc :: khepri_fun:standalone_fun(),
                     props = #{} :: map()}).
+
+-define(common_ret_to_single_result_ret(__Ret),
+        case (__Ret) of
+            {ok, __NodePropsMap} ->
+                [__NodeProps] = maps:values(__NodePropsMap),
+                {ok, __NodeProps};
+            {error, {possibly_matching_many_nodes_denied, __BadPath}} ->
+                ?reject_path_targetting_many_nodes(__BadPath);
+            __Error ->
+                __Error
+        end).
+
+-define(single_result_ret_to_payload_ret(__Ret),
+        case (__Ret) of
+            {ok, #{data := __Data}} ->
+                {ok, __Data};
+            {ok, #{sproc := __StandaloneFun}} ->
+                {ok, __StandaloneFun};
+            {ok, _} ->
+                {ok, undefined};
+            __Error ->
+                __Error
+        end).
+
+-define(many_results_ret_to_payloads_ret(__Ret, __Default),
+        case (__Ret) of
+            {ok, __NodePropsMap} ->
+                __PayloadsMap = maps:map(
+                                  fun
+                                      (_, #{data := __Data}) ->
+                                          __Data;
+                                      (_, #{sproc := __StandaloneFun}) ->
+                                          __StandaloneFun;
+                                      (_, _) ->
+                                          (__Default)
+                                  end, __NodePropsMap),
+                {ok, __PayloadsMap};
+            __Error ->
+                __Error
+        end).
+
+-define(result_ret_to_minimal_ret(__Ret),
+        case (__Ret) of
+            {ok, _} -> ok;
+            __Other -> __Other
+        end).

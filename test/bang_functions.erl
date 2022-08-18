@@ -18,7 +18,7 @@ get_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{[foo] => #{}}},
+         ok,
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
 
       %% Get existing node.
@@ -30,12 +30,12 @@ get_test_() ->
          {ok, khepri:'get!'(?FUNCTION_NAME, [foo], #{})}),
 
       %% Get non-existing node.
-      ?_assertEqual(
-         khepri:get(?FUNCTION_NAME, [bar]),
-         {ok, khepri:'get!'(?FUNCTION_NAME, [bar])}),
-      ?_assertEqual(
-         khepri:get(?FUNCTION_NAME, [bar], #{}),
-         {ok, khepri:'get!'(?FUNCTION_NAME, [bar], #{})}),
+      ?_assertError(
+         {node_not_found, _},
+         khepri:'get!'(?FUNCTION_NAME, [bar])),
+      ?_assertError(
+         {node_not_found, _},
+         khepri:'get!'(?FUNCTION_NAME, [bar], #{})),
       ?_assertError(noproc, khepri:'get!'([foo]))
      ]}.
 
@@ -44,19 +44,13 @@ put_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         #{[foo] => #{}},
+         ok,
          khepri:'put!'(?FUNCTION_NAME, [foo], value1)),
       ?_assertEqual(
-         #{[foo] => #{data => value1,
-                      payload_version => 1,
-                      child_list_version => 1,
-                      child_list_length => 0}},
+         ok,
          khepri:'put!'(?FUNCTION_NAME, [foo], value2, #{})),
       ?_assertEqual(
-         #{[foo] => #{data => value2,
-                      payload_version => 2,
-                      child_list_version => 1,
-                      child_list_length => 0}},
+         ok,
          khepri:'put!'(?FUNCTION_NAME, [foo], value3, #{}, #{})),
       ?_assertEqual(
          ok,
@@ -69,7 +63,7 @@ create_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         #{[foo] => #{}},
+         ok,
          khepri:'create!'(?FUNCTION_NAME, [foo], value1)),
       ?_assertError(
          {mismatching_node,
@@ -78,9 +72,7 @@ create_test_() ->
             node_path := [foo],
             node_is_target := true,
             node_props := #{data := value1,
-                            payload_version := 1,
-                            child_list_version := 1,
-                            child_list_length := 0}}},
+                            payload_version := 1}}},
          khepri:'create!'(?FUNCTION_NAME, [foo], value2, #{})),
       ?_assertError(
          {mismatching_node,
@@ -89,9 +81,7 @@ create_test_() ->
             node_path := [foo],
             node_is_target := true,
             node_props := #{data := value1,
-                            payload_version := 1,
-                            child_list_version := 1,
-                            child_list_length := 0}}},
+                            payload_version := 1}}},
          khepri:'create!'(?FUNCTION_NAME, [foo], value3, #{}, #{})),
       ?_assertError(noproc, khepri:'create!'([foo], value))
      ]}.
@@ -110,19 +100,13 @@ update_test_() ->
             node_is_target := true}},
          khepri:'update!'(?FUNCTION_NAME, [foo], value1)),
       ?_assertEqual(
-         #{[foo] => #{}},
+         ok,
          khepri:'create!'(?FUNCTION_NAME, [foo], value1)),
       ?_assertEqual(
-         #{[foo] => #{data => value1,
-                      payload_version => 1,
-                      child_list_version => 1,
-                      child_list_length => 0}},
+         ok,
          khepri:'update!'(?FUNCTION_NAME, [foo], value2, #{})),
       ?_assertEqual(
-         #{[foo] => #{data => value2,
-                      payload_version => 2,
-                      child_list_version => 1,
-                      child_list_length => 0}},
+         ok,
          khepri:'update!'(?FUNCTION_NAME, [foo], value3, #{}, #{})),
       ?_assertError(noproc, khepri:'update!'([foo], value))
      ]}.
@@ -141,13 +125,10 @@ compare_and_swap_test_() ->
             node_is_target := true}},
          khepri:'compare_and_swap!'(?FUNCTION_NAME, [foo], value0, value1)),
       ?_assertEqual(
-         #{[foo] => #{}},
+         ok,
          khepri:'create!'(?FUNCTION_NAME, [foo], value1)),
       ?_assertEqual(
-         #{[foo] => #{data => value1,
-                      payload_version => 1,
-                      child_list_version => 1,
-                      child_list_length => 0}},
+         ok,
          khepri:'compare_and_swap!'(
                   ?FUNCTION_NAME, [foo], value1, value2, #{})),
       ?_assertError(
@@ -157,9 +138,7 @@ compare_and_swap_test_() ->
             node_path := [foo],
             node_is_target := true,
             node_props := #{data := value2,
-                            payload_version := 2,
-                            child_list_version := 1,
-                            child_list_length := 0}}},
+                            payload_version := 2}}},
          khepri:'compare_and_swap!'(
                   ?FUNCTION_NAME, [foo], value1, value3, #{}, #{})),
       ?_assertError(
@@ -172,16 +151,13 @@ delete_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{[foo] => #{}}},
+         ok,
          khepri:create(?FUNCTION_NAME, [foo], value1)),
       ?_assertEqual(
-         #{[foo] => #{data => value1,
-                      payload_version => 1,
-                      child_list_version => 1,
-                      child_list_length => 0}},
+         ok,
          khepri:'delete!'(?FUNCTION_NAME, [foo])),
       ?_assertEqual(
-         #{},
+         ok,
          khepri:'delete!'(?FUNCTION_NAME, [foo], #{})),
       ?_assertError(noproc, khepri:'delete!'([foo]))
      ]}.
