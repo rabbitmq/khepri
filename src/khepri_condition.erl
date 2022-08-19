@@ -14,6 +14,18 @@
 %% A condition is an Erlang record defining a specific property. Some of them
 %% have arguments to further define the condition.
 %%
+%% Path components (atoms and binaries) also act as conditions which check
+%% equality with the path of the tested node. This can be useful for
+%% conditions which compose other conditions: {@link if_not()},
+%% {@link if_all()} and {@link if_any()}.
+%%
+%% Example:
+%%
+%% ```
+%% %% Matches `[stock, wood, <<"birch">>]' but not `[stock, wood, <<"oak">>]'
+%% [stock, wood, #if_not{condition = <<"oak">>}]
+%% '''
+%%
 %% All supported conditions are described in the <a href="#types">Data Types
 %% section</a>.
 
