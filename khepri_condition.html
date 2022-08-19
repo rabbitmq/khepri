@@ -23,6 +23,16 @@ several tree nodes with a single path pattern.</p>
   <p>A condition is an Erlang record defining a specific property. Some of them  
 have arguments to further define the condition.</p>
  
+  <p>Path components (atoms and binaries) also act as conditions which check
+  equality with the path of the tested node. This can be useful for
+  conditions which compose other conditions: <a docgen-rel="seetype" docgen-href="#if_not/0" href="#type-if_not"><code>if_not()</code></a>,
+  <a docgen-rel="seetype" docgen-href="#if_all/0" href="#type-if_all"><code>if_all()</code></a> and <a docgen-rel="seetype" docgen-href="#if_any/0" href="#type-if_any"><code>if_any()</code></a>.</p>
+ 
+  <p>Example:</p>
+ 
+  <pre><code>%% Matches `[stock, wood, &lt;&lt;"birch"&gt;&gt;]' but not `[stock, wood, &lt;&lt;"oak"&gt;&gt;]'
+[stock, wood, #if_not{condition = &lt;&lt;"oak"&gt;&gt;}]</code></pre>
+ 
   All supported conditions are described in the <a href="#types">Data Types
   section</a>.
 <h2><a name="types">Data Types</a></h2>
