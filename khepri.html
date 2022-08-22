@@ -33,7 +33,7 @@ Khepri stores in parallel by creating multiple Ra clusters.</p>
  
   <p>A Khepri store is started and configured with <a docgen-rel="seemfa" docgen-href="#start/0" href="#start-0"><code>start/0</code></a>, <a docgen-rel="seemfa" docgen-href="#start/1" href="#start-1"><code>start/1</code></a> or <a docgen-rel="seemfa" docgen-href="#start/3" href="#start-3"><code>start/3</code></a>. To setup a cluster, see <a docgen-rel="seeerl" docgen-href="khepri_cluster" href="khepri_cluster.html"><code>khepri_cluster</code></a>.</p>
  
-  <p>When a store is started, a store ID <a docgen-rel="seemfa" docgen-href="#store_id/0" href="#store_id-0"><code>store_id/0</code></a> is returned. This  
+  <p>When a store is started, a store ID <a docgen-rel="seetype" docgen-href="#store_id/0" href="#type-store_id"><code>store_id()</code></a> is returned. This  
 store ID is then used by the rest of this module's API. The returned store  
 ID currently corresponds exactly to the Ra cluster name. It must be an atom  
 though; other types are unsupported.</p>
