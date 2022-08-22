@@ -508,6 +508,25 @@ allowed_higher_order_external_call_test() ->
     ?assertMatch(#standalone_fun{}, StandaloneFun),
     ?assertEqual(1, khepri_fun:exec(StandaloneFun, [])).
 
+projection_fun_for_sets(MapFun) ->
+    ChangesFromSet =
+      fun(Path, Set, Kind) ->
+              sets:fold(fun(Element, Acc) ->
+                                [{Kind, MapFun(Path, Element)} | Acc]
+                        end, [], Set)
+      end,
+    fun (Change, Path, Payload) -> ChangesFromSet(Path, Payload, Change) end.
+
+allowed_multiple_nested_higher_order_functions_test() ->
+    StandaloneFun = ?make_standalone_fun(
+                        begin
+                            MapFun = fun(X, Y) -> {X, Y} end,
+                            Fun = fun projection_fun_for_sets/1,
+                            Fun(MapFun)
+                        end),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assert(is_function(khepri_fun:exec(StandaloneFun, []), 3)).
+
 denied_receive_block_test() ->
     ?assertToFunThrow(
        {invalid_tx_fun, receiving_message_denied},

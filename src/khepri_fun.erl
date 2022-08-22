@@ -1114,6 +1114,24 @@ pass1_process_instructions(
     Instruction = {call_fun2, {atom, safe}, Arity, {tr, FunReg, Type}},
     pass1_process_instructions([Instruction | Rest], State, Result);
 pass1_process_instructions(
+  [{call_fun2,
+    {u, _},
+    Arity,
+    {tr, FunReg, {{t_fun, _Arity, _Domain, _Range} = Type, _, _}}} | Rest],
+  State,
+  Result) ->
+    %% `beam_disasm' did not decode this instruction correctly. The
+    %% type in the type-tagged record is wrapped with extra information
+    %% we discard. We also need to patch it to remove the referenced
+    %% FunIndex. We don't have enough information to lookup the local
+    %% function referenced by the live register but if the compiler knows
+    %% that there is an exact local function used in this call that it
+    %% must have the correct arity, so we can demote the function info
+    %% part of this instruction to `{atom, safe}'. That tag asserts that
+    %% the function is known to be the correct arity.
+    Instruction = {call_fun2, {atom, safe}, Arity, {tr, FunReg, Type}},
+    pass1_process_instructions([Instruction | Rest], State, Result);
+pass1_process_instructions(
   [{test, BsGetSomething,
     Fail, [Ctx, Live, Size, Unit, {field_flags, FF} = FieldFlags0, Dst]}
    | Rest],
