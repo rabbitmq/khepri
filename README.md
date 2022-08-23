@@ -191,7 +191,7 @@ the database itself and automatically execute it after some event occurs.
            StoreId,
            TriggerId,
            EventFilter,
-           StoredProcPath))}.
+           StoredProcPath).
     ```
 
 In the example above, as soon as the `[stock, wood, <<"oak">>]` node is
