@@ -71,3 +71,5 @@
                     event_filter :: khepri_evf:event_filter(),
                     sproc :: khepri_fun:standalone_fun(),
                     props = #{} :: map()}).
+
+-record(configure, {params = #{} :: map()}).

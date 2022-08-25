@@ -127,11 +127,13 @@
          generate_default_data_dir/0]).
 -endif.
 
+-if(?OTP_RELEASE >= 24).
 -dialyzer({no_underspecs, [start/1,
                            stop/0, stop/1,
                            stop_locked/1,
                            join/2,
                            wait_for_remote_cluster_readyness/3]}).
+-endif.
 
 -define(IS_RA_SYSTEM(RaSystem), is_atom(RaSystem)).
 -define(IS_DATA_DIR(DataDir), (is_list(DataDir) orelse is_binary(DataDir))).
@@ -1098,8 +1100,14 @@ complete_ra_server_config(#{cluster_name := StoreId,
                       end,
 
     UId = ra:new_uid(ra_lib:to_binary(StoreId)),
-    MachineConfig = #{store_id => StoreId,
-                      member => Member},
+    MachineConfig0 = case RaServerConfig of
+                         #{machine_config := MachineConfig00} ->
+                             MachineConfig00;
+                         _ ->
+                             #{}
+                     end,
+    MachineConfig = MachineConfig0#{store_id => StoreId,
+                                    member => Member},
     Machine = {module, khepri_machine, MachineConfig},
     RaServerConfig2#{uid => UId,
                      log_init_args => #{uid => UId},
