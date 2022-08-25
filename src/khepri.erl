@@ -116,7 +116,9 @@
          'delete!'/1, 'delete!'/2, 'delete!'/3,
 
          info/0,
-         info/1, info/2]).
+         info/1, info/2,
+
+         configure/1, configure/2]).
 
 -compile({no_auto_import, [get/1, get/2, put/2, erase/1]}).
 
@@ -124,6 +126,7 @@
 %% (but not all). I believe the specs are correct, but can't figure out how to
 %% please Dialyzer. So for now, let's disable this specific check for the
 %% problematic functions.
+-if(?OTP_RELEASE >= 24).
 -dialyzer({no_underspecs, [start/1, start/2,
                            stop/0, stop/1,
 
@@ -138,6 +141,7 @@
                            has_sproc/2,
                            run_sproc/3,
                            transaction/2, transaction/3]}).
+-endif.
 
 -type store_id() :: atom().
 %% ID of a Khepri store.
@@ -1155,6 +1159,19 @@ get(PathPattern, Options) when is_map(Options) ->
 
 get(StoreId, PathPattern, Options) ->
     khepri_machine:get(StoreId, PathPattern, Options).
+
+-spec configure(Params) -> Result when
+      Params :: map(),
+      Result :: 'ok' | khepri:error().
+configure(Params) ->
+    khepri_machine:configure(?DEFAULT_STORE_ID, Params).
+
+-spec configure(StoreId, Params) -> Result when
+      StoreId :: store_id(),
+      Params :: map(),
+      Result :: 'ok' | khepri:error().
+configure(StoreId, Params) ->
+    khepri_machine:configure(StoreId, Params).
 
 -spec get_node_props(PathPattern) -> NodeProps when
       PathPattern :: khepri_path:pattern(),

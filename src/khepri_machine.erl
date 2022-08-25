@@ -34,7 +34,8 @@
          delete/3,
          transaction/4,
          run_sproc/4,
-         register_trigger/5]).
+         register_trigger/5,
+         configure/2]).
 -export([get_keep_while_conds_state/2]).
 -export([init/1,
          apply/3,
@@ -69,7 +70,8 @@
                    #delete{} |
                    #tx{} |
                    #register_trigger{} |
-                   #ack_triggered{}.
+                   #ack_triggered{} |
+                   #configure{}.
 %% Commands specific to this Ra machine.
 
 -type machine_init_args() :: #{store_id := khepri:store_id(),
@@ -412,6 +414,21 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
                                 sproc = StoredProcPath1,
                                 event_filter = EventFilter1},
     process_command(StoreId, Command, Options).
+
+-spec configure(StoreId, Params) ->
+    Ret when
+      StoreId :: khepri:store_id(),
+      Params :: map(),
+      Ret :: ok | khepri:error().
+%% @doc Changes the configuration parameters of the machine in runtime
+%%
+%% Only snapshot_interval can be configured in runtime.
+%%
+%% @private
+
+configure(StoreId, Params) when is_map(Params) ->
+    Command = #configure{params = Params},
+    process_command(StoreId, Command, #{}).
 
 -spec ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
     Ret when
@@ -887,6 +904,12 @@ apply(
     EmittedTriggers1 = EmittedTriggers -- ProcessedTriggers,
     State1 = State#?MODULE{emitted_triggers = EmittedTriggers1},
     Ret = {State1, ok},
+    bump_applied_command_count(Ret, Meta);
+apply(
+  Meta,
+  #configure{params = #{snapshot_interval := SnapshotInterval}},
+  State) ->
+    Ret = update_snapshot_interval(State, SnapshotInterval),
     bump_applied_command_count(Ret, Meta).
 
 -spec bump_applied_command_count(ApplyRet, Meta) ->
@@ -2339,6 +2362,10 @@ remove_expired_nodes([PathToRemove | Rest], Root, Extra, FunAcc) ->
         {ok, Root1, Extra1, _} ->
             remove_expired_nodes(Rest, Root1, Extra1, FunAcc)
     end.
+
+update_snapshot_interval(#?MODULE{config = Config} = State0, SnapshotInterval) ->
+    State = State0#?MODULE{config = Config#config{snapshot_interval = SnapshotInterval}},
+    {State, ok}.
 
 -ifdef(TEST).
 get_root(#?MODULE{root = Root}) ->
