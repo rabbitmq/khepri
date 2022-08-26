@@ -253,8 +253,6 @@ exists.</td></tr>
 <tr><td valign="top"><a href="#get-1">get/1</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#get-2">get/2</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#get-3">get/3</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
-<tr><td valign="top"><a href="#configure-1">configure/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#configure-2">configure/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_node_props-1">get_node_props/1</a></td><td>Returns the tree node properties associated with the given node path.</td></tr>
 <tr><td valign="top"><a href="#get_node_props-2">get_node_props/2</a></td><td>Returns the tree node properties associated with the given node path.</td></tr>
 <tr><td valign="top"><a href="#get_node_props-3">get_node_props/3</a></td><td>Returns the tree node properties associated with the given node path.</td></tr>
@@ -993,20 +991,6 @@ Result = khepri:get(StoreId, [foo, bar]),
                        child_list_version =&gt; 1,
                        child_list_length =&gt; 0}}} = Result.</code></pre>
  </p>
-
-<h3 class="function"><a name="configure-1">configure/1</a></h3>
-<div class="spec">
-<p><code>configure(Params) -&gt; Result</code>
-<ul class="definitions"><li><code>Params = map()</code></li><li><code>Result = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
-<p></p>
-</div>
-
-<h3 class="function"><a name="configure-2">configure/2</a></h3>
-<div class="spec">
-<p><code>configure(StoreId, Params) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>Params = map()</code></li><li><code>Result = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
-<p></p>
-</div>
 
 <h3 class="function"><a name="get_node_props-1">get_node_props/1</a></h3>
 <div class="spec">
