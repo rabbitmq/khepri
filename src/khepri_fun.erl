@@ -1316,6 +1316,15 @@ pass1_process_instructions(
     Instruction1 = setelement(4, Instruction, Args1),
     pass1_process_instructions(Rest, State1, [Instruction1 | Result]);
 pass1_process_instructions(
+  [{get_hd, Src, _Dst} = Instruction | Rest],
+  State,
+  Result) ->
+    State1 = ensure_instruction_is_permitted(Instruction, State),
+    Type = {t_cons, any, any},
+    VarInfo = {var_info, Src, [{type, Type}]},
+    Comment = {'%', VarInfo},
+    pass1_process_instructions(Rest, State1, [Instruction, Comment | Result]);
+pass1_process_instructions(
   [{get_list, Src, _HeadDst, _TailDst} = Instruction | Rest],
   State,
   Result) ->

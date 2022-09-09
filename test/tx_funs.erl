@@ -540,7 +540,17 @@ allowed_list_pattern_matching_test() ->
     List = mask([a, b, c]),
     Reverse = ?make_standalone_fun(reverse(List)),
     ?assertMatch(#standalone_fun{}, Reverse),
-    ?assertEqual([c, b, a], khepri_fun:exec(Reverse, [])).
+    ?assertEqual([c, b, a], khepri_fun:exec(Reverse, [])),
+
+    %% Tests the get_hd/2 instruction.
+    ReverseHead = ?make_standalone_fun(
+                        begin
+                            [Head | _] = reverse(List),
+                            Head
+                        end),
+    ?assertMatch(#standalone_fun{}, ReverseHead),
+    ?assertEqual(c, khepri_fun:exec(ReverseHead, [])).
+
 denied_receive_block_test() ->
     ?assertToFunThrow(
        {invalid_tx_fun, receiving_message_denied},
