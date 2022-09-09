@@ -38,6 +38,8 @@
 -define(assertToFunThrow(Expected, Expression),
         ?assertThrow(Expected, ?make_standalone_fun(Expression))).
 
+-export([true/1, true/4]).
+
 %% The compiler is smart enough to optimize away many instructions by
 %% inspecting types and values. `mask/1' confuses the compiler by sending
 %% and receiving the value.
@@ -1025,6 +1027,18 @@ when_readwrite_mode_is_auto_test() ->
                    fun() -> Fun() end,
                    auto),
                  standalone_fun)).
+
+true(_) -> true.
+true(_, _, _, _) -> true.
+
+transaction_fun_options_as_external_functions_test() ->
+    Fun = fun() -> ok end,
+    Options = #{ensure_instruction_is_permitted => fun ?MODULE:true/1,
+                should_process_function => fun ?MODULE:true/4,
+                is_standalone_fun_still_needed => fun ?MODULE:true/1},
+    ?assertMatch(
+      #standalone_fun{},
+      khepri_fun:to_standalone_fun(Fun, Options)).
 
 make_list() -> [a, b].
 make_map() -> #{a => b}.

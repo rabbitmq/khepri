@@ -579,11 +579,16 @@ cache_standalone_fun(
     %% We include the options in the cached value. This is useful when the
     %% callbacks change for the same anonymous function.
     Checksums1 = maps:fold(
-                   fun
-                       (_Key, Fun, Acc) when is_function(Fun) ->
+                   fun (_Key, Fun, Acc) when is_function(Fun) ->
                            Info = maps:from_list(erlang:fun_info(Fun)),
-                           #{module := Module,
-                             new_uniq := Checksum} = Info,
+                           #{module := Module} = Info,
+                           Checksum = case Info of
+                                          #{type := local,
+                                            new_uniq := Checksum0} ->
+                                              Checksum0;
+                                          #{type := external} ->
+                                              Module:module_info(md5)
+                                      end,
                            case Acc of
                                #{Module := KnownChecksum} ->
                                    ?assertEqual(KnownChecksum, Checksum),
