@@ -1569,8 +1569,19 @@ does_path_match(
                                      lists:reverse([Component | ReversedPath]),
                                      #{expect_specific_node => true}),
     case khepri_condition:is_met(Condition, Component, Node) of
-        true       -> does_path_match(Path, PathPattern, ReversedPath1, Root);
-        {false, _} -> false
+        true ->
+            ConditionMatchesGrandchildren =
+            case khepri_condition:applies_to_grandchildren(Condition) of
+                true ->
+                    does_path_match(
+                      Path, [Condition | PathPattern], ReversedPath1, Root);
+                false ->
+                    false
+            end,
+            ConditionMatchesGrandchildren orelse
+              does_path_match(Path, PathPattern, ReversedPath1, Root);
+        {false, _} ->
+            false
     end.
 
 find_stored_proc(Root, StoredProcPath) ->

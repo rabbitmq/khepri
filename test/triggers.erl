@@ -46,7 +46,7 @@ event_triggers_associated_sproc_test_() ->
          ?_assertEqual(executed, receive_sproc_msg(Key))}]
       }]}.
 
-event_using_matching_pattern_triggers_associated_sproc_test_() ->
+event_using_matching_pattern1_triggers_associated_sproc_test_() ->
     EventFilter = khepri_evf:tree([foo, #if_child_list_length{count = 0}]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
@@ -78,6 +78,53 @@ event_using_matching_pattern_triggers_associated_sproc_test_() ->
 
         {"Checking the procedure was executed",
          ?_assertEqual(executed, receive_sproc_msg(Key))}]
+      }]}.
+
+event_using_matching_pattern2_triggers_associated_sproc_test_() ->
+    EventFilter = khepri_evf:tree([foo, ?STAR_STAR]),
+    StoredProcPath = [sproc],
+    Key = ?FUNCTION_NAME,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [{"Storing a procedure",
+         ?_assertMatch(
+            {ok, _},
+            khepri:put(
+              ?FUNCTION_NAME, StoredProcPath,
+              make_sproc(self(), Key)))},
+
+        {"Registering a trigger",
+         ?_assertEqual(
+            ok,
+            khepri:register_trigger(
+              ?FUNCTION_NAME,
+              ?FUNCTION_NAME,
+              EventFilter,
+              StoredProcPath))},
+
+        {"Updating a matching grandchild node; should trigger the procedure",
+         ?_assertMatch(
+            {ok, _},
+            khepri:put(
+              ?FUNCTION_NAME, [foo, bar], value))},
+
+        {"Checking the procedure was executed for the grandchild node",
+         ?_assertEqual(
+          {create, [foo, bar]},
+          receive_sproc_msg_with_props(Key))},
+
+        {"Updating a matching great-grandchild node; should trigger the procedure",
+         ?_assertMatch(
+            {ok, _},
+            khepri:put(
+              ?FUNCTION_NAME, [foo, bar, baz], value))},
+
+        {"Checking the procedure was executed for the great-grandchild node",
+         ?_assertEqual(
+          {create, [foo, bar, baz]},
+          receive_sproc_msg_with_props(Key))}]
       }]}.
 
 event_using_non_matching_pattern1_does_not_trigger_associated_sproc_test_() ->
@@ -489,11 +536,17 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
       }]}.
 
 make_sproc(Pid, Key) ->
-    fun(_Props) ->
-            Pid ! {sproc, Key, executed}
+    fun(Props) ->
+            #{on_action := OnAction, path := Path} = Props,
+            Pid ! {sproc, Key, {OnAction, Path}}
     end.
 
 receive_sproc_msg(Key) ->
-    receive {sproc, Key, executed} -> executed
-    after 1000                     -> timeout
+    receive {sproc, Key, _} -> executed
+    after 1000              -> timeout
+    end.
+
+receive_sproc_msg_with_props(Key) ->
+    receive {sproc, Key, Props} -> Props
+    after 1000                  -> timeout
     end.
