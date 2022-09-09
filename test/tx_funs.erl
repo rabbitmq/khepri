@@ -527,6 +527,20 @@ allowed_multiple_nested_higher_order_functions_test() ->
     ?assertMatch(#standalone_fun{}, StandaloneFun),
     ?assert(is_function(khepri_fun:exec(StandaloneFun, []), 3)).
 
+reverse(List) ->
+    reverse(List, []).
+
+reverse([Head | Tail], Acc) ->
+    reverse(Tail, [Head | Acc]);
+reverse([], Acc) ->
+    Acc.
+
+allowed_list_pattern_matching_test() ->
+    %% Tests the get_list/3 instruction.
+    List = mask([a, b, c]),
+    Reverse = ?make_standalone_fun(reverse(List)),
+    ?assertMatch(#standalone_fun{}, Reverse),
+    ?assertEqual([c, b, a], khepri_fun:exec(Reverse, [])).
 denied_receive_block_test() ->
     ?assertToFunThrow(
        {invalid_tx_fun, receiving_message_denied},
