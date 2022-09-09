@@ -26,11 +26,11 @@
              allowed_bs_match_accepts_match_context_test/0]}]).
 
 -define(make_standalone_fun(Expression),
-        begin
+        fun() ->
             helpers:init_list_of_modules_to_skip(),
             __Fun = fun() -> Expression end,
             khepri_tx:to_standalone_fun(__Fun, rw)
-        end).
+        end()).
 
 -define(assertStandaloneFun(Expression),
         ?assertMatch(#standalone_fun{}, ?make_standalone_fun(Expression))).
