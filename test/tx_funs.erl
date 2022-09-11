@@ -26,11 +26,11 @@
              allowed_bs_match_accepts_match_context_test/0]}]).
 
 -define(make_standalone_fun(Expression),
-        begin
+        fun() ->
             helpers:init_list_of_modules_to_skip(),
             __Fun = fun() -> Expression end,
             khepri_tx:to_standalone_fun(__Fun, rw)
-        end).
+        end()).
 
 -define(assertStandaloneFun(Expression),
         ?assertMatch(#standalone_fun{}, ?make_standalone_fun(Expression))).
@@ -528,6 +528,30 @@ allowed_multiple_nested_higher_order_functions_test() ->
                         end),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
     ?assert(is_function(khepri_fun:exec(StandaloneFun, []), 3)).
+
+reverse(List) ->
+    reverse(List, []).
+
+reverse([Head | Tail], Acc) ->
+    reverse(Tail, [Head | Acc]);
+reverse([], Acc) ->
+    Acc.
+
+allowed_list_pattern_matching_test() ->
+    %% Tests the get_list/3 instruction.
+    List = mask([a, b, c]),
+    Reverse = ?make_standalone_fun(reverse(List)),
+    ?assertMatch(#standalone_fun{}, Reverse),
+    ?assertEqual([c, b, a], khepri_fun:exec(Reverse, [])),
+
+    %% Tests the get_hd/2 instruction.
+    ReverseHead = ?make_standalone_fun(
+                        begin
+                            [Head | _] = reverse(List),
+                            Head
+                        end),
+    ?assertMatch(#standalone_fun{}, ReverseHead),
+    ?assertEqual(c, khepri_fun:exec(ReverseHead, [])).
 
 denied_receive_block_test() ->
     ?assertToFunThrow(
