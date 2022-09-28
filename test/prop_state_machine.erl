@@ -89,9 +89,13 @@ postcondition(
     result_is_ok(Result, Entries, Path, {ok, #{}});
 postcondition(
   #state{entries = Entries},
-  {call, khepri_adv, put_many, [_StoreId, Path, _Payload, _Options]},
+  {call, khepri_adv, put_many, [_StoreId, Path, Payload, _Options]},
   Result) ->
-    result_is_ok(Result, Entries, Path, {ok, #{Path => #{}}});
+    result_is_ok_after_put(
+      Result, Entries, Path, Payload,
+      {ok, #{Path => #{payload_version => 1,
+                       child_list_version => 1,
+                       child_list_length => 0}}});
 postcondition(
   #state{entries = Entries},
   {call, khepri_adv, delete_many, [_StoreId, Path, _Options]},
@@ -172,6 +176,26 @@ result_is_ok(Result, Entries, Path, Default) ->
     case Entries of
         #{Path := NodeProps} ->
             Expected = {ok, #{Path => NodeProps}},
+            Expected =:= Result;
+        _ ->
+            Default =:= Result
+    end.
+
+result_is_ok_after_put(Result, Entries, Path, Payload, Default) ->
+    case Entries of
+        #{Path := #{data := Payload} = NodeProps} ->
+            %% The payload didn't change.
+            Expected = {ok, #{Path => NodeProps}},
+            Expected =:= Result;
+        #{Path := NodeProps}
+          when not is_map_key(data, NodeProps) andalso
+               Payload =:= ?NO_PAYLOAD ->
+            %% The payload didn't change; there is still none.
+            Expected = {ok, #{Path => NodeProps}},
+            Expected =:= Result;
+        #{Path := #{payload_version := PV} = NodeProps0} ->
+            NodeProps1 = NodeProps0#{payload_version => PV + 1},
+            Expected = {ok, #{Path => NodeProps1}},
             Expected =:= Result;
         _ ->
             Default =:= Result

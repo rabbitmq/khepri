@@ -66,7 +66,7 @@ insert_a_node_at_the_root_of_an_empty_db_test() ->
                stat = ?INIT_NODE_STAT,
                payload = khepri_payload:data(value)}}},
        Root),
-    ?assertEqual({ok, #{[foo] => #{}}}, Ret),
+    ?assertEqual({ok, #{[foo] => #{payload_version => 1}}}, Ret),
     ?assertEqual([], SE).
 
 insert_a_node_at_the_root_of_an_empty_db_with_conditions_test() ->
@@ -95,7 +95,7 @@ insert_a_node_at_the_root_of_an_empty_db_with_conditions_test() ->
                stat = ?INIT_NODE_STAT,
                payload = khepri_payload:data(value)}}},
        Root),
-    ?assertEqual({ok, #{[foo] => #{}}}, Ret),
+    ?assertEqual({ok, #{[foo] => #{payload_version => 1}}}, Ret),
     ?assertEqual([], SE).
 
 overwrite_an_existing_node_data_test() ->
@@ -125,7 +125,7 @@ overwrite_an_existing_node_data_test() ->
                payload = khepri_payload:data(value2)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => value1,
-                                   payload_version => 1,
+                                   payload_version => 2,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
     ?assertEqual([], SE).
@@ -154,7 +154,7 @@ insert_a_node_with_path_containing_dot_and_dot_dot_test() ->
                     stat = ?INIT_NODE_STAT,
                     payload = khepri_payload:data(value)}}}}},
        Root),
-    ?assertEqual({ok, #{[foo, bar] => #{}}}, Ret),
+    ?assertEqual({ok, #{[foo, bar] => #{payload_version => 1}}}, Ret),
     ?assertEqual([], SE).
 
 insert_a_node_under_an_nonexisting_parents_test() ->
@@ -189,7 +189,9 @@ insert_a_node_under_an_nonexisting_parents_test() ->
                               stat = ?INIT_NODE_STAT,
                               payload = khepri_payload:data(value)}}}}}}}}},
        Root),
-    ?assertEqual({ok, #{[foo, bar, baz, qux] => #{}}}, Ret),
+    ?assertEqual(
+       {ok, #{[foo, bar, baz, qux] => #{payload_version => 1}}},
+       Ret),
     ?assertEqual([], SE).
 
 insert_a_node_with_condition_true_on_self_test() ->
@@ -220,7 +222,7 @@ insert_a_node_with_condition_true_on_self_test() ->
                payload = khepri_payload:data(value2)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => value1,
-                                   payload_version => 1,
+                                   payload_version => 2,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
     ?assertEqual([], SE).
@@ -281,7 +283,7 @@ insert_a_node_with_condition_true_on_self_using_dot_test() ->
                payload = khepri_payload:data(value2)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => value1,
-                                   payload_version => 1,
+                                   payload_version => 2,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
     ?assertEqual([], SE).
@@ -345,7 +347,7 @@ insert_a_node_with_condition_true_on_parent_test() ->
                     stat = ?INIT_NODE_STAT,
                     payload = khepri_payload:data(bar_value)}}}}},
        Root),
-    ?assertEqual({ok, #{[foo, bar] => #{}}}, Ret),
+    ?assertEqual({ok, #{[foo, bar] => #{payload_version => 1}}}, Ret),
     ?assertEqual([], SE).
 
 insert_a_node_with_condition_false_on_parent_test() ->
@@ -410,7 +412,7 @@ insert_a_node_with_if_node_exists_true_on_self_test() ->
                payload = khepri_payload:data(value2)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => value1,
-                                   payload_version => 1,
+                                   payload_version => 2,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret1),
     ?assertEqual([], SE1),
@@ -487,7 +489,7 @@ insert_a_node_with_if_node_exists_false_on_self_test() ->
                stat = ?INIT_NODE_STAT,
                payload = khepri_payload:data(value2)}}},
        Root),
-    ?assertEqual({ok, #{[baz] => #{}}}, Ret2),
+    ?assertEqual({ok, #{[baz] => #{payload_version => 1}}}, Ret2),
     ?assertEqual([], SE2).
 
 insert_a_node_with_if_node_exists_true_on_parent_test() ->
@@ -522,7 +524,7 @@ insert_a_node_with_if_node_exists_true_on_parent_test() ->
                     stat = ?INIT_NODE_STAT,
                     payload = khepri_payload:data(bar_value)}}}}},
        Root),
-    ?assertEqual({ok, #{[foo, bar] => #{}}}, Ret1),
+    ?assertEqual({ok, #{[foo, bar] => #{payload_version => 1}}}, Ret1),
     ?assertEqual([], SE1),
 
     Compiled = khepri_condition:compile(
@@ -604,7 +606,7 @@ insert_a_node_with_if_node_exists_false_on_parent_test() ->
                     stat = ?INIT_NODE_STAT,
                     payload = khepri_payload:data(bar_value)}}}}},
        Root),
-    ?assertEqual({ok, #{[baz, bar] => #{}}}, Ret2),
+    ?assertEqual({ok, #{[baz, bar] => #{payload_version => 1}}}, Ret2),
     ?assertEqual([], SE2).
 
 insert_with_a_path_matching_many_nodes_test() ->
@@ -656,7 +658,7 @@ clear_payload_in_an_existing_node_test() ->
                payload = ?NO_PAYLOAD}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => value,
-                                   payload_version => 1,
+                                   payload_version => 2,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
     ?assertEqual([], SE).

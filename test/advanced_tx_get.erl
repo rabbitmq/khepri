@@ -35,7 +35,7 @@ get_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
          {ok,
@@ -80,7 +80,7 @@ get_existing_node_with_no_payload_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo, bar], bar_value)),
       ?_assertEqual(
          {ok,
@@ -127,10 +127,10 @@ get_many_existing_nodes_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo, bar], bar_value)),
       ?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [baz], baz_value)),
       ?_assertEqual(
          {ok,

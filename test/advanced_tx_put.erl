@@ -28,7 +28,7 @@ create_non_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
-         {ok, {ok, #{}}},
+         {ok, {ok, #{payload_version => 1}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:create([foo], foo_value)
@@ -45,7 +45,7 @@ create_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertEqual(
          {ok,
@@ -119,7 +119,7 @@ insert_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {ok, #{}}},
+         {ok, {ok, #{payload_version => 1}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:put([foo], foo_value)
@@ -136,7 +136,7 @@ insert_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertError(
          {khepri, denied_update_in_readonly_tx,
@@ -150,7 +150,7 @@ insert_existing_node_test_() ->
       ?_assertEqual(
          {ok,
           {ok, #{data => foo_value1,
-                 payload_version => 1}}},
+                 payload_version => 2}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:put([foo], foo_value2)
@@ -205,15 +205,15 @@ insert_many_non_existing_nodes_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [a], ?NO_PAYLOAD)),
       ?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [b], ?NO_PAYLOAD)),
       ?_assertEqual(
          {ok,
-          {ok, #{[a, foo] => #{},
-                 [b, foo] => #{}}}},
+          {ok, #{[a, foo] => #{payload_version => 1},
+                 [b, foo] => #{payload_version => 1}}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:put_many([?STAR, foo], foo_value)
@@ -232,10 +232,10 @@ insert_many_existing_nodes_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [a, foo], foo_value_a)),
       ?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [b, foo], foo_value_b)),
       ?_assertError(
          {khepri, denied_update_in_readonly_tx,
@@ -249,9 +249,9 @@ insert_many_existing_nodes_test_() ->
       ?_assertEqual(
          {ok,
           {ok, #{[a, foo] => #{data => foo_value_a,
-                               payload_version => 1},
+                               payload_version => 2},
                  [b, foo] => #{data => foo_value_b,
-                               payload_version => 1}}}},
+                               payload_version => 2}}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:put_many([?STAR, foo], foo_value_all)
@@ -350,7 +350,7 @@ update_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertError(
          {khepri, denied_update_in_readonly_tx,
@@ -364,7 +364,7 @@ update_existing_node_test_() ->
       ?_assertEqual(
          {ok,
           {ok, #{data => foo_value1,
-                 payload_version => 1}}},
+                 payload_version => 2}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:update([foo], foo_value2)
@@ -420,7 +420,7 @@ compare_and_swap_matching_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertError(
          {khepri, denied_update_in_readonly_tx,
@@ -435,7 +435,7 @@ compare_and_swap_matching_node_test_() ->
       ?_assertEqual(
          {ok,
           {ok, #{data => foo_value1,
-                 payload_version => 1}}},
+                 payload_version => 2}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:compare_and_swap(
@@ -453,7 +453,7 @@ compare_and_swap_mismatching_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertMatch(
          {ok,
@@ -478,12 +478,12 @@ compare_and_swap_with_keep_while_or_options_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertEqual(
          {ok,
           {ok, #{data => foo_value1,
-                 payload_version => 1}}},
+                 payload_version => 2}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:compare_and_swap(
@@ -495,7 +495,7 @@ compare_and_swap_with_keep_while_or_options_test_() ->
       ?_assertEqual(
          {ok,
           {ok, #{data => foo_value2,
-                 payload_version => 2}}},
+                 payload_version => 3}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:compare_and_swap(

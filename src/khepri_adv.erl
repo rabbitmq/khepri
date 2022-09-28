@@ -353,8 +353,10 @@ put(StoreId, PathPattern, Data, Options) ->
 %% is not modified.
 %%
 %% The returned `{ok, NodeProps}' tuple contains a map with the properties and
-%% payload (if any) of the targeted tree node as they were before the put. If
-%% the targetted tree node didn't exist, `NodeProps' will be an empty map.
+%% payload (if any) of the targeted tree node: the payload was the one before
+%% the update, other properties like the payload version correspond to the
+%% updated node. If the targeted tree node didn't exist, `NodeProps' will be
+%% an empty map.
 %%
 %% The payload must be one of the following form:
 %% <ul>
@@ -497,10 +499,11 @@ put_many(StoreId, PathPattern, Data, Options) ->
 %% in the path pattern is not met, an error is returned and the tree structure
 %% is not modified.
 %%
-%% The returned `{ok, NodePropsMap}' tuple contains a map where keys correspond
-%% to the path to a tree node matching the path pattern. Each key then points
-%% to a map containing the properties and payload (if any) of that matching
-%% tree node as they were before the put.
+%% The returned `{ok, NodePropsMap}' tuple contains a map where keys
+%% correspond to the path to a tree node matching the path pattern. Each key
+%% then points to a map containing the properties and payload (if any) of the
+%% targeted tree node: the payload was the one before the update, other
+%% properties like the payload version correspond to the updated node.
 %%
 %% The payload must be one of the following form:
 %% <ul>

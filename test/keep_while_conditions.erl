@@ -219,7 +219,7 @@ keep_while_still_true_after_command_test() ->
                payload = khepri_payload:data(baz_value)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => foo_value,
-                                   payload_version => 1,
+                                   payload_version => 2,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
     ?assertEqual([], SE).

@@ -31,7 +31,7 @@ delete_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
          {ok, #{data => foo_value,
@@ -74,7 +74,7 @@ delete_many_on_existing_node_with_condition_true_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
          {ok, #{[foo] => #{data => foo_value,
@@ -92,7 +92,7 @@ delete_many_on_existing_node_with_condition_false_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
          {ok, #{}},
@@ -121,11 +121,11 @@ delete_payload_from_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
          {ok, #{data => foo_value,
-                payload_version => 1}},
+                payload_version => 2}},
          khepri_adv:delete_payload(?FUNCTION_NAME, [foo])),
       ?_assertEqual(
          {ok, #{payload_version => 2}},
@@ -136,11 +136,11 @@ delete_payload_with_keep_while_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
          {ok, #{data => foo_value,
-                payload_version => 1}},
+                payload_version => 2}},
          khepri_adv:delete_payload(
            ?FUNCTION_NAME, [foo], #{keep_while => #{}})),
       ?_assertEqual(
@@ -152,11 +152,11 @@ delete_payload_with_options_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
          {ok, #{data => foo_value,
-                payload_version => 1}},
+                payload_version => 2}},
          khepri_adv:delete_payload(?FUNCTION_NAME, [foo], #{async => false})),
       ?_assertEqual(
          {ok, #{payload_version => 2}},
@@ -180,14 +180,14 @@ delete_many_payloads_from_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo1], foo1_value)),
       ?_assertEqual(
-         {ok, #{}},
+         {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo2, bar], bar_value)),
       ?_assertEqual(
          {ok, #{[foo1] => #{data => foo1_value,
-                            payload_version => 1},
+                            payload_version => 2},
                 [foo2] => #{payload_version => 1}}},
          khepri_adv:delete_many_payloads(
            ?FUNCTION_NAME, [#if_name_matches{regex = "foo"}])),

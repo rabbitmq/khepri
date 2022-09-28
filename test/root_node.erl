@@ -155,7 +155,7 @@ store_data_in_root_node_using_empty_path_test() ->
             child_list_version => 1},
           payload = khepri_payload:data(value)},
        Root),
-    ?assertEqual({ok, #{[] => #{payload_version => 1,
+    ?assertEqual({ok, #{[] => #{payload_version => 2,
                                 child_list_version => 1,
                                 child_list_length => 0}}}, Ret),
     ?assertEqual([], SE).
@@ -178,7 +178,7 @@ store_data_in_root_node_using_root_test() ->
             child_list_version => 1},
           payload = khepri_payload:data(value)},
        Root),
-    ?assertEqual({ok, #{[] => #{payload_version => 1,
+    ?assertEqual({ok, #{[] => #{payload_version => 2,
                                 child_list_version => 1,
                                 child_list_length => 0}}}, Ret),
     ?assertEqual([], SE).
@@ -201,7 +201,7 @@ store_data_in_root_node_using_dot_test() ->
             child_list_version => 1},
           payload = khepri_payload:data(value)},
        Root),
-    ?assertEqual({ok, #{[] => #{payload_version => 1,
+    ?assertEqual({ok, #{[] => #{payload_version => 2,
                                 child_list_version => 1,
                                 child_list_length => 0}}}, Ret),
     ?assertEqual([], SE).
@@ -224,7 +224,7 @@ store_data_in_root_node_using_dot_dot_test() ->
             child_list_version => 1},
           payload = khepri_payload:data(value)},
        Root),
-    ?assertEqual({ok, #{[] => #{payload_version => 1,
+    ?assertEqual({ok, #{[] => #{payload_version => 2,
                                 child_list_version => 1,
                                 child_list_length => 0}}}, Ret),
     ?assertEqual([], SE).
@@ -248,7 +248,7 @@ store_data_in_root_node_with_condition_true_test() ->
             child_list_version => 1},
           payload = khepri_payload:data(value)},
        Root),
-    ?assertEqual({ok, #{[] => #{payload_version => 1,
+    ?assertEqual({ok, #{[] => #{payload_version => 2,
                                 child_list_version => 1,
                                 child_list_length => 0}}}, Ret),
     ?assertEqual([], SE).
@@ -272,7 +272,7 @@ store_data_in_root_node_with_condition_true_using_dot_test() ->
             child_list_version => 1},
           payload = khepri_payload:data(value)},
        Root),
-    ?assertEqual({ok, #{[] => #{payload_version => 1,
+    ?assertEqual({ok, #{[] => #{payload_version => 2,
                                 child_list_version => 1,
                                 child_list_length => 0}}}, Ret),
     ?assertEqual([], SE).

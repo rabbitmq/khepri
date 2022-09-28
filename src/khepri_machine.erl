@@ -1176,6 +1176,16 @@ gather_node_props(#node{stat = #{payload_version := PVersion,
 gather_node_props(#node{}, _Options) ->
     #{}.
 
+gather_node_props_from_old_and_new_nodes(OldNode, NewNode, Options) ->
+    OldNodeProps = case OldNode of
+                       undefined -> #{};
+                       _         -> gather_node_props(OldNode, Options)
+                   end,
+    NewNodeProps0 = gather_node_props(NewNode, Options),
+    NewNodeProps1 = maps:remove(data, NewNodeProps0),
+    NewNodeProps2 = maps:remove(sproc, NewNodeProps1),
+    maps:merge(OldNodeProps, NewNodeProps2).
+
 gather_node_props_for_error(Node) ->
     gather_node_props(Node, #{props_to_return => ?DEFAULT_PROPS_TO_RETURN}).
 
@@ -1479,14 +1489,17 @@ insert_or_update_node_cb(
   Path, #node{} = Node, Payload, Options, Result) ->
     case maps:is_key(Path, Result) of
         false ->
+            %% After a node is modified, we collect properties from the updated
+            %% `#node{}', except the payload which is from the old one.
             Node1 = set_node_payload(Node, Payload),
-            NodeProps = gather_node_props(Node, Options),
+            NodeProps = gather_node_props_from_old_and_new_nodes(
+                          Node, Node1, Options),
             {ok, Node1, Result#{Path => NodeProps}};
         true ->
             {ok, Node, Result}
     end;
 insert_or_update_node_cb(
-  Path, {interrupted, node_not_found = Reason, Info}, Payload, _Options,
+  Path, {interrupted, node_not_found = Reason, Info}, Payload, Options,
   Result) ->
     %% We store the payload when we reached the target node only, not in the
     %% parent nodes we have to create in between.
@@ -1494,7 +1507,8 @@ insert_or_update_node_cb(
     case can_continue_update_after_node_not_found(Info) of
         true when IsTarget ->
             Node = create_node_record(Payload),
-            NodeProps = #{},
+            NodeProps = gather_node_props_from_old_and_new_nodes(
+                          undefined, Node, Options),
             {ok, Node, Result#{Path => NodeProps}};
         true ->
             Node = create_node_record(khepri_payload:none()),
