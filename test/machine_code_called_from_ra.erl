@@ -148,11 +148,11 @@ use_an_invalid_payload_test_() ->
            ?FUNCTION_NAME,
            [foo],
            invalid_payload,
-           #{}, #{})),
+           #{})),
       ?_assertThrow(
          {invalid_payload, [foo], {invalid_payload, in_a_tuple}},
          khepri_machine:put(
            ?FUNCTION_NAME,
            [foo],
            {invalid_payload, in_a_tuple},
-           #{}, #{}))]}.
+           #{}))]}.

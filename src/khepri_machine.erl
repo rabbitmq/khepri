@@ -30,7 +30,7 @@
 
 -export([get/3,
          count/3,
-         put/5,
+         put/4,
          delete/3,
          transaction/4,
          run_sproc/4,
@@ -45,7 +45,8 @@
 %% For internal use only.
 -export([clear_cache/1,
          ack_triggers_execution/2,
-         set_default_options/1,
+         split_query_options/1,
+         split_command_options/1,
          find_matching_nodes/3,
          count_matching_nodes/3,
          insert_or_update_node/5,
@@ -159,8 +160,6 @@
 %% TODO: Verify arguments carefully to avoid the construction of an invalid
 %% command.
 
-%% TODO: Accept only one Extra+Options argument and filter/split them.
-
 -spec get(StoreId, PathPattern, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
@@ -208,12 +207,13 @@ count(StoreId, PathPattern, Options) when ?IS_STORE_ID(StoreId) ->
             end,
     process_query(StoreId, Query, QueryOptions).
 
--spec put(StoreId, PathPattern, Payload, Extra, Options) -> Ret when
+-spec put(StoreId, PathPattern, Payload, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Payload :: khepri_payload:payload(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:command_options() | khepri:tree_options(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
       Ret :: khepri_machine:common_ret() | khepri_machine:async_ret().
 %% @doc Creates or modifies a specific tree node in the tree structure.
 %%
@@ -221,8 +221,7 @@ count(StoreId, PathPattern, Options) when ?IS_STORE_ID(StoreId) ->
 %% @param PathPattern the path (or path pattern) to the node to create or
 %%        modify.
 %% @param Payload the payload to put in the specified node.
-%% @param Extra extra options such as `keep_while' conditions.
-%% @param Options command options such as the command type.
+%% @param Options command, tree and put options.
 %%
 %% @returns in the case of a synchronous put, an `{ok, NodePropsMap}' tuple
 %% with a map with zero, one or more entries, or an `{error, Reason}' tuple;
@@ -231,26 +230,18 @@ count(StoreId, PathPattern, Options) when ?IS_STORE_ID(StoreId) ->
 %%
 %% @private
 
-put(StoreId, PathPattern, Payload, Extra, Options)
+put(StoreId, PathPattern, Payload, Options)
   when ?IS_STORE_ID(StoreId) andalso ?IS_KHEPRI_PAYLOAD(Payload) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     Payload1 = khepri_payload:prepare(Payload),
-    Extra1 = case Extra of
-                 #{keep_while := KeepWhile} ->
-                     KeepWhile1 = khepri_condition:ensure_native_keep_while(
-                                    KeepWhile),
-                     Extra#{keep_while => KeepWhile1};
-                 _ ->
-                     Extra
-             end,
-    {CommandOptions, TreeOptions} = split_command_options(Options),
+    {CommandOptions, TreeOptions, Extra} = split_command_options(Options),
     Command = #put{path = PathPattern1,
                    payload = Payload1,
-                   extra = Extra1,
+                   extra = Extra,
                    options = TreeOptions},
     process_command(StoreId, Command, CommandOptions);
-put(_StoreId, PathPattern, Payload, _Extra, _Options) ->
+put(_StoreId, PathPattern, Payload, _Options) ->
     throw({invalid_payload, PathPattern, Payload}).
 
 -spec delete(StoreId, PathPattern, Options) -> Ret when
@@ -272,7 +263,8 @@ put(_StoreId, PathPattern, Payload, _Extra, _Options) ->
 delete(StoreId, PathPattern, Options) when ?IS_STORE_ID(StoreId) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
-    {CommandOptions, TreeOptions} = split_command_options(Options),
+    {CommandOptions, TreeOptions, _Extra} = split_command_options(Options),
+    %% TODO: Ensure `Extra' is unset.
     Command = #delete{path = PathPattern1,
                       options = TreeOptions},
     process_command(StoreId, Command, CommandOptions).
@@ -517,30 +509,37 @@ split_query_options(Options) ->
               {Q, T1}
       end, {#{}, #{}}, Options1).
 
--spec split_command_options(Options) -> {CommandOptions, TreeOptions} when
-      Options :: CommandOptions | TreeOptions,
+-spec split_command_options(Options) ->
+    {CommandOptions, TreeOptions, Extra} when
+      Options :: CommandOptions | TreeOptions | Extra,
       CommandOptions :: khepri:command_options(),
-      TreeOptions :: khepri:tree_options().
+      TreeOptions :: khepri:tree_options(),
+      Extra :: khepri:put_options().
 %% @private
 
 split_command_options(Options) ->
     Options1 = set_default_options(Options),
     maps:fold(
       fun
-          (Option, Value, {C, T}) when
+          (keep_while, KeepWhile, {C, T, E}) ->
+              KeepWhile1 = khepri_condition:ensure_native_keep_while(
+                             KeepWhile),
+              E1 = E#{keep_while => KeepWhile1},
+              {C, T, E1};
+          (Option, Value, {C, T, E}) when
                 Option =:= timeout orelse
                 Option =:= async ->
               C1 = C#{Option => Value},
-              {C1, T};
-          (props_to_return, [], {C, T}) ->
-              {C, T};
-          (Option, Value, {C, T}) when
+              {C1, T, E};
+          (props_to_return, [], Acc) ->
+              Acc;
+          (Option, Value, {C, T, E}) when
                 Option =:= expect_specific_node orelse
                 Option =:= props_to_return orelse
                 Option =:= include_root_props ->
               T1 = T#{Option => Value},
-              {C, T1}
-      end, {#{}, #{}}, Options1).
+              {C, T1, E}
+      end, {#{}, #{}, #{}}, Options1).
 
 -define(DEFAULT_PROPS_TO_RETURN, [payload,
                                   payload_version]).
@@ -1371,7 +1370,7 @@ find_matching_nodes_cb(_, {interrupted, _, _}, _, Result) ->
       State :: state(),
       PathPattern :: khepri_path:native_pattern(),
       Payload :: khepri_payload:payload(),
-      Extra :: #{keep_while => khepri_condition:native_keep_while()},
+      Extra :: khepri:put_options(),
       Options :: khepri:tree_options(),
       Ret :: {State, Result} | {State, Result, ra_machine:effects()},
       Result :: khepri_machine:common_ret().

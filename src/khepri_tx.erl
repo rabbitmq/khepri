@@ -65,17 +65,16 @@
          is_sproc/1, is_sproc/2,
          count/1, count/2,
 
-         put/2, put/3, put/4,
-         put_many/2, put_many/3, put_many/4,
-         create/2, create/3, create/4,
-         update/2, update/3, update/4,
-         compare_and_swap/3, compare_and_swap/4, compare_and_swap/5,
+         put/2, put/3,
+         put_many/2, put_many/3,
+         create/2, create/3,
+         update/2, update/3,
+         compare_and_swap/3, compare_and_swap/4,
 
          delete/1, delete/2,
          delete_many/1, delete_many/2,
-         delete_payload/1, delete_payload/2, delete_payload/3,
+         delete_payload/1, delete_payload/2,
          delete_many_payloads/1, delete_many_payloads/2,
-         delete_many_payloads/3,
 
          abort/1,
          is_transaction/0]).
@@ -439,13 +438,12 @@ count(PathPattern, Options) ->
 %% @see khepri:put/3.
 
 put(PathPattern, Data) ->
-    put(PathPattern, Data, #{}, #{}).
+    put(PathPattern, Data, #{}).
 
--spec put(PathPattern, Data, Extra | Options) -> Ret when
+-spec put(PathPattern, Data, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:tree_options(),
+      Options :: khepri:tree_options() | khepri:put_options(),
       Ret :: khepri:minimal_ret().
 %% @doc Runs the stored procedure pointed to by the given path and returns the
 %% result.
@@ -455,28 +453,9 @@ put(PathPattern, Data) ->
 %%
 %% @see khepri:put/4.
 
-put(PathPattern, Data, #{keep_while := _} = Extra) ->
-    put(PathPattern, Data, Extra, #{});
 put(PathPattern, Data, Options) ->
-    put(PathPattern, Data, #{}, Options).
-
--spec put(PathPattern, Data, Extra, Options) -> Ret when
-      PathPattern :: khepri_path:pattern(),
-      Data :: khepri_payload:payload() | khepri:data(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:tree_options(),
-      Ret :: khepri:minimal_ret().
-%% @doc Runs the stored procedure pointed to by the given path and returns the
-%% result.
-%%
-%% This is the same as {@link khepri:put/5} but inside the context of a
-%% transaction function.
-%%
-%% @see khepri:put/5.
-
-put(PathPattern, Data, Extra, Options) ->
     Options1 = Options#{props_to_return => []},
-    Ret = khepri_tx_adv:put(PathPattern, Data, Extra, Options1),
+    Ret = khepri_tx_adv:put(PathPattern, Data, Options1),
     ?result_ret_to_minimal_ret(Ret).
 
 %% -------------------------------------------------------------------
@@ -495,13 +474,12 @@ put(PathPattern, Data, Extra, Options) ->
 %% @see khepri:put_many/3.
 
 put_many(PathPattern, Data) ->
-    put_many(PathPattern, Data, #{}, #{}).
+    put_many(PathPattern, Data, #{}).
 
--spec put_many(PathPattern, Data, Extra | Options) -> Ret when
+-spec put_many(PathPattern, Data, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:tree_options(),
+      Options :: khepri:tree_options() | khepri:put_options(),
       Ret :: khepri:minimal_ret().
 %% @doc Sets the payload of all the tree nodes matching the given path pattern.
 %%
@@ -510,27 +488,9 @@ put_many(PathPattern, Data) ->
 %%
 %% @see khepri:put_many/4.
 
-put_many(PathPattern, Data, #{keep_while := _} = Extra) ->
-    put_many(PathPattern, Data, Extra, #{});
 put_many(PathPattern, Data, Options) ->
-    put_many(PathPattern, Data, #{}, Options).
-
--spec put_many(PathPattern, Data, Extra, Options) -> Ret when
-      PathPattern :: khepri_path:pattern(),
-      Data :: khepri_payload:payload() | khepri:data(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:tree_options(),
-      Ret :: khepri:minimal_ret().
-%% @doc Sets the payload of all the tree nodes matching the given path pattern.
-%%
-%% This is the same as {@link khepri:put_many/5} but inside the context of a
-%% transaction function.
-%%
-%% @see khepri:put_many/5.
-
-put_many(PathPattern, Data, Extra, Options) ->
     Options1 = Options#{props_to_return => []},
-    Ret = khepri_tx_adv:put_many(PathPattern, Data, Extra, Options1),
+    Ret = khepri_tx_adv:put_many(PathPattern, Data, Options1),
     ?result_ret_to_minimal_ret(Ret).
 
 %% -------------------------------------------------------------------
@@ -549,13 +509,12 @@ put_many(PathPattern, Data, Extra, Options) ->
 %% @see khepri:create/3.
 
 create(PathPattern, Data) ->
-    create(PathPattern, Data, #{}, #{}).
+    create(PathPattern, Data, #{}).
 
--spec create(PathPattern, Data, Extra | Options) -> Ret when
+-spec create(PathPattern, Data, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:tree_options(),
+      Options :: khepri:tree_options() | khepri:put_options(),
       Ret :: khepri:minimal_ret().
 %% @doc Creates a tree node with the given payload.
 %%
@@ -564,27 +523,9 @@ create(PathPattern, Data) ->
 %%
 %% @see khepri:create/4.
 
-create(PathPattern, Data, #{keep_while := _} = Extra) ->
-    create(PathPattern, Data, Extra, #{});
 create(PathPattern, Data, Options) ->
-    create(PathPattern, Data, #{}, Options).
-
--spec create(PathPattern, Data, Extra, Options) -> Ret when
-      PathPattern :: khepri_path:pattern(),
-      Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:tree_options(),
-      Ret :: khepri:minimal_ret().
-%% @doc Creates a tree node with the given payload.
-%%
-%% This is the same as {@link khepri:create/5} but inside the context of a
-%% transaction function.
-%%
-%% @see khepri:create/5.
-
-create(PathPattern, Data, Extra, Options) ->
     Options1 = Options#{props_to_return => []},
-    Ret = khepri_tx_adv:create(PathPattern, Data, Extra, Options1),
+    Ret = khepri_tx_adv:create(PathPattern, Data, Options1),
     ?result_ret_to_minimal_ret(Ret).
 
 %% -------------------------------------------------------------------
@@ -603,13 +544,12 @@ create(PathPattern, Data, Extra, Options) ->
 %% @see khepri:update/3.
 
 update(PathPattern, Data) ->
-    update(PathPattern, Data, #{}, #{}).
+    update(PathPattern, Data, #{}).
 
--spec update(PathPattern, Data, Extra | Options) -> Ret when
+-spec update(PathPattern, Data, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:tree_options(),
+      Options :: khepri:tree_options() | khepri:put_options(),
       Ret :: khepri:minimal_ret().
 %% @doc Updates an existing tree node with the given payload.
 %%
@@ -618,27 +558,9 @@ update(PathPattern, Data) ->
 %%
 %% @see khepri:update/4.
 
-update(PathPattern, Data, #{keep_while := _} = Extra) ->
-    update(PathPattern, Data, Extra, #{});
 update(PathPattern, Data, Options) ->
-    update(PathPattern, Data, #{}, Options).
-
--spec update(PathPattern, Data, Extra, Options) -> Ret when
-      PathPattern :: khepri_path:pattern(),
-      Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:tree_options(),
-      Ret :: khepri:minimal_ret().
-%% @doc Updates an existing tree node with the given payload.
-%%
-%% This is the same as {@link khepri:update/5} but inside the context of a
-%% transaction function.
-%%
-%% @see khepri:update/5.
-
-update(PathPattern, Data, Extra, Options) ->
     Options1 = Options#{props_to_return => []},
-    Ret = khepri_tx_adv:update(PathPattern, Data, Extra, Options1),
+    Ret = khepri_tx_adv:update(PathPattern, Data, Options1),
     ?result_ret_to_minimal_ret(Ret).
 
 %% -------------------------------------------------------------------
@@ -659,15 +581,14 @@ update(PathPattern, Data, Extra, Options) ->
 %% @see khepri:compare_and_swap/4.
 
 compare_and_swap(PathPattern, DataPattern, Data) ->
-    compare_and_swap(PathPattern, DataPattern, Data, #{}, #{}).
+    compare_and_swap(PathPattern, DataPattern, Data, #{}).
 
--spec compare_and_swap(PathPattern, DataPattern, Data, Extra | Options) ->
+-spec compare_and_swap(PathPattern, DataPattern, Data, Options) ->
     Ret when
       PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:tree_options(),
+      Options :: khepri:tree_options() | khepri:put_options(),
       Ret :: khepri:minimal_ret().
 %% @doc Updates an existing tree node with the given payload only if its data
 %% matches the given pattern.
@@ -677,31 +598,10 @@ compare_and_swap(PathPattern, DataPattern, Data) ->
 %%
 %% @see khepri:compare_and_swap/5.
 
-compare_and_swap(PathPattern, DataPattern, Data, #{keep_while := _} = Extra) ->
-    compare_and_swap(PathPattern, DataPattern, Data, Extra, #{});
 compare_and_swap(PathPattern, DataPattern, Data, Options) ->
-    compare_and_swap(PathPattern, DataPattern, Data, #{}, Options).
-
--spec compare_and_swap(PathPattern, DataPattern, Data, Extra, Options) ->
-    Ret when
-      PathPattern :: khepri_path:pattern(),
-      DataPattern :: ets:match_pattern(),
-      Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:tree_options(),
-      Ret :: khepri:minimal_ret().
-%% @doc Updates an existing tree node with the given payload only if its data
-%% matches the given pattern.
-%%
-%% This is the same as {@link khepri:compare_and_swap/6} but inside the context
-%% of a transaction function.
-%%
-%% @see khepri:compare_and_swap/6.
-
-compare_and_swap(PathPattern, DataPattern, Data, Extra, Options) ->
     Options1 = Options#{props_to_return => []},
     Ret = khepri_tx_adv:compare_and_swap(
-            PathPattern, DataPattern, Data, Extra, Options1),
+            PathPattern, DataPattern, Data, Options1),
     ?result_ret_to_minimal_ret(Ret).
 
 %% -------------------------------------------------------------------
@@ -786,12 +686,11 @@ delete_many(PathPattern, Options) ->
 %% @see khepri:delete_payload/2.
 
 delete_payload(PathPattern) ->
-    delete_payload(PathPattern, #{}, #{}).
+    delete_payload(PathPattern, #{}).
 
--spec delete_payload(PathPattern, Extra | Options) -> Ret when
+-spec delete_payload(PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:tree_options(),
+      Options :: khepri:tree_options() | khepri:put_options(),
       Ret :: khepri:minimal_ret().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
@@ -801,27 +700,9 @@ delete_payload(PathPattern) ->
 %%
 %% @see khepri:delete_payload/3.
 
-delete_payload(PathPattern, #{keep_while := _} = Extra) ->
-    delete_payload(PathPattern, Extra, #{});
 delete_payload(PathPattern, Options) ->
-    delete_payload(PathPattern, #{}, Options).
-
--spec delete_payload(PathPattern, Extra, Options) -> Ret when
-      PathPattern :: khepri_path:pattern(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:tree_options(),
-      Ret :: khepri:minimal_ret().
-%% @doc Deletes the payload of the tree node pointed to by the given path
-%% pattern.
-%%
-%% This is the same as {@link khepri:delete_payload/4} but inside the context
-%% of a transaction function.
-%%
-%% @see khepri:delete_payload/4.
-
-delete_payload(PathPattern, Extra, Options) ->
     Options1 = Options#{props_to_return => []},
-    Ret = khepri_tx_adv:delete_payload(PathPattern, Extra, Options1),
+    Ret = khepri_tx_adv:delete_payload(PathPattern, Options1),
     ?result_ret_to_minimal_ret(Ret).
 
 %% -------------------------------------------------------------------
@@ -839,12 +720,11 @@ delete_payload(PathPattern, Extra, Options) ->
 %% @see khepri:delete_many_payloads/2.
 
 delete_many_payloads(PathPattern) ->
-    delete_many_payloads(PathPattern, #{}, #{}).
+    delete_many_payloads(PathPattern, #{}).
 
--spec delete_many_payloads(PathPattern, Extra | Options) -> Ret when
+-spec delete_many_payloads(PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:tree_options(),
+      Options :: khepri:tree_options() | khepri:put_options(),
       Ret :: khepri:minimal_ret().
 %% @doc Deletes the payload of all tree nodes matching the given path pattern.
 %%
@@ -853,27 +733,9 @@ delete_many_payloads(PathPattern) ->
 %%
 %% @see khepri:delete_many_payloads/3.
 
-delete_many_payloads(PathPattern, #{keep_while := _} = Extra) ->
-    delete_many_payloads(PathPattern, Extra, #{});
 delete_many_payloads(PathPattern, Options) ->
-    delete_many_payloads(PathPattern, #{}, Options).
-
--spec delete_many_payloads(PathPattern, Extra, Options) -> Ret when
-      PathPattern :: khepri_path:pattern(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:tree_options(),
-      Ret :: khepri:minimal_ret().
-%% @doc Deletes the payload of all tree nodes matching the given path pattern.
-%%
-%% This is the same as {@link khepri:delete_many_payloads/4} but inside the
-%% context of a transaction function.
-%%
-%% @see khepri:delete_many_payloads/4.
-
-delete_many_payloads(PathPattern, Extra, Options) ->
     Options1 = Options#{props_to_return => []},
-    Ret = khepri_tx_adv:delete_many_payloads(
-            PathPattern, Extra, Options1),
+    Ret = khepri_tx_adv:delete_many_payloads(PathPattern, Options1),
     ?result_ret_to_minimal_ret(Ret).
 
 %% -------------------------------------------------------------------

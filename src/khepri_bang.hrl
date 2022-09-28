@@ -114,12 +114,13 @@
     Ret = put(StoreId, PathPattern, Data),
     unwrap_result(Ret).
 
--spec 'put!'(StoreId, PathPattern, Data, Extra | Options) -> Ret when
+-spec 'put!'(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: command_options() | khepri:tree_options(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
       Ret :: khepri:unwrapped_minimal_ret() |
              khepri_machine:async_ret().
 %% @doc Creates or modifies a specific tree node in the tree structure.
@@ -130,28 +131,8 @@
 %%
 %% @see put/4.
 
-'put!'(StoreId, PathPattern, Data, ExtraOrOptions) ->
-    Ret = put(StoreId, PathPattern, Data, ExtraOrOptions),
-    unwrap_result(Ret).
-
--spec 'put!'(StoreId, PathPattern, Data, Extra, Options) -> Ret when
-      StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern(),
-      Data :: khepri_payload:payload() | data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: command_options() | khepri:tree_options(),
-      Ret :: khepri:unwrapped_minimal_ret() |
-             khepri_machine:async_ret().
-%% @doc Creates or modifies a specific tree node in the tree structure.
-%%
-%% Calling this function is the same as calling {@link put/5} but the result
-%% is unwrapped (from the `{ok, Result}' tuple) and returned directly. If
-%% there is an error, an exception is thrown.
-%%
-%% @see put/5.
-
-'put!'(StoreId, PathPattern, Data, Extra, Options) ->
-    Ret = put(StoreId, PathPattern, Data, Extra, Options),
+'put!'(StoreId, PathPattern, Data, Options) ->
+    Ret = put(StoreId, PathPattern, Data, Options),
     unwrap_result(Ret).
 
 -spec 'create!'(PathPattern, Data) -> Payload when
@@ -189,12 +170,13 @@
     Ret = create(StoreId, PathPattern, Data),
     unwrap_result(Ret).
 
--spec 'create!'(StoreId, PathPattern, Data, Extra | Options) -> Ret when
+-spec 'create!'(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: command_options() | khepri:tree_options(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
       Ret :: khepri:unwrapped_minimal_ret() |
              khepri_machine:async_ret().
 %% @doc Creates a specific tree node in the tree structure only if it does not
@@ -206,29 +188,8 @@
 %%
 %% @see create/4.
 
-'create!'(StoreId, PathPattern, Data, ExtraOrOptions) ->
-    Ret = create(StoreId, PathPattern, Data, ExtraOrOptions),
-    unwrap_result(Ret).
-
--spec 'create!'(StoreId, PathPattern, Data, Extra, Options) -> Ret when
-      StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern(),
-      Data :: khepri_payload:payload() | data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: command_options() | khepri:tree_options(),
-      Ret :: khepri:unwrapped_minimal_ret() |
-             khepri_machine:async_ret().
-%% @doc Creates a specific tree node in the tree structure only if it does not
-%% exist.
-%%
-%% Calling this function is the same as calling {@link create/5} but the result
-%% is unwrapped (from the `{ok, Result}' tuple) and returned directly. If
-%% there is an error, an exception is thrown.
-%%
-%% @see create/5.
-
-'create!'(StoreId, PathPattern, Data, Extra, Options) ->
-    Ret = create(StoreId, PathPattern, Data, Extra, Options),
+'create!'(StoreId, PathPattern, Data, Options) ->
+    Ret = create(StoreId, PathPattern, Data, Options),
     unwrap_result(Ret).
 
 -spec 'update!'(PathPattern, Data) -> Payload when
@@ -266,12 +227,13 @@
     Ret = update(StoreId, PathPattern, Data),
     unwrap_result(Ret).
 
--spec 'update!'(StoreId, PathPattern, Data, Extra | Options) -> Ret when
+-spec 'update!'(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: command_options() | khepri:tree_options(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
       Ret :: khepri:unwrapped_minimal_ret() |
              khepri_machine:async_ret().
 %% @doc Updates a specific tree node in the tree structure only if it already
@@ -283,29 +245,8 @@
 %%
 %% @see update/4.
 
-'update!'(StoreId, PathPattern, Data, ExtraOrOptions) ->
-    Ret = update(StoreId, PathPattern, Data, ExtraOrOptions),
-    unwrap_result(Ret).
-
--spec 'update!'(StoreId, PathPattern, Data, Extra, Options) -> Ret when
-      StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern(),
-      Data :: khepri_payload:payload() | data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: command_options() | khepri:tree_options(),
-      Ret :: khepri:unwrapped_minimal_ret() |
-             khepri_machine:async_ret().
-%% @doc Updates a specific tree node in the tree structure only if it already
-%% exists.
-%%
-%% Calling this function is the same as calling {@link update/5} but the result
-%% is unwrapped (from the `{ok, Result}' tuple) and returned directly. If
-%% there is an error, an exception is thrown.
-%%
-%% @see update/5.
-
-'update!'(StoreId, PathPattern, Data, Extra, Options) ->
-    Ret = update(StoreId, PathPattern, Data, Extra, Options),
+'update!'(StoreId, PathPattern, Data, Options) ->
+    Ret = update(StoreId, PathPattern, Data, Options),
     unwrap_result(Ret).
 
 -spec 'compare_and_swap!'(PathPattern, DataPattern, Data) -> Payload when
@@ -348,14 +289,15 @@
     unwrap_result(Ret).
 
 -spec 'compare_and_swap!'(
-        StoreId, PathPattern, DataPattern, Data, Extra | Options) ->
+        StoreId, PathPattern, DataPattern, Data, Options) ->
     Ret when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: command_options() | khepri:tree_options(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
       Ret :: khepri:unwrapped_minimal_ret() |
              khepri_machine:async_ret().
 %% @doc Updates a specific tree node in the tree structure only if it already
@@ -368,35 +310,9 @@
 %% @see compare_and_swap/5.
 
 'compare_and_swap!'(
- StoreId, PathPattern, DataPattern, Data, ExtraOrOptions) ->
+ StoreId, PathPattern, DataPattern, Data, Options) ->
     Ret = compare_and_swap(
-            StoreId, PathPattern, DataPattern, Data, ExtraOrOptions),
-    unwrap_result(Ret).
-
--spec 'compare_and_swap!'(
-        StoreId, PathPattern, DataPattern, Data, Extra, Options) ->
-    Ret when
-      StoreId :: store_id(),
-      PathPattern :: khepri_path:pattern(),
-      DataPattern :: ets:match_pattern(),
-      Data :: khepri_payload:payload() | data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: command_options() | khepri:tree_options(),
-      Ret :: khepri:unwrapped_minimal_ret() |
-             khepri_machine:async_ret().
-%% @doc Updates a specific tree node in the tree structure only if it already
-%% exists and its data matches the given `DataPattern'.
-%%
-%% Calling this function is the same as calling {@link compare_and_swap/6} but
-%% the result is unwrapped (from the `{ok, Result}' tuple) and returned
-%% directly. If there is an error, an exception is thrown.
-%%
-%% @see compare_and_swap/6.
-
-'compare_and_swap!'(
- StoreId, PathPattern, DataPattern, Data, Extra, Options) ->
-    Ret = compare_and_swap(
-            StoreId, PathPattern, DataPattern, Data, Extra, Options),
+            StoreId, PathPattern, DataPattern, Data, Options),
     unwrap_result(Ret).
 
 -spec 'delete!'(PathPattern) -> Payload when

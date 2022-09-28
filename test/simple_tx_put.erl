@@ -76,23 +76,6 @@ create_existing_node_test_() ->
                            khepri_tx:create([foo], foo_value2, #{})
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end),
-      ?_assertEqual(
-         {ok,
-          {error,
-           {mismatching_node,
-            #{condition => #if_node_exists{exists = false},
-              node_name => foo,
-              node_path => [foo],
-              node_is_target => true,
-              node_props => #{data => foo_value1,
-                              payload_version => 1}}}}},
-         begin
-             Fun = fun() ->
-                           khepri_tx:create(
-                             [foo], foo_value2, #{keep_while => #{}})
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
 
 invalid_create_call_test_() ->
@@ -102,7 +85,7 @@ invalid_create_call_test_() ->
      [?_assertError(
          {khepri,
           invalid_call,
-          "Invalid use of khepri_tx_adv:create/4:\n"
+          "Invalid use of khepri_tx_adv:create/3:\n"
           "Called with a path pattern which could match many nodes:\n"
           ++ _},
          begin
@@ -170,15 +153,6 @@ insert_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertEqual(
-         {ok, ok},
-         begin
-             Fun = fun() ->
-                           khepri_tx:put(
-                             [foo], foo_value2, #{keep_while => #{}})
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end),
-      ?_assertEqual(
          {ok, foo_value2},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
@@ -189,7 +163,7 @@ invalid_put_call_test_() ->
      [?_assertError(
          {khepri,
           invalid_call,
-          "Invalid use of khepri_tx_adv:put/4:\n"
+          "Invalid use of khepri_tx_adv:put/3:\n"
           "Called with a path pattern which could match many nodes:\n"
           ++ _},
          begin
@@ -267,15 +241,6 @@ insert_many_existing_nodes_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertEqual(
-         {ok, ok},
-         begin
-             Fun = fun() ->
-                           khepri_tx:put_many(
-                             [?STAR, foo], foo_value_all, #{keep_while => #{}})
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end),
-      ?_assertEqual(
          {ok, #{[a, foo] => foo_value_all,
                 [b, foo] => foo_value_all}},
          khepri:get_many(?FUNCTION_NAME, [?STAR, foo]))]}.
@@ -315,23 +280,6 @@ update_non_existing_node_test_() ->
                            khepri_tx:update([foo], foo_value, #{})
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end),
-      ?_assertEqual(
-         {ok,
-          {error,
-           {node_not_found,
-            #{condition => #if_all{conditions =
-                                   [foo,
-                                    #if_node_exists{exists = true}]},
-              node_name => foo,
-              node_path => [foo],
-              node_is_target => true}}}},
-         begin
-             Fun = fun() ->
-                           khepri_tx:update(
-                             [foo], foo_value, #{keep_while => #{}})
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
 
 update_existing_node_test_() ->
@@ -369,7 +317,7 @@ invalid_update_call_test_() ->
      [?_assertError(
          {khepri,
           invalid_call,
-          "Invalid use of khepri_tx_adv:update/4:\n"
+          "Invalid use of khepri_tx_adv:update/3:\n"
           "Called with a path pattern which could match many nodes:\n"
           ++ _},
          begin
@@ -456,7 +404,7 @@ compare_and_swap_mismatching_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
 
-compare_and_swap_with_keep_while_or_options_test_() ->
+compare_and_swap_with_options_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -469,22 +417,12 @@ compare_and_swap_with_keep_while_or_options_test_() ->
              Fun = fun() ->
                            khepri_tx:compare_and_swap(
                              [foo], foo_value1, foo_value2,
-                             #{keep_while => #{}})
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end),
-      ?_assertEqual(
-         {ok, ok},
-         begin
-             Fun = fun() ->
-                           khepri_tx:compare_and_swap(
-                             [foo], foo_value2, foo_value3,
                              #{})
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertEqual(
-         {ok, foo_value3},
+         {ok, foo_value2},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 invalid_compare_and_swap_call_test_() ->
@@ -494,7 +432,7 @@ invalid_compare_and_swap_call_test_() ->
      [?_assertError(
          {khepri,
           invalid_call,
-          "Invalid use of khepri_tx_adv:compare_and_swap/5:\n"
+          "Invalid use of khepri_tx_adv:compare_and_swap/4:\n"
           "Called with a path pattern which could match many nodes:\n"
           ++ _},
          begin

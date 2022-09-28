@@ -31,19 +31,17 @@
 -export([get/1, get/2, get/3,
          get_many/1, get_many/2, get_many/3,
 
-         put/2, put/3, put/4, put/5,
-         put_many/2, put_many/3, put_many/4, put_many/5,
-         create/2, create/3, create/4, create/5,
-         update/2, update/3, update/4, update/5,
+         put/2, put/3, put/4,
+         put_many/2, put_many/3, put_many/4,
+         create/2, create/3, create/4,
+         update/2, update/3, update/4,
          compare_and_swap/3, compare_and_swap/4, compare_and_swap/5,
-         compare_and_swap/6,
 
          delete/1, delete/2, delete/3,
          delete_many/1, delete_many/2, delete_many/3,
          delete_payload/1, delete_payload/2, delete_payload/3,
-         delete_payload/4,
          delete_many_payloads/1, delete_many_payloads/2,
-         delete_many_payloads/3, delete_many_payloads/4]).
+         delete_many_payloads/3]).
 
 -type node_props_map() :: #{khepri_path:native_path() => khepri:node_props()}.
 %% Structure used to return a map of nodes and their associated properties,
@@ -275,7 +273,7 @@ get_many(StoreId, PathPattern, Options) ->
 %% khepri_cluster:get_default_store_id/0}).
 %%
 %% @see put/3.
-%% @see put/5.
+%% @see put/4.
 
 put(PathPattern, Data) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -291,41 +289,20 @@ put(PathPattern, Data) ->
 %% pattern.
 %%
 %% Calling this function is the same as calling `put(StoreId, PathPattern,
-%% Data, #{}, #{})'.
+%% Data, #{})'.
 %%
-%% @see put/5.
+%% @see put/4.
 
 put(StoreId, PathPattern, Data) ->
-    put(StoreId, PathPattern, Data, #{}, #{}).
+    put(StoreId, PathPattern, Data, #{}).
 
--spec put(StoreId, PathPattern, Data, Extra | Options) -> Ret when
+-spec put(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri:minimal_ret() |
-             khepri_adv:single_result() |
-             khepri_machine:async_ret().
-%% @doc Sets the payload of the tree node pointed to by the given path
-%% pattern.
-%%
-%% Calling this function is the same as calling `put(StoreId, PathPattern,
-%% Data, Extra, Options)' with an empty `Extra' or `Options'.
-%%
-%% @see put/5.
-
-put(StoreId, PathPattern, Data, #{keep_while := _} = Extra) ->
-    put(StoreId, PathPattern, Data, Extra, #{});
-put(StoreId, PathPattern, Data, Options) ->
-    put(StoreId, PathPattern, Data, #{}, Options).
-
--spec put(StoreId, PathPattern, Data, Extra, Options) -> Ret when
-      StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
-      Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:command_options() | khepri:tree_options(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
       Ret :: khepri:minimal_ret() |
              khepri_adv:single_result() |
              khepri_machine:async_ret().
@@ -373,15 +350,9 @@ put(StoreId, PathPattern, Data, Options) ->
 %% It is possible to wrap the payload in its internal structure explicitly
 %% using the {@link khepri_payload} module directly.
 %%
-%% The `Extra' map may specify put-specific options:
-%% <ul>
-%% <li>`keep_while': `keep_while' conditions to tie the life of the inserted
-%% tree node to conditions on other nodes; see {@link
-%% khepri_condition:keep_while()}.</li>
-%% </ul>
-%%
 %% The `Options' map may specify command-level options; see {@link
-%% khepri:command_options()} and {@link khepri:tree_options()}.
+%% khepri:command_options()}, {@link khepri:tree_options()} and {@link
+%% khepri:put_options()}.
 %%
 %% When doing an asynchronous update, the {@link wait_for_async_ret/1}
 %% function can be used to receive the message from Ra.
@@ -402,22 +373,21 @@ put(StoreId, PathPattern, Data, Options) ->
 %%        modify.
 %% @param Data the Erlang term or function to store, or a {@link
 %%        khepri_payload:payload()} structure.
-%% @param Extra extra options such as `keep_while' conditions.
-%% @param Options command options such as the command type.
+%% @param Options command options.
 %%
 %% @returns in the case of a synchronous call, an `{ok, NodeProps}' tuple or
 %% an `{error, Reason}' tuple; in the case of an asynchronous call, always
 %% `ok' (the actual return value may be sent by a message if a correlation ID
 %% was specified).
 %%
-%% @see create/5.
-%% @see update/5.
-%% @see compare_and_swap/6.
-%% @see khepri:put/5.
+%% @see create/4.
+%% @see update/4.
+%% @see compare_and_swap/5.
+%% @see khepri:put/4.
 
-put(StoreId, PathPattern, Data, Extra, Options) ->
+put(StoreId, PathPattern, Data, Options) ->
     Options1 = Options#{expect_specific_node => true},
-    Ret = put_many(StoreId, PathPattern, Data, Extra, Options1),
+    Ret = put_many(StoreId, PathPattern, Data, Options1),
     ?common_ret_to_single_result_ret(Ret).
 
 %% -------------------------------------------------------------------
@@ -435,7 +405,7 @@ put(StoreId, PathPattern, Data, Extra, Options) ->
 %% khepri_cluster:get_default_store_id/0}).
 %%
 %% @see put_many/3.
-%% @see put_many/5.
+%% @see put_many/4.
 
 put_many(PathPattern, Data) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -449,39 +419,20 @@ put_many(PathPattern, Data) ->
 %% @doc Sets the payload of all the tree nodes matching the given path pattern.
 %%
 %% Calling this function is the same as calling `put_many(StoreId, PathPattern,
-%% Data, #{}, #{})'.
+%% Data, #{})'.
 %%
-%% @see put_many/5.
+%% @see put_many/4.
 
 put_many(StoreId, PathPattern, Data) ->
-    put_many(StoreId, PathPattern, Data, #{}, #{}).
+    put_many(StoreId, PathPattern, Data, #{}).
 
--spec put_many(StoreId, PathPattern, Data, Extra | Options) -> Ret when
+-spec put_many(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
-%% @doc Sets the payload of the tree node pointed to by the given path
-%% pattern.
-%%
-%% Calling this function is the same as calling `put(StoreId, PathPattern,
-%% Data, Extra, Options)' with an empty `Extra' or `Options'.
-%%
-%% @see put/5.
-
-put_many(StoreId, PathPattern, Data, #{keep_while := _} = Extra) ->
-    put_many(StoreId, PathPattern, Data, Extra, #{});
-put_many(StoreId, PathPattern, Data, Options) ->
-    put_many(StoreId, PathPattern, Data, #{}, Options).
-
--spec put_many(StoreId, PathPattern, Data, Extra, Options) -> Ret when
-      StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
-      Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:command_options() | khepri:tree_options(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
       Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
 %% @doc Sets the payload of all the tree nodes matching the given path pattern.
 %%
@@ -520,15 +471,9 @@ put_many(StoreId, PathPattern, Data, Options) ->
 %% It is possible to wrap the payload in its internal structure explicitly
 %% using the {@link khepri_payload} module directly.
 %%
-%% The `Extra' map may specify put-specific options:
-%% <ul>
-%% <li>`keep_while': `keep_while' conditions to tie the life of the inserted
-%% tree node to conditions on other nodes; see {@link
-%% khepri_condition:keep_while()}.</li>
-%% </ul>
-%%
 %% The `Options' map may specify command-level options; see {@link
-%% khepri:command_options()} and {@link khepri:tree_options()}.
+%% khepri:command_options()}, {@link khepri:tree_options()} and {@link
+%% khepri:put_options()}.
 %%
 %% When doing an asynchronous update, the {@link wait_for_async_ret/1}
 %% function can be used to receive the message from Ra.
@@ -549,18 +494,18 @@ put_many(StoreId, PathPattern, Data, Options) ->
 %% @param Data the Erlang term or function to store, or a {@link
 %%        khepri_payload:payload()} structure.
 %% @param Extra extra options such as `keep_while' conditions.
-%% @param Options command options such as the command type.
+%% @param Options command options.
 %%
 %% @returns in the case of a synchronous call, an `{ok, NodePropsMap}' tuple or
 %% an `{error, Reason}' tuple; in the case of an asynchronous call, always `ok'
 %% (the actual return value may be sent by a message if a correlation ID was
 %% specified).
 %%
-%% @see put/5.
-%% @see khepri:put_many/5.
+%% @see put/4.
+%% @see khepri:put_many/4.
 
-put_many(StoreId, PathPattern, Data, Extra, Options) ->
-    do_put(StoreId, PathPattern, Data, Extra, Options).
+put_many(StoreId, PathPattern, Data, Options) ->
+    do_put(StoreId, PathPattern, Data, Options).
 
 %% -------------------------------------------------------------------
 %% create().
@@ -577,7 +522,7 @@ put_many(StoreId, PathPattern, Data, Extra, Options) ->
 %% khepri_cluster:get_default_store_id/0}).
 %%
 %% @see create/3.
-%% @see create/5.
+%% @see create/4.
 
 create(PathPattern, Data) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -591,42 +536,24 @@ create(PathPattern, Data) ->
 %% @doc Creates a tree node with the given payload.
 %%
 %% Calling this function is the same as calling `create(StoreId, PathPattern,
-%% Data, #{}, #{})'.
+%% Data, #{})'.
 %%
-%% @see create/5.
+%% @see create/4.
 
 create(StoreId, PathPattern, Data) ->
-    create(StoreId, PathPattern, Data, #{}, #{}).
+    create(StoreId, PathPattern, Data, #{}).
 
--spec create(StoreId, PathPattern, Data, Extra | Options) -> Ret when
+-spec create(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:command_options() | khepri:tree_options(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
       Ret :: khepri_adv:single_result() | khepri_machine:async_ret().
 %% @doc Creates a tree node with the given payload.
 %%
-%% Calling this function is the same as calling `create(StoreId, PathPattern,
-%% Data, Extra, Options)' with an empty `Extra' or `Options'.
-%%
-%% @see create/5.
-
-create(StoreId, PathPattern, Data, #{keep_while := _} = Extra) ->
-    create(StoreId, PathPattern, Data, Extra, #{});
-create(StoreId, PathPattern, Data, Options) ->
-    create(StoreId, PathPattern, Data, #{}, Options).
-
--spec create(StoreId, PathPattern, Data, Extra, Options) -> Ret when
-      StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
-      Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_adv:single_result() | khepri_machine:async_ret().
-%% @doc Creates a tree node with the given payload.
-%%
-%% The behavior is the same as {@link put/5} except that if the tree node
+%% The behavior is the same as {@link put/4} except that if the tree node
 %% already exists, an `{error, {mismatching_node, Info}}' tuple is returned.
 %%
 %% Internally, the `PathPattern' is modified to include an
@@ -636,24 +563,23 @@ create(StoreId, PathPattern, Data, Options) ->
 %% @param PathPattern the path (or path pattern) to the tree node to create.
 %% @param Data the Erlang term or function to store, or a {@link
 %%        khepri_payload:payload()} structure.
-%% @param Extra extra options such as `keep_while' conditions.
-%% @param Options command options such as the command type.
+%% @param Options command options.
 %%
 %% @returns in the case of a synchronous call, an `{ok, NodeProps}' tuple or
 %% an `{error, Reason}' tuple; in the case of an asynchronous call, always
 %% `ok' (the actual return value may be sent by a message if a correlation ID
 %% was specified).
 %%
-%% @see put/5.
-%% @see update/5.
-%% @see khepri:create/5.
+%% @see put/4.
+%% @see update/4.
+%% @see khepri:create/4.
 
-create(StoreId, PathPattern, Data, Extra, Options) ->
+create(StoreId, PathPattern, Data, Options) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     PathPattern2 = khepri_path:combine_with_conditions(
                      PathPattern1, [#if_node_exists{exists = false}]),
     Options1 = Options#{expect_specific_node => true},
-    case do_put(StoreId, PathPattern2, Data, Extra, Options1) of
+    case do_put(StoreId, PathPattern2, Data, Options1) of
         {ok, NodePropsMaps} ->
             [NodeProps] = maps:values(NodePropsMaps),
             {ok, NodeProps};
@@ -678,7 +604,7 @@ create(StoreId, PathPattern, Data, Extra, Options) ->
 %% khepri_cluster:get_default_store_id/0}).
 %%
 %% @see update/3.
-%% @see update/5.
+%% @see update/4.
 
 update(PathPattern, Data) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -692,42 +618,24 @@ update(PathPattern, Data) ->
 %% @doc Updates an existing tree node with the given payload.
 %%
 %% Calling this function is the same as calling `update(StoreId, PathPattern,
-%% Data, #{}, #{})'.
+%% Data, #{})'.
 %%
-%% @see update/5.
+%% @see update/4.
 
 update(StoreId, PathPattern, Data) ->
-    update(StoreId, PathPattern, Data, #{}, #{}).
+    update(StoreId, PathPattern, Data, #{}).
 
--spec update(StoreId, PathPattern, Data, Extra | Options) -> Ret when
+-spec update(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:command_options() | khepri:tree_options(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
       Ret :: khepri_adv:single_result() | khepri_machine:async_ret().
 %% @doc Updates an existing tree node with the given payload.
 %%
-%% Calling this function is the same as calling `update(StoreId, PathPattern,
-%% Data, Extra, Options)' with an empty `Extra' or `Options'.
-%%
-%% @see update/5.
-
-update(StoreId, PathPattern, Data, #{keep_while := _} = Extra) ->
-    update(StoreId, PathPattern, Data, Extra, #{});
-update(StoreId, PathPattern, Data, Options) ->
-    update(StoreId, PathPattern, Data, #{}, Options).
-
--spec update(StoreId, PathPattern, Data, Extra, Options) -> Ret when
-      StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
-      Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_adv:single_result() | khepri_machine:async_ret().
-%% @doc Updates an existing tree node with the given payload.
-%%
-%% The behavior is the same as {@link put/5} except that if the tree node
+%% The behavior is the same as {@link put/4} except that if the tree node
 %% already exists, an `{error, {mismatching_node, Info}}' tuple is returned.
 %%
 %% Internally, the `PathPattern' is modified to include an
@@ -738,23 +646,23 @@ update(StoreId, PathPattern, Data, Options) ->
 %% @param Data the Erlang term or function to store, or a {@link
 %%        khepri_payload:payload()} structure.
 %% @param Extra extra options such as `keep_while' conditions.
-%% @param Options command options such as the command type.
+%% @param Options command options.
 %%
 %% @returns in the case of a synchronous call, an `{ok, NodeProps}' tuple or
 %% an `{error, Reason}' tuple; in the case of an asynchronous call, always
 %% `ok' (the actual return value may be sent by a message if a correlation ID
 %% was specified).
 %%
-%% @see put/5.
-%% @see create/5.
-%% @see khepri:update/5.
+%% @see put/4.
+%% @see create/4.
+%% @see khepri:update/4.
 
-update(StoreId, PathPattern, Data, Extra, Options) ->
+update(StoreId, PathPattern, Data, Options) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     PathPattern2 = khepri_path:combine_with_conditions(
                      PathPattern1, [#if_node_exists{exists = true}]),
     Options1 = Options#{expect_specific_node => true},
-    Ret = do_put(StoreId, PathPattern2, Data, Extra, Options1),
+    Ret = do_put(StoreId, PathPattern2, Data, Options1),
     ?common_ret_to_single_result_ret(Ret).
 
 %% -------------------------------------------------------------------
@@ -774,7 +682,7 @@ update(StoreId, PathPattern, Data, Extra, Options) ->
 %% khepri_cluster:get_default_store_id/0}).
 %%
 %% @see compare_and_swap/4.
-%% @see compare_and_swap/6.
+%% @see compare_and_swap/5.
 
 compare_and_swap(PathPattern, DataPattern, Data) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -790,52 +698,27 @@ compare_and_swap(PathPattern, DataPattern, Data) ->
 %% matches the given pattern.
 %%
 %% Calling this function is the same as calling `compare_and_swap(StoreId,
-%% PathPattern, DataPattern, Data, #{}, #{})'.
+%% PathPattern, DataPattern, Data, #{})'.
 %%
-%% @see compare_and_swap/6.
+%% @see compare_and_swap/5.
 
 compare_and_swap(StoreId, PathPattern, DataPattern, Data) ->
-    compare_and_swap(StoreId, PathPattern, DataPattern, Data, #{}, #{}).
+    compare_and_swap(StoreId, PathPattern, DataPattern, Data, #{}).
 
--spec compare_and_swap(
-        StoreId, PathPattern, DataPattern, Data, Extra | Options) ->
+-spec compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) ->
     Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:command_options() | khepri:tree_options(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
       Ret :: khepri_adv:single_result() | khepri_machine:async_ret().
 %% @doc Updates an existing tree node with the given payload only if its data
 %% matches the given pattern.
 %%
-%% Calling this function is the same as calling `compare_and_swap(StoreId,
-%% PathPattern, DataPattern, Data, Extra, Options)' with an empty `Extra' or
-%% `Options'.
-%%
-%% @see compare_and_swap/6.
-
-compare_and_swap(
-  StoreId, PathPattern, DataPattern, Data, #{keep_while := _} = Extra) ->
-    compare_and_swap(StoreId, PathPattern, DataPattern, Data, Extra, #{});
-compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) ->
-    compare_and_swap(StoreId, PathPattern, DataPattern, Data, #{}, Options).
-
--spec compare_and_swap(
-        StoreId, PathPattern, DataPattern, Data, Extra, Options) ->
-    Ret when
-      StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
-      DataPattern :: ets:match_pattern(),
-      Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_adv:single_result() | khepri_machine:async_ret().
-%% @doc Updates an existing tree node with the given payload only if its data
-%% matches the given pattern.
-%%
-%% The behavior is the same as {@link put/5} except that if the tree node
+%% The behavior is the same as {@link put/4} except that if the tree node
 %% already exists, an `{error, {mismatching_node, Info}}' tuple is returned.
 %%
 %% Internally, the `PathPattern' is modified to include an
@@ -846,42 +729,43 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) ->
 %% @param Data the Erlang term or function to store, or a {@link
 %%        khepri_payload:payload()} structure.
 %% @param Extra extra options such as `keep_while' conditions.
-%% @param Options command options such as the command type.
+%% @param Options command options.
 %%
 %% @returns in the case of a synchronous call, an `{ok, NodeProps}' tuple or
 %% an `{error, Reason}' tuple; in the case of an asynchronous call, always
 %% `ok' (the actual return value may be sent by a message if a correlation ID
 %% was specified).
 %%
-%% @see put/5.
-%% @see khepri:compare_and_swap/6.
+%% @see put/4.
+%% @see khepri:compare_and_swap/5.
 
-compare_and_swap(StoreId, PathPattern, DataPattern, Data, Extra, Options) ->
+compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     PathPattern2 = khepri_path:combine_with_conditions(
                      PathPattern1, [#if_data_matches{pattern = DataPattern}]),
     Options1 = Options#{expect_specific_node => true},
-    Ret = do_put(StoreId, PathPattern2, Data, Extra, Options1),
+    Ret = do_put(StoreId, PathPattern2, Data, Options1),
     ?common_ret_to_single_result_ret(Ret).
 
 %% -------------------------------------------------------------------
 %% do_put().
 %% -------------------------------------------------------------------
 
--spec do_put(StoreId, PathPattern, Payload, Extra, Options) -> Ret when
+-spec do_put(StoreId, PathPattern, Payload, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Payload :: khepri_payload:payload() | khepri:data() | fun(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:command_options() | khepri:tree_options(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
       Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
 %% @doc Prepares the payload and calls {@link khepri_machine:put/5}.
 %%
 %% @private
 
-do_put(StoreId, PathPattern, Payload, Extra, Options) ->
+do_put(StoreId, PathPattern, Payload, Options) ->
     Payload1 = khepri_payload:wrap(Payload),
-    khepri_machine:put(StoreId, PathPattern, Payload1, Extra, Options).
+    khepri_machine:put(StoreId, PathPattern, Payload1, Options).
 
 %% -------------------------------------------------------------------
 %% delete().
@@ -1101,7 +985,7 @@ delete_many(StoreId, PathPattern, Options) ->
 %% khepri_cluster:get_default_store_id/0}).
 %%
 %% @see delete_payload/2.
-%% @see delete_payload/4.
+%% @see delete_payload/3.
 
 delete_payload(PathPattern) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -1115,59 +999,41 @@ delete_payload(PathPattern) ->
 %% pattern.
 %%
 %% Calling this function is the same as calling `delete_payload(StoreId,
-%% PathPattern, #{}, #{})'.
+%% PathPattern, #{})'.
 %%
-%% @see delete_payload/4.
+%% @see delete_payload/3.
 
 delete_payload(StoreId, PathPattern) ->
-    delete_payload(StoreId, PathPattern, #{}, #{}).
+    delete_payload(StoreId, PathPattern, #{}).
 
--spec delete_payload(StoreId, PathPattern, Extra | Options) -> Ret when
+-spec delete_payload(StoreId, PathPattern, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_adv:single_result() | khepri_machine:async_ret().
-%% @doc Deletes the payload of the tree node pointed to by the given path
-%% pattern.
-%%
-%% Calling this function is the same as calling `delete_payload(StoreId,
-%% PathPattern, Extra, Options)' with an empty `Extra' or `Options'.
-%%
-%% @see delete_payload/4.
-
-delete_payload(StoreId, PathPattern, #{keep_while := _} = Extra) ->
-    delete_payload(StoreId, PathPattern, Extra, #{});
-delete_payload(StoreId, PathPattern, Options) ->
-    delete_payload(StoreId, PathPattern, #{}, Options).
-
--spec delete_payload(StoreId, PathPattern, Extra, Options) -> Ret when
-      StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:command_options() | khepri:tree_options(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
       Ret :: khepri_adv:single_result() | khepri_machine:async_ret().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
 %% In other words, the payload is set to {@link khepri_payload:no_payload()}.
-%% Otherwise, the behavior is that of {@link update/5}.
+%% Otherwise, the behavior is that of {@link update/4}.
 %%
 %% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the tree node to modify.
 %% @param Extra extra options such as `keep_while' conditions.
-%% @param Options command options such as the command type.
+%% @param Options command options.
 %%
 %% @returns in the case of a synchronous call, an `{ok, NodeProps}' tuple or
 %% an `{error, Reason}' tuple; in the case of an asynchronous call, always
 %% `ok' (the actual return value may be sent by a message if a correlation ID
 %% was specified).
 %%
-%% @see update/5.
-%% @see khepri:delete_payload/4.
+%% @see update/4.
+%% @see khepri:delete_payload/3.
 
-delete_payload(StoreId, PathPattern, Extra, Options) ->
-    Ret = update(StoreId, PathPattern, khepri_payload:none(), Extra, Options),
+delete_payload(StoreId, PathPattern, Options) ->
+    Ret = update(StoreId, PathPattern, khepri_payload:none(), Options),
     case Ret of
         {error, {node_not_found, _}} -> {ok, #{}};
         _                            -> Ret
@@ -1187,7 +1053,7 @@ delete_payload(StoreId, PathPattern, Extra, Options) ->
 %% khepri_cluster:get_default_store_id/0}).
 %%
 %% @see delete_many_payloads/2.
-%% @see delete_many_payloads/4.
+%% @see delete_many_payloads/3.
 
 delete_many_payloads(PathPattern) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -1200,47 +1066,30 @@ delete_many_payloads(PathPattern) ->
 %% @doc Deletes the payload of all tree nodes matching the given path pattern.
 %%
 %% Calling this function is the same as calling `delete_many_payloads(StoreId,
-%% PathPattern, #{}, #{})'.
+%% PathPattern, #{})'.
 %%
-%% @see delete_many_payloads/4.
+%% @see delete_many_payloads/3.
 
 delete_many_payloads(StoreId, PathPattern) ->
-    delete_many_payloads(StoreId, PathPattern, #{}, #{}).
+    delete_many_payloads(StoreId, PathPattern, #{}).
 
--spec delete_many_payloads(StoreId, PathPattern, Extra | Options) ->
+-spec delete_many_payloads(StoreId, PathPattern, Options) ->
     Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
-%% @doc Deletes the payload of all tree nodes matching the given path pattern.
-%%
-%% Calling this function is the same as calling `delete_many_payloads(StoreId,
-%% PathPattern, Extra, Options)' with an empty `Extra' or `Options'.
-%%
-%% @see delete_many_payloads/4.
-
-delete_many_payloads(StoreId, PathPattern, #{keep_while := _} = Extra) ->
-    delete_many_payloads(StoreId, PathPattern, Extra, #{});
-delete_many_payloads(StoreId, PathPattern, Options) ->
-    delete_many_payloads(StoreId, PathPattern, #{}, Options).
-
--spec delete_many_payloads(StoreId, PathPattern, Extra, Options) -> Ret when
-      StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
-      Extra :: #{keep_while => khepri_condition:keep_while()},
-      Options :: khepri:command_options() | khepri:tree_options(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
       Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
 %% @doc Deletes the payload of all tree nodes matching the given path pattern.
 %%
 %% In other words, the payload is set to {@link khepri_payload:no_payload()}.
-%% Otherwise, the behavior is that of {@link put/5}.
+%% Otherwise, the behavior is that of {@link put/4}.
 %%
 %% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the tree nodes to modify.
 %% @param Extra extra options such as `keep_while' conditions.
-%% @param Options command options such as the command type.
+%% @param Options command options.
 %%
 %% @returns in the case of a synchronous call, an `{ok, NodePropsMap}' tuple
 %% or an `{error, Reason}' tuple; in the case of an asynchronous call, always
@@ -1248,11 +1097,11 @@ delete_many_payloads(StoreId, PathPattern, Options) ->
 %% was specified).
 %%
 %% @see delete_many/3.
-%% @see put/5.
-%% @see khepri:delete_many_payloads/4.
+%% @see put/4.
+%% @see khepri:delete_many_payloads/3.
 
-delete_many_payloads(StoreId, PathPattern, Extra, Options) ->
+delete_many_payloads(StoreId, PathPattern, Options) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     PathPattern2 = khepri_path:combine_with_conditions(
                      PathPattern1, [#if_node_exists{exists = true}]),
-    do_put(StoreId, PathPattern2, khepri_payload:none(), Extra, Options).
+    do_put(StoreId, PathPattern2, khepri_payload:none(), Options).

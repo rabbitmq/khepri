@@ -51,18 +51,7 @@ create_existing_node_test_() ->
              node_is_target => true,
              node_props => #{data => foo_value1,
                              payload_version => 1}}}},
-         khepri_adv:create(?FUNCTION_NAME, [foo], foo_value2, #{})),
-      ?_assertEqual(
-         {error,
-          {mismatching_node,
-           #{condition => #if_node_exists{exists = false},
-             node_name => foo,
-             node_path => [foo],
-             node_is_target => true,
-             node_props => #{data => foo_value1,
-                             payload_version => 1}}}},
-         khepri_adv:create(
-           ?FUNCTION_NAME, [foo], foo_value2, #{keep_while => #{}}))]}.
+         khepri_adv:create(?FUNCTION_NAME, [foo], foo_value2, #{}))]}.
 
 invalid_create_call_test_() ->
     {setup,
@@ -71,7 +60,7 @@ invalid_create_call_test_() ->
      [?_assertError(
          {khepri,
           invalid_call,
-          "Invalid use of khepri_adv:create/5:\n"
+          "Invalid use of khepri_adv:create/4:\n"
           "Called with a path pattern which could match many nodes:\n"
           ++ _},
          khepri_adv:create(?FUNCTION_NAME, [?STAR], foo_value))]}.
@@ -106,11 +95,6 @@ insert_existing_node_test_() ->
       ?_assertEqual(
          {ok, #{data => foo_value2,
                 payload_version => 2}},
-         khepri_adv:put(
-           ?FUNCTION_NAME, [foo], foo_value2, #{keep_while => #{}})),
-      ?_assertEqual(
-         {ok, #{data => foo_value2,
-                payload_version => 2}},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
 invalid_put_call_test_() ->
@@ -120,7 +104,7 @@ invalid_put_call_test_() ->
      [?_assertError(
          {khepri,
           invalid_call,
-          "Invalid use of khepri_adv:put/5:\n"
+          "Invalid use of khepri_adv:put/4:\n"
           "Called with a path pattern which could match many nodes:\n"
           ++ _},
          khepri_adv:put(?FUNCTION_NAME, [?STAR], foo_value))]}.
@@ -174,14 +158,6 @@ insert_many_existing_nodes_test_() ->
                               payload_version => 2},
                 [b, foo] => #{data => foo_value_all,
                               payload_version => 2}}},
-         khepri_adv:put_many(
-           ?FUNCTION_NAME, [?STAR, foo], foo_value_all,
-           #{keep_while => #{}})),
-      ?_assertEqual(
-         {ok, #{[a, foo] => #{data => foo_value_all,
-                              payload_version => 2},
-                [b, foo] => #{data => foo_value_all,
-                              payload_version => 2}}},
          khepri_adv:get_many(?FUNCTION_NAME, [?STAR, foo]))]}.
 
 update_non_existing_node_test_() ->
@@ -207,18 +183,7 @@ update_non_existing_node_test_() ->
              node_name => foo,
              node_path => [foo],
              node_is_target => true}}},
-         khepri_adv:update(?FUNCTION_NAME, [foo], foo_value, #{})),
-      ?_assertEqual(
-         {error,
-          {node_not_found,
-           #{condition => #if_all{conditions =
-                                  [foo,
-                                   #if_node_exists{exists = true}]},
-             node_name => foo,
-             node_path => [foo],
-             node_is_target => true}}},
-         khepri_adv:update(
-           ?FUNCTION_NAME, [foo], foo_value, #{keep_while => #{}}))]}.
+         khepri_adv:update(?FUNCTION_NAME, [foo], foo_value, #{}))]}.
 
 update_existing_node_test_() ->
     {setup,
@@ -243,7 +208,7 @@ invalid_update_call_test_() ->
      [?_assertError(
          {khepri,
           invalid_call,
-          "Invalid use of khepri_adv:update/5:\n"
+          "Invalid use of khepri_adv:update/4:\n"
           "Called with a path pattern which could match many nodes:\n"
           ++ _},
          khepri_adv:update(?FUNCTION_NAME, [?STAR], foo_value))]}.
@@ -300,7 +265,7 @@ compare_and_swap_mismatching_node_test_() ->
          khepri_adv:compare_and_swap(
            ?FUNCTION_NAME, [foo], foo_value2, foo_value3))]}.
 
-compare_and_swap_with_keep_while_or_options_test_() ->
+compare_and_swap_with_options_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -312,16 +277,10 @@ compare_and_swap_with_keep_while_or_options_test_() ->
                 payload_version => 2}},
          khepri_adv:compare_and_swap(
            ?FUNCTION_NAME, [foo], foo_value1, foo_value2,
-           #{keep_while => #{}})),
-      ?_assertEqual(
-         {ok, #{data => foo_value2,
-                payload_version => 3}},
-         khepri_adv:compare_and_swap(
-           ?FUNCTION_NAME, [foo], foo_value2, foo_value3,
            #{async => false})),
       ?_assertEqual(
-         {ok, #{data => foo_value3,
-                payload_version => 3}},
+         {ok, #{data => foo_value2,
+                payload_version => 2}},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
 invalid_compare_and_swap_call_test_() ->
@@ -331,7 +290,7 @@ invalid_compare_and_swap_call_test_() ->
      [?_assertError(
          {khepri,
           invalid_call,
-          "Invalid use of khepri_adv:compare_and_swap/6:\n"
+          "Invalid use of khepri_adv:compare_and_swap/5:\n"
           "Called with a path pattern which could match many nodes:\n"
           ++ _},
          khepri_adv:compare_and_swap(

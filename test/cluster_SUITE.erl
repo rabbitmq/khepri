@@ -1029,15 +1029,11 @@ can_start_store_in_specified_data_dir_on_single_node(_Config) ->
     ?assert(filelib:is_dir(DataDir)),
 
     ?assertEqual(ok, khepri:create(StoreId, [foo], value1, #{})),
-    ?assertMatch(
-       {error, {mismatching_node, _}},
-       khepri:create(StoreId, [foo], value1, #{keep_while => #{}})),
-    ?assertEqual(ok, khepri:put(StoreId, [foo], value2)),
+    ?assertEqual(ok, khepri:put(StoreId, [foo], value2, #{})),
     ?assertEqual(ok, khepri:update(StoreId, [foo], value3, #{})),
     ?assertEqual(
        ok,
-       khepri:update(StoreId, [foo], value3, #{keep_while => #{}})),
-    ?assertEqual(ok, khepri:compare_and_swap([foo], value3, value4)),
+       khepri:compare_and_swap(StoreId, [foo], value3, value4, #{})),
 
     ?assertEqual(true, khepri:exists([foo], #{})),
     ?assertEqual({ok, value4}, khepri:get([foo], #{})),

@@ -51,10 +51,7 @@ put_test_() ->
          khepri:'put!'(?FUNCTION_NAME, [foo], value2, #{})),
       ?_assertEqual(
          ok,
-         khepri:'put!'(?FUNCTION_NAME, [foo], value3, #{}, #{})),
-      ?_assertEqual(
-         ok,
-         khepri:'put!'(?FUNCTION_NAME, [foo], value4, #{async => true})),
+         khepri:'put!'(?FUNCTION_NAME, [foo], value3, #{async => true})),
       ?_assertError(noproc, khepri:'put!'([foo], value))
      ]}.
 
@@ -74,15 +71,6 @@ create_test_() ->
             node_props := #{data := value1,
                             payload_version := 1}}},
          khepri:'create!'(?FUNCTION_NAME, [foo], value2, #{})),
-      ?_assertError(
-         {mismatching_node,
-          #{condition := #if_node_exists{exists = false},
-            node_name := foo,
-            node_path := [foo],
-            node_is_target := true,
-            node_props := #{data := value1,
-                            payload_version := 1}}},
-         khepri:'create!'(?FUNCTION_NAME, [foo], value3, #{}, #{})),
       ?_assertError(noproc, khepri:'create!'([foo], value))
      ]}.
 
@@ -105,9 +93,6 @@ update_test_() ->
       ?_assertEqual(
          ok,
          khepri:'update!'(?FUNCTION_NAME, [foo], value2, #{})),
-      ?_assertEqual(
-         ok,
-         khepri:'update!'(?FUNCTION_NAME, [foo], value3, #{}, #{})),
       ?_assertError(noproc, khepri:'update!'([foo], value))
      ]}.
 
@@ -131,16 +116,6 @@ compare_and_swap_test_() ->
          ok,
          khepri:'compare_and_swap!'(
                   ?FUNCTION_NAME, [foo], value1, value2, #{})),
-      ?_assertError(
-         {mismatching_node,
-          #{condition := #if_data_matches{pattern = value1},
-            node_name := foo,
-            node_path := [foo],
-            node_is_target := true,
-            node_props := #{data := value2,
-                            payload_version := 2}}},
-         khepri:'compare_and_swap!'(
-                  ?FUNCTION_NAME, [foo], value1, value3, #{}, #{})),
       ?_assertError(
          noproc,
          khepri:'compare_and_swap!'([foo], old_value, new_value))
