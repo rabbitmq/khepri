@@ -11,6 +11,7 @@
 
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
+-include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
 get_test_() ->
@@ -31,10 +32,10 @@ get_test_() ->
 
       %% Get non-existing node.
       ?_assertError(
-         {node_not_found, _},
+         ?khepri_error(node_not_found, _),
          khepri:'get!'(?FUNCTION_NAME, [bar])),
       ?_assertError(
-         {node_not_found, _},
+         ?khepri_error(node_not_found, _),
          khepri:'get!'(?FUNCTION_NAME, [bar], #{})),
       ?_assertError(noproc, khepri:'get!'([foo]))
      ]}.
@@ -63,13 +64,14 @@ create_test_() ->
          ok,
          khepri:'create!'(?FUNCTION_NAME, [foo], value1)),
       ?_assertError(
-         {mismatching_node,
-          #{condition := #if_node_exists{exists = false},
-            node_name := foo,
-            node_path := [foo],
-            node_is_target := true,
-            node_props := #{data := value1,
-                            payload_version := 1}}},
+         ?khepri_error(
+            mismatching_node,
+            #{condition := #if_node_exists{exists = false},
+              node_name := foo,
+              node_path := [foo],
+              node_is_target := true,
+              node_props := #{data := value1,
+                              payload_version := 1}}),
          khepri:'create!'(?FUNCTION_NAME, [foo], value2, #{})),
       ?_assertError(noproc, khepri:'create!'([foo], value))
      ]}.
@@ -79,13 +81,14 @@ update_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         {node_not_found,
-          #{condition := #if_all{conditions =
-                                 [foo,
-                                  #if_node_exists{exists = true}]},
-            node_name := foo,
-            node_path := [foo],
-            node_is_target := true}},
+         ?khepri_error(
+            node_not_found,
+            #{condition := #if_all{conditions =
+                                   [foo,
+                                    #if_node_exists{exists = true}]},
+              node_name := foo,
+              node_path := [foo],
+              node_is_target := true}),
          khepri:'update!'(?FUNCTION_NAME, [foo], value1)),
       ?_assertEqual(
          ok,
@@ -101,13 +104,14 @@ compare_and_swap_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         {node_not_found,
-          #{condition := #if_all{conditions =
-                                 [foo,
-                                  #if_data_matches{pattern = value0}]},
-            node_name := foo,
-            node_path := [foo],
-            node_is_target := true}},
+         ?khepri_error(
+            node_not_found,
+            #{condition := #if_all{conditions =
+                                   [foo,
+                                    #if_data_matches{pattern = value0}]},
+              node_name := foo,
+              node_path := [foo],
+              node_is_target := true}),
          khepri:'compare_and_swap!'(?FUNCTION_NAME, [foo], value0, value1)),
       ?_assertEqual(
          ok,

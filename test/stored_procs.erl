@@ -12,6 +12,7 @@
 -include("include/khepri.hrl").
 -include("src/khepri_fun.hrl").
 -include("src/internal.hrl").
+-include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
 store_and_get_sproc_test_() ->
@@ -62,12 +63,15 @@ execute_nonexisting_sproc_test_() ->
      [{inorder,
        [{"Execute the stored procedure",
          ?_assertThrow(
-            {invalid_sproc_fun,
-             {error,
-              {node_not_found,
-               #{node_name := sproc,
-                 node_path := StoredProcPath,
-                 node_is_target := true}}}},
+            ?khepri_error(
+            failed_to_get_sproc,
+            #{path := StoredProcPath,
+              args := [],
+              error := ?khepri_error(
+                          node_not_found,
+                          #{node_name := sproc,
+                            node_path := StoredProcPath,
+                            node_is_target := true})}),
             khepri:run_sproc(
               ?FUNCTION_NAME, StoredProcPath, []))}]
       }]}.
@@ -87,11 +91,12 @@ try_to_execute_data_test_() ->
 
         {"Execute the stored procedure",
          ?_assertThrow(
-            {invalid_sproc_fun,
-             {no_sproc,
-              StoredProcPath,
-              #{data := value,
-                payload_version := 1}}},
+            ?khepri_exception(
+            denied_execution_of_non_sproc_node,
+            #{path := StoredProcPath,
+              args := [],
+              node_props := #{data := value,
+                              payload_version := 1}}),
             khepri:run_sproc(
               ?FUNCTION_NAME, StoredProcPath, []))}]
       }]}.

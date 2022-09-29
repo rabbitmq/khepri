@@ -130,7 +130,7 @@ get(PathPattern, Options) when is_map(Options) ->
 %%
 %% The returned `{ok, NodeProps}' tuple contains a map with the properties and
 %% payload (if any) of the targeted tree node. If the tree node is not found,
-%% `{error, {node_not_found, Info}' is returned.
+%% `{error, ?khepri_error(node_not_found, Info)}' is returned.
 %%
 %% Example: query a tree node which holds the atom `value'
 %% ```
@@ -148,7 +148,8 @@ get(PathPattern, Options) when is_map(Options) ->
 %% Example: query a non-existent tree node
 %% ```
 %% %% Query the tree node at `/:non_existent'.
-%% {error, {node_not_found, _}} = khepri_adv:get(StoreId, [non_existent]).
+%% {error, ?khepri_error(node_not_found, _)} = khepri_adv:get(
+%%                                               StoreId, [non_existent]).
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.
@@ -554,7 +555,8 @@ create(StoreId, PathPattern, Data) ->
 %% @doc Creates a tree node with the given payload.
 %%
 %% The behavior is the same as {@link put/4} except that if the tree node
-%% already exists, an `{error, {mismatching_node, Info}}' tuple is returned.
+%% already exists, an `{error, ?khepri_error(mismatching_node, Info)}' tuple
+%% is returned.
 %%
 %% Internally, the `PathPattern' is modified to include an
 %% `#if_node_exists{exists = false}' condition on its last component.
@@ -583,8 +585,6 @@ create(StoreId, PathPattern, Data, Options) ->
         {ok, NodePropsMaps} ->
             [NodeProps] = maps:values(NodePropsMaps),
             {ok, NodeProps};
-        {error, {possibly_matching_many_nodes_denied, _}} ->
-            ?reject_path_targetting_many_nodes(PathPattern);
         Error ->
             Error
     end.
@@ -636,7 +636,8 @@ update(StoreId, PathPattern, Data) ->
 %% @doc Updates an existing tree node with the given payload.
 %%
 %% The behavior is the same as {@link put/4} except that if the tree node
-%% already exists, an `{error, {mismatching_node, Info}}' tuple is returned.
+%% already exists, an `{error, ?khepri_error(mismatching_node, Info)}' tuple
+%% is returned.
 %%
 %% Internally, the `PathPattern' is modified to include an
 %% `#if_node_exists{exists = true}' condition on its last component.
@@ -719,7 +720,8 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data) ->
 %% matches the given pattern.
 %%
 %% The behavior is the same as {@link put/4} except that if the tree node
-%% already exists, an `{error, {mismatching_node, Info}}' tuple is returned.
+%% already exists, an `{error, ?khepri_error(mismatching_node, Info)}' tuple
+%% is returned.
 %%
 %% Internally, the `PathPattern' is modified to include an
 %% `#if_data_matches{pattern = DataPattern}' condition on its last component.
@@ -872,8 +874,6 @@ delete(StoreId, PathPattern, Options) ->
                             []   -> #{}
                         end,
             {ok, NodeProps};
-        {error, {possibly_matching_many_nodes_denied, _}} ->
-            ?reject_path_targetting_many_nodes(PathPattern);
         Error ->
             Error
     end.
@@ -1035,8 +1035,8 @@ delete_payload(StoreId, PathPattern) ->
 delete_payload(StoreId, PathPattern, Options) ->
     Ret = update(StoreId, PathPattern, khepri_payload:none(), Options),
     case Ret of
-        {error, {node_not_found, _}} -> {ok, #{}};
-        _                            -> Ret
+        {error, ?khepri_error(node_not_found, _)} -> {ok, #{}};
+        _                                         -> Ret
     end.
 
 %% -------------------------------------------------------------------

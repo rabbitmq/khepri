@@ -14,6 +14,7 @@
 -include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
+-include("src/khepri_error.hrl").
 -include("src/khepri_fun.hrl").
 -include("src/internal.hrl").
 
@@ -30,8 +31,13 @@ to_standalone_fun(Fun) when is_function(Fun) ->
     try
         khepri_fun:to_standalone_fun(Fun, Options)
     catch
-        throw:Error ->
-            throw({invalid_sproc_fun, Error})
+        throw:Error:Stacktrace ->
+            erlang:error(
+              ?khepri_exception(
+                 failed_to_prepare_sproc_fun,
+                 #{'fun' => Fun,
+                   error => Error,
+                   stacktrace => Stacktrace}))
     end;
 to_standalone_fun(#standalone_fun{} = Fun) ->
     Fun.

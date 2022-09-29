@@ -27,6 +27,7 @@
 -include("src/khepri_fun.hrl").
 -include("src/internal.hrl").
 -include("src/khepri_machine.hrl").
+-include("src/khepri_error.hrl").
 
 -export([get/3,
          count/3,
@@ -242,7 +243,8 @@ put(StoreId, PathPattern, Payload, Options)
                    options = TreeOptions},
     process_command(StoreId, Command, CommandOptions);
 put(_StoreId, PathPattern, Payload, _Options) ->
-    throw({invalid_payload, PathPattern, Payload}).
+    ?khepri_misuse(invalid_payload, #{path => PathPattern,
+                                      payload => Payload}).
 
 -spec delete(StoreId, PathPattern, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -306,10 +308,12 @@ transaction(StoreId, Fun, ro, Options)
 transaction(StoreId, Fun, _ReadWrite, _Options)
   when ?IS_STORE_ID(StoreId) andalso is_function(Fun) ->
     {arity, Arity} = erlang:fun_info(Fun, arity),
-    throw({invalid_tx_fun, {requires_args, Arity}});
+    ?khepri_misuse(
+       denied_tx_fun_with_arguments,
+       #{'fun' => Fun, arity => Arity});
 transaction(StoreId, Term, _ReadWrite, _Options)
   when ?IS_STORE_ID(StoreId) ->
-    throw({invalid_tx_fun, Term}).
+    ?khepri_misuse(non_fun_term_used_as_tx_fun, #{term => Term}).
 
 -spec readonly_transaction(StoreId, Fun, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -357,7 +361,7 @@ handle_tx_exception(
   {exception, _, {aborted, Reason}, _}) ->
     {error, Reason};
 handle_tx_exception(
-  {exception, error, {khepri, _, _} = Reason, _Stacktrace}) ->
+  {exception, error, ?khepri_exception(_, _) = Reason, _Stacktrace}) ->
     %% If the exception is a programming misuse of Khepri, we
     %% re-throw a new exception instead of using `erlang:raise()'.
     %%
@@ -368,7 +372,7 @@ handle_tx_exception(
     %%
     %% By throwing a new exception, we increase the chance that there
     %% is a frame pointing to the transaction function.
-    erlang:error(Reason);
+    ?khepri_misuse(Reason);
 handle_tx_exception(
   {exception, Class, Reason, Stacktrace}) ->
     erlang:raise(Class, Reason, Stacktrace).
@@ -400,17 +404,24 @@ run_sproc(StoreId, PathPattern, Args, Options)
     Options1 = Options#{expect_specific_node => true},
     case get(StoreId, PathPattern, Options1) of
         {ok, NodePropsMap} ->
-            [Value] = maps:values(NodePropsMap),
-            case Value of
+            [NodeProps] = maps:values(NodePropsMap),
+            case NodeProps of
                 #{sproc := StandaloneFun} ->
                     khepri_sproc:run(StandaloneFun, Args);
                 _ ->
                     [Path] = maps:keys(NodePropsMap),
-                    throw({invalid_sproc_fun,
-                           {no_sproc, Path, Value}})
+                    throw(?khepri_exception(
+                             denied_execution_of_non_sproc_node,
+                             #{path => Path,
+                               args => Args,
+                               node_props => NodeProps}))
             end;
-        Error ->
-            throw({invalid_sproc_fun, Error})
+        {error, Reason} ->
+            throw(?khepri_error(
+                     failed_to_get_sproc,
+                     #{path => PathPattern,
+                       args => Args,
+                       error => Reason}))
     end.
 
 -spec register_trigger(
@@ -594,7 +605,7 @@ process_sync_command(StoreId, Command, Options) ->
             khepri_cluster:cache_leader_if_changed(
               StoreId, LeaderId, NewLeaderId),
             just_did_consistent_call(StoreId),
-            Ret;
+            ?raise_exception_if_any(Ret);
         {timeout, _} = TimedOut ->
             {error, TimedOut};
         {error, Reason}
@@ -756,7 +767,7 @@ process_query_response(
             khepri_cluster:cache_leader(StoreId, NewLeaderId)
     end,
     just_did_consistent_call(StoreId),
-    Ret;
+    ?raise_exception_if_any(Ret);
 process_query_response(
   StoreId, RaServer, IsLeader, _QueryFun, _QueryType, _Timeout,
   {ok, {_RaIndex, Ret}, NewLeaderId}) ->
@@ -767,7 +778,7 @@ process_query_response(
         false ->
             khepri_cluster:cache_leader(StoreId, NewLeaderId)
     end,
-    Ret;
+    ?raise_exception_if_any(Ret);
 process_query_response(
   _StoreId, _RaServer, _IsLeader, _QueryFun, _QueryType, _Timeout,
   {timeout, _} = TimedOut) ->
@@ -1361,7 +1372,8 @@ find_matching_nodes_cb(
     %%
     %% If we are counting nodes, that's fine and the next function clause will
     %% run. The walk won't be interrupted.
-    {error, {Reason, Info}};
+    Reason1 = ?khepri_error(Reason, Info),
+    {error, Reason1};
 find_matching_nodes_cb(_, {interrupted, _, _}, _, Result) ->
     {ok, keep, Result}.
 
@@ -1399,16 +1411,17 @@ insert_or_update_node(
                               {false, Reason} ->
                                   %% The keep_while condition is not met. We
                                   %% can't insert the node and return an
-                                  %% error.
+                                  %% error instead.
                                   NodeName = case Path of
                                                  [] -> ?ROOT_NODE;
                                                  _  -> lists:last(Path)
                                              end,
-                                  Info = #{node_name => NodeName,
-                                           node_path => Path,
-                                           keep_while_reason => Reason},
-                                  {error,
-                                   {keep_while_conditions_not_met, Info}}
+                                  Reason1 = ?khepri_error(
+                                               keep_while_conditions_not_met,
+                                               #{node_name => NodeName,
+                                                 node_path => Path,
+                                                 keep_while_reason => Reason}),
+                                  {error, Reason1}
                           end;
                       {ok, Node1, Result1} ->
                           {ok, Node1, {updated, Path, Result1}};
@@ -1513,10 +1526,12 @@ insert_or_update_node_cb(
             Node = create_node_record(khepri_payload:none()),
             {ok, Node, Result};
         false ->
-            {error, {Reason, Info}}
+            Reason1 = ?khepri_error(Reason, Info),
+            {error, Reason1}
     end;
 insert_or_update_node_cb(_, {interrupted, Reason, Info}, _, _, _) ->
-    {error, {Reason, Info}}.
+    Reason1 = ?khepri_error(Reason, Info),
+    {error, Reason1}.
 
 can_continue_update_after_node_not_found(#{condition := Condition}) ->
     can_continue_update_after_node_not_found1(Condition);
@@ -1965,13 +1980,23 @@ walk_down_the_tree1(
         {true, ?PARENT_NODE} ->
             %% TODO: Support calling Fun() with parent node based on
             %% conditions on child nodes.
-            {error, targets_dot_dot};
+            BadPathPattern =
+            lists:reverse([Condition | ReversedPath]) ++ PathPattern,
+            Exception = ?khepri_exception(
+                           condition_targets_parent_node,
+                           #{path => BadPathPattern,
+                             condition => Condition}),
+            {error, Exception};
         false ->
             %% The caller expects that the path matches a single specific node
             %% (no matter if it exists or not), but the condition could match
             %% several nodes.
-            BadPathPattern = lists:reverse([Condition | ReversedPath]),
-            {error, {possibly_matching_many_nodes_denied, BadPathPattern}}
+            BadPathPattern =
+            lists:reverse([Condition | ReversedPath]) ++ PathPattern,
+            Exception = ?khepri_exception(
+                           possibly_matching_many_nodes_denied,
+                           #{path => BadPathPattern}),
+            {error, Exception}
     end;
 walk_down_the_tree1(
   #node{child_nodes = Children} = CurrentNode,
@@ -2004,7 +2029,13 @@ walk_down_the_tree1(
         {true, ?PARENT_NODE} ->
             %% TODO: Support calling Fun() with parent node based on
             %% conditions on child nodes.
-            {error, targets_parent_node};
+            BadPathPattern =
+            lists:reverse([Condition | ReversedPath]) ++ PathPattern,
+            Exception = ?khepri_exception(
+                           condition_targets_parent_node,
+                           #{path => BadPathPattern,
+                             condition => Condition}),
+            {error, Exception};
         _ ->
             %% There is a special case if the current node is the root node.
             %% The caller can request that the root node's properties are

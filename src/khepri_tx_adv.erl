@@ -119,7 +119,13 @@ get_many(PathPattern, Options) ->
     PathPattern1 = path_from_string(PathPattern),
     {_QueryOptions, TreeOptions} = khepri_machine:split_query_options(Options),
     {#khepri_machine{root = Root}, _SideEffects} = get_tx_state(),
-    khepri_machine:find_matching_nodes(Root, PathPattern1, TreeOptions).
+    Ret = khepri_machine:find_matching_nodes(Root, PathPattern1, TreeOptions),
+    case Ret of
+        {error, ?khepri_exception(_, _) = Exception} ->
+            ?khepri_misuse(Exception);
+        _ ->
+            Ret
+    end.
 
 %% -------------------------------------------------------------------
 %% put().
@@ -360,8 +366,6 @@ delete(PathPattern, Options) ->
                             []   -> #{}
                         end,
             {ok, NodeProps};
-        {error, {possibly_matching_many_nodes_denied, _}} ->
-            ?reject_path_targetting_many_nodes(PathPattern);
         Error ->
             Error
     end.
@@ -439,8 +443,8 @@ delete_payload(PathPattern) ->
 delete_payload(PathPattern, Options) ->
     Ret = update(PathPattern, khepri_payload:none(), Options),
     case Ret of
-        {error, {node_not_found, _}} -> {ok, #{}};
-        _                            -> Ret
+        {error, ?khepri_error(node_not_found, _)} -> {ok, #{}};
+        _                                         -> Ret
     end.
 
 %% -------------------------------------------------------------------
@@ -497,8 +501,13 @@ to_standalone_fun(Fun, ReadWrite)
     try
         khepri_fun:to_standalone_fun(Fun, Options)
     catch
-        throw:Error ->
-            throw({invalid_tx_fun, Error})
+        throw:Error:Stacktrace ->
+            erlang:error(
+              ?khepri_exception(
+                 failed_to_prepare_tx_fun,
+                 #{'fun' => Fun,
+                   error => Error,
+                   stacktrace => Stacktrace}))
     end;
 to_standalone_fun(Fun, ro) ->
     Fun.
@@ -958,10 +967,10 @@ handle_state_for_call(Fun) ->
     case Fun(State) of
         {NewState, Ret, NewSideEffects} ->
             set_tx_state(NewState, SideEffects ++ NewSideEffects),
-            Ret;
+            ?raise_exception_if_any(Ret);
         {NewState, Ret} ->
             set_tx_state(NewState, SideEffects),
-            Ret
+            ?raise_exception_if_any(Ret)
     end.
 
 -spec get_tx_state() -> {State, SideEffects} when
@@ -1002,20 +1011,17 @@ get_tx_props() ->
 %% @private
 
 path_from_string(PathPattern) ->
-    try
-        PathPattern1 = khepri_path:from_string(PathPattern),
-        khepri_path:ensure_is_valid(PathPattern1),
-        PathPattern1
-    catch
-        throw:{invalid_path, _} = Reason ->
-            khepri_tx:abort(Reason)
-    end.
+    PathPattern1 = khepri_path:from_string(PathPattern),
+    khepri_path:ensure_is_valid(PathPattern1),
+    PathPattern1.
 
 -spec ensure_updates_are_allowed() -> ok | no_return().
 %% @private
 
 ensure_updates_are_allowed() ->
     case get_tx_props() of
-        #{allow_updates := true}  -> ok;
-        #{allow_updates := false} -> ?reject_update_in_ro_tx()
+        #{allow_updates := true} ->
+            ok;
+        #{allow_updates := false} ->
+            ?khepri_misuse(denied_update_in_readonly_tx, #{})
     end.

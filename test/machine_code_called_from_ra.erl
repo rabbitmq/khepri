@@ -11,6 +11,7 @@
 
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
+-include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
 -dialyzer([{nowarn_function,
@@ -54,7 +55,7 @@ delete_a_node_test_() ->
             end)},
         {"Checking the deleted key is gone",
          ?_assertMatch(
-            {error, {node_not_found, _}},
+            {error, ?khepri_error(node_not_found, _)},
             khepri:get(?FUNCTION_NAME, [foo]))}]}
      ]}.
 
@@ -120,19 +121,13 @@ use_an_invalid_path_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         {khepri,
-          invalid_path,
-          "Invalid path or path pattern passed to khepri_path:from_string/1:\n"
-          "not_a_list"},
+         ?khepri_exception(invalid_path, #{path := not_a_list}),
          khepri:put(
            ?FUNCTION_NAME,
            not_a_list,
            ?NO_PAYLOAD)),
       ?_assertError(
-         {khepri,
-          invalid_path,
-          "Invalid path or path pattern passed to khepri_path:from_string/2:\n"
-          "[\"not_a_component\"]"},
+         ?khepri_exception(invalid_path, #{path := ["not_a_component"]}),
          khepri:put(
            ?FUNCTION_NAME,
            ["not_a_component"],
@@ -142,15 +137,19 @@ use_an_invalid_payload_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_payload, [foo], invalid_payload},
+     [?_assertError(
+         ?khepri_exception(invalid_payload, #{path := [foo],
+                                              payload := invalid_payload}),
          khepri_machine:put(
            ?FUNCTION_NAME,
            [foo],
            invalid_payload,
            #{})),
-      ?_assertThrow(
-         {invalid_payload, [foo], {invalid_payload, in_a_tuple}},
+      ?_assertError(
+         ?khepri_exception(
+            invalid_payload,
+            #{path := [foo],
+              payload := {invalid_payload, in_a_tuple}}),
          khepri_machine:put(
            ?FUNCTION_NAME,
            [foo],

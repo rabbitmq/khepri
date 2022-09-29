@@ -12,6 +12,7 @@
 -include_lib("common_test/include/ct.hrl").
 
 -include("include/khepri.hrl").
+-include("src/khepri_error.hrl").
 
 -export([all/0,
          groups/0,
@@ -811,7 +812,9 @@ fail_to_join_if_not_started(Config) ->
 
     ct:pal("Cluster node"),
     ?assertEqual(
-       {error, {not_a_khepri_store, StoreId}},
+       {error, ?khepri_error(
+                  not_a_khepri_store,
+                  #{store_id => StoreId})},
        rpc:call(
          Node1, khepri_cluster, join, [StoreId, Node2])),
 
@@ -830,7 +833,10 @@ fail_to_join_non_existing_node(Config) ->
     ct:pal("Cluster node"),
     RemoteNode = non_existing@localhost,
     ?assertEqual(
-       {error, {nodedown, RemoteNode}},
+       {error, ?khepri_error(
+                  failed_to_join_remote_khepri_node,
+                  #{store_id => StoreId,
+                    node => RemoteNode})},
        khepri_cluster:join(StoreId, RemoteNode)),
 
     ThisMember = khepri_cluster:this_member(StoreId),
@@ -896,7 +902,7 @@ can_use_default_store_on_single_node(_Config) ->
     ?assertEqual(ok, khepri:compare_and_swap([foo], value3, value4)),
 
     ?assertMatch(
-       {error, {mismatching_node, _}},
+       {error, ?khepri_error(mismatching_node, _)},
         khepri_adv:create([foo], value1)),
     ?assertEqual(
        {ok, #{data => value4,
@@ -955,9 +961,12 @@ can_use_default_store_on_single_node(_Config) ->
     ?assertEqual(true, khepri:has_data([foo])),
     ?assertEqual(false, khepri:is_sproc([foo])),
     ?assertThrow(
-       {invalid_sproc_fun,
-        {no_sproc, [foo], #{data := value4,
-                            payload_version := 7}}},
+       ?khepri_exception(
+          denied_execution_of_non_sproc_node,
+          #{path := [foo],
+            args := [],
+            node_props := #{data := value4,
+                            payload_version := 7}}),
        khepri:run_sproc([foo], [])),
     ?assertEqual({ok, 1}, khepri:count("**")),
     ?assertEqual(
@@ -1010,7 +1019,9 @@ can_use_default_store_on_single_node(_Config) ->
     ?assertEqual({error, noproc}, khepri:get([foo])),
 
     ?assertEqual({ok, StoreId}, khepri:start()),
-    ?assertMatch({error, {node_not_found, _}}, khepri:get([foo])),
+    ?assertMatch(
+       {error, ?khepri_error(node_not_found, _)},
+       khepri:get([foo])),
 
     ?assertEqual(ok, khepri:stop()),
     ?assertEqual(ok, application:stop(khepri)),
@@ -1047,9 +1058,12 @@ can_start_store_in_specified_data_dir_on_single_node(_Config) ->
     ?assertEqual(true, khepri:has_data([foo], #{})),
     ?assertEqual(false, khepri:is_sproc([foo], #{})),
     ?assertThrow(
-       {invalid_sproc_fun,
-        {no_sproc, [foo], #{data := value4,
-                            payload_version := 4}}},
+       ?khepri_exception(
+          denied_execution_of_non_sproc_node,
+          #{path := [foo],
+            args := [],
+            node_props := #{data := value4,
+                            payload_version := 4}}),
        khepri:run_sproc([foo], [], #{})),
     ?assertEqual({ok, 1}, khepri:count("**", #{})),
 
@@ -1062,7 +1076,9 @@ can_start_store_in_specified_data_dir_on_single_node(_Config) ->
     ?assertEqual({error, noproc}, khepri:get([foo])),
 
     ?assertEqual({ok, StoreId}, khepri:start(DataDir)),
-    ?assertMatch({error, {node_not_found, _}}, khepri:get([foo])),
+    ?assertMatch(
+       {error, ?khepri_error(node_not_found, _)},
+       khepri:get([foo])),
 
     ?assertEqual({ok, StoreId}, khepri:start(DataDir)),
     ?assertEqual(ok, khepri:reset(StoreId, 10000)),

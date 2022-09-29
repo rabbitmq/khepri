@@ -14,6 +14,7 @@
 -include_lib("stdlib/include/assert.hrl").
 
 -include("src/internal.hrl").
+-include("src/khepri_error.hrl").
 
 -export([get_default_timeout/0]).
 
@@ -46,6 +47,8 @@ get_default_timeout() ->
                "Invalid timeout set in `default_timeout` "
                "application environment: ~p",
                [Timeout]),
-            throw({invalid_timeout, Timeout})
+            ?khepri_misuse(
+               invalid_default_timeout_value,
+               #{default_timeout => Timeout})
     end,
     Timeout.

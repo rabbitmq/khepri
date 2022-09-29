@@ -11,6 +11,7 @@
 
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
+-include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
 favor_compromise_in_get_test_() ->
@@ -28,7 +29,7 @@ favor_compromise_in_get_test_() ->
                   ?FUNCTION_NAME)),
 
              ?assertMatch(
-                {error, {node_not_found, _}},
+                {error, ?khepri_error(node_not_found, _)},
                 khepri:get(
                   ?FUNCTION_NAME, [foo], #{favor => compromise})),
 
@@ -43,7 +44,7 @@ favor_compromise_in_get_test_() ->
              timer:sleep(1000),
 
              ?assertMatch(
-                {error, {node_not_found, _}},
+                {error, ?khepri_error(node_not_found, _)},
                 khepri:get(
                   ?FUNCTION_NAME, [foo], #{favor => compromise})),
 
@@ -56,7 +57,7 @@ favor_compromise_in_get_test_() ->
              timer:sleep(2000),
 
              ?assertMatch(
-                {error, {node_not_found, _}},
+                {error, ?khepri_error(node_not_found, _)},
                 khepri:get(
                   ?FUNCTION_NAME, [foo], #{favor => compromise})),
 
@@ -85,7 +86,7 @@ favor_consistency_in_get_test_() ->
                   ?FUNCTION_NAME)),
 
              ?assertMatch(
-                {error, {node_not_found, _}},
+                {error, ?khepri_error(node_not_found, _)},
                 khepri:get(
                   ?FUNCTION_NAME, [foo], #{favor => consistency})),
 
@@ -100,7 +101,7 @@ favor_consistency_in_get_test_() ->
              timer:sleep(1000),
 
              ?assertMatch(
-                {error, {node_not_found, _}},
+                {error, ?khepri_error(node_not_found, _)},
                 khepri:get(
                   ?FUNCTION_NAME, [foo], #{favor => consistency})),
 
@@ -129,7 +130,7 @@ favor_low_latency_in_get_test_() ->
                   ?FUNCTION_NAME)),
 
              ?assertMatch(
-                {error, {node_not_found, _}},
+                {error, ?khepri_error(node_not_found, _)},
                 khepri:get(
                   ?FUNCTION_NAME, [foo], #{favor => low_latency})),
 
@@ -142,7 +143,7 @@ favor_low_latency_in_get_test_() ->
                   ?FUNCTION_NAME)),
 
              ?assertMatch(
-                {error, {node_not_found, _}},
+                {error, ?khepri_error(node_not_found, _)},
                 khepri:get(
                   ?FUNCTION_NAME, [foo], #{favor => low_latency})),
 
@@ -175,7 +176,7 @@ favor_compromise_in_transaction_test_() ->
                   ?FUNCTION_NAME)),
 
              ?assertMatch(
-                {ok, {error, {node_not_found, _}}},
+                {ok, {error, ?khepri_error(node_not_found, _)}},
                 khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{favor => compromise})),
 
@@ -190,7 +191,7 @@ favor_compromise_in_transaction_test_() ->
              timer:sleep(1000),
 
              ?assertMatch(
-                {ok, {error, {node_not_found, _}}},
+                {ok, {error, ?khepri_error(node_not_found, _)}},
                 khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{favor => compromise})),
 
@@ -203,7 +204,7 @@ favor_compromise_in_transaction_test_() ->
              timer:sleep(2000),
 
              ?assertMatch(
-                {ok, {error, {node_not_found, _}}},
+                {ok, {error, ?khepri_error(node_not_found, _)}},
                 khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{favor => compromise})),
 
@@ -234,7 +235,7 @@ favor_consistency_in_transaction_test_() ->
                   ?FUNCTION_NAME)),
 
              ?assertMatch(
-                {ok, {error, {node_not_found, _}}},
+                {ok, {error, ?khepri_error(node_not_found, _)}},
                 khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{favor => consistency})),
 
@@ -249,7 +250,7 @@ favor_consistency_in_transaction_test_() ->
              timer:sleep(1000),
 
              ?assertMatch(
-                {ok, {error, {node_not_found, _}}},
+                {ok, {error, ?khepri_error(node_not_found, _)}},
                 khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{favor => consistency})),
 
@@ -280,7 +281,7 @@ favor_low_latency_in_transaction_test_() ->
                   ?FUNCTION_NAME)),
 
              ?assertMatch(
-                {ok, {error, {node_not_found, _}}},
+                {ok, {error, ?khepri_error(node_not_found, _)}},
                 khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{favor => low_latency})),
 
@@ -293,7 +294,7 @@ favor_low_latency_in_transaction_test_() ->
                   ?FUNCTION_NAME)),
 
              ?assertMatch(
-                {ok, {error, {node_not_found, _}}},
+                {ok, {error, ?khepri_error(node_not_found, _)}},
                 khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{favor => low_latency})),
 

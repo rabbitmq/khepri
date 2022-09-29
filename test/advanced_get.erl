@@ -12,6 +12,7 @@
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
 -include("src/khepri_fun.hrl").
+-include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
 get_non_existing_node_test_() ->
@@ -19,9 +20,9 @@ get_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {error, {node_not_found, #{node_name => foo,
-                                    node_path => [foo],
-                                    node_is_target => true}}},
+         {error, ?khepri_error(node_not_found, #{node_name => foo,
+                                                 node_path => [foo],
+                                                 node_is_target => true})},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
 get_existing_node_test_() ->
@@ -64,11 +65,9 @@ invalid_get_call_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         {khepri,
-          invalid_call,
-          "Invalid use of khepri_adv:get/3:\n"
-          "Called with a path pattern which could match many nodes:\n"
-          "[{if_name_matches,any,undefined}]"},
+         ?khepri_exception(
+            possibly_matching_many_nodes_denied,
+            #{path := _}),
          khepri_adv:get(?FUNCTION_NAME, [?STAR]))]}.
 
 get_many_non_existing_nodes_test_() ->
@@ -94,10 +93,10 @@ get_many_existing_nodes_test_() ->
                 [baz] => #{data => baz_value,
                            payload_version => 1}}},
          khepri_adv:get_many(?FUNCTION_NAME, [?STAR])),
-      ?_assertEqual(
-         {error,
-          {possibly_matching_many_nodes_denied,
-           [?STAR]}},
+      ?_assertError(
+         ?khepri_exception(
+            possibly_matching_many_nodes_denied,
+            #{path := [?STAR]}),
          khepri_adv:get_many(
            ?FUNCTION_NAME, [?STAR],
            #{expect_specific_node => true}))]}.

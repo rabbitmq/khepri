@@ -173,11 +173,11 @@ get_or(PathPattern, Default) ->
 
 get_or(PathPattern, Default, Options) ->
     case khepri_tx_adv:get(PathPattern, Options) of
-        {ok, #{data := Data}}           -> {ok, Data};
-        {ok, #{sproc := StandaloneFun}} -> {ok, StandaloneFun};
-        {ok, _}                         -> {ok, Default};
-        {error, {node_not_found, _}}    -> {ok, Default};
-        Error                           -> Error
+        {ok, #{data := Data}}                     -> {ok, Data};
+        {ok, #{sproc := StandaloneFun}}           -> {ok, StandaloneFun};
+        {ok, _}                                   -> {ok, Default};
+        {error, ?khepri_error(node_not_found, _)} -> {ok, Default};
+        Error                                     -> Error
     end.
 
 %% -------------------------------------------------------------------
@@ -281,14 +281,9 @@ exists(PathPattern, Options) ->
     Options1 = Options#{expect_specific_node => true,
                         props_to_return => []},
     case khepri_tx_adv:get_many(PathPattern, Options1) of
-        {ok, _} ->
-            true;
-        {error, {node_not_found, _}} ->
-            false;
-        {error, {possibly_matching_many_nodes_denied, _}} ->
-            ?reject_path_targetting_many_nodes(PathPattern);
-        Error ->
-            Error
+        {ok, _}                                   -> true;
+        {error, ?khepri_error(node_not_found, _)} -> false;
+        Error                                     -> Error
     end.
 
 %% -------------------------------------------------------------------
@@ -330,10 +325,8 @@ has_data(PathPattern, Options) ->
         {ok, NodePropsMap} ->
             [NodeProps] = maps:values(NodePropsMap),
             maps:get(has_data, NodeProps, false);
-        {error, {node_not_found, _}} ->
+        {error, ?khepri_error(node_not_found, _)} ->
             false;
-        {error, {possibly_matching_many_nodes_denied, _}} ->
-            ?reject_path_targetting_many_nodes(PathPattern);
         Error ->
             Error
     end.
@@ -377,10 +370,8 @@ is_sproc(PathPattern, Options) ->
         {ok, NodePropsMap} ->
             [NodeProps] = maps:values(NodePropsMap),
             maps:get(is_sproc, NodeProps, false);
-        {error, {node_not_found, _}} ->
+        {error, ?khepri_error(node_not_found, _)} ->
             false;
-        {error, {possibly_matching_many_nodes_denied, _}} ->
-            ?reject_path_targetting_many_nodes(PathPattern);
         Error ->
             Error
     end.
@@ -419,7 +410,12 @@ count(PathPattern, Options) ->
     PathPattern1 = khepri_tx_adv:path_from_string(PathPattern),
     {#khepri_machine{root = Root},
      _SideEffects} = khepri_tx_adv:get_tx_state(),
-    khepri_machine:count_matching_nodes(Root, PathPattern1, Options).
+    case khepri_machine:count_matching_nodes(Root, PathPattern1, Options) of
+        {error, ?khepri_exception(_, _) = Exception} ->
+            ?khepri_misuse(Exception);
+        Ret ->
+            Ret
+    end.
 
 %% -------------------------------------------------------------------
 %% put().

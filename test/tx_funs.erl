@@ -13,6 +13,7 @@
 -include("src/khepri_fun.hrl").
 -include("src/internal.hrl").
 -include("src/khepri_machine.hrl").
+-include("src/khepri_error.hrl").
 
 -dialyzer([{no_return, [allowed_khepri_tx_api_test/0,
                         allowed_erlang_module_api_test/0,
@@ -35,8 +36,8 @@
 -define(assertStandaloneFun(Expression),
         ?assertMatch(#standalone_fun{}, ?make_standalone_fun(Expression))).
 
--define(assertToFunThrow(Expected, Expression),
-        ?assertThrow(Expected, ?make_standalone_fun(Expression))).
+-define(assertToFunError(Expected, Expression),
+        ?assertError(Expected, ?make_standalone_fun(Expression))).
 
 -export([true/1, true/4]).
 
@@ -69,8 +70,10 @@ denied_khepri_tx_adv_run_3_test() ->
                       config = #config{store_id = ?FUNCTION_NAME,
                                        member = {?FUNCTION_NAME, node()}}
                      },
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {khepri_tx_adv, run, 3}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {khepri_tx_adv, run, 3}}}),
        _ = khepri_tx_adv:run(MachineState, fun() -> ok end, true)).
 
 allowed_erlang_expressions_add_test() ->
@@ -552,8 +555,10 @@ allowed_list_pattern_matching_test() ->
     ?assertEqual(c, khepri_fun:exec(ReverseHead, [])).
 
 denied_receive_block_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, receiving_message_denied},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := receiving_message_denied}),
        begin
            receive
                Msg -> Msg
@@ -561,8 +566,10 @@ denied_receive_block_test() ->
        end).
 
 denied_receive_after_block_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, receiving_message_denied},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := receiving_message_denied}),
        begin
            receive
                Msg -> Msg
@@ -572,15 +579,19 @@ denied_receive_after_block_test() ->
        end).
 
 denied_module_info_0_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {lists, module_info, 0}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {lists, module_info, 0}}}),
        begin
            _ = lists:module_info()
        end).
 
 denied_module_info_1_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {lists, module_info, 1}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {lists, module_info, 1}}}),
        begin
            _ = lists:module_info(compile)
        end).
@@ -692,78 +703,108 @@ allowed_record_test() ->
     ?assertStandaloneFun(Record#record.field).
 
 denied_builtin_make_ref_0_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {erlang, make_ref, 0}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {erlang, make_ref, 0}}}),
        _ = make_ref()).
 
 denied_erlang_make_ref_0_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {erlang, make_ref, 0}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {erlang, make_ref, 0}}}),
        _ = erlang:make_ref()).
 
 denied_builtin_node_0_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {node, 0}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {node, 0}}}),
        _ = node()).
 
 denied_erlang_node_0_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {node, 0}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {node, 0}}}),
        _ = erlang:node()).
 
 denied_builtin_node_1_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {node, 1}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {node, 1}}}),
        _ = node(list_to_pid("<0.0.0>"))).
 
 denied_erlang_node_1_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {node, 1}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {node, 1}}}),
        _ = erlang:node(list_to_pid("<0.0.0>"))).
 
 denied_builtin_nodes_0_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {erlang, nodes, 0}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {erlang, nodes, 0}}}),
        _ = nodes()).
 
 denied_erlang_nodes_0_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {erlang, nodes, 0}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {erlang, nodes, 0}}}),
        _ = erlang:nodes()).
 
 denied_builtin_nodes_1_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {erlang, nodes, 1}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {erlang, nodes, 1}}}),
        _ = nodes(visible)).
 
 denied_erlang_nodes_1_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {erlang, nodes, 1}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {erlang, nodes, 1}}}),
        _ = erlang:nodes(visible)).
 
 denied_builtin_self_0_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {self, 0}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {self, 0}}}),
        _ = self()).
 
 denied_erlang_self_0_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {self, 0}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {self, 0}}}),
        _ = erlang:self()).
 
 denied_builtin_send_2_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, sending_message_denied},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := sending_message_denied}),
        list_to_pid("<0.0.0>") ! msg).
 
 denied_erlang_send_2_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {erlang, send, 2}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {erlang, send, 2}}}),
        _ = erlang:send(list_to_pid("<0.0.0>"), msg)).
 
 denied_erlang_send_3_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {erlang, send, 3}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {erlang, send, 3}}}),
        _ = erlang:send(list_to_pid("<0.0.0>"), msg, [nosuspend])).
 
 %% `apply_last' instruction is used when the apply is the last call
@@ -771,14 +812,18 @@ denied_erlang_send_3_test() ->
 denied_apply_last_test() ->
     self() ! erlang,
     Module = receive Msg -> Msg end,
-    ?assertToFunThrow(
-       {invalid_tx_fun, dynamic_apply_denied},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := dynamic_apply_denied}),
        _ = Module:now()).
 denied_apply_test() ->
     self() ! erlang,
     Module = receive Msg -> Msg end,
-    ?assertToFunThrow(
-       {invalid_tx_fun, dynamic_apply_denied},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := dynamic_apply_denied}),
        c = hd(Module:tl([[a, b], c]))).
 
 allowed_dict_api_test() ->
@@ -794,8 +839,10 @@ allowed_io_lib_format_test() ->
        end).
 
 denied_io_api_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {io, format, 1}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {io, format, 1}}}),
        begin
            _ = io:format("")
        end).
@@ -820,8 +867,10 @@ allowed_logger_api_test() ->
        end).
 
 denied_logger_get_config_0_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {logger, get_config, 0}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {logger, get_config, 0}}}),
        begin
            _ = logger:get_config()
        end).
@@ -888,8 +937,10 @@ allowed_re_test() ->
        end).
 
 denied_re_version_test() ->
-    ?assertToFunThrow(
-       {invalid_tx_fun, {call_denied, {re, version, 0}}},
+    ?assertToFunError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {re, version, 0}}}),
        begin
            re:version()
        end).
@@ -910,16 +961,20 @@ when_readwrite_mode_is_true_test() ->
                    end,
                    rw),
                  standalone_fun)),
-    ?assertThrow(
-       {invalid_tx_fun, {call_denied, {self, 0}}},
+    ?assertError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {self, 0}}}),
        khepri_tx_adv:to_standalone_fun(
          fun() ->
                  _ = khepri_tx:get([foo]),
                  self() ! message
          end,
          rw)),
-    ?assertThrow(
-       {invalid_tx_fun, {call_denied, {self, 0}}},
+    ?assertError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {self, 0}}}),
        khepri_tx_adv:to_standalone_fun(
          fun() ->
                  _ = khepri_tx:put([foo], khepri_payload:data(value)),
@@ -1024,8 +1079,10 @@ when_readwrite_mode_is_auto_test() ->
                      end,
                      auto),
                    0)),
-    ?assertThrow(
-       {invalid_tx_fun, {call_denied, {self, 0}}},
+    ?assertError(
+       ?khepri_exception(
+          failed_to_prepare_tx_fun,
+          #{error := {call_denied, {self, 0}}}),
        khepri_tx_adv:to_standalone_fun(
          fun() ->
                  _ = khepri_tx:put([foo], khepri_payload:data(value)),

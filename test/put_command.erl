@@ -12,6 +12,7 @@
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
 -include("src/khepri_machine.hrl").
+-include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
 %% khepri:get_root/1 is unexported when compiled without `-DTEST'.
@@ -245,13 +246,14 @@ insert_a_node_with_condition_false_on_self_test() ->
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({error,
-                  {mismatching_node,
-                   #{node_name => foo,
-                     node_path => [foo],
-                     node_is_target => true,
-                     node_props => #{data => value1,
-                                     payload_version => 1},
-                     condition => Compiled}}}, Ret),
+                  ?khepri_error(
+                     mismatching_node,
+                     #{node_name => foo,
+                       node_path => [foo],
+                       node_is_target => true,
+                       node_props => #{data => value1,
+                                       payload_version => 1},
+                       condition => Compiled})}, Ret),
     ?assertEqual([], SE).
 
 insert_a_node_with_condition_true_on_self_using_dot_test() ->
@@ -307,13 +309,14 @@ insert_a_node_with_condition_false_on_self_using_dot_test() ->
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({error,
-                  {mismatching_node,
-                   #{node_name => foo,
-                     node_path => [foo],
-                     node_is_target => true,
-                     node_props => #{data => value1,
-                                     payload_version => 1},
-                     condition => Compiled}}}, Ret),
+                  ?khepri_error(
+                     mismatching_node,
+                     #{node_name => foo,
+                       node_path => [foo],
+                       node_is_target => true,
+                       node_props => #{data => value1,
+                                       payload_version => 1},
+                       condition => Compiled})}, Ret),
     ?assertEqual([], SE).
 
 insert_a_node_with_condition_true_on_parent_test() ->
@@ -369,13 +372,14 @@ insert_a_node_with_condition_false_on_parent_test() ->
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({error,
-                  {mismatching_node,
-                   #{node_name => foo,
-                     node_path => [foo],
-                     node_is_target => false,
-                     node_props => #{data => value1,
-                                     payload_version => 1},
-                     condition => Compiled}}}, Ret),
+                  ?khepri_error(
+                     mismatching_node,
+                     #{node_name => foo,
+                       node_path => [foo],
+                       node_is_target => false,
+                       node_props => #{data => value1,
+                                       payload_version => 1},
+                       condition => Compiled})}, Ret),
     ?assertEqual([], SE).
 
 %% The #if_node_exists{} is tested explicitly in addition to the testcases
@@ -431,11 +435,12 @@ insert_a_node_with_if_node_exists_true_on_self_test() ->
     ?assertEqual(S0#khepri_machine.root, S2#khepri_machine.root),
     ?assertEqual(#{applied_command_count => 1}, S2#khepri_machine.metrics),
     ?assertEqual({error,
-                  {node_not_found,
-                   #{node_name => baz,
-                     node_path => [baz],
-                     node_is_target => true,
-                     condition => Compiled}}}, Ret2),
+                  ?khepri_error(
+                     node_not_found,
+                     #{node_name => baz,
+                       node_path => [baz],
+                       node_is_target => true,
+                       condition => Compiled})}, Ret2),
     ?assertEqual([], SE2).
 
 insert_a_node_with_if_node_exists_false_on_self_test() ->
@@ -455,14 +460,15 @@ insert_a_node_with_if_node_exists_false_on_self_test() ->
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({error,
-                  {mismatching_node,
-                   #{node_name => foo,
-                     node_path => [foo],
-                     node_is_target => true,
-                     node_props => #{data => value1,
-                                     payload_version => 1},
-                     condition => #if_node_exists{exists = false}}}}, Ret1),
-    ?assertEqual([], SE1),
+                  ?khepri_error(
+                     mismatching_node,
+                     #{node_name => foo,
+                       node_path => [foo],
+                       node_is_target => true,
+                       node_props => #{data => value1,
+                                       payload_version => 1},
+                       condition => #if_node_exists{exists = false}})}, Ret1),
+                  ?assertEqual([], SE1),
 
     Command2 = #put{path = [#if_all{conditions =
                                     [baz,
@@ -542,11 +548,12 @@ insert_a_node_with_if_node_exists_true_on_parent_test() ->
     ?assertEqual(S0#khepri_machine.root, S2#khepri_machine.root),
     ?assertEqual(#{applied_command_count => 1}, S2#khepri_machine.metrics),
     ?assertEqual({error,
-                  {node_not_found,
-                   #{node_name => baz,
-                     node_path => [baz],
-                     node_is_target => false,
-                     condition => Compiled}}}, Ret2),
+                  ?khepri_error(
+                     node_not_found,
+                     #{node_name => baz,
+                       node_path => [baz],
+                       node_is_target => false,
+                       condition => Compiled})}, Ret2),
     ?assertEqual([], SE2).
 
 insert_a_node_with_if_node_exists_false_on_parent_test() ->
@@ -567,13 +574,14 @@ insert_a_node_with_if_node_exists_false_on_parent_test() ->
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({error,
-                  {mismatching_node,
-                   #{node_name => foo,
-                     node_path => [foo],
-                     node_is_target => false,
-                     node_props => #{data => value1,
-                                     payload_version => 1},
-                     condition => #if_node_exists{exists = false}}}}, Ret1),
+                  ?khepri_error(
+                     mismatching_node,
+                     #{node_name => foo,
+                       node_path => [foo],
+                       node_is_target => false,
+                       node_props => #{data => value1,
+                                       payload_version => 1},
+                       condition => #if_node_exists{exists = false}})}, Ret1),
     ?assertEqual([], SE1),
 
     Command2 = #put{path = [#if_all{conditions =
@@ -627,7 +635,9 @@ insert_with_a_path_matching_many_nodes_test() ->
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual(
        {error,
-        {possibly_matching_many_nodes_denied, [#if_name_matches{regex = any}]}},
+        ?khepri_exception(
+           possibly_matching_many_nodes_denied,
+           #{path => [#if_name_matches{regex = any}]})},
        Ret),
     ?assertEqual([], SE).
 

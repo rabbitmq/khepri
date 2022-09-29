@@ -12,6 +12,7 @@
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
 -include("src/khepri_machine.hrl").
+-include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
 %% khepri:get_root/1 is unexported when compiled without `-DTEST'. Likewise
@@ -111,11 +112,12 @@ insert_when_keep_while_false_test() ->
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({error,
-                  {keep_while_conditions_not_met,
-                   #{node_name => baz,
-                     node_path => [baz],
-                     keep_while_reason =>
-                     {pattern_matches_no_nodes, [foo, bar]}}}},
+                  ?khepri_error(
+                     keep_while_conditions_not_met,
+                     #{node_name => baz,
+                       node_path => [baz],
+                       keep_while_reason =>
+                       {pattern_matches_no_nodes, [foo, bar]}})},
                  Ret1),
     ?assertEqual([], SE1),
 
@@ -130,11 +132,12 @@ insert_when_keep_while_false_test() ->
     ?assertEqual(S0#khepri_machine.root, S2#khepri_machine.root),
     ?assertEqual(#{applied_command_count => 1}, S2#khepri_machine.metrics),
     ?assertEqual({error,
-                  {keep_while_conditions_not_met,
-                   #{node_name => baz,
-                     node_path => [baz],
-                     keep_while_reason =>
-                     #if_child_list_length{count = 10}}}},
+                  ?khepri_error(
+                     keep_while_conditions_not_met,
+                     #{node_name => baz,
+                       node_path => [baz],
+                       keep_while_reason =>
+                       #if_child_list_length{count = 10}})},
                  Ret2),
     ?assertEqual([], SE2).
 

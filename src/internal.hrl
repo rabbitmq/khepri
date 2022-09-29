@@ -79,8 +79,8 @@
             {ok, __NodePropsMap} ->
                 [__NodeProps] = maps:values(__NodePropsMap),
                 {ok, __NodeProps};
-            {error, {possibly_matching_many_nodes_denied, __BadPath}} ->
-                ?reject_path_targetting_many_nodes(__BadPath);
+            {error, ?khepri_exception(_, _) = __Exception} ->
+                ?khepri_misuse(__Exception);
             __Error ->
                 __Error
         end).
@@ -93,6 +93,8 @@
                 {ok, __StandaloneFun};
             {ok, _} ->
                 {ok, undefined};
+            {error, ?khepri_exception(_, _) = __Exception} ->
+                ?khepri_misuse(__Exception);
             __Error ->
                 __Error
         end).
@@ -110,6 +112,8 @@
                                           (__Default)
                                   end, __NodePropsMap),
                 {ok, __PayloadsMap};
+            {error, ?khepri_exception(_, _) = __Exception} ->
+                ?khepri_misuse(__Exception);
             __Error ->
                 __Error
         end).
@@ -118,4 +122,12 @@
         case (__Ret) of
             {ok, _} -> ok;
             __Other -> __Other
+        end).
+
+-define(raise_exception_if_any(__Ret),
+        case (__Ret) of
+            {error, ?khepri_exception(_, _) = __Exception} ->
+                ?khepri_misuse(__Exception);
+            _ ->
+                __Ret
         end).

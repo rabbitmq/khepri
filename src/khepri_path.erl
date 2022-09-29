@@ -204,6 +204,15 @@
               pattern_component/0,
               node_id/0]).
 
+-define(
+   reject_invalid_path(Path),
+   ?khepri_misuse(invalid_path, #{path => Path})).
+
+-define(
+   reject_invalid_path(Path, Component),
+   ?khepri_misuse(invalid_path, #{path => Path,
+                                  component => Component})).
+
 -spec compile(PathPattern) -> PathPattern when
       PathPattern :: native_pattern().
 %% @private
@@ -228,7 +237,7 @@ from_string(Binary) when is_binary(Binary) ->
     String = erlang:binary_to_list(Binary),
     from_string(String);
 from_string(NotPath) ->
-    ?report_invalid_path(NotPath).
+    ?reject_invalid_path(NotPath).
 
 -spec from_binary(String) -> PathPattern when
       String :: pattern(),
@@ -309,7 +318,7 @@ from_string([], ReversedPath) ->
 
 from_string(Rest, ReversedPath) ->
     NotPath = lists:reverse(ReversedPath) ++ Rest,
-    ?report_invalid_path(NotPath).
+    ?reject_invalid_path(NotPath).
 
 parse_atom_from_string(Rest, ReversedPath) ->
     parse_atom_from_string(Rest, "", ReversedPath).
@@ -435,7 +444,7 @@ component_to_string(Component)
   when is_binary(Component) andalso Component =/= <<>> ->
     percent_encode_string(erlang:binary_to_list(Component));
 component_to_string(<<>>) ->
-    throw(unsupported).
+    ?khepri_misuse(empty_binary_unsupported_in_string_based_path, #{}).
 
 -define(IS_HEX(Digit), (is_integer(Digit) andalso
                         ((Digit >= $0 andalso Digit =< $9) orelse
@@ -570,9 +579,10 @@ is_valid(NotPathPattern) ->
 
 ensure_is_valid(PathPattern) ->
     case is_valid(PathPattern) of
-        true               -> ok;
-        {false, Component} -> throw({invalid_path, #{path => PathPattern,
-                                                     component => Component}})
+        true ->
+            ok;
+        {false, Component} ->
+            ?reject_invalid_path(PathPattern, Component)
     end.
 
 -spec abspath(Path, BasePath) -> Path when

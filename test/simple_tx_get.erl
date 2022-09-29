@@ -12,6 +12,7 @@
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
 -include("src/khepri_fun.hrl").
+-include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
 get_non_existing_node_test_() ->
@@ -19,9 +20,10 @@ get_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {error, {node_not_found, #{node_name => foo,
-                                         node_path => [foo],
-                                         node_is_target => true}}}},
+         {ok,
+          {error, ?khepri_error(node_not_found, #{node_name => foo,
+                                                  node_path => [foo],
+                                                  node_is_target => true})}},
          begin
              Fun = fun() ->
                            khepri_tx:get([foo])
@@ -90,11 +92,9 @@ invalid_get_call_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         {khepri,
-          invalid_call,
-          "Invalid use of khepri_tx_adv:get/2:\n"
-          "Called with a path pattern which could match many nodes:\n"
-          "[{if_name_matches,any,undefined}]"},
+         ?khepri_exception(
+            possibly_matching_many_nodes_denied,
+            #{path := _}),
          begin
              Fun = fun() ->
                            khepri_tx:get([?STAR])
@@ -160,11 +160,9 @@ invalid_get_or_call_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         {khepri,
-          invalid_call,
-          "Invalid use of khepri_tx_adv:get/2:\n"
-          "Called with a path pattern which could match many nodes:\n"
-          "[{if_name_matches,any,undefined}]"},
+         ?khepri_exception(
+            possibly_matching_many_nodes_denied,
+            #{path := _}),
          begin
              Fun = fun() ->
                            khepri_tx:get_or([?STAR], default)
@@ -215,11 +213,10 @@ get_many_existing_nodes_test_() ->
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
-      ?_assertEqual(
-         {ok,
-          {error,
-           {possibly_matching_many_nodes_denied,
-            [?STAR]}}},
+      ?_assertError(
+         ?khepri_exception(
+            possibly_matching_many_nodes_denied,
+            #{path := [?STAR]}),
          begin
              Fun = fun() ->
                            khepri_tx:get_many(
@@ -271,11 +268,10 @@ get_many_or_default_existing_nodes_test_() ->
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
-      ?_assertEqual(
-         {ok,
-          {error,
-           {possibly_matching_many_nodes_denied,
-            [?STAR]}}},
+      ?_assertError(
+         ?khepri_exception(
+            possibly_matching_many_nodes_denied,
+            #{path := [?STAR]}),
          begin
              Fun = fun() ->
                            khepri_tx:get_many_or(
@@ -330,11 +326,9 @@ check_invalid_exists_call_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         {khepri,
-          invalid_call,
-          "Invalid use of khepri_tx:exists/2:\n"
-          "Called with a path pattern which could match many nodes:\n"
-          "[{if_name_matches,any,undefined}]"},
+         ?khepri_exception(
+            possibly_matching_many_nodes_denied,
+            #{path := _}),
          begin
              Fun = fun() ->
                            khepri_tx:exists([?STAR])
@@ -403,11 +397,9 @@ check_invalid_has_data_call_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         {khepri,
-          invalid_call,
-          "Invalid use of khepri_tx:has_data/2:\n"
-          "Called with a path pattern which could match many nodes:\n"
-          "[{if_name_matches,any,undefined}]"},
+         ?khepri_exception(
+            possibly_matching_many_nodes_denied,
+            #{path := _}),
          begin
              Fun = fun() ->
                            khepri_tx:has_data([?STAR])
@@ -476,11 +468,9 @@ check_invalid_is_sproc_call_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         {khepri,
-          invalid_call,
-          "Invalid use of khepri_tx:is_sproc/2:\n"
-          "Called with a path pattern which could match many nodes:\n"
-          "[{if_name_matches,any,undefined}]"},
+         ?khepri_exception(
+            possibly_matching_many_nodes_denied,
+            #{path := _}),
          begin
              Fun = fun() ->
                            khepri_tx:is_sproc([?STAR])
@@ -561,11 +551,10 @@ count_many_nodes_test_() ->
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
-      ?_assertEqual(
-         {ok,
-          {error,
-           {possibly_matching_many_nodes_denied,
-            [?STAR]}}},
+      ?_assertError(
+         ?khepri_exception(
+            possibly_matching_many_nodes_denied,
+            #{path := [?STAR]}),
          begin
              Fun = fun() ->
                            khepri_tx:count(

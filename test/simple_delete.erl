@@ -11,6 +11,7 @@
 
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
+-include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
 delete_non_existing_node_test_() ->
@@ -21,7 +22,7 @@ delete_non_existing_node_test_() ->
          ok,
          khepri:delete(?FUNCTION_NAME, [foo])),
       ?_assertMatch(
-         {error, {node_not_found, _}},
+         {error, ?khepri_error(node_not_found, _)},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 delete_existing_node_test_() ->
@@ -35,7 +36,7 @@ delete_existing_node_test_() ->
          ok,
          khepri:delete(?FUNCTION_NAME, [foo])),
       ?_assertMatch(
-         {error, {node_not_found, _}},
+         {error, ?khepri_error(node_not_found, _)},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 invalid_delete_call_test_() ->
@@ -43,11 +44,9 @@ invalid_delete_call_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         {khepri,
-          invalid_call,
-          "Invalid use of khepri_adv:delete/3:\n"
-          "Called with a path pattern which could match many nodes:\n"
-          "[{if_name_matches,any,undefined}]"},
+         ?khepri_exception(
+            possibly_matching_many_nodes_denied,
+            #{path := _}),
          khepri:delete(?FUNCTION_NAME, [?STAR]))]}.
 
 delete_many_on_non_existing_node_with_condition_test_() ->
@@ -59,7 +58,7 @@ delete_many_on_non_existing_node_with_condition_test_() ->
          khepri:delete_many(
            ?FUNCTION_NAME, [#if_name_matches{regex = "foo"}])),
       ?_assertMatch(
-         {error, {node_not_found, _}},
+         {error, ?khepri_error(node_not_found, _)},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 delete_many_on_existing_node_with_condition_true_test_() ->
@@ -74,7 +73,7 @@ delete_many_on_existing_node_with_condition_true_test_() ->
          khepri:delete_many(
            ?FUNCTION_NAME, [#if_name_matches{regex = "foo"}])),
       ?_assertMatch(
-         {error, {node_not_found, _}},
+         {error, ?khepri_error(node_not_found, _)},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 delete_many_on_existing_node_with_condition_false_test_() ->
@@ -100,7 +99,7 @@ delete_payload_from_non_existing_node_test_() ->
          ok,
          khepri:delete_payload(?FUNCTION_NAME, [foo])),
       ?_assertMatch(
-         {error, {node_not_found, _}},
+         {error, ?khepri_error(node_not_found, _)},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 delete_payload_from_existing_node_test_() ->

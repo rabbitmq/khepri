@@ -100,6 +100,7 @@
 
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
+-include("src/khepri_error.hrl").
 
 -export([start/0, start/1, start/2, start/3,
          join/1, join/2,
@@ -642,7 +643,11 @@ join(StoreId, RemoteNode, Timeout) when is_atom(RemoteNode) ->
                     erlang:raise(Class, Reason, Stacktrace)
             end;
         pang ->
-            {error, {nodedown, RemoteNode}}
+            Reason = ?khepri_error(
+                        failed_to_join_remote_khepri_node,
+                        #{store_id => StoreId,
+                          node => RemoteNode}),
+            {error, Reason}
     end;
 join(StoreId, {StoreId, RemoteNode} = _RemoteMember, Timeout) ->
     join(StoreId, RemoteNode, Timeout).
@@ -674,9 +679,13 @@ check_status_and_join_locked(StoreId, RemoteNode, Timeout) ->
                "Local Ra server ~0p not running for store \"~s\", "
                "but properties are still available: ~0p and ~0p",
                [ThisMember, StoreId, Prop1, Prop2]),
-            throw(
-              {ra_server_not_running_but_props_available,
-               ThisMember, StoreId, Prop1, Prop2})
+            erlang:error(
+              ?khepri_exception(
+                 ra_server_not_running_but_props_available,
+                 #{store_id => StoreId,
+                   this_member => ThisMember,
+                   ra_system => Prop1,
+                   ra_server_config => Prop2}))
     end.
 
 -spec reset_and_join_locked(
@@ -785,14 +794,21 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
     Ret when
       StoreId :: khepri:store_id(),
       Timeout :: timeout(),
-      Ret :: ok | khepri:error(timeout).
+      Ret :: ok | khepri:error(?khepri_error(
+                                  timeout_waiting_for_cluster_readiness,
+                                  #{store_id := StoreId})).
 %% @private
 
 wait_for_cluster_readyness(StoreId, Timeout) ->
     %% If querying the cluster members succeeds, we must have a quorum, right?
     case members(StoreId, Timeout) of
-        [_ | _]     -> ok;
-        []          -> {error, timeout}
+        [_ | _] ->
+            ok;
+        [] ->
+            Reason = ?khepri_error(
+                        timeout_waiting_for_cluster_readiness,
+                        #{store_id => StoreId}),
+            {error, Reason}
     end.
 
 -spec wait_for_remote_cluster_readyness(StoreId, RemoteNode, Timeout) ->
@@ -955,7 +971,9 @@ get_default_ra_system_or_data_dir() ->
                "Invalid Ra system or data directory set in "
                "`default_ra_system` application environment: ~p",
                [RaSystemOrDataDir]),
-            throw({invalid_ra_system_or_data_dir, RaSystemOrDataDir})
+            ?khepri_misuse(
+               invalid_default_ra_system_value,
+               #{default_ra_system => RaSystemOrDataDir})
     end,
     RaSystemOrDataDir.
 
@@ -984,7 +1002,9 @@ get_default_store_id() ->
                "Invalid store ID set in `default_store_id` "
                "application environment: ~p",
                [StoreId]),
-            throw({invalid_store_id, StoreId})
+            ?khepri_misuse(
+               invalid_default_store_id_value,
+               #{default_store_id => StoreId})
     end,
     StoreId.
 
@@ -1126,7 +1146,9 @@ remember_store(RaSystem, #{cluster_name := StoreId} = RaServerConfig) ->
       PropName :: ra_system | ra_server_config,
       PropValue :: any(),
       Ret :: khepri:ok(PropValue) |
-             khepri:error({not_a_khepri_store, StoreId}).
+             khepri:error(?khepri_error(
+                             not_a_khepri_store,
+                             #{store_id := StoreId})).
 %% @private
 
 get_store_prop(StoreId, PropName) ->
@@ -1134,7 +1156,10 @@ get_store_prop(StoreId, PropName) ->
         #{StoreId := #{PropName := PropValue}} ->
             {ok, PropValue};
         _ ->
-            {error, {not_a_khepri_store, StoreId}}
+            Reason = ?khepri_error(
+                        not_a_khepri_store,
+                        #{store_id => StoreId}),
+            {error, Reason}
     end.
 
 -spec forget_store(StoreId) -> ok when

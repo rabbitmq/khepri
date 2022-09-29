@@ -11,6 +11,7 @@
 
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
+-include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
 %% khepri:get_root/1 is unexported when compiled without `-DTEST'.
@@ -293,12 +294,13 @@ store_data_in_root_node_with_condition_false_test() ->
             child_list_version => 1}},
        Root),
     ?assertEqual({error,
-                  {mismatching_node,
-                   #{node_name => ?ROOT_NODE,
-                     node_path => [],
-                     node_is_target => true,
-                     node_props => #{payload_version => 1},
-                     condition => Compiled}}}, Ret),
+                  ?khepri_error(
+                     mismatching_node,
+                     #{node_name => ?ROOT_NODE,
+                       node_path => [],
+                       node_is_target => true,
+                       node_props => #{payload_version => 1},
+                       condition => Compiled})}, Ret),
     ?assertEqual([], SE).
 
 delete_empty_root_node_test() ->

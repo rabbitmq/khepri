@@ -11,7 +11,7 @@
 
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
--include("src/khepri_machine.hrl").
+-include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
 create_non_existing_node_test_() ->
@@ -19,8 +19,7 @@ create_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         {khepri, denied_update_in_readonly_tx,
-          "Updates to the tree are denied in a read-only transaction"},
+         ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
              Fun = fun() ->
                            khepri_tx_adv:create([foo], foo_value)
@@ -50,13 +49,14 @@ create_existing_node_test_() ->
       ?_assertEqual(
          {ok,
           {error,
-           {mismatching_node,
-            #{condition => #if_node_exists{exists = false},
-              node_name => foo,
-              node_path => [foo],
-              node_is_target => true,
-              node_props => #{data => foo_value1,
-                              payload_version => 1}}}}},
+           ?khepri_error(
+              mismatching_node,
+              #{condition => #if_node_exists{exists = false},
+                node_name => foo,
+                node_path => [foo],
+                node_is_target => true,
+                node_props => #{data => foo_value1,
+                                payload_version => 1}})}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:create([foo], foo_value2)
@@ -66,13 +66,14 @@ create_existing_node_test_() ->
       ?_assertEqual(
          {ok,
           {error,
-           {mismatching_node,
-            #{condition => #if_node_exists{exists = false},
-              node_name => foo,
-              node_path => [foo],
-              node_is_target => true,
-              node_props => #{data => foo_value1,
-                              payload_version => 1}}}}},
+           ?khepri_error(
+              mismatching_node,
+              #{condition => #if_node_exists{exists = false},
+                node_name => foo,
+                node_path => [foo],
+                node_is_target => true,
+                node_props => #{data => foo_value1,
+                                payload_version => 1}})}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:create([foo], foo_value2, #{})
@@ -85,11 +86,9 @@ invalid_create_call_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         {khepri,
-          invalid_call,
-          "Invalid use of khepri_tx_adv:create/3:\n"
-          "Called with a path pattern which could match many nodes:\n"
-          ++ _},
+         ?khepri_exception(
+            possibly_matching_many_nodes_denied,
+            #{path := _}),
          begin
              Fun = fun() ->
                            khepri_tx_adv:create([?STAR], foo_value)
@@ -122,8 +121,7 @@ insert_existing_node_test_() ->
          {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertError(
-         {khepri, denied_update_in_readonly_tx,
-          "Updates to the tree are denied in a read-only transaction"},
+         ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
              Fun = fun() ->
                            khepri_tx_adv:put([foo], foo_value2)
@@ -160,11 +158,9 @@ invalid_put_call_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         {khepri,
-          invalid_call,
-          "Invalid use of khepri_tx_adv:put/3:\n"
-          "Called with a path pattern which could match many nodes:\n"
-          ++ _},
+         ?khepri_exception(
+            possibly_matching_many_nodes_denied,
+            #{path := _}),
          begin
              Fun = fun() ->
                            khepri_tx_adv:put([?STAR], foo_value)
@@ -210,8 +206,7 @@ insert_many_existing_nodes_test_() ->
          {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [b, foo], foo_value_b)),
       ?_assertError(
-         {khepri, denied_update_in_readonly_tx,
-          "Updates to the tree are denied in a read-only transaction"},
+         ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
              Fun = fun() ->
                            khepri_tx_adv:put_many([?STAR, foo], foo_value_all)
@@ -257,13 +252,14 @@ update_non_existing_node_test_() ->
      [?_assertEqual(
          {ok,
           {error,
-           {node_not_found,
-            #{condition => #if_all{conditions =
-                                   [foo,
-                                    #if_node_exists{exists = true}]},
-              node_name => foo,
-              node_path => [foo],
-              node_is_target => true}}}},
+           ?khepri_error(
+              node_not_found,
+              #{condition => #if_all{conditions =
+                                     [foo,
+                                      #if_node_exists{exists = true}]},
+                node_name => foo,
+                node_path => [foo],
+                node_is_target => true})}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:update([foo], foo_value)
@@ -273,13 +269,14 @@ update_non_existing_node_test_() ->
       ?_assertEqual(
          {ok,
           {error,
-           {node_not_found,
-            #{condition => #if_all{conditions =
-                                   [foo,
-                                    #if_node_exists{exists = true}]},
-              node_name => foo,
-              node_path => [foo],
-              node_is_target => true}}}},
+           ?khepri_error(
+              node_not_found,
+              #{condition => #if_all{conditions =
+                                     [foo,
+                                      #if_node_exists{exists = true}]},
+                node_name => foo,
+                node_path => [foo],
+                node_is_target => true})}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:update([foo], foo_value, #{})
@@ -295,8 +292,7 @@ update_existing_node_test_() ->
          {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertError(
-         {khepri, denied_update_in_readonly_tx,
-          "Updates to the tree are denied in a read-only transaction"},
+         ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
              Fun = fun() ->
                            khepri_tx_adv:update([foo], foo_value2)
@@ -323,11 +319,9 @@ invalid_update_call_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         {khepri,
-          invalid_call,
-          "Invalid use of khepri_tx_adv:update/3:\n"
-          "Called with a path pattern which could match many nodes:\n"
-          ++ _},
+         ?khepri_exception(
+            possibly_matching_many_nodes_denied,
+            #{path := _}),
          begin
              Fun = fun() ->
                            khepri_tx_adv:update([?STAR], foo_value)
@@ -342,13 +336,14 @@ compare_and_swap_non_existing_node_test_() ->
      [?_assertMatch(
          {ok,
           {error,
-           {node_not_found,
-            #{condition := #if_all{conditions =
-                                   [foo,
-                                    #if_data_matches{pattern = foo_value1}]},
-              node_name := foo,
-              node_path := [foo],
-              node_is_target := true}}}},
+           ?khepri_error(
+              node_not_found,
+              #{condition := #if_all{conditions =
+                                     [foo,
+                                      #if_data_matches{pattern = foo_value1}]},
+                node_name := foo,
+                node_path := [foo],
+                node_is_target := true})}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:compare_and_swap(
@@ -365,8 +360,7 @@ compare_and_swap_matching_node_test_() ->
          {ok, #{payload_version => 1}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertError(
-         {khepri, denied_update_in_readonly_tx,
-          "Updates to the tree are denied in a read-only transaction"},
+         ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
              Fun = fun() ->
                            khepri_tx_adv:compare_and_swap(
@@ -400,13 +394,14 @@ compare_and_swap_mismatching_node_test_() ->
       ?_assertMatch(
          {ok,
           {error,
-           {mismatching_node,
-            #{condition := #if_data_matches{pattern = foo_value2},
-              node_name := foo,
-              node_path := [foo],
-              node_is_target := true,
-              node_props := #{data := foo_value1,
-                              payload_version := 1}}}}},
+           ?khepri_error(
+              mismatching_node,
+              #{condition := #if_data_matches{pattern = foo_value2},
+                node_name := foo,
+                node_path := [foo],
+                node_is_target := true,
+                node_props := #{data := foo_value1,
+                                payload_version := 1}})}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:compare_and_swap(
@@ -444,11 +439,9 @@ invalid_compare_and_swap_call_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         {khepri,
-          invalid_call,
-          "Invalid use of khepri_tx_adv:compare_and_swap/4:\n"
-          "Called with a path pattern which could match many nodes:\n"
-          ++ _},
+         ?khepri_exception(
+            possibly_matching_many_nodes_denied,
+            #{path := _}),
          begin
              Fun = fun() ->
                            khepri_tx_adv:compare_and_swap(

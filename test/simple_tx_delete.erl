@@ -11,6 +11,7 @@
 
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
+-include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
 delete_non_existing_node_test_() ->
@@ -26,7 +27,7 @@ delete_non_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertMatch(
-         {error, {node_not_found, _}},
+         {error, ?khepri_error(node_not_found, _)},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 delete_existing_node_test_() ->
@@ -37,8 +38,7 @@ delete_existing_node_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertError(
-         {khepri, denied_update_in_readonly_tx,
-          "Updates to the tree are denied in a read-only transaction"},
+         ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
              Fun = fun() ->
                            khepri_tx:delete([foo])
@@ -54,7 +54,7 @@ delete_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertMatch(
-         {error, {node_not_found, _}},
+         {error, ?khepri_error(node_not_found, _)},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 invalid_delete_call_test_() ->
@@ -62,11 +62,9 @@ invalid_delete_call_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         {khepri,
-          invalid_call,
-          "Invalid use of khepri_tx_adv:delete/2:\n"
-          "Called with a path pattern which could match many nodes:\n"
-          "[{if_name_matches,any,undefined}]"},
+         ?khepri_exception(
+            possibly_matching_many_nodes_denied,
+            #{path := _}),
          begin
              Fun = fun() ->
                            khepri_tx:delete([?STAR])
@@ -88,7 +86,7 @@ delete_many_on_non_existing_node_with_condition_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertMatch(
-         {error, {node_not_found, _}},
+         {error, ?khepri_error(node_not_found, _)},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 delete_many_on_existing_node_with_condition_true_test_() ->
@@ -99,8 +97,7 @@ delete_many_on_existing_node_with_condition_true_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertError(
-         {khepri, denied_update_in_readonly_tx,
-          "Updates to the tree are denied in a read-only transaction"},
+         ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
              Fun = fun() ->
                            khepri_tx:delete_many(
@@ -118,7 +115,7 @@ delete_many_on_existing_node_with_condition_true_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertMatch(
-         {error, {node_not_found, _}},
+         {error, ?khepri_error(node_not_found, _)},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 delete_many_on_existing_node_with_condition_false_test_() ->
@@ -154,7 +151,7 @@ delete_payload_from_non_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertMatch(
-         {error, {node_not_found, _}},
+         {error, ?khepri_error(node_not_found, _)},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 delete_payload_from_existing_node_test_() ->
@@ -165,8 +162,7 @@ delete_payload_from_existing_node_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertError(
-         {khepri, denied_update_in_readonly_tx,
-          "Updates to the tree are denied in a read-only transaction"},
+         ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
              Fun = fun() ->
                            khepri_tx:delete_payload([foo])
@@ -254,8 +250,7 @@ delete_many_payloads_from_existing_node_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [foo2, bar], bar_value)),
       ?_assertError(
-         {khepri, denied_update_in_readonly_tx,
-          "Updates to the tree are denied in a read-only transaction"},
+         ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
              Fun = fun() ->
                            khepri_tx:delete_many_payloads(

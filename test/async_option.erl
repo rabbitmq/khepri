@@ -11,6 +11,7 @@
 
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
+-include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
 async_unset_in_put_test_() ->
@@ -149,9 +150,10 @@ async_unset_in_delete_test_() ->
                 ok,
                 khepri:delete(?FUNCTION_NAME, [foo])),
              ?assertEqual(
-                {error, {node_not_found, #{node_name => foo,
-                                           node_path => [foo],
-                                           node_is_target => true}}},
+                {error,
+                 ?khepri_error(node_not_found, #{node_name => foo,
+                                                 node_path => [foo],
+                                                 node_is_target => true})},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -170,9 +172,10 @@ async_false_in_delete_test_() ->
                 khepri:delete(
                   ?FUNCTION_NAME, [foo], #{async => false})),
              ?assertEqual(
-                {error, {node_not_found, #{node_name => foo,
-                                           node_path => [foo],
-                                           node_is_target => true}}},
+                {error,
+                 ?khepri_error(node_not_found, #{node_name => foo,
+                                                 node_path => [foo],
+                                                 node_is_target => true})},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -199,9 +202,10 @@ async_true_in_delete_test_() ->
                            Ret
                    end, khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
              ?assertEqual(
-                {error, {node_not_found, #{node_name => foo,
-                                           node_path => [foo],
-                                           node_is_target => true}}},
+                {error,
+                 ?khepri_error(node_not_found, #{node_name => foo,
+                                                 node_path => [foo],
+                                                 node_is_target => true})},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -225,9 +229,10 @@ async_with_correlation_in_delete_test_() ->
                 {ok, #{[foo] => #{}}},
                 Ret),
              ?assertEqual(
-                {error, {node_not_found, #{node_name => foo,
-                                           node_path => [foo],
-                                           node_is_target => true}}},
+                {error,
+                 ?khepri_error(node_not_found, #{node_name => foo,
+                                                 node_path => [foo],
+                                                 node_is_target => true})},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -254,9 +259,10 @@ async_with_priority_in_delete_test_() ->
                            Ret
                    end, khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
              ?assertEqual(
-                {error, {node_not_found, #{node_name => foo,
-                                           node_path => [foo],
-                                           node_is_target => true}}},
+                {error,
+                 ?khepri_error(node_not_found, #{node_name => foo,
+                                                 node_path => [foo],
+                                                 node_is_target => true})},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -280,9 +286,10 @@ async_with_correlation_and_priority_in_delete_test_() ->
                 {ok, #{[foo] => #{payload_version => 1}}},
                 Ret),
              ?assertEqual(
-                {error, {node_not_found, #{node_name => foo,
-                                           node_path => [foo],
-                                           node_is_target => true}}},
+                {error,
+                 ?khepri_error(node_not_found, #{node_name => foo,
+                                                 node_path => [foo],
+                                                 node_is_target => true})},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -389,9 +396,10 @@ async_with_correlation_in_aborted_transaction_test_() ->
                 {error, abort_reason},
                 Ret),
              ?assertEqual(
-                {error, {node_not_found, #{node_name => foo,
-                                           node_path => [foo],
-                                           node_is_target => true}}},
+                {error,
+                 ?khepri_error(node_not_found, #{node_name => foo,
+                                                 node_path => [foo],
+                                                 node_is_target => true})},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -458,7 +466,7 @@ wait_for_async_error_test_() ->
                   #{async => Correlation})),
              Ret = khepri:wait_for_async_ret(Correlation),
              ?assertMatch(
-                {error, {node_not_found, _}},
+                {error, ?khepri_error(node_not_found, _)},
                 Ret)
          end)
      ]}.

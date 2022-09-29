@@ -342,7 +342,7 @@ PathPattern = [stock,
 case khepri:put(StoredId, PathPattern, Term1) of
     ok ->
         ok; %% `Term1` was stored successfully.
-    {error, {mismatching_node, _}} ->
+    {error, ?khepri_error(mismatching_node, _)} ->
         loop() %% Restart the whole function to read/modify/write again.
 end.
 '''

@@ -11,7 +11,7 @@
 
 -include("include/khepri.hrl").
 -include("src/internal.hrl").
--include("src/khepri_machine.hrl").
+-include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
 -dialyzer([{no_match,
@@ -223,8 +223,8 @@ fun_taking_args_in_ro_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, {requires_args, 1}},
+     [?_assertError(
+         ?khepri_exception(denied_tx_fun_with_arguments, #{arity := 1}),
          begin
              Fun = fun(Arg) ->
                            Arg
@@ -236,8 +236,8 @@ fun_taking_args_in_rw_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, {requires_args, 1}},
+     [?_assertError(
+         ?khepri_exception(denied_tx_fun_with_arguments, #{arity := 1}),
          begin
              Fun = fun(Arg) ->
                            Arg
@@ -250,8 +250,8 @@ not_a_function_as_ro_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, Term},
+     [?_assertError(
+         ?khepri_exception(non_fun_term_used_as_tx_fun, #{term := Term}),
          khepri:transaction(?FUNCTION_NAME, Term, ro))]}.
 
 not_a_function_as_rw_transaction_test_() ->
@@ -259,8 +259,8 @@ not_a_function_as_rw_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, Term},
+     [?_assertError(
+         ?khepri_exception(non_fun_term_used_as_tx_fun, #{term := Term}),
          khepri:transaction(?FUNCTION_NAME, Term, rw))]}.
 
 exception_in_ro_transaction_test_() ->
@@ -330,8 +330,10 @@ calling_invalid_local_function_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, {call_denied, {node, 0}}},
+     [?_assertError(
+         ?khepri_exception(
+            failed_to_prepare_tx_fun,
+            #{error := {call_denied, {node, 0}}}),
          begin
              Fun = fun() ->
                            Path = [node, get_node_name()],
@@ -379,10 +381,11 @@ calling_unexported_remote_function_as_fun_term_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun,
-          {call_to_unexported_function,
-           {mod_used_for_transactions, unexported, 0}}},
+     [?_assertError(
+         ?khepri_exception(
+            failed_to_prepare_tx_fun,
+            #{error := {call_to_unexported_function,
+                        {mod_used_for_transactions, unexported, 0}}}),
          begin
              Fun = fun mod_used_for_transactions:unexported/0,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
@@ -408,8 +411,10 @@ trying_to_send_msg_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, sending_message_denied},
+     [?_assertError(
+         ?khepri_exception(
+            failed_to_prepare_tx_fun,
+            #{error := sending_message_denied}),
          begin
              Pid = self(),
              Fun = fun() ->
@@ -422,8 +427,10 @@ trying_to_receive_msg_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, receiving_message_denied},
+     [?_assertError(
+         ?khepri_exception(
+            failed_to_prepare_tx_fun,
+            #{error := receiving_message_denied}),
          begin
              Fun = fun() ->
                            receive
@@ -440,8 +447,10 @@ trying_to_use_process_dict_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, {call_denied, {erlang, get, 0}}},
+     [?_assertError(
+         ?khepri_exception(
+            failed_to_prepare_tx_fun,
+            #{error := {call_denied, {erlang, get, 0}}}),
          begin
              Fun = fun() ->
                            get()
@@ -453,8 +462,10 @@ trying_to_use_persistent_term_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, {call_denied, {persistent_term, put, 2}}},
+     [?_assertError(
+         ?khepri_exception(
+            failed_to_prepare_tx_fun,
+            #{error := {call_denied, {persistent_term, put, 2}}}),
          begin
              Fun = fun() ->
                            persistent_term:put(key, value)
@@ -466,8 +477,10 @@ trying_to_use_mnesia_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, {call_denied, {mnesia, read, 2}}},
+     [?_assertError(
+         ?khepri_exception(
+            failed_to_prepare_tx_fun,
+            #{error := {call_denied, {mnesia, read, 2}}}),
          begin
              Fun = fun() ->
                            mnesia:read(table, key)
@@ -481,8 +494,10 @@ trying_to_run_http_request_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, _},
+     [?_assertError(
+         ?khepri_exception(
+            failed_to_prepare_tx_fun,
+            #{error := _}),
          begin
              Fun = fun() ->
                            httpc:request("url://")
@@ -494,8 +509,10 @@ trying_to_use_ssl_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, {call_denied, {ssl, connect, 4}}},
+     [?_assertError(
+         ?khepri_exception(
+            failed_to_prepare_tx_fun,
+            #{error := {call_denied, {ssl, connect, 4}}}),
          begin
              Fun = fun() ->
                            ssl:connect("localhost", 1234, [], infinity)
@@ -508,10 +525,7 @@ use_an_invalid_path_in_tx_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         {khepri,
-          invalid_path,
-          "Invalid path or path pattern passed to khepri_path:from_string/1:\n"
-          "not_a_list"},
+         ?khepri_exception(invalid_path, #{path := not_a_list}),
          begin
              Fun = fun() ->
                            khepri_tx:put(not_a_list, ?NO_PAYLOAD)
@@ -519,10 +533,7 @@ use_an_invalid_path_in_tx_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun)
          end),
       ?_assertError(
-         {khepri,
-          invalid_path,
-          "Invalid path or path pattern passed to khepri_path:from_string/2:\n"
-          "[\"not_a_component\"]"},
+         ?khepri_exception(invalid_path, #{path := ["not_a_component"]}),
          begin
              Fun = fun() ->
                            khepri_tx:put(["not_a_component"], ?NO_PAYLOAD)
@@ -580,8 +591,10 @@ tx_using_erl_eval_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertThrow(
-         {invalid_tx_fun, {call_denied, _}},
+     [?_assertError(
+         ?khepri_exception(
+            failed_to_prepare_tx_fun,
+            #{error := {call_denied, _}}),
          begin
              _ = khepri:put(
                    ?FUNCTION_NAME, [foo], khepri_payload:data(value1)),

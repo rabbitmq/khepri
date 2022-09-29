@@ -564,7 +564,8 @@ get(PathPattern, Options) when is_map(Options) ->
 %% Example: query a non-existent tree node
 %% ```
 %% %% Query the tree node at `/:non_existent'.
-%% {error, {node_not_found, _}} = khepri:get(StoreId, [non_existent]).
+%% {error, ?khepri_error(node_not_found, _)} = khepri:get(
+%%                                               StoreId, [non_existent]).
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.
@@ -694,11 +695,11 @@ get_or(PathPattern, Default, Options) when is_map(Options) ->
 
 get_or(StoreId, PathPattern, Default, Options) ->
     case khepri_adv:get(StoreId, PathPattern, Options) of
-        {ok, #{data := Data}}           -> {ok, Data};
-        {ok, #{sproc := StandaloneFun}} -> {ok, StandaloneFun};
-        {ok, _}                         -> {ok, Default};
-        {error, {node_not_found, _}}    -> {ok, Default};
-        Error                           -> Error
+        {ok, #{data := Data}}                     -> {ok, Data};
+        {ok, #{sproc := StandaloneFun}}           -> {ok, StandaloneFun};
+        {ok, _}                                   -> {ok, Default};
+        {error, ?khepri_error(node_not_found, _)} -> {ok, Default};
+        Error                                     -> Error
     end.
 
 %% -------------------------------------------------------------------
@@ -977,10 +978,8 @@ exists(StoreId, PathPattern, Options) ->
     case khepri_adv:get_many(StoreId, PathPattern, Options1) of
         {ok, _} ->
             true;
-        {error, {node_not_found, _}} ->
+        {error, ?khepri_error(node_not_found, _)} ->
             false;
-        {error, {possibly_matching_many_nodes_denied, _}} ->
-            ?reject_path_targetting_many_nodes(PathPattern);
         {error, _} = Error ->
             Error
     end.
@@ -1074,10 +1073,8 @@ has_data(StoreId, PathPattern, Options) ->
         {ok, NodePropsMap} ->
             [NodeProps] = maps:values(NodePropsMap),
             maps:get(has_data, NodeProps, false);
-        {error, {node_not_found, _}} ->
+        {error, ?khepri_error(node_not_found, _)} ->
             false;
-        {error, {possibly_matching_many_nodes_denied, _}} ->
-            ?reject_path_targetting_many_nodes(PathPattern);
         {error, _} = Error ->
             Error
     end.
@@ -1172,10 +1169,8 @@ is_sproc(StoreId, PathPattern, Options) ->
         {ok, NodePropsMap} ->
             [NodeProps] = maps:values(NodePropsMap),
             maps:get(is_sproc, NodeProps, false);
-        {error, {node_not_found, _}} ->
+        {error, ?khepri_error(node_not_found, _)} ->
             false;
-        {error, {possibly_matching_many_nodes_denied, _}} ->
-            ?reject_path_targetting_many_nodes(PathPattern);
         {error, _} = Error ->
             Error
     end.
@@ -1625,7 +1620,8 @@ create(StoreId, PathPattern, Data) ->
 %% @doc Creates a tree node with the given payload.
 %%
 %% The behavior is the same as {@link put/4} except that if the tree node
-%% already exists, an `{error, {mismatching_node, Info}}' tuple is returned.
+%% already exists, an `{error, ?khepri_error(mismatching_node, Info)}' tuple is
+%% returned.
 %%
 %% Internally, the `PathPattern' is modified to include an
 %% `#if_node_exists{exists = false}' condition on its last component.
@@ -1697,7 +1693,8 @@ update(StoreId, PathPattern, Data) ->
 %% @doc Updates an existing tree node with the given payload.
 %%
 %% The behavior is the same as {@link put/4} except that if the tree node
-%% already exists, an `{error, {mismatching_node, Info}}' tuple is returned.
+%% already exists, an `{error, ?khepri_error(mismatching_node, Info)}' tuple is
+%% returned.
 %%
 %% Internally, the `PathPattern' is modified to include an
 %% `#if_node_exists{exists = true}' condition on its last component.
@@ -1776,7 +1773,8 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data) ->
 %% matches the given pattern.
 %%
 %% The behavior is the same as {@link put/4} except that if the tree node
-%% already exists, an `{error, {mismatching_node, Info}}' tuple is returned.
+%% already exists, an `{error, ?khepri_error(mismatching_node, Info)}' tuple is
+%% returned.
 %%
 %% Internally, the `PathPattern' is modified to include an
 %% `#if_data_matches{pattern = DataPattern}' condition on its last component.
