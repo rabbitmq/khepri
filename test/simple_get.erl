@@ -66,7 +66,7 @@ invalid_get_call_test_() ->
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
             #{path := _}),
-         khepri:get(?FUNCTION_NAME, [?STAR]))]}.
+         khepri:get(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR]))]}.
 
 get_or_default_non_existing_node_test_() ->
     {setup,
@@ -106,7 +106,7 @@ invalid_get_or_call_test_() ->
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
             #{path := _}),
-         khepri:get_or(?FUNCTION_NAME, [?STAR], default))]}.
+         khepri:get_or(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR], default))]}.
 
 get_many_non_existing_nodes_test_() ->
     {setup,
@@ -114,7 +114,7 @@ get_many_non_existing_nodes_test_() ->
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
          {ok, #{}},
-         khepri:get_many(?FUNCTION_NAME, [?STAR]))]}.
+         khepri:get_many(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR]))]}.
 
 get_many_existing_nodes_test_() ->
     {setup,
@@ -129,13 +129,13 @@ get_many_existing_nodes_test_() ->
       ?_assertEqual(
          {ok, #{[foo] => undefined,
                 [baz] => baz_value}},
-         khepri:get_many(?FUNCTION_NAME, [?STAR])),
+         khepri:get_many(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR])),
       ?_assertError(
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
-            #{path := [?STAR]}),
+            #{path := [?KHEPRI_WILDCARD_STAR]}),
          khepri:get_many(
-           ?FUNCTION_NAME, [?STAR],
+           ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR],
            #{expect_specific_node => true}))]}.
 
 get_many_or_default_non_existing_nodes_test_() ->
@@ -145,7 +145,7 @@ get_many_or_default_non_existing_nodes_test_() ->
      [?_assertEqual(
          {ok, #{}},
          khepri:get_many_or(
-           ?FUNCTION_NAME, [?STAR], default))]}.
+           ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR], default))]}.
 
 get_many_or_default_existing_nodes_test_() ->
     {setup,
@@ -161,13 +161,13 @@ get_many_or_default_existing_nodes_test_() ->
          {ok, #{[foo] => default,
                 [baz] => baz_value}},
          khepri:get_many_or(
-           ?FUNCTION_NAME, [?STAR], default)),
+           ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR], default)),
       ?_assertError(
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
-            #{path := [?STAR]}),
+            #{path := [?KHEPRI_WILDCARD_STAR]}),
          khepri:get_many_or(
-           ?FUNCTION_NAME, [?STAR], default,
+           ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR], default,
            #{expect_specific_node => true}))]}.
 
 check_node_exists_test_() ->
@@ -189,7 +189,7 @@ check_invalid_exists_call_test_() ->
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
             #{path := _}),
-         khepri:exists(?FUNCTION_NAME, [?STAR]))]}.
+         khepri:exists(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR]))]}.
 
 check_node_has_data_on_non_existing_node_test_() ->
     {setup,
@@ -219,7 +219,7 @@ check_invalid_has_data_call_test_() ->
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
             #{path := _}),
-         khepri:has_data(?FUNCTION_NAME, [?STAR]))]}.
+         khepri:has_data(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR]))]}.
 
 check_node_is_sproc_on_non_existing_node_test_() ->
     {setup,
@@ -249,7 +249,7 @@ check_invalid_is_sproc_call_test_() ->
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
             #{path := _}),
-         khepri:is_sproc(?FUNCTION_NAME, [?STAR]))]}.
+         khepri:is_sproc(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR]))]}.
 
 count_non_existing_node_test_() ->
     {setup,
@@ -287,15 +287,16 @@ count_many_nodes_test_() ->
 
       ?_assertEqual(
          {ok, 2},
-         khepri:count(?FUNCTION_NAME, [?THIS_NODE, ?STAR])),
+         khepri:count(
+           ?FUNCTION_NAME, [?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR])),
       ?_assertEqual(
          {ok, 3},
-         khepri:count(?FUNCTION_NAME, [?STAR_STAR])),
+         khepri:count(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR_STAR])),
       ?_assertError(
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
-            #{path := [?STAR]}),
+            #{path := [?KHEPRI_WILDCARD_STAR]}),
          khepri:count(
            ?FUNCTION_NAME,
-           [?THIS_NODE, ?STAR],
+           [?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR],
            #{expect_specific_node => true}))]}.

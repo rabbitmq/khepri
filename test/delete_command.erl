@@ -66,7 +66,7 @@ delete_existing_node_with_data_using_dot_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(foo_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Command = #delete{path = [foo, ?THIS_NODE],
+    Command = #delete{path = [foo, ?THIS_KHEPRI_NODE],
                       options = #{props_to_return => [payload,
                                                       payload_version,
                                                       child_list_version,
@@ -209,7 +209,7 @@ delete_existing_node_with_condition_true_using_dot_test() ->
     Command = #delete{path =
                       [bar,
                        #if_all{conditions =
-                               [?THIS_NODE,
+                               [?THIS_KHEPRI_NODE,
                                 #if_data_matches{pattern = bar_value}]}],
                       options = #{props_to_return => [payload,
                                                       payload_version,
@@ -243,7 +243,7 @@ delete_existing_node_with_condition_false_using_dot_test() ->
     Command = #delete{path =
                       [bar,
                        #if_all{conditions =
-                               [?THIS_NODE,
+                               [?THIS_KHEPRI_NODE,
                                 #if_data_matches{pattern = other_value}]}]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),

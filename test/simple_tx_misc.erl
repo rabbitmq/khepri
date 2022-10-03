@@ -174,11 +174,11 @@ case_abort_jump_instruction_test_() ->
          begin
              Fun = fun() ->
                            Path = [foo],
-                           case khepri_tx:put(Path, khepri_payload:data(value2)) of
-                               ok ->
-                                   ok;
-                               Error ->
-                                   khepri_tx:abort(Error)
+                           Ret = khepri_tx:put(
+                                   Path, khepri_payload:data(value2)),
+                           case Ret of
+                               ok    -> ok;
+                               Error -> khepri_tx:abort(Error)
                            end,
                            {created, Path}
                    end,
@@ -198,7 +198,8 @@ list_comprehension_test_() ->
                    ?FUNCTION_NAME, [bar], khepri_payload:data(bar_value)),
 
              Fun = fun() ->
-                           {ok, Nodes} = khepri_tx:get_many([?STAR]),
+                           {ok, Nodes} = khepri_tx:get_many(
+                                           [?KHEPRI_WILDCARD_STAR]),
                            [Data ||
                             Path <- lists:sort(maps:keys(Nodes)),
                             Data <- [maps:get(Path, Nodes)]]

@@ -105,7 +105,8 @@ get_store_info_on_running_store_test_() ->
          end)]}.
 
 get_store_info_with_keep_while_conds_test_() ->
-    KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = {gt, 0}}},
+    KeepWhile = #{[?THIS_KHEPRI_NODE] =>
+                  #if_child_list_length{count = {gt, 0}}},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,

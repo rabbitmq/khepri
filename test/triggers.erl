@@ -81,7 +81,7 @@ event_using_matching_pattern1_triggers_associated_sproc_test_() ->
       }]}.
 
 event_using_matching_pattern2_triggers_associated_sproc_test_() ->
-    EventFilter = khepri_evf:tree([foo, ?STAR_STAR]),
+    EventFilter = khepri_evf:tree([foo, ?KHEPRI_WILDCARD_STAR_STAR]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -115,7 +115,8 @@ event_using_matching_pattern2_triggers_associated_sproc_test_() ->
           {create, [foo, bar]},
           receive_sproc_msg_with_props(Key))},
 
-        {"Updating a matching great-grandchild node; should trigger the procedure",
+        {"Updating a matching great-grandchild node; "
+         "should trigger the procedure",
          ?_assertMatch(
             ok,
             khepri:put(
@@ -128,7 +129,8 @@ event_using_matching_pattern2_triggers_associated_sproc_test_() ->
       }]}.
 
 event_using_non_matching_pattern1_does_not_trigger_associated_sproc_test_() ->
-    EventFilter = khepri_evf:tree([?STAR, #if_child_list_length{count = 1}]),
+    EventFilter = khepri_evf:tree(
+                    [?KHEPRI_WILDCARD_STAR, #if_child_list_length{count = 1}]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,

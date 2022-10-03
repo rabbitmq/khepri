@@ -64,7 +64,8 @@ invalid_create_call_test_() ->
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
             #{path := _}),
-         khepri_adv:create(?FUNCTION_NAME, [?STAR], foo_value))]}.
+         khepri_adv:create(
+           ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR], foo_value))]}.
 
 insert_non_existing_node_test_() ->
     {setup,
@@ -106,7 +107,7 @@ invalid_put_call_test_() ->
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
             #{path := _}),
-         khepri_adv:put(?FUNCTION_NAME, [?STAR], foo_value))]}.
+         khepri_adv:put(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR], foo_value))]}.
 
 insert_many_non_existing_nodes_test_() ->
     {setup,
@@ -121,13 +122,15 @@ insert_many_non_existing_nodes_test_() ->
       ?_assertEqual(
          {ok, #{[a, foo] => #{payload_version => 1},
                 [b, foo] => #{payload_version => 1}}},
-         khepri_adv:put_many(?FUNCTION_NAME, [?STAR, foo], foo_value)),
+         khepri_adv:put_many(
+           ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR, foo], foo_value)),
       ?_assertEqual(
          {ok, #{[a, foo] => #{data => foo_value,
                               payload_version => 1},
                 [b, foo] => #{data => foo_value,
                               payload_version => 1}}},
-         khepri_adv:get_many(?FUNCTION_NAME, [?STAR, foo]))]}.
+         khepri_adv:get_many(
+           ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR, foo]))]}.
 
 insert_many_existing_nodes_test_() ->
     {setup,
@@ -144,20 +147,21 @@ insert_many_existing_nodes_test_() ->
                               payload_version => 2},
                 [b, foo] => #{data => foo_value_b,
                               payload_version => 2}}},
-         khepri_adv:put_many(?FUNCTION_NAME, [?STAR, foo], foo_value_all)),
+         khepri_adv:put_many(
+           ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR, foo], foo_value_all)),
       ?_assertEqual(
          {ok, #{[a, foo] => #{data => foo_value_all,
                               payload_version => 2},
                 [b, foo] => #{data => foo_value_all,
                               payload_version => 2}}},
          khepri_adv:put_many(
-           ?FUNCTION_NAME, [?STAR, foo], foo_value_all, #{})),
+           ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR, foo], foo_value_all, #{})),
       ?_assertEqual(
          {ok, #{[a, foo] => #{data => foo_value_all,
                               payload_version => 2},
                 [b, foo] => #{data => foo_value_all,
                               payload_version => 2}}},
-         khepri_adv:get_many(?FUNCTION_NAME, [?STAR, foo]))]}.
+         khepri_adv:get_many(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR, foo]))]}.
 
 update_non_existing_node_test_() ->
     {setup,
@@ -210,7 +214,8 @@ invalid_update_call_test_() ->
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
             #{path := _}),
-         khepri_adv:update(?FUNCTION_NAME, [?STAR], foo_value))]}.
+         khepri_adv:update(
+           ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR], foo_value))]}.
 
 compare_and_swap_non_existing_node_test_() ->
     {setup,
@@ -293,4 +298,4 @@ invalid_compare_and_swap_call_test_() ->
             possibly_matching_many_nodes_denied,
             #{path := _}),
          khepri_adv:compare_and_swap(
-           ?FUNCTION_NAME, [?STAR], foo_value1, foo_value2))]}.
+           ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR], foo_value1, foo_value2))]}.

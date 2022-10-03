@@ -365,7 +365,7 @@ query_a_node_using_relative_path_components_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
-            Root, [?THIS_NODE, foo, ?PARENT_NODE, foo, bar],
+            Root, [?THIS_KHEPRI_NODE, foo, ?PARENT_KHEPRI_NODE, foo, bar],
             #{props_to_return => [payload,
                                   payload_version,
                                   child_list_version,

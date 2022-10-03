@@ -1413,7 +1413,7 @@ insert_or_update_node(
                                   %% can't insert the node and return an
                                   %% error instead.
                                   NodeName = case Path of
-                                                 [] -> ?ROOT_NODE;
+                                                 [] -> ?KHEPRI_ROOT_NODE;
                                                  _  -> lists:last(Path)
                                              end,
                                   Reason1 = ?khepri_error(
@@ -1539,7 +1539,7 @@ can_continue_update_after_node_not_found(#{node_name := NodeName}) ->
     can_continue_update_after_node_not_found1(NodeName).
 
 can_continue_update_after_node_not_found1(ChildName)
-  when ?IS_PATH_COMPONENT(ChildName) ->
+  when ?IS_KHEPRI_PATH_COMPONENT(ChildName) ->
     true;
 can_continue_update_after_node_not_found1(#if_node_exists{exists = false}) ->
     true;
@@ -1730,12 +1730,12 @@ does_path_match(_PathRest, [], _ReversedPath, _Root) ->
     false;
 does_path_match(
   [Component | Path], [Component | PathPattern], ReversedPath, Root)
-  when ?IS_PATH_COMPONENT(Component) ->
+  when ?IS_KHEPRI_PATH_COMPONENT(Component) ->
     does_path_match(Path, PathPattern, [Component | ReversedPath], Root);
 does_path_match(
   [Component | _Path], [Condition | _PathPattern], _ReversedPath, _Root)
-  when ?IS_PATH_COMPONENT(Component) andalso
-       ?IS_PATH_COMPONENT(Condition) ->
+  when ?IS_KHEPRI_PATH_COMPONENT(Component) andalso
+       ?IS_KHEPRI_PATH_COMPONENT(Condition) ->
     false;
 does_path_match(
   [Component | Path], [Condition | PathPattern], ReversedPath, Root) ->
@@ -1846,7 +1846,7 @@ walk_down_the_tree(Root, PathPattern, WorkOnWhat, Extra, Fun, FunAcc) ->
 
 walk_down_the_tree1(
   CurrentNode,
-  [?ROOT_NODE | PathPattern],
+  [?KHEPRI_ROOT_NODE | PathPattern],
   WorkOnWhat, ReversedPath, ReversedParentTree, Extra, Fun, FunAcc) ->
     ?assertEqual([], ReversedPath),
     ?assertEqual([], ReversedParentTree),
@@ -1857,14 +1857,14 @@ walk_down_the_tree1(
       Extra, Fun, FunAcc);
 walk_down_the_tree1(
   CurrentNode,
-  [?THIS_NODE | PathPattern],
+  [?THIS_KHEPRI_NODE | PathPattern],
   WorkOnWhat, ReversedPath, ReversedParentTree, Extra, Fun, FunAcc) ->
     walk_down_the_tree1(
       CurrentNode, PathPattern, WorkOnWhat,
       ReversedPath, ReversedParentTree, Extra, Fun, FunAcc);
 walk_down_the_tree1(
   _CurrentNode,
-  [?PARENT_NODE | PathPattern],
+  [?PARENT_KHEPRI_NODE | PathPattern],
   WorkOnWhat,
   [_CurrentName | ReversedPath], [ParentNode0 | ReversedParentTree],
   Extra, Fun, FunAcc) ->
@@ -1877,7 +1877,7 @@ walk_down_the_tree1(
       ReversedPath, ReversedParentTree, Extra, Fun, FunAcc);
 walk_down_the_tree1(
   CurrentNode,
-  [?PARENT_NODE | PathPattern],
+  [?PARENT_KHEPRI_NODE | PathPattern],
   WorkOnWhat,
   [] = ReversedPath, [] = ReversedParentTree,
   Extra, Fun, FunAcc) ->
@@ -1890,7 +1890,7 @@ walk_down_the_tree1(
   #node{child_nodes = Children} = CurrentNode,
   [ChildName | PathPattern],
   WorkOnWhat, ReversedPath, ReversedParentTree, Extra, Fun, FunAcc)
-  when ?IS_NODE_ID(ChildName) ->
+  when ?IS_KHEPRI_NODE_ID(ChildName) ->
     case Children of
         #{ChildName := Child} ->
             walk_down_the_tree1(
@@ -1912,14 +1912,15 @@ walk_down_the_tree1(
   #node{child_nodes = Children} = CurrentNode,
   [Condition | PathPattern], specific_node = WorkOnWhat,
   ReversedPath, ReversedParentTree, Extra, Fun, FunAcc)
-  when ?IS_CONDITION(Condition) ->
+  when ?IS_KHEPRI_CONDITION(Condition) ->
     %% We distinguish the case where the condition must be verified against the
-    %% current node (i.e. the node name is ?ROOT_NODE or ?THIS_NODE in the
-    %% condition) instead of its child nodes.
+    %% current node (i.e. the node name is ?KHEPRI_ROOT_NODE or
+    %% ?THIS_KHEPRI_NODE in the condition) instead of its child nodes.
     SpecificNode = khepri_path:component_targets_specific_node(Condition),
     case SpecificNode of
         {true, NodeName}
-          when NodeName =:= ?ROOT_NODE orelse NodeName =:= ?THIS_NODE ->
+          when NodeName =:= ?KHEPRI_ROOT_NODE orelse
+               NodeName =:= ?THIS_KHEPRI_NODE ->
             CurrentName = special_component_to_node_name(
                             NodeName, ReversedPath),
             CondMet = khepri_condition:is_met(
@@ -1940,7 +1941,7 @@ walk_down_the_tree1(
                       PathPattern, WorkOnWhat, ReversedPath,
                       ReversedParentTree, Extra, Fun, FunAcc)
             end;
-        {true, ChildName} when ChildName =/= ?PARENT_NODE ->
+        {true, ChildName} when ChildName =/= ?PARENT_KHEPRI_NODE ->
             case Children of
                 #{ChildName := Child} ->
                     CondMet = khepri_condition:is_met(
@@ -1977,7 +1978,7 @@ walk_down_the_tree1(
                       [CurrentNode | ReversedParentTree],
                       Extra, Fun, FunAcc)
             end;
-        {true, ?PARENT_NODE} ->
+        {true, ?PARENT_KHEPRI_NODE} ->
             %% TODO: Support calling Fun() with parent node based on
             %% conditions on child nodes.
             BadPathPattern =
@@ -2002,15 +2003,16 @@ walk_down_the_tree1(
   #node{child_nodes = Children} = CurrentNode,
   [Condition | PathPattern] = WholePathPattern, many_nodes = WorkOnWhat,
   ReversedPath, ReversedParentTree, Extra, Fun, FunAcc)
-  when ?IS_CONDITION(Condition) ->
+  when ?IS_KHEPRI_CONDITION(Condition) ->
     %% Like with WorkOnWhat =:= specific_node function clause above, We
     %% distinguish the case where the condition must be verified against the
-    %% current node (i.e. the node name is ?ROOT_NODE or ?THIS_NODE in the
-    %% condition) instead of its child nodes.
+    %% current node (i.e. the node name is ?KHEPRI_ROOT_NODE or
+    %% ?THIS_KHEPRI_NODE in the condition) instead of its child nodes.
     SpecificNode = khepri_path:component_targets_specific_node(Condition),
     case SpecificNode of
         {true, NodeName}
-          when NodeName =:= ?ROOT_NODE orelse NodeName =:= ?THIS_NODE ->
+          when NodeName =:= ?KHEPRI_ROOT_NODE orelse
+               NodeName =:= ?THIS_KHEPRI_NODE ->
             CurrentName = special_component_to_node_name(
                             NodeName, ReversedPath),
             CondMet = khepri_condition:is_met(
@@ -2026,7 +2028,7 @@ walk_down_the_tree1(
                                      ReversedParentTree, CurrentNode),
                     {ok, StartingNode, Extra, FunAcc}
             end;
-        {true, ?PARENT_NODE} ->
+        {true, ?PARENT_KHEPRI_NODE} ->
             %% TODO: Support calling Fun() with parent node based on
             %% conditions on child nodes.
             BadPathPattern =
@@ -2117,13 +2119,16 @@ walk_down_the_tree1(
 
 -spec special_component_to_node_name(SpecialComponent, ReversedPath) ->
     NodeName when
-      SpecialComponent :: ?ROOT_NODE | ?THIS_NODE,
+      SpecialComponent :: ?KHEPRI_ROOT_NODE | ?THIS_KHEPRI_NODE,
       ReversedPath :: khepri_path:native_path(),
       NodeName :: khepri_path:component().
 
-special_component_to_node_name(?ROOT_NODE = NodeName, [])  -> NodeName;
-special_component_to_node_name(?THIS_NODE, [NodeName | _]) -> NodeName;
-special_component_to_node_name(?THIS_NODE, [])             -> ?ROOT_NODE.
+special_component_to_node_name(?KHEPRI_ROOT_NODE = NodeName, []) ->
+    NodeName;
+special_component_to_node_name(?THIS_KHEPRI_NODE, [NodeName | _]) ->
+    NodeName;
+special_component_to_node_name(?THIS_KHEPRI_NODE, []) ->
+    ?KHEPRI_ROOT_NODE.
 
 -spec starting_node_in_rev_parent_tree(ReversedParentTree) -> Node when
       Node :: tree_node(),

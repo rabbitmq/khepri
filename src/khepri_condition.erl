@@ -381,7 +381,7 @@ optimize_if_all_conditions(Conds) ->
 %% @hidden
 
 optimize_if_all_conditions([ChildName | Rest], Result)
-  when ?IS_PATH_COMPONENT(ChildName) ->
+  when ?IS_KHEPRI_PATH_COMPONENT(ChildName) ->
     %% The path component exact match condition will become the first one
     %% tested.
     Result1 = Result ++ [ChildName],
@@ -436,7 +436,7 @@ applies_to_grandchildren(_) ->
 %%
 %% @private
 
-is_met(Condition, Path, Child) when ?IS_PATH(Path) ->
+is_met(Condition, Path, Child) when ?IS_KHEPRI_PATH(Path) ->
     ChildName = case Path of
                     [] -> '';
                     _  -> lists:last(Path)
@@ -444,12 +444,12 @@ is_met(Condition, Path, Child) when ?IS_PATH(Path) ->
     is_met(Condition, ChildName, Child);
 
 is_met(ChildName, ChildName, _Child)
-  when ?IS_PATH_COMPONENT(ChildName) ->
+  when ?IS_KHEPRI_PATH_COMPONENT(ChildName) ->
     true;
-is_met(?THIS_NODE, _ChildNameB, _Child) ->
+is_met(?THIS_KHEPRI_NODE, _ChildNameB, _Child) ->
     true;
 is_met(ChildNameA, _ChildNameB, _Child)
-  when ?IS_PATH_COMPONENT(ChildNameA) ->
+  when ?IS_KHEPRI_PATH_COMPONENT(ChildNameA) ->
     {false, ChildNameA};
 is_met(#if_node_exists{exists = true}, _ChildName, _Child) ->
     true;
@@ -630,7 +630,7 @@ compare_numerical_values(_, _)                 -> false.
 %%
 %% @private
 
-is_valid(Component) when ?IS_PATH_COMPONENT(Component) ->
+is_valid(Component) when ?IS_KHEPRI_PATH_COMPONENT(Component) ->
     true;
 is_valid(#if_node_exists{exists = Exists}) ->
     is_boolean(Exists);

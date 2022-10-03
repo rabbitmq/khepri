@@ -74,25 +74,32 @@ optimize_if_any_test() ->
 %% -------------------------------------------------------------------
 
 eval_regex_test() ->
-    ?assert(khepri_condition:eval_regex(?STAR, "a", undefined, atom)),
-    ?assert(khepri_condition:eval_regex(?STAR, "b", undefined, <<"bin">>)),
-    ?assert(khepri_condition:eval_regex(?STAR, "a", re:compile("a"), atom)),
+    ?assert(khepri_condition:eval_regex(
+              ?KHEPRI_WILDCARD_STAR, "a", undefined, atom)),
+    ?assert(khepri_condition:eval_regex(
+              ?KHEPRI_WILDCARD_STAR, "b", undefined, <<"bin">>)),
+    ?assert(khepri_condition:eval_regex(
+              ?KHEPRI_WILDCARD_STAR, "a", re:compile("a"), atom)),
     ?assertEqual(
-       {false, ?STAR},
-       khepri_condition:eval_regex(?STAR, "b", undefined, atom)),
+       {false, ?KHEPRI_WILDCARD_STAR},
+       khepri_condition:eval_regex(
+         ?KHEPRI_WILDCARD_STAR, "b", undefined, atom)),
     ?assertEqual(
-       {false, ?STAR},
-       khepri_condition:eval_regex(?STAR, "b", undefined, atom)),
+       {false, ?KHEPRI_WILDCARD_STAR},
+       khepri_condition:eval_regex(
+         ?KHEPRI_WILDCARD_STAR, "b", undefined, atom)),
     ?assertEqual(
-       {false, {?STAR,
+       {false, {?KHEPRI_WILDCARD_STAR,
                 {error,
                  {"missing terminating ] for character class", 3}}}},
-       khepri_condition:eval_regex(?STAR, "[a-", undefined, atom)),
+       khepri_condition:eval_regex(
+         ?KHEPRI_WILDCARD_STAR, "[a-", undefined, atom)),
     ?assertEqual(
-       {false, {?STAR,
+       {false, {?KHEPRI_WILDCARD_STAR,
                 {error,
                  {"missing terminating ] for character class", 3}}}},
-       khepri_condition:eval_regex(?STAR, "[a-", re:compile("[a-"), atom)).
+       khepri_condition:eval_regex(
+         ?KHEPRI_WILDCARD_STAR, "[a-", re:compile("[a-"), atom)).
 
 compare_numerical_values_test() ->
     ?assert(khepri_condition:compare_numerical_values(1, 1)),
@@ -371,8 +378,8 @@ if_not_matching_test() ->
 
     ?assertEqual(
        {false, #if_not{condition =
-                       #if_any{conditions = [foo,
-                                             #if_payload_version{version = 1}]}}},
+                       #if_any{conditions =
+                               [foo, #if_payload_version{version = 1}]}}},
        khepri_condition:is_met(
          khepri_condition:compile(
            #if_not{condition =

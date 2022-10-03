@@ -91,7 +91,8 @@ invalid_create_call_test_() ->
             #{path := _}),
          begin
              Fun = fun() ->
-                           khepri_tx_adv:create([?STAR], foo_value)
+                           khepri_tx_adv:create(
+                             [?KHEPRI_WILDCARD_STAR], foo_value)
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
@@ -163,7 +164,7 @@ invalid_put_call_test_() ->
             #{path := _}),
          begin
              Fun = fun() ->
-                           khepri_tx_adv:put([?STAR], foo_value)
+                           khepri_tx_adv:put([?KHEPRI_WILDCARD_STAR], foo_value)
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
@@ -184,7 +185,8 @@ insert_many_non_existing_nodes_test_() ->
                  [b, foo] => #{payload_version => 1}}}},
          begin
              Fun = fun() ->
-                           khepri_tx_adv:put_many([?STAR, foo], foo_value)
+                           khepri_tx_adv:put_many(
+                             [?KHEPRI_WILDCARD_STAR, foo], foo_value)
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
@@ -193,7 +195,7 @@ insert_many_non_existing_nodes_test_() ->
                               payload_version => 1},
                 [b, foo] => #{data => foo_value,
                               payload_version => 1}}},
-         khepri_adv:get_many(?FUNCTION_NAME, [?STAR, foo]))]}.
+         khepri_adv:get_many(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR, foo]))]}.
 
 insert_many_existing_nodes_test_() ->
     {setup,
@@ -209,7 +211,8 @@ insert_many_existing_nodes_test_() ->
          ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
              Fun = fun() ->
-                           khepri_tx_adv:put_many([?STAR, foo], foo_value_all)
+                           khepri_tx_adv:put_many(
+                             [?KHEPRI_WILDCARD_STAR, foo], foo_value_all)
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
@@ -221,7 +224,8 @@ insert_many_existing_nodes_test_() ->
                                payload_version => 2}}}},
          begin
              Fun = fun() ->
-                           khepri_tx_adv:put_many([?STAR, foo], foo_value_all)
+                           khepri_tx_adv:put_many(
+                             [?KHEPRI_WILDCARD_STAR, foo], foo_value_all)
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
@@ -234,7 +238,7 @@ insert_many_existing_nodes_test_() ->
          begin
              Fun = fun() ->
                            khepri_tx_adv:put_many(
-                             [?STAR, foo], foo_value_all, #{})
+                             [?KHEPRI_WILDCARD_STAR, foo], foo_value_all, #{})
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
@@ -243,7 +247,7 @@ insert_many_existing_nodes_test_() ->
                               payload_version => 2},
                 [b, foo] => #{data => foo_value_all,
                               payload_version => 2}}},
-         khepri_adv:get_many(?FUNCTION_NAME, [?STAR, foo]))]}.
+         khepri_adv:get_many(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR, foo]))]}.
 
 update_non_existing_node_test_() ->
     {setup,
@@ -324,7 +328,8 @@ invalid_update_call_test_() ->
             #{path := _}),
          begin
              Fun = fun() ->
-                           khepri_tx_adv:update([?STAR], foo_value)
+                           khepri_tx_adv:update(
+                             [?KHEPRI_WILDCARD_STAR], foo_value)
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
@@ -445,7 +450,7 @@ invalid_compare_and_swap_call_test_() ->
          begin
              Fun = fun() ->
                            khepri_tx_adv:compare_and_swap(
-                             [?STAR], foo_value1, foo_value2)
+                             [?KHEPRI_WILDCARD_STAR], foo_value1, foo_value2)
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end

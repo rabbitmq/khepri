@@ -277,7 +277,7 @@ allowed_list_comprehension_with_funs_test() ->
 allowed_list_comprehension_with_multiple_qualifiers_test() ->
     ?assertStandaloneFun(
        begin
-           {ok, Nodes} = khepri_tx:get_many([?STAR]),
+           {ok, Nodes} = khepri_tx:get_many([?KHEPRI_WILDCARD_STAR]),
            [Data ||
             Path <- lists:sort(maps:keys(Nodes)),
             #{data := Data} <- [maps:get(Path, Nodes)]]

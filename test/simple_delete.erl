@@ -47,7 +47,7 @@ invalid_delete_call_test_() ->
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
             #{path := _}),
-         khepri:delete(?FUNCTION_NAME, [?STAR]))]}.
+         khepri:delete(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR]))]}.
 
 delete_many_on_non_existing_node_with_condition_test_() ->
     {setup,
@@ -176,7 +176,7 @@ delete_many_payloads_from_existing_node_test_() ->
                 [foo2] => undefined,
                 [foo2, bar] => bar_value}},
          khepri:get_many(
-           ?FUNCTION_NAME, [?STAR_STAR])),
+           ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR_STAR])),
       ?_assertEqual(
          ok,
          khepri:delete_many_payloads(

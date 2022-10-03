@@ -60,7 +60,8 @@ delete_a_node_test_() ->
      ]}.
 
 query_keep_while_conds_state_test_() ->
-    KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = {gt, 0}}},
+    KeepWhile = #{[?THIS_KHEPRI_NODE] =>
+                  #if_child_list_length{count = {gt, 0}}},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,

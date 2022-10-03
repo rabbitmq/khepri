@@ -239,10 +239,13 @@ get_many(PathPattern, Options) when is_map(Options) ->
 %% %% <root>
 %% %% `-- foo
 %% %%     `-- bar = value
-%% {ok, #{[foo] := #{payload_version := 1},
-%%        [foo, bar] := #{data := value,
-%%                        payload_version := 1}}} = khepri_adv:get_many(
-%%                                                    StoreId, [?STAR_STAR]).
+%% {ok, #{[foo] :=
+%%        #{payload_version := 1},
+%%        [foo, bar] :=
+%%        #{data := value,
+%%          payload_version := 1}}} = khepri_adv:get_many(
+%%                                      StoreId,
+%%                                      [?KHEPRI_WILDCARD_STAR_STAR]).
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.
@@ -482,11 +485,14 @@ put_many(StoreId, PathPattern, Data) ->
 %% Example:
 %% ```
 %% %% Set value of all tree nodes matching `/*/:bar', to `new_value'.
-%% {ok, #{[foo, bar] := #{data := value,
-%%                        payload_version := 1},
-%%        [baz, bar] := #{payload_version := 1}}} = khepri_adv:put_many(
-%%                                                    StoreId, [?STAR, bar],
-%%                                                    new_value).
+%% {ok, #{[foo, bar] :=
+%%        #{data := value,
+%%          payload_version := 1},
+%%        [baz, bar] :=
+%%        #{payload_version := 1}}} = khepri_adv:put_many(
+%%                                      StoreId,
+%%                                      [?KHEPRI_WILDCARD_STAR, bar],
+%%                                      new_value).
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.

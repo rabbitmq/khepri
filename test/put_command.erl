@@ -133,7 +133,8 @@ overwrite_an_existing_node_data_test() ->
 
 insert_a_node_with_path_containing_dot_and_dot_dot_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
-    Command = #put{path = [foo, ?PARENT_NODE, foo, bar, ?THIS_NODE],
+    Command = #put{path = [foo, ?PARENT_KHEPRI_NODE, foo, bar,
+                           ?THIS_KHEPRI_NODE],
                    payload = khepri_payload:data(value),
                    options = #{props_to_return => [payload,
                                                    payload_version]}},
@@ -263,7 +264,7 @@ insert_a_node_with_condition_true_on_self_using_dot_test() ->
 
     Command = #put{path = [foo,
                            #if_all{conditions =
-                                   [?THIS_NODE,
+                                   [?THIS_KHEPRI_NODE,
                                     #if_data_matches{pattern = value1}]}],
                    payload = khepri_payload:data(value2),
                    options = #{props_to_return => [payload,
@@ -298,8 +299,8 @@ insert_a_node_with_condition_false_on_self_using_dot_test() ->
     %% We compile the condition beforehand because we need the compiled
     %% version to make an exact match on the returned error later.
     Compiled = khepri_condition:compile(#if_data_matches{pattern = value2}),
-    Command = #put{path = [foo,
-                           #if_all{conditions = [?THIS_NODE, Compiled]}],
+    Command = #put{path =
+                   [foo, #if_all{conditions = [?THIS_KHEPRI_NODE, Compiled]}],
                    payload = khepri_payload:data(value3),
                    options = #{expect_specific_node => true,
                                props_to_return => [payload,

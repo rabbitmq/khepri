@@ -37,7 +37,7 @@ query_root_node_explicitly_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
-            Root, [?ROOT_NODE],
+            Root, [?KHEPRI_ROOT_NODE],
             #{props_to_return => [payload,
                                   payload_version,
                                   child_list_version,
@@ -53,7 +53,7 @@ query_root_node_using_dot_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
-            Root, [?THIS_NODE],
+            Root, [?THIS_KHEPRI_NODE],
             #{props_to_return => [payload,
                                   payload_version,
                                   child_list_version,
@@ -72,7 +72,7 @@ query_above_root_node_using_dot_dot_test() ->
     Root = khepri_machine:get_root(S0),
 
     Ret = khepri_machine:find_matching_nodes(
-            Root, [?PARENT_NODE, ?PARENT_NODE],
+            Root, [?PARENT_KHEPRI_NODE, ?PARENT_KHEPRI_NODE],
             #{props_to_return => [payload,
                                   payload_version,
                                   child_list_version,
@@ -84,7 +84,7 @@ query_above_root_node_using_dot_dot_test() ->
        Ret),
 
     Ret = khepri_machine:find_matching_nodes(
-            Root, [?THIS_NODE, ?PARENT_NODE],
+            Root, [?THIS_KHEPRI_NODE, ?PARENT_KHEPRI_NODE],
             #{props_to_return => [payload,
                                   payload_version,
                                   child_list_version,
@@ -96,7 +96,7 @@ query_above_root_node_using_dot_dot_test() ->
        Ret),
 
     Ret = khepri_machine:find_matching_nodes(
-            Root, [foo, ?PARENT_NODE],
+            Root, [foo, ?PARENT_KHEPRI_NODE],
             #{props_to_return => [payload,
                                   payload_version,
                                   child_list_version,
@@ -112,7 +112,7 @@ query_root_node_with_conditions_true_test() ->
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
             Root,
-            [#if_all{conditions = [?ROOT_NODE,
+            [#if_all{conditions = [?KHEPRI_ROOT_NODE,
                                    #if_child_list_length{count = 0}]}],
             #{props_to_return => [payload,
                                   payload_version,
@@ -130,7 +130,7 @@ query_root_node_with_conditions_false_test() ->
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
             Root,
-            [#if_all{conditions = [?ROOT_NODE,
+            [#if_all{conditions = [?KHEPRI_ROOT_NODE,
                                    #if_child_list_length{count = 1}]}],
             #{}),
 
@@ -163,7 +163,7 @@ store_data_in_root_node_using_empty_path_test() ->
 
 store_data_in_root_node_using_root_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
-    Command = #put{path = [?ROOT_NODE],
+    Command = #put{path = [?KHEPRI_ROOT_NODE],
                    payload = khepri_payload:data(value),
                    options = #{props_to_return => [payload,
                                                    payload_version,
@@ -186,7 +186,7 @@ store_data_in_root_node_using_root_test() ->
 
 store_data_in_root_node_using_dot_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
-    Command = #put{path = [?THIS_NODE],
+    Command = #put{path = [?THIS_KHEPRI_NODE],
                    payload = khepri_payload:data(value),
                    options = #{props_to_return => [payload,
                                                    payload_version,
@@ -209,7 +209,7 @@ store_data_in_root_node_using_dot_test() ->
 
 store_data_in_root_node_using_dot_dot_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
-    Command = #put{path = [?PARENT_NODE],
+    Command = #put{path = [?PARENT_KHEPRI_NODE],
                    payload = khepri_payload:data(value),
                    options = #{props_to_return => [payload,
                                                    payload_version,
@@ -233,7 +233,8 @@ store_data_in_root_node_using_dot_dot_test() ->
 store_data_in_root_node_with_condition_true_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 0}),
-    Command = #put{path = [#if_all{conditions = [?ROOT_NODE, Compiled]}],
+    Command = #put{path = [#if_all{conditions =
+                                   [?KHEPRI_ROOT_NODE, Compiled]}],
                    payload = khepri_payload:data(value),
                    options = #{props_to_return => [payload,
                                                    payload_version,
@@ -257,7 +258,8 @@ store_data_in_root_node_with_condition_true_test() ->
 store_data_in_root_node_with_condition_true_using_dot_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 0}),
-    Command = #put{path = [#if_all{conditions = [?THIS_NODE, Compiled]}],
+    Command = #put{path = [#if_all{conditions =
+                                   [?THIS_KHEPRI_NODE, Compiled]}],
                    payload = khepri_payload:data(value),
                    options = #{props_to_return => [payload,
                                                    payload_version,
@@ -281,7 +283,8 @@ store_data_in_root_node_with_condition_true_using_dot_test() ->
 store_data_in_root_node_with_condition_false_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 1}),
-    Command = #put{path = [#if_all{conditions = [?ROOT_NODE, Compiled]}],
+    Command = #put{path = [#if_all{conditions =
+                                   [?KHEPRI_ROOT_NODE, Compiled]}],
                    payload = khepri_payload:data(value),
                    options = #{expect_specific_node => true}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
@@ -296,7 +299,7 @@ store_data_in_root_node_with_condition_false_test() ->
     ?assertEqual({error,
                   ?khepri_error(
                      mismatching_node,
-                     #{node_name => ?ROOT_NODE,
+                     #{node_name => ?KHEPRI_ROOT_NODE,
                        node_path => [],
                        node_is_target => true,
                        node_props => #{payload_version => 1},
@@ -352,7 +355,7 @@ delete_root_node_using_root_test() ->
     Commands = [#put{path = [],
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Command = #delete{path = [?ROOT_NODE],
+    Command = #delete{path = [?KHEPRI_ROOT_NODE],
                       options = #{props_to_return => [payload,
                                                       payload_version,
                                                       child_list_version,
@@ -376,7 +379,7 @@ delete_root_node_using_dot_test() ->
     Commands = [#put{path = [],
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Command = #delete{path = [?THIS_NODE],
+    Command = #delete{path = [?THIS_KHEPRI_NODE],
                       options = #{props_to_return => [payload,
                                                       payload_version,
                                                       child_list_version,
@@ -400,7 +403,7 @@ delete_root_node_using_dot_dot_test() ->
     Commands = [#put{path = [],
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Command = #delete{path = [?PARENT_NODE],
+    Command = #delete{path = [?PARENT_KHEPRI_NODE],
                       options = #{props_to_return => [payload,
                                                       payload_version,
                                                       child_list_version,
@@ -450,7 +453,8 @@ delete_root_node_with_condition_true_test() ->
                      payload = khepri_payload:data(foo_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 1}),
-    Command = #delete{path = [#if_all{conditions = [?ROOT_NODE, Compiled]}],
+    Command = #delete{path = [#if_all{conditions =
+                                      [?KHEPRI_ROOT_NODE, Compiled]}],
                       options = #{props_to_return => [payload,
                                                       payload_version,
                                                       child_list_version,
@@ -474,7 +478,8 @@ delete_root_node_with_condition_true_using_dot_test() ->
                      payload = khepri_payload:data(foo_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 1}),
-    Command = #delete{path = [#if_all{conditions = [?THIS_NODE, Compiled]}],
+    Command = #delete{path = [#if_all{conditions =
+                                      [?THIS_KHEPRI_NODE, Compiled]}],
                       options = #{props_to_return => [payload,
                                                       payload_version,
                                                       child_list_version,
@@ -498,7 +503,8 @@ delete_root_node_with_condition_false_test() ->
                      payload = khepri_payload:data(foo_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Compiled = khepri_condition:compile(#if_child_list_length{count = 0}),
-    Command = #delete{path = [#if_all{conditions = [?ROOT_NODE, Compiled]}]},
+    Command = #delete{path = [#if_all{conditions =
+                                      [?KHEPRI_ROOT_NODE, Compiled]}]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 

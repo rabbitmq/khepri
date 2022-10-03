@@ -67,7 +67,7 @@ invalid_delete_call_test_() ->
             #{path := _}),
          begin
              Fun = fun() ->
-                           khepri_tx:delete([?STAR])
+                           khepri_tx:delete([?KHEPRI_WILDCARD_STAR])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
@@ -272,7 +272,7 @@ delete_many_payloads_from_existing_node_test_() ->
                 [foo2] => undefined,
                 [foo2, bar] => bar_value}},
          khepri:get_many(
-           ?FUNCTION_NAME, [?STAR_STAR])),
+           ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR_STAR])),
       ?_assertEqual(
          {ok, ok},
          begin

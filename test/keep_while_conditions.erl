@@ -143,7 +143,7 @@ insert_when_keep_while_false_test() ->
 
 insert_when_keep_while_true_on_self_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
-    KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = 0}},
+    KeepWhile = #{[?THIS_KHEPRI_NODE] => #if_child_list_length{count = 0}},
     Command = #put{path = [foo],
                    payload = khepri_payload:data(foo_value),
                    extra = #{keep_while => KeepWhile}},
@@ -166,7 +166,7 @@ insert_when_keep_while_true_on_self_test() ->
 
 insert_when_keep_while_false_on_self_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
-    KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = 1}},
+    KeepWhile = #{[?THIS_KHEPRI_NODE] => #if_child_list_length{count = 1}},
     Command = #put{path = [foo],
                    payload = khepri_payload:data(foo_value),
                    extra = #{keep_while => KeepWhile}},
@@ -261,7 +261,8 @@ keep_while_now_false_after_command_test() ->
     ?assertEqual([], SE).
 
 recursive_automatic_cleanup_test() ->
-    KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = {gt, 0}}},
+    KeepWhile = #{[?THIS_KHEPRI_NODE] =>
+                  #if_child_list_length{count = {gt, 0}}},
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(foo_value),
                      extra = #{keep_while => KeepWhile}},

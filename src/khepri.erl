@@ -779,7 +779,9 @@ get_many(PathPattern, Options) when is_map(Options) ->
 %% %% `-- foo
 %% %%     `-- bar = value
 %% {ok, #{[foo] := undefined,
-%%        [foo, bar] := value}} = khepri:get_many(StoreId, [?STAR_STAR]).
+%%        [foo, bar] := value}} = khepri:get_many(
+%%                                  StoreId,
+%%                                  [?KHEPRI_WILDCARD_STAR_STAR]).
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.
@@ -874,7 +876,9 @@ get_many_or(PathPattern, Default, Options) when is_map(Options) ->
 %% %%     `-- bar = value
 %% {ok, #{[foo] := default,
 %%        [foo, bar] := value}} = khepri:get_many_or(
-%%                                  StoreId, [?STAR_STAR], default).
+%%                                  StoreId,
+%%                                  [?KHEPRI_WILDCARD_STAR_STAR],
+%%                                  default).
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.
@@ -1243,7 +1247,7 @@ count(PathPattern, Options) when is_map(Options) ->
 %% Example:
 %% ```
 %% %% Query the tree node at `/:foo/:bar'.
-%% {ok, 3} = khepri:count(StoreId, [foo, ?STAR]).
+%% {ok, 3} = khepri:count(StoreId, [foo, ?KHEPRI_WILDCARD_STAR]).
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.
@@ -1951,7 +1955,7 @@ delete_many(PathPattern, Options) when is_map(Options) ->
 %% Example:
 %% ```
 %% %% Delete all nodes in the tree.
-%% ok = khepri_adv:delete_many(StoreId, [?STAR]).
+%% ok = khepri_adv:delete_many(StoreId, [?KHEPRI_WILDCARD_STAR]).
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.
@@ -2492,7 +2496,7 @@ info(StoreId, Options) ->
             ok
     end,
 
-    case khepri_adv:get_many(StoreId, [?STAR_STAR], Options) of
+    case khepri_adv:get_many(StoreId, [?KHEPRI_WILDCARD_STAR_STAR], Options) of
         {ok, Result} ->
             io:format("~n\033[1;32m== TREE ==\033[0m~n~n●~n", []),
             Tree = khepri_utils:flat_struct_to_tree(Result),

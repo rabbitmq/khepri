@@ -55,7 +55,8 @@ command(_State) ->
                                     payload_version,
                                     child_list_version,
                                     child_list_length]},
-    elements([{call, khepri_adv, put_many, [?STORE_ID, path(), payload(), Options]},
+    elements([{call, khepri_adv, put_many, [?STORE_ID, path(), payload(),
+                                            Options]},
               {call, khepri_adv, get_many, [?STORE_ID, path(), Options]},
               {call, khepri_adv, delete_many, [?STORE_ID, path(), Options]}]).
 

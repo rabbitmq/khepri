@@ -68,7 +68,7 @@ invalid_get_call_test_() ->
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
             #{path := _}),
-         khepri_adv:get(?FUNCTION_NAME, [?STAR]))]}.
+         khepri_adv:get(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR]))]}.
 
 get_many_non_existing_nodes_test_() ->
     {setup,
@@ -76,7 +76,7 @@ get_many_non_existing_nodes_test_() ->
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
          {ok, #{}},
-         khepri_adv:get_many(?FUNCTION_NAME, [?STAR]))]}.
+         khepri_adv:get_many(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR]))]}.
 
 get_many_existing_nodes_test_() ->
     {setup,
@@ -92,11 +92,11 @@ get_many_existing_nodes_test_() ->
          {ok, #{[foo] => #{payload_version => 1},
                 [baz] => #{data => baz_value,
                            payload_version => 1}}},
-         khepri_adv:get_many(?FUNCTION_NAME, [?STAR])),
+         khepri_adv:get_many(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR])),
       ?_assertError(
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
-            #{path := [?STAR]}),
+            #{path := [?KHEPRI_WILDCARD_STAR]}),
          khepri_adv:get_many(
-           ?FUNCTION_NAME, [?STAR],
+           ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR],
            #{expect_specific_node => true}))]}.

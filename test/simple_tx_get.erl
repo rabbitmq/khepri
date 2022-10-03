@@ -97,7 +97,7 @@ invalid_get_call_test_() ->
             #{path := _}),
          begin
              Fun = fun() ->
-                           khepri_tx:get([?STAR])
+                           khepri_tx:get([?KHEPRI_WILDCARD_STAR])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
@@ -165,7 +165,7 @@ invalid_get_or_call_test_() ->
             #{path := _}),
          begin
              Fun = fun() ->
-                           khepri_tx:get_or([?STAR], default)
+                           khepri_tx:get_or([?KHEPRI_WILDCARD_STAR], default)
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
@@ -178,7 +178,7 @@ get_many_non_existing_nodes_test_() ->
          {ok, {ok, #{}}},
          begin
              Fun = fun() ->
-                           khepri_tx:get_many([?STAR])
+                           khepri_tx:get_many([?KHEPRI_WILDCARD_STAR])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
@@ -199,7 +199,7 @@ get_many_existing_nodes_test_() ->
                  [baz] => baz_value}}},
          begin
              Fun = fun() ->
-                           khepri_tx:get_many([?STAR])
+                           khepri_tx:get_many([?KHEPRI_WILDCARD_STAR])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
@@ -209,18 +209,19 @@ get_many_existing_nodes_test_() ->
                  [baz] => baz_value}}},
          begin
              Fun = fun() ->
-                           khepri_tx:get_many([?STAR])
+                           khepri_tx:get_many([?KHEPRI_WILDCARD_STAR])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertError(
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
-            #{path := [?STAR]}),
+            #{path := [?KHEPRI_WILDCARD_STAR]}),
          begin
              Fun = fun() ->
                            khepri_tx:get_many(
-                             [?STAR], #{expect_specific_node => true})
+                             [?KHEPRI_WILDCARD_STAR],
+                             #{expect_specific_node => true})
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
@@ -233,7 +234,8 @@ get_many_or_default_non_existing_nodes_test_() ->
          {ok, {ok, #{}}},
          begin
              Fun = fun() ->
-                           khepri_tx:get_many_or([?STAR], default)
+                           khepri_tx:get_many_or(
+                             [?KHEPRI_WILDCARD_STAR], default)
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
@@ -254,7 +256,8 @@ get_many_or_default_existing_nodes_test_() ->
                  [baz] => baz_value}}},
          begin
              Fun = fun() ->
-                           khepri_tx:get_many_or([?STAR], default)
+                           khepri_tx:get_many_or(
+                             [?KHEPRI_WILDCARD_STAR], default)
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
@@ -264,18 +267,19 @@ get_many_or_default_existing_nodes_test_() ->
                  [baz] => baz_value}}},
          begin
              Fun = fun() ->
-                           khepri_tx:get_many_or([?STAR], default)
+                           khepri_tx:get_many_or(
+                             [?KHEPRI_WILDCARD_STAR], default)
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertError(
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
-            #{path := [?STAR]}),
+            #{path := [?KHEPRI_WILDCARD_STAR]}),
          begin
              Fun = fun() ->
                            khepri_tx:get_many_or(
-                             [?STAR], default,
+                             [?KHEPRI_WILDCARD_STAR], default,
                              #{expect_specific_node => true})
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
@@ -331,7 +335,7 @@ check_invalid_exists_call_test_() ->
             #{path := _}),
          begin
              Fun = fun() ->
-                           khepri_tx:exists([?STAR])
+                           khepri_tx:exists([?KHEPRI_WILDCARD_STAR])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
@@ -402,7 +406,7 @@ check_invalid_has_data_call_test_() ->
             #{path := _}),
          begin
              Fun = fun() ->
-                           khepri_tx:has_data([?STAR])
+                           khepri_tx:has_data([?KHEPRI_WILDCARD_STAR])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
@@ -473,7 +477,7 @@ check_invalid_is_sproc_call_test_() ->
             #{path := _}),
          begin
              Fun = fun() ->
-                           khepri_tx:is_sproc([?STAR])
+                           khepri_tx:is_sproc([?KHEPRI_WILDCARD_STAR])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
@@ -539,7 +543,8 @@ count_many_nodes_test_() ->
          {ok, {ok, 2}},
          begin
              Fun = fun() ->
-                           khepri_tx:count([?THIS_NODE, ?STAR])
+                           khepri_tx:count(
+                             [?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
@@ -547,18 +552,18 @@ count_many_nodes_test_() ->
          {ok, {ok, 3}},
          begin
              Fun = fun() ->
-                           khepri_tx:count([?STAR_STAR])
+                           khepri_tx:count([?KHEPRI_WILDCARD_STAR_STAR])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertError(
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
-            #{path := [?STAR]}),
+            #{path := [?KHEPRI_WILDCARD_STAR]}),
          begin
              Fun = fun() ->
                            khepri_tx:count(
-                             [?THIS_NODE, ?STAR],
+                             [?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR],
                              #{expect_specific_node => true})
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
