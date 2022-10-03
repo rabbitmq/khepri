@@ -290,6 +290,9 @@
 %% This is the same as {@link keep_while()} but the paths in the map keys were
 %% converted to native paths if necessary.
 
+-type re_mp() :: tuple().
+%% `mp()` type defined by {@link re} but not exported.
+
 -export([ensure_native_keep_while/1,
          compile/1,
          applies_to_grandchildren/1,
@@ -304,7 +307,8 @@
 -export_type([condition/0,
               comparison_op/1,
               keep_while/0,
-              native_keep_while/0]).
+              native_keep_while/0,
+              re_mp/0]).
 
 -spec ensure_native_keep_while(KeepWhile) -> NativeKeepWhile when
       KeepWhile :: keep_while(),
@@ -552,7 +556,7 @@ term_matches(Term, MatchSpec) ->
 -spec eval_regex(Condition, SourceRegex, CompiledRegex, Value) -> Ret when
       Condition :: condition_using_regex(),
       SourceRegex :: any | iodata() | unicode:charlist(),
-      CompiledRegex :: {ok, re_mp()} |
+      CompiledRegex :: {ok, khepri_condition:re_mp()} |
                        {error, {string(), non_neg_integer()}} |
                        undefined,
       Value :: atom() | iodata() | unicode:charlist(),
