@@ -9,7 +9,7 @@
 
 -module(khepri_evf).
 
--include("src/internal.hrl").
+-include("src/khepri_evf.hrl").
 
 -export([tree/1, tree/2,
          wrap/1,

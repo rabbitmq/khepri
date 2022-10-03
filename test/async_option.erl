@@ -10,8 +10,8 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("include/khepri.hrl").
--include("src/internal.hrl").
 -include("src/khepri_error.hrl").
+-include("src/khepri_payload.hrl").
 -include("test/helpers.hrl").
 
 async_unset_in_put_test_() ->

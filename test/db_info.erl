@@ -10,7 +10,6 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("include/khepri.hrl").
--include("src/internal.hrl").
 -include("test/helpers.hrl").
 
 get_store_ids_with_no_running_stores_test_() ->

@@ -10,7 +10,6 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("include/khepri.hrl").
--include("src/internal.hrl").
 -include("test/helpers.hrl").
 
 event_triggers_associated_sproc_test_() ->

@@ -12,7 +12,7 @@
 -include_lib("proper/include/proper.hrl").
 
 -include("include/khepri.hrl").
--include("src/internal.hrl").
+-include("src/khepri_payload.hrl").
 
 -dialyzer([{[no_opaque, no_return],
             [prop_commands_with_simple_paths_work_in_any_order/0]}]).

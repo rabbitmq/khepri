@@ -24,10 +24,12 @@
 -include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
--include("src/khepri_fun.hrl").
--include("src/internal.hrl").
--include("src/khepri_machine.hrl").
+-include("src/khepri_cluster.hrl").
 -include("src/khepri_error.hrl").
+-include("src/khepri_evf.hrl").
+-include("src/khepri_fun.hrl").
+-include("src/khepri_machine.hrl").
+-include("src/khepri_ret.hrl").
 
 -export([get/3,
          count/3,
@@ -153,6 +155,8 @@
               triggered/0,
               keep_while_conds_map/0,
               keep_while_conds_revidx/0]).
+
+-define(HAS_TIME_LEFT(Timeout), (Timeout =:= infinity orelse Timeout > 0)).
 
 %% -------------------------------------------------------------------
 %% Machine protocol.

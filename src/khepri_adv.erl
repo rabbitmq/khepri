@@ -25,8 +25,9 @@
 -module(khepri_adv).
 
 -include("include/khepri.hrl").
--include("src/internal.hrl").
+-include("src/khepri_cluster.hrl").
 -include("src/khepri_error.hrl").
+-include("src/khepri_ret.hrl").
 
 -export([get/1, get/2, get/3,
          get_many/1, get_many/2, get_many/3,

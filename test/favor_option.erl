@@ -10,7 +10,6 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("include/khepri.hrl").
--include("src/internal.hrl").
 -include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 

@@ -5,14 +5,30 @@
 %% Copyright © 2021-2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
+-include("src/khepri_payload.hrl").
+
+%% Structure representing each node in the tree, including the root node.
+%% TODO: Rename stat to something more correct?
+
+-define(INIT_DATA_VERSION, 1).
+-define(INIT_CHILD_LIST_VERSION, 1).
+-define(INIT_NODE_STAT, #{payload_version => ?INIT_DATA_VERSION,
+                          child_list_version => ?INIT_CHILD_LIST_VERSION}).
+
 %% TODO: Query this value from Ra itself.
 -define(SNAPSHOT_INTERVAL, 4096).
 
+-record(node, {stat = ?INIT_NODE_STAT :: khepri_machine:stat(),
+               payload = ?NO_PAYLOAD :: khepri_payload:payload(),
+               child_nodes = #{} :: #{khepri_path:component() := #node{}}}).
+
+%% Record representing the state machine configuration.
 -record(config,
         {store_id :: khepri:store_id(),
          member :: ra:server_id(),
          snapshot_interval = ?SNAPSHOT_INTERVAL :: non_neg_integer()}).
 
+%% State machine's internal state record.
 -record(khepri_machine,
         {config = #config{} :: khepri_machine:machine_config(),
          root = #node{} :: khepri_machine:tree_node(),
@@ -25,3 +41,29 @@
                event_filter := khepri_evf:event_filter()}},
          emitted_triggers = [] :: [khepri_machine:triggered()],
          metrics = #{} :: #{applied_command_count => non_neg_integer()}}).
+
+%% State machine commands.
+
+-record(put, {path :: khepri_path:native_pattern(),
+              payload = ?NO_PAYLOAD :: khepri_payload:payload(),
+              extra = #{} :: #{keep_while =>
+                               khepri_condition:native_keep_while()},
+              options = #{} :: khepri:tree_options()}).
+
+-record(delete, {path :: khepri_path:native_pattern(),
+                 options  = #{} :: khepri:tree_options()}).
+
+-record(tx, {'fun' :: khepri_fun:standalone_fun()}).
+
+-record(register_trigger, {id :: khepri:trigger_id(),
+                           event_filter :: khepri_evf:event_filter(),
+                           sproc :: khepri_path:native_path()}).
+
+-record(ack_triggered, {triggered :: [khepri_machine:triggered()]}).
+
+-record(triggered, {id :: khepri:trigger_id(),
+                    %% TODO: Do we need a ref to distinguish multiple
+                    %% instances of the same trigger?
+                    event_filter :: khepri_evf:event_filter(),
+                    sproc :: khepri_fun:standalone_fun(),
+                    props = #{} :: map()}).

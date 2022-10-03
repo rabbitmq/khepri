@@ -9,7 +9,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("src/internal.hrl").
+-include("src/khepri_cluster.hrl").
 -include("src/khepri_error.hrl").
 
 app_starts_workers_test_() ->

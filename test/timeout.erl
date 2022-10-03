@@ -10,7 +10,6 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("include/khepri.hrl").
--include("src/internal.hrl").
 -include("test/helpers.hrl").
 
 can_specify_timeout_in_milliseconds_test_() ->

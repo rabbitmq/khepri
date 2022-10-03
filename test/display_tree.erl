@@ -10,7 +10,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("include/khepri.hrl").
--include("src/internal.hrl").
+-include("src/khepri_machine.hrl").
 -include("test/helpers.hrl").
 
 %% khepri:get_root/1 is unexported when compiled without `-DTEST'.

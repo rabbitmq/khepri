@@ -16,7 +16,6 @@
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
 -include("src/khepri_fun.hrl").
--include("src/internal.hrl").
 
 %% For internal user only.
 -export([to_standalone_fun/1,

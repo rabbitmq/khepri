@@ -11,7 +11,6 @@
 
 -include("include/khepri.hrl").
 -include("src/khepri_fun.hrl").
--include("src/internal.hrl").
 -include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 

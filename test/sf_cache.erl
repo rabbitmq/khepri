@@ -11,7 +11,6 @@
 
 -include("include/khepri.hrl").
 -include("src/khepri_fun.hrl").
--include("src/internal.hrl").
 
 %% FIXME: compile:forms/2 is incorrectly specified and doesn't accept
 %% assembly. This breaks compile/1 and causes a cascade of errors.

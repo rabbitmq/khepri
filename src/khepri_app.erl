@@ -13,7 +13,7 @@
 -include_lib("kernel/include/logger.hrl").
 -include_lib("stdlib/include/assert.hrl").
 
--include("src/internal.hrl").
+-include("src/khepri_cluster.hrl").
 -include("src/khepri_error.hrl").
 
 -export([get_default_timeout/0]).
