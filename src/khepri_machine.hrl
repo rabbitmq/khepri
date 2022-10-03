@@ -8,17 +8,16 @@
 -include("src/khepri_payload.hrl").
 
 %% Structure representing each node in the tree, including the root node.
-%% TODO: Rename stat to something more correct?
 
 -define(INIT_DATA_VERSION, 1).
 -define(INIT_CHILD_LIST_VERSION, 1).
--define(INIT_NODE_STAT, #{payload_version => ?INIT_DATA_VERSION,
-                          child_list_version => ?INIT_CHILD_LIST_VERSION}).
+-define(INIT_NODE_PROPS, #{payload_version => ?INIT_DATA_VERSION,
+                           child_list_version => ?INIT_CHILD_LIST_VERSION}).
 
 %% TODO: Query this value from Ra itself.
 -define(SNAPSHOT_INTERVAL, 4096).
 
--record(node, {stat = ?INIT_NODE_STAT :: khepri_machine:stat(),
+-record(node, {props = ?INIT_NODE_PROPS :: khepri_machine:props(),
                payload = ?NO_PAYLOAD :: khepri_payload:payload(),
                child_nodes = #{} :: #{khepri_path:component() := #node{}}}).
 

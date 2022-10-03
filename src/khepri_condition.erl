@@ -492,13 +492,13 @@ is_met(#if_data_matches{compiled = CompMatchSpec} = Cond,
         false -> {false, Cond}
     end;
 is_met(#if_payload_version{version = DVersionB} = Cond, _ChildName,
-       #node{stat = #{payload_version := DVersionA}}) ->
+       #node{props = #{payload_version := DVersionA}}) ->
     compare_numerical_values(Cond, DVersionA, DVersionB);
 is_met(#if_payload_version{version = DVersionB} = Cond, _ChildName,
        #{payload_version := DVersionA}) ->
     compare_numerical_values(Cond, DVersionA, DVersionB);
 is_met(#if_child_list_version{version = CVersionB} = Cond, _ChildName,
-       #node{stat = #{child_list_version := CVersionA}}) ->
+       #node{props = #{child_list_version := CVersionA}}) ->
     compare_numerical_values(Cond, CVersionA, CVersionB);
 is_met(#if_child_list_version{version = CVersionB} = Cond, _ChildName,
        #{child_list_version := CVersionA}) ->

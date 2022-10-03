@@ -74,17 +74,17 @@ insert_when_keep_while_true_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 3},
           child_nodes =
           #{foo =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                payload = khepri_payload:data(foo_value)},
             baz =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                payload = khepri_payload:data(baz_value)}}},
        Root),
     ?assertEqual(
@@ -151,13 +151,13 @@ insert_when_keep_while_true_on_self_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 2},
           child_nodes =
           #{foo =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                payload = khepri_payload:data(foo_value)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{}}}, Ret),
@@ -174,13 +174,13 @@ insert_when_keep_while_false_on_self_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 2},
           child_nodes =
           #{foo =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                payload = khepri_payload:data(foo_value)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{}}}, Ret),
@@ -206,18 +206,18 @@ keep_while_still_true_after_command_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 3},
           child_nodes =
           #{foo =>
             #node{
-               stat = #{payload_version => 2,
-                        child_list_version => 1},
+               props = #{payload_version => 2,
+                         child_list_version => 1},
                payload = khepri_payload:data(new_foo_value)},
             baz =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                payload = khepri_payload:data(baz_value)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => foo_value,
@@ -242,18 +242,18 @@ keep_while_now_false_after_command_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 4},
           child_nodes =
           #{foo =>
             #node{
-               stat = #{payload_version => 1,
-                        child_list_version => 2},
+               props = #{payload_version => 1,
+                         child_list_version => 2},
                payload = khepri_payload:data(foo_value),
                child_nodes =
                #{bar =>
-                 #node{stat = ?INIT_NODE_STAT,
+                 #node{props = ?INIT_NODE_PROPS,
                        payload = khepri_payload:data(bar_value)}}}}},
        Root),
     ?assertEqual({ok, #{[foo, bar] => #{}}}, Ret),
@@ -282,7 +282,7 @@ recursive_automatic_cleanup_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 3},
           child_nodes = #{}},
@@ -312,7 +312,7 @@ keep_while_now_false_after_delete_command_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 5},
           child_nodes = #{}},

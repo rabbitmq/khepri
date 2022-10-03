@@ -151,7 +151,7 @@ store_data_in_root_node_using_empty_path_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 2,
             child_list_version => 1},
           payload = khepri_payload:data(value)},
@@ -174,7 +174,7 @@ store_data_in_root_node_using_root_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 2,
             child_list_version => 1},
           payload = khepri_payload:data(value)},
@@ -197,7 +197,7 @@ store_data_in_root_node_using_dot_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 2,
             child_list_version => 1},
           payload = khepri_payload:data(value)},
@@ -220,7 +220,7 @@ store_data_in_root_node_using_dot_dot_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 2,
             child_list_version => 1},
           payload = khepri_payload:data(value)},
@@ -245,7 +245,7 @@ store_data_in_root_node_with_condition_true_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 2,
             child_list_version => 1},
           payload = khepri_payload:data(value)},
@@ -270,7 +270,7 @@ store_data_in_root_node_with_condition_true_using_dot_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 2,
             child_list_version => 1},
           payload = khepri_payload:data(value)},
@@ -292,7 +292,7 @@ store_data_in_root_node_with_condition_false_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 1}},
        Root),
@@ -318,7 +318,7 @@ delete_empty_root_node_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 1}},
        Root),
@@ -341,7 +341,7 @@ delete_root_node_using_empty_path_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 3,
             child_list_version => 1}},
        Root),
@@ -365,7 +365,7 @@ delete_root_node_using_root_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 3,
             child_list_version => 1}},
        Root),
@@ -389,7 +389,7 @@ delete_root_node_using_dot_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 3,
             child_list_version => 1}},
        Root),
@@ -413,7 +413,7 @@ delete_root_node_using_dot_dot_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 3,
             child_list_version => 1}},
        Root),
@@ -439,7 +439,7 @@ delete_root_node_with_child_nodes_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 4}},
        Root),
@@ -464,7 +464,7 @@ delete_root_node_with_condition_true_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 3}},
        Root),
@@ -489,7 +489,7 @@ delete_root_node_with_condition_true_using_dot_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 3}},
        Root),
@@ -510,12 +510,12 @@ delete_root_node_with_condition_false_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 2},
           child_nodes =
           #{foo =>
-            #node{stat = ?INIT_NODE_STAT,
+            #node{props = ?INIT_NODE_PROPS,
                   payload = khepri_payload:data(foo_value)}}},
        Root),
     ?assertEqual({ok, #{}}, Ret),

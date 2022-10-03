@@ -69,9 +69,9 @@
 -type tree_node() :: #node{}.
 %% A node in the tree structure.
 
--type stat() :: #{payload_version := khepri:payload_version(),
-                  child_list_version := khepri:child_list_version()}.
-%% Stats attached to each node in the tree structure.
+-type props() :: #{payload_version := khepri:payload_version(),
+                   child_list_version := khepri:child_list_version()}.
+%% Properties attached to each node in the tree structure.
 
 -type triggered() :: #triggered{}.
 
@@ -151,7 +151,7 @@
               state/0,
               machine_config/0,
               tree_node/0,
-              stat/0,
+              props/0,
               triggered/0,
               keep_while_conds_map/0,
               keep_while_conds_revidx/0]).
@@ -1083,7 +1083,7 @@ emitted_triggers_to_side_effects(_StateName, _State) ->
 %% @private
 
 create_node_record(Payload) ->
-    #node{stat = ?INIT_NODE_STAT,
+    #node{props = ?INIT_NODE_PROPS,
           payload = Payload}.
 
 -spec set_node_payload(Node, Payload) -> Node when
@@ -1093,10 +1093,10 @@ create_node_record(Payload) ->
 
 set_node_payload(#node{payload = Payload} = Node, Payload) ->
     Node;
-set_node_payload(#node{stat = #{payload_version := DVersion} = Stat} = Node,
+set_node_payload(#node{props = #{payload_version := DVersion} = Stat} = Node,
                  Payload) ->
     Stat1 = Stat#{payload_version => DVersion + 1},
-    Node#node{stat = Stat1, payload = Payload}.
+    Node#node{props = Stat1, payload = Payload}.
 
 -spec remove_node_payload(Node) -> Node when
       Node :: tree_node().
@@ -1106,21 +1106,21 @@ remove_node_payload(
   #node{payload = ?NO_PAYLOAD} = Node) ->
     Node;
 remove_node_payload(
-  #node{stat = #{payload_version := DVersion} = Stat} = Node) ->
+  #node{props = #{payload_version := DVersion} = Stat} = Node) ->
     Stat1 = Stat#{payload_version => DVersion + 1},
-    Node#node{stat = Stat1, payload = khepri_payload:none()}.
+    Node#node{props = Stat1, payload = khepri_payload:none()}.
 
 -spec add_node_child(Node, ChildName, Child) -> Node when
       Node :: tree_node(),
       Child :: tree_node(),
       ChildName :: khepri_path:component().
 
-add_node_child(#node{stat = #{child_list_version := CVersion} = Stat,
+add_node_child(#node{props = #{child_list_version := CVersion} = Stat,
                      child_nodes = Children} = Node,
                ChildName, Child) ->
     Children1 = Children#{ChildName => Child},
     Stat1 = Stat#{child_list_version => CVersion + 1},
-    Node#node{stat = Stat1, child_nodes = Children1}.
+    Node#node{props = Stat1, child_nodes = Children1}.
 
 -spec update_node_child(Node, ChildName, Child) -> Node when
       Node :: tree_node(),
@@ -1135,13 +1135,13 @@ update_node_child(#node{child_nodes = Children} = Node, ChildName, Child) ->
       Node :: tree_node(),
       ChildName :: khepri_path:component().
 
-remove_node_child(#node{stat = #{child_list_version := CVersion} = Stat,
+remove_node_child(#node{props = #{child_list_version := CVersion} = Stat,
                         child_nodes = Children} = Node,
                  ChildName) ->
     ?assert(maps:is_key(ChildName, Children)),
     Stat1 = Stat#{child_list_version => CVersion + 1},
     Children1 = maps:remove(ChildName, Children),
-    Node#node{stat = Stat1, child_nodes = Children1}.
+    Node#node{props = Stat1, child_nodes = Children1}.
 
 -spec remove_node_child_nodes(Node) -> Node when
       Node :: tree_node().
@@ -1150,17 +1150,17 @@ remove_node_child_nodes(
   #node{child_nodes = Children} = Node) when Children =:= #{} ->
     Node;
 remove_node_child_nodes(
-  #node{stat = #{child_list_version := CVersion} = Stat} = Node) ->
+  #node{props = #{child_list_version := CVersion} = Stat} = Node) ->
     Stat1 = Stat#{child_list_version => CVersion + 1},
-    Node#node{stat = Stat1, child_nodes = #{}}.
+    Node#node{props = Stat1, child_nodes = #{}}.
 
 -spec gather_node_props(Node, Options) -> NodeProps when
       Node :: tree_node(),
       Options :: khepri:tree_options(),
       NodeProps :: khepri:node_props().
 
-gather_node_props(#node{stat = #{payload_version := PVersion,
-                                 child_list_version := CVersion},
+gather_node_props(#node{props = #{payload_version := PVersion,
+                                  child_list_version := CVersion},
                         payload = Payload,
                         child_nodes = Children},
                   #{props_to_return := WantedProps}) ->
@@ -2266,10 +2266,10 @@ interrupted_walk_down(
       Node :: tree_node().
 %% @private
 
-reset_versions(#node{stat = Stat} = CurrentNode) ->
+reset_versions(#node{props = Stat} = CurrentNode) ->
     Stat1 = Stat#{payload_version => ?INIT_DATA_VERSION,
                   child_list_version => ?INIT_CHILD_LIST_VERSION},
-    CurrentNode#node{stat = Stat1}.
+    CurrentNode#node{props = Stat1}.
 
 -spec squash_version_bumps(OldNode, NewNode) -> Node when
       OldNode :: tree_node(),
@@ -2278,16 +2278,16 @@ reset_versions(#node{stat = Stat} = CurrentNode) ->
 %% @private
 
 squash_version_bumps(
-  #node{stat = #{payload_version := DVersion,
-                 child_list_version := CVersion}},
-  #node{stat = #{payload_version := DVersion,
-                 child_list_version := CVersion}} = CurrentNode) ->
+  #node{props = #{payload_version := DVersion,
+                  child_list_version := CVersion}},
+  #node{props = #{payload_version := DVersion,
+                  child_list_version := CVersion}} = CurrentNode) ->
     CurrentNode;
 squash_version_bumps(
-  #node{stat = #{payload_version := OldDVersion,
-                 child_list_version := OldCVersion}},
-  #node{stat = #{payload_version := NewDVersion,
-                 child_list_version := NewCVersion} = Stat} = CurrentNode) ->
+  #node{props = #{payload_version := OldDVersion,
+                  child_list_version := OldCVersion}},
+  #node{props = #{payload_version := NewDVersion,
+                  child_list_version := NewCVersion} = Stat} = CurrentNode) ->
     DVersion = case NewDVersion > OldDVersion of
                    true  -> OldDVersion + 1;
                    false -> OldDVersion
@@ -2298,7 +2298,7 @@ squash_version_bumps(
                end,
     Stat1 = Stat#{payload_version => DVersion,
                   child_list_version => CVersion},
-    CurrentNode#node{stat = Stat1}.
+    CurrentNode#node{props = Stat1}.
 
 -spec walk_back_up_the_tree(
   Child, ReversedPath, ReversedParentTree, Extra, FunAcc) -> Ret when

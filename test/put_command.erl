@@ -27,21 +27,21 @@ initialize_machine_with_genesis_data_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 3},
           child_nodes =
           #{foo =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                child_nodes =
                #{bar =>
                  #node{
-                    stat = ?INIT_NODE_STAT,
+                    props = ?INIT_NODE_PROPS,
                     payload = khepri_payload:data(foobar_value)}}},
             baz =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                payload = khepri_payload:data(baz_value)}
            }},
        Root).
@@ -57,13 +57,13 @@ insert_a_node_at_the_root_of_an_empty_db_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 2},
           child_nodes =
           #{foo =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                payload = khepri_payload:data(value)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{payload_version => 1}}}, Ret),
@@ -86,13 +86,13 @@ insert_a_node_at_the_root_of_an_empty_db_with_conditions_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 2},
           child_nodes =
           #{foo =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                payload = khepri_payload:data(value)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{payload_version => 1}}}, Ret),
@@ -114,14 +114,14 @@ overwrite_an_existing_node_data_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 2},
           child_nodes =
           #{foo =>
             #node{
-               stat = #{payload_version => 2,
-                        child_list_version => 1},
+               props = #{payload_version => 2,
+                         child_list_version => 1},
                payload = khepri_payload:data(value2)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => value1,
@@ -142,17 +142,17 @@ insert_a_node_with_path_containing_dot_and_dot_dot_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 2},
           child_nodes =
           #{foo =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                child_nodes =
                #{bar =>
                  #node{
-                    stat = ?INIT_NODE_STAT,
+                    props = ?INIT_NODE_PROPS,
                     payload = khepri_payload:data(value)}}}}},
        Root),
     ?assertEqual({ok, #{[foo, bar] => #{payload_version => 1}}}, Ret),
@@ -169,25 +169,25 @@ insert_a_node_under_an_nonexisting_parents_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 2},
           child_nodes =
           #{foo =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                child_nodes =
                #{bar =>
                  #node{
-                    stat = ?INIT_NODE_STAT,
+                    props = ?INIT_NODE_PROPS,
                     child_nodes =
                     #{baz =>
                       #node{
-                         stat = ?INIT_NODE_STAT,
+                         props = ?INIT_NODE_PROPS,
                          child_nodes =
                          #{qux =>
                            #node{
-                              stat = ?INIT_NODE_STAT,
+                              props = ?INIT_NODE_PROPS,
                               payload = khepri_payload:data(value)}}}}}}}}},
        Root),
     ?assertEqual(
@@ -213,13 +213,13 @@ insert_a_node_with_condition_true_on_self_test() ->
 
     ?assertEqual(
        #node{
-          stat = #{payload_version => 1,
-                   child_list_version => 2},
+          props = #{payload_version => 1,
+                    child_list_version => 2},
           child_nodes =
           #{foo =>
             #node{
-               stat = #{payload_version => 2,
-                        child_list_version => 1},
+               props = #{payload_version => 2,
+                         child_list_version => 1},
                payload = khepri_payload:data(value2)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => value1,
@@ -275,13 +275,13 @@ insert_a_node_with_condition_true_on_self_using_dot_test() ->
 
     ?assertEqual(
        #node{
-          stat = #{payload_version => 1,
-                   child_list_version => 2},
+          props = #{payload_version => 1,
+                    child_list_version => 2},
           child_nodes =
           #{foo =>
             #node{
-               stat = #{payload_version => 2,
-                        child_list_version => 1},
+               props = #{payload_version => 2,
+                         child_list_version => 1},
                payload = khepri_payload:data(value2)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => value1,
@@ -336,18 +336,18 @@ insert_a_node_with_condition_true_on_parent_test() ->
 
     ?assertEqual(
        #node{
-          stat = #{payload_version => 1,
-                   child_list_version => 2},
+          props = #{payload_version => 1,
+                    child_list_version => 2},
           child_nodes =
           #{foo =>
             #node{
-               stat = #{payload_version => 1,
-                        child_list_version => 2},
+               props = #{payload_version => 1,
+                         child_list_version => 2},
                payload = khepri_payload:data(value1),
                child_nodes =
                #{bar =>
                  #node{
-                    stat = ?INIT_NODE_STAT,
+                    props = ?INIT_NODE_PROPS,
                     payload = khepri_payload:data(bar_value)}}}}},
        Root),
     ?assertEqual({ok, #{[foo, bar] => #{payload_version => 1}}}, Ret),
@@ -406,13 +406,13 @@ insert_a_node_with_if_node_exists_true_on_self_test() ->
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual(
        #node{
-          stat = #{payload_version => 1,
-                   child_list_version => 2},
+          props = #{payload_version => 1,
+                    child_list_version => 2},
           child_nodes =
           #{foo =>
             #node{
-               stat = #{payload_version => 2,
-                        child_list_version => 1},
+               props = #{payload_version => 2,
+                         child_list_version => 1},
                payload = khepri_payload:data(value2)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => value1,
@@ -483,16 +483,16 @@ insert_a_node_with_if_node_exists_false_on_self_test() ->
     ?assertEqual(#{applied_command_count => 1}, S2#khepri_machine.metrics),
     ?assertEqual(
        #node{
-          stat = #{payload_version => 1,
-                   child_list_version => 3},
+          props = #{payload_version => 1,
+                    child_list_version => 3},
           child_nodes =
           #{foo =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                payload = khepri_payload:data(value1)},
             baz =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                payload = khepri_payload:data(value2)}}},
        Root),
     ?assertEqual({ok, #{[baz] => #{payload_version => 1}}}, Ret2),
@@ -516,18 +516,18 @@ insert_a_node_with_if_node_exists_true_on_parent_test() ->
 
     ?assertEqual(
        #node{
-          stat = #{payload_version => 1,
-                   child_list_version => 2},
+          props = #{payload_version => 1,
+                    child_list_version => 2},
           child_nodes =
           #{foo =>
             #node{
-               stat = #{payload_version => 1,
-                        child_list_version => 2},
+               props = #{payload_version => 1,
+                         child_list_version => 2},
                payload = khepri_payload:data(value1),
                child_nodes =
                #{bar =>
                  #node{
-                    stat = ?INIT_NODE_STAT,
+                    props = ?INIT_NODE_PROPS,
                     payload = khepri_payload:data(bar_value)}}}}},
        Root),
     ?assertEqual({ok, #{[foo, bar] => #{payload_version => 1}}}, Ret1),
@@ -598,20 +598,20 @@ insert_a_node_with_if_node_exists_false_on_parent_test() ->
     ?assertEqual(#{applied_command_count => 1}, S2#khepri_machine.metrics),
     ?assertEqual(
        #node{
-          stat = #{payload_version => 1,
-                   child_list_version => 3},
+          props = #{payload_version => 1,
+                    child_list_version => 3},
           child_nodes =
           #{foo =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                payload = khepri_payload:data(value1)},
             baz =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                child_nodes =
                #{bar =>
                  #node{
-                    stat = ?INIT_NODE_STAT,
+                    props = ?INIT_NODE_PROPS,
                     payload = khepri_payload:data(bar_value)}}}}},
        Root),
     ?assertEqual({ok, #{[baz, bar] => #{payload_version => 1}}}, Ret2),
@@ -657,14 +657,14 @@ clear_payload_in_an_existing_node_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 2},
           child_nodes =
           #{foo =>
             #node{
-               stat = #{payload_version => 2,
-                        child_list_version => 1},
+               props = #{payload_version => 2,
+                         child_list_version => 1},
                payload = ?NO_PAYLOAD}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => value,
