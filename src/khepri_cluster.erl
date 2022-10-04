@@ -117,7 +117,7 @@
 %% Internal.
 -export([node_to_member/2,
          this_member/1,
-         wait_for_cluster_readyness/2,
+         wait_for_cluster_readiness/2,
          get_cached_leader/1,
          cache_leader/2,
          cache_leader_if_changed/3,
@@ -132,7 +132,7 @@
                            stop/0, stop/1,
                            stop_locked/1,
                            join/2,
-                           wait_for_remote_cluster_readyness/3]}).
+                           wait_for_remote_cluster_readiness/3]}).
 
 -define(IS_RA_SYSTEM(RaSystem), is_atom(RaSystem)).
 -define(IS_DATA_DIR(DataDir), (is_list(DataDir) orelse is_binary(DataDir))).
@@ -765,7 +765,7 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
             ?LOG_DEBUG(
                "Remote cluster (reached through node node ~0p) is not ready "
                "for a membership change yet; waiting", [RemoteNode]),
-            Ret2 = wait_for_remote_cluster_readyness(
+            Ret2 = wait_for_remote_cluster_readiness(
                      StoreId, RemoteNode, Timeout1),
             Timeout2 = khepri_utils:end_timeout_window(Timeout1, T2),
             case Ret2 of
@@ -790,7 +790,7 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
             end
     end.
 
--spec wait_for_cluster_readyness(StoreId, Timeout) ->
+-spec wait_for_cluster_readiness(StoreId, Timeout) ->
     Ret when
       StoreId :: khepri:store_id(),
       Timeout :: timeout(),
@@ -799,7 +799,7 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
                                   #{store_id := StoreId})).
 %% @private
 
-wait_for_cluster_readyness(StoreId, Timeout) ->
+wait_for_cluster_readiness(StoreId, Timeout) ->
     %% If querying the cluster members succeeds, we must have a quorum, right?
     case members(StoreId, Timeout) of
         [_ | _] ->
@@ -811,7 +811,7 @@ wait_for_cluster_readyness(StoreId, Timeout) ->
             {error, Reason}
     end.
 
--spec wait_for_remote_cluster_readyness(StoreId, RemoteNode, Timeout) ->
+-spec wait_for_remote_cluster_readiness(StoreId, RemoteNode, Timeout) ->
     Ret when
       StoreId :: khepri:store_id(),
       RemoteNode :: node(),
@@ -819,10 +819,10 @@ wait_for_cluster_readyness(StoreId, Timeout) ->
       Ret :: ok | khepri:error().
 %% @private
 
-wait_for_remote_cluster_readyness(StoreId, RemoteNode, Timeout) ->
+wait_for_remote_cluster_readiness(StoreId, RemoteNode, Timeout) ->
     Ret = rpc:call(
             RemoteNode,
-            khepri_cluster, wait_for_cluster_readyness, [StoreId, Timeout],
+            khepri_cluster, wait_for_cluster_readiness, [StoreId, Timeout],
             Timeout),
     case Ret of
         {badrpc, _} -> {error, Ret};
@@ -903,7 +903,7 @@ do_reset(RaSystem, StoreId, ThisMember, Timeout) ->
             ?LOG_DEBUG(
                "Cluster is not ready for a membership change yet; waiting",
                []),
-            Ret2 = wait_for_cluster_readyness(StoreId, Timeout1),
+            Ret2 = wait_for_cluster_readiness(StoreId, Timeout1),
             Timeout2 = khepri_utils:end_timeout_window(Timeout1, T2),
             case Ret2 of
                 ok    -> do_reset(RaSystem, StoreId, ThisMember, Timeout2);
