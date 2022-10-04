@@ -19,6 +19,13 @@ defmodule Khepri.MixProject do
     ]
   end
 
+  def application do
+    {:ok, [app]} = :file.consult("src/khepri.app.src")
+    {:application, _app_name, props} = app
+
+    Keyword.take(props, [:applications, :env, :mod, :registered])
+  end
+
   defp deps() do
     # To avoid duplication, we query rebar.config to get the list of
     # dependencies and their version pinning.
