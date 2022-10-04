@@ -117,12 +117,25 @@
 
          wait_for_async_ret/1, wait_for_async_ret/2,
 
+         %% Bang functions: they return the value directly or throw an error.
+         'get!'/1, 'get!'/2, 'get!'/3,
+         'get_or!'/2, 'get_or!'/3, 'get_or!'/4,
+         'get_many!'/1, 'get_many!'/2, 'get_many!'/3,
+         'get_many_or!'/2, 'get_many_or!'/3, 'get_many_or!'/4,
+         'exists!'/1, 'exists!'/2, 'exists!'/3,
+         'has_data!'/1, 'has_data!'/2, 'has_data!'/3,
+         'is_sproc!'/1, 'is_sproc!'/2, 'is_sproc!'/3,
+         'count!'/1, 'count!'/2, 'count!'/3,
          'put!'/2, 'put!'/3, 'put!'/4,
+         'put_many!'/2, 'put_many!'/3, 'put_many!'/4,
          'create!'/2, 'create!'/3, 'create!'/4,
          'update!'/2, 'update!'/3, 'update!'/4,
          'compare_and_swap!'/3, 'compare_and_swap!'/4, 'compare_and_swap!'/5,
-         'get!'/1, 'get!'/2, 'get!'/3,
          'delete!'/1, 'delete!'/2, 'delete!'/3,
+         'delete_many!'/1, 'delete_many!'/2, 'delete_many!'/3,
+         'delete_payload!'/1, 'delete_payload!'/2, 'delete_payload!'/3,
+         'delete_many_payloads!'/1, 'delete_many_payloads!'/2,
+         'delete_many_payloads!'/3,
 
          info/0,
          info/1, info/2]).
