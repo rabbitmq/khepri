@@ -1986,7 +1986,7 @@ walk_down_the_tree1(
             %% TODO: Support calling Fun() with parent node based on
             %% conditions on child nodes.
             BadPathPattern =
-            lists:reverse([Condition | ReversedPath]) ++ PathPattern,
+            lists:reverse(ReversedPath, [Condition | PathPattern]),
             Exception = ?khepri_exception(
                            condition_targets_parent_node,
                            #{path => BadPathPattern,
@@ -1997,7 +1997,7 @@ walk_down_the_tree1(
             %% (no matter if it exists or not), but the condition could match
             %% several nodes.
             BadPathPattern =
-            lists:reverse([Condition | ReversedPath]) ++ PathPattern,
+            lists:reverse(ReversedPath, [Condition | PathPattern]),
             Exception = ?khepri_exception(
                            possibly_matching_many_nodes_denied,
                            #{path => BadPathPattern}),
@@ -2036,7 +2036,7 @@ walk_down_the_tree1(
             %% TODO: Support calling Fun() with parent node based on
             %% conditions on child nodes.
             BadPathPattern =
-            lists:reverse([Condition | ReversedPath]) ++ PathPattern,
+            lists:reverse(ReversedPath, [Condition | PathPattern]),
             Exception = ?khepri_exception(
                            condition_targets_parent_node,
                            #{path => BadPathPattern,
