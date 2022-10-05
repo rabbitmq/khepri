@@ -201,21 +201,21 @@ those functions to learn more about the configuration settings.</p>
 <p>The essential part of the public API is provided by the <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> module.
 It covers most common use cases and should be straightforward to use.</p>
 
-<pre><code>{ok, _} = khepri:put([stock, wood, &lt;&lt;"lime tree"&gt;&gt;], 150),
+<pre><code>ok = khepri:put([stock, wood, &lt;&lt;"lime tree"&gt;&gt;], 150),
 
-Ret = khepri:get([stock, wood, &lt;&lt;"lime tree"&gt;&gt;]),
-{ok, #{[stock, wood, &lt;&lt;"lime tree"&gt;&gt;] =&gt;
-       #{data =&gt; 150,
-         payload_version =&gt; 1,
-         child_list_count =&gt; 0,
-         child_list_version =&gt; 1}}} = Ret,
+{ok, 150} = khepri:get([stock, wood, &lt;&lt;"lime tree"&gt;&gt;]),
 
 true = khepri:exists([stock, wood, &lt;&lt;"lime tree"&gt;&gt;]),
 
-{ok, _} = khepri:delete([stock, wood, &lt;&lt;"lime tree"&gt;&gt;]).</code></pre>
+ok = khepri:delete([stock, wood, &lt;&lt;"lime tree"&gt;&gt;]).</code></pre>
 
 <p>Inside transaction functions, <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> must be used instead of <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a>. The former provides the same API, except for functions which don't
 make sense in the context of a transaction function.</p>
+
+<p><a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> and <a docgen-rel="seeerl" docgen-href="khepri_tx" href="khepri_tx.html"><code>khepri_tx</code></a> both have counterparts for more advanced
+use cases, <a docgen-rel="seeerl" docgen-href="khepri_adv" href="khepri_adv.html"><code>khepri_adv</code></a> and <a docgen-rel="seeerl" docgen-href="khepri_tx_adv" href="khepri_tx_adv.html"><code>khepri_tx_adv</code></a>. The return values of
+the <code>*_adv</code> modules are maps giving more details about what was queried or
+modified.</p>
 
 <p>The public API is built on top of a low-level internal API, provided by the
 private <a docgen-rel="seeerl" docgen-href="khepri_machine" href="khepri_machine.html"><code>khepri_machine</code></a> module.</p>
@@ -319,9 +319,9 @@ in between.</li>
 <p>Here is an example of the second option:</p>
 
 <pre><code>Path = [stock, wood, &lt;&lt;"lime tree"&gt;&gt;],
-{ok, #{Path := #{data = Term,
-                 payload_version = PayloadVersion}}} =
-  khepri:get(StoredId, Path),
+{ok, #{data := Term,
+       payload_version := PayloadVersion}} =
+  khepri_adv:get(StoredId, Path),
 
 %% Do anything with `Term` that depend on external factors and could have side
 %% effects.
@@ -334,9 +334,9 @@ PathPattern = [stock,
                    &lt;&lt;"lime tree"&gt;&gt;,
                    #if_payload_version{version = PayloadVersion}]}],
 case khepri:put(StoredId, PathPattern, Term1) of
-    {ok, _} -&gt;
+    ok -&gt;
         ok; %% `Term1` was stored successfully.
-    {error, {mismatching_node, _}} -&gt;
+    {error, ?khepri_error(mismatching_node, _)} -&gt;
         loop() %% Restart the whole function to read/modify/write again.
 end.</code></pre>
 

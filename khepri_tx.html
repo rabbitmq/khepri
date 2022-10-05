@@ -44,62 +44,78 @@ catching up after a network partition.</p>
   <li>The extracted transaction function is stored as a Khepri state machine
   command in the Ra journal to be replicated on all Ra members.</li>
   </ol>
+ 
+  Functions in this module have simplified return values to cover most
+  frequent use cases. If you need more details about the queried or modified
+  tree nodes, like the ability to distinguish a non-existent tree node from a
+  tree node with no payload, you can use the <a docgen-rel="seeerl" docgen-href="khepri_tx_adv" href="khepri_tx_adv.html"><code>khepri_tx_adv</code></a> module.
 <h2><a name="types">Data Types</a></h2>
 
 <h3 class="typedecl"><a name="type-tx_abort">tx_abort()</a></h3>
-<p><code>tx_abort() = {aborted, any()}</code></p>
-
+<p><code>tx_abort() = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error</a>(any())</code></p>
+<p>  Return value after a transaction function aborted.</p>
 
 <h3 class="typedecl"><a name="type-tx_fun">tx_fun()</a></h3>
-<p><code>tx_fun() = fun(() -&gt; <a href="#type-tx_fun_result">tx_fun_result()</a>)</code></p>
-
-
-<h3 class="typedecl"><a name="type-tx_fun_bindings">tx_fun_bindings()</a></h3>
-<p><code>tx_fun_bindings() = #{Name::atom() =&gt; Value::any()}</code></p>
-
+<p><code>tx_fun() = fun(() -&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>)</code></p>
+<p>  Transaction function signature.</p>
 
 <h3 class="typedecl"><a name="type-tx_fun_result">tx_fun_result()</a></h3>
 <p><code>tx_fun_result() = any() | no_return()</code></p>
-
+<p>  Return value of a transaction function.</p>
 
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#put-2">put/2</a></td><td>Creates or modifies a specific tree node in the tree structure.</td></tr>
-<tr><td valign="top"><a href="#put-3">put/3</a></td><td>Creates or modifies a specific tree node in the tree structure.</td></tr>
-<tr><td valign="top"><a href="#create-2">create/2</a></td><td>Creates a specific tree node in the tree structure only if it does not
-  exist.</td></tr>
-<tr><td valign="top"><a href="#create-3">create/3</a></td><td>Creates a specific tree node in the tree structure only if it does not
-  exist.</td></tr>
-<tr><td valign="top"><a href="#update-2">update/2</a></td><td>Updates a specific tree node in the tree structure only if it already
-  exists.</td></tr>
-<tr><td valign="top"><a href="#update-3">update/3</a></td><td>Updates a specific tree node in the tree structure only if it already
-  exists.</td></tr>
-<tr><td valign="top"><a href="#compare_and_swap-3">compare_and_swap/3</a></td><td>Updates a specific tree node in the tree structure only if it already
-  exists and its data matches the given <code>DataPattern</code>.</td></tr>
-<tr><td valign="top"><a href="#compare_and_swap-4">compare_and_swap/4</a></td><td>Updates a specific tree node in the tree structure only if it already
-  exists and its data matches the given <code>DataPattern</code>.</td></tr>
-<tr><td valign="top"><a href="#clear_payload-1">clear_payload/1</a></td><td>Clears the payload of a specific tree node in the tree structure.</td></tr>
-<tr><td valign="top"><a href="#clear_payload-2">clear_payload/2</a></td><td>Clears the payload of a specific tree node in the tree structure.</td></tr>
-<tr><td valign="top"><a href="#delete-1">delete/1</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
-<tr><td valign="top"><a href="#exists-1">exists/1</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path exists,
-  otherwise <code>false</code>.</td></tr>
-<tr><td valign="top"><a href="#exists-2">exists/2</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path exists,
-  otherwise <code>false</code>.</td></tr>
-<tr><td valign="top"><a href="#get-1">get/1</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
-<tr><td valign="top"><a href="#get-2">get/2</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
-<tr><td valign="top"><a href="#get_node_props-1">get_node_props/1</a></td><td>Returns the tree node properties associated with the given node path.</td></tr>
-<tr><td valign="top"><a href="#get_node_props-2">get_node_props/2</a></td><td>Returns the tree node properties associated with the given node path.</td></tr>
-<tr><td valign="top"><a href="#has_data-1">has_data/1</a></td><td>Returns <code>true</code> if the tree node pointed to by the given path has data,
-  otherwise <code>false</code>.</td></tr>
-<tr><td valign="top"><a href="#get_data-1">get_data/1</a></td><td>Returns the data associated with the given node path.</td></tr>
-<tr><td valign="top"><a href="#get_data-2">get_data/2</a></td><td>Returns the data associated with the given node path.</td></tr>
-<tr><td valign="top"><a href="#get_data_or-2">get_data_or/2</a></td><td>Returns the data associated with the given node path, or <code>Default</code> if
-  there is no data.</td></tr>
-<tr><td valign="top"><a href="#get_data_or-3">get_data_or/3</a></td><td>Returns the data associated with the given node path, or <code>Default</code> if
-  there is no data.</td></tr>
-<tr><td valign="top"><a href="#list-1">list/1</a></td><td>Returns all direct child nodes under the given path.</td></tr>
-<tr><td valign="top"><a href="#list-2">list/2</a></td><td>Returns all direct child nodes under the given path.</td></tr>
-<tr><td valign="top"><a href="#find-2">find/2</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
-<tr><td valign="top"><a href="#find-3">find/3</a></td><td>Finds tree nodes under <code>PathPattern</code> which match the given <code>Condition</code>.</td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get-1">get/1</a></td><td>Returns the payload of the tree node pointed to by the given path  
+pattern.</td></tr>
+<tr><td valign="top"><a href="#get-2">get/2</a></td><td>Returns the payload of the tree node pointed to by the given path  
+pattern.</td></tr>
+<tr><td valign="top"><a href="#get_or-2">get_or/2</a></td><td>Returns the payload of the tree node pointed to by the given path  
+pattern, or a default value.</td></tr>
+<tr><td valign="top"><a href="#get_or-3">get_or/3</a></td><td>Returns the payload of the tree node pointed to by the given path  
+pattern, or a default value.</td></tr>
+<tr><td valign="top"><a href="#get_many-1">get_many/1</a></td><td>Returns payloads of all the tree nodes matching the given path  
+pattern.</td></tr>
+<tr><td valign="top"><a href="#get_many-2">get_many/2</a></td><td>Returns payloads of all the tree nodes matching the given path  
+pattern.</td></tr>
+<tr><td valign="top"><a href="#get_many_or-2">get_many_or/2</a></td><td>Returns payloads of all the tree nodes matching the given path  
+pattern, or a default payload.</td></tr>
+<tr><td valign="top"><a href="#get_many_or-3">get_many_or/3</a></td><td>Returns payloads of all the tree nodes matching the given path  
+pattern, or a default payload.</td></tr>
+<tr><td valign="top"><a href="#exists-1">exists/1</a></td><td>Indicates if the tree node pointed to by the given path exists or not.</td></tr>
+<tr><td valign="top"><a href="#exists-2">exists/2</a></td><td>Indicates if the tree node pointed to by the given path exists or not.</td></tr>
+<tr><td valign="top"><a href="#has_data-1">has_data/1</a></td><td>Indicates if the tree node pointed to by the given path has data or  
+not.</td></tr>
+<tr><td valign="top"><a href="#has_data-2">has_data/2</a></td><td>Indicates if the tree node pointed to by the given path has data or  
+not.</td></tr>
+<tr><td valign="top"><a href="#is_sproc-1">is_sproc/1</a></td><td>Indicates if the tree node pointed to by the given path holds a stored  
+procedure or not.</td></tr>
+<tr><td valign="top"><a href="#is_sproc-2">is_sproc/2</a></td><td>Indicates if the tree node pointed to by the given path holds a stored  
+procedure or not.</td></tr>
+<tr><td valign="top"><a href="#count-1">count/1</a></td><td>Counts all tree nodes matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#count-2">count/2</a></td><td>Counts all tree nodes matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#put-2">put/2</a></td><td>Runs the stored procedure pointed to by the given path and returns the  
+result.</td></tr>
+<tr><td valign="top"><a href="#put-3">put/3</a></td><td>Runs the stored procedure pointed to by the given path and returns the  
+result.</td></tr>
+<tr><td valign="top"><a href="#put_many-2">put_many/2</a></td><td>Sets the payload of all the tree nodes matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#put_many-3">put_many/3</a></td><td>Sets the payload of all the tree nodes matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#create-2">create/2</a></td><td>Creates a tree node with the given payload.</td></tr>
+<tr><td valign="top"><a href="#create-3">create/3</a></td><td>Creates a tree node with the given payload.</td></tr>
+<tr><td valign="top"><a href="#update-2">update/2</a></td><td>Updates an existing tree node with the given payload.</td></tr>
+<tr><td valign="top"><a href="#update-3">update/3</a></td><td>Updates an existing tree node with the given payload.</td></tr>
+<tr><td valign="top"><a href="#compare_and_swap-3">compare_and_swap/3</a></td><td>Updates an existing tree node with the given payload only if its data  
+matches the given pattern.</td></tr>
+<tr><td valign="top"><a href="#compare_and_swap-4">compare_and_swap/4</a></td><td>Updates an existing tree node with the given payload only if its data  
+matches the given pattern.</td></tr>
+<tr><td valign="top"><a href="#delete-1">delete/1</a></td><td>Deletes the tree node pointed to by the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Deletes the tree node pointed to by the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#delete_many-1">delete_many/1</a></td><td>Deletes all tree nodes matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#delete_many-2">delete_many/2</a></td><td>Deletes all tree nodes matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#delete_payload-1">delete_payload/1</a></td><td>Deletes the payload of the tree node pointed to by the given path  
+pattern.</td></tr>
+<tr><td valign="top"><a href="#delete_payload-2">delete_payload/2</a></td><td>Deletes the payload of the tree node pointed to by the given path  
+pattern.</td></tr>
+<tr><td valign="top"><a href="#delete_many_payloads-1">delete_many_payloads/1</a></td><td>Deletes the payload of all tree nodes matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#delete_many_payloads-2">delete_many_payloads/2</a></td><td>Deletes the payload of all tree nodes matching the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#abort-1">abort/1</a></td><td>Aborts the transaction.</td></tr>
 <tr><td valign="top"><a href="#is_transaction-0">is_transaction/0</a></td><td>Indicates if the calling function runs in the context of a transaction
   function.</td></tr>
@@ -107,198 +123,431 @@ catching up after a network partition.</p>
 
 <h2><a name="functions">Function Details</a></h2>
 
-<h3 class="function"><a name="put-2">put/2</a></h3>
+<h3 class="function"><a name="get-1">get/1</a></h3>
 <div class="spec">
-<p><code>put(PathPattern, Data) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
+<p><code>get(PathPattern) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_ret">khepri:payload_ret()</a></code></li></ul></p>
 <p></p>
-</div><p>Creates or modifies a specific tree node in the tree structure.</p>
+</div><p><p>Returns the payload of the tree node pointed to by the given path  
+pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#get/2" href="khepri.html#get-2"><code>khepri:get/2</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#get-2">khepri:get/2</a>.</p>
 
-<h3 class="function"><a name="put-3">put/3</a></h3>
+<h3 class="function"><a name="get-2">get/2</a></h3>
 <div class="spec">
-<p><code>put(PathPattern, Data, Extra) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
+<p><code>get(PathPattern, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_ret">khepri:payload_ret()</a></code></li></ul></p>
 <p></p>
-</div><p>Creates or modifies a specific tree node in the tree structure.</p>
+</div><p><p>Returns the payload of the tree node pointed to by the given path  
+pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#get/3" href="khepri.html#get-3"><code>khepri:get/3</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#get-3">khepri:get/3</a>.</p>
 
-<h3 class="function"><a name="create-2">create/2</a></h3>
+<h3 class="function"><a name="get_or-2">get_or/2</a></h3>
 <div class="spec">
-<p><code>create(PathPattern, Data) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
+<p><code>get_or(PathPattern, Default) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Default = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_ret">khepri:payload_ret()</a></code></li></ul></p>
 <p></p>
-</div><p>Creates a specific tree node in the tree structure only if it does not
-  exist.</p>
+</div><p><p>Returns the payload of the tree node pointed to by the given path  
+pattern, or a default value.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#get_or/3" href="khepri.html#get_or-3"><code>khepri:get_or/3</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#get_or-3">khepri:get_or/3</a>.</p>
 
-<h3 class="function"><a name="create-3">create/3</a></h3>
+<h3 class="function"><a name="get_or-3">get_or/3</a></h3>
 <div class="spec">
-<p><code>create(PathPattern, Data, Extra) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
+<p><code>get_or(PathPattern, Default, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Default = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_ret">khepri:payload_ret()</a></code></li></ul></p>
 <p></p>
-</div><p>Creates a specific tree node in the tree structure only if it does not
-  exist.</p>
+</div><p><p>Returns the payload of the tree node pointed to by the given path  
+pattern, or a default value.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#get_or/4" href="khepri.html#get_or-4"><code>khepri:get_or/4</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#get_or-4">khepri:get_or/4</a>.</p>
 
-<h3 class="function"><a name="update-2">update/2</a></h3>
+<h3 class="function"><a name="get_many-1">get_many/1</a></h3>
 <div class="spec">
-<p><code>update(PathPattern, Data) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
+<p><code>get_many(PathPattern) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-many_payloads_ret">khepri:many_payloads_ret()</a></code></li></ul></p>
 <p></p>
-</div><p>Updates a specific tree node in the tree structure only if it already
-  exists.</p>
+</div><p><p>Returns payloads of all the tree nodes matching the given path  
+pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#get_many/2" href="khepri.html#get_many-2"><code>khepri:get_many/2</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#get_many-2">khepri:get_many/2</a>.</p>
 
-<h3 class="function"><a name="update-3">update/3</a></h3>
+<h3 class="function"><a name="get_many-2">get_many/2</a></h3>
 <div class="spec">
-<p><code>update(PathPattern, Data, Extra) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
+<p><code>get_many(PathPattern, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-many_payloads_ret">khepri:many_payloads_ret()</a></code></li></ul></p>
 <p></p>
-</div><p>Updates a specific tree node in the tree structure only if it already
-  exists.</p>
+</div><p><p>Returns payloads of all the tree nodes matching the given path  
+pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#get_many/3" href="khepri.html#get_many-3"><code>khepri:get_many/3</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#get_many-3">khepri:get_many/3</a>.</p>
 
-<h3 class="function"><a name="compare_and_swap-3">compare_and_swap/3</a></h3>
+<h3 class="function"><a name="get_many_or-2">get_many_or/2</a></h3>
 <div class="spec">
-<p><code>compare_and_swap(PathPattern, DataPattern, Data) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
+<p><code>get_many_or(PathPattern, Default) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Default = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-many_payloads_ret">khepri:many_payloads_ret()</a></code></li></ul></p>
 <p></p>
-</div><p>Updates a specific tree node in the tree structure only if it already
-  exists and its data matches the given <code>DataPattern</code>.</p>
+</div><p><p>Returns payloads of all the tree nodes matching the given path  
+pattern, or a default payload.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#get_many_or/3" href="khepri.html#get_many_or-3"><code>khepri:get_many_or/3</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#get_many_or-3">khepri:get_many_or/3</a>.</p>
 
-<h3 class="function"><a name="compare_and_swap-4">compare_and_swap/4</a></h3>
+<h3 class="function"><a name="get_many_or-3">get_many_or/3</a></h3>
 <div class="spec">
-<p><code>compare_and_swap(PathPattern, DataPattern, Data, Extra) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
+<p><code>get_many_or(PathPattern, Default, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Default = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-many_payloads_ret">khepri:many_payloads_ret()</a></code></li></ul></p>
 <p></p>
-</div><p>Updates a specific tree node in the tree structure only if it already
-  exists and its data matches the given <code>DataPattern</code>.</p>
-
-<h3 class="function"><a name="clear_payload-1">clear_payload/1</a></h3>
-<div class="spec">
-<p><code>clear_payload(PathPattern) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
-<p></p>
-</div><p>Clears the payload of a specific tree node in the tree structure.</p>
-
-<h3 class="function"><a name="clear_payload-2">clear_payload/2</a></h3>
-<div class="spec">
-<p><code>clear_payload(PathPattern, Extra) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Extra = #{keep_while =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-keep_while">khepri_condition:keep_while()</a>}</code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
-<p></p>
-</div><p>Clears the payload of a specific tree node in the tree structure.</p>
-
-<h3 class="function"><a name="delete-1">delete/1</a></h3>
-<div class="spec">
-<p><code>delete(PathPattern) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
-<p></p>
-</div><p>Deletes all tree nodes matching the path pattern.</p>
+</div><p><p>Returns payloads of all the tree nodes matching the given path  
+pattern, or a default payload.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#get_many_or/4" href="khepri.html#get_many_or-4"><code>khepri:get_many_or/4</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#get_many_or-4">khepri:get_many_or/4</a>.</p>
 
 <h3 class="function"><a name="exists-1">exists/1</a></h3>
 <div class="spec">
 <p><code>exists(PathPattern) -&gt; Exists</code>
 <ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Exists = boolean()</code></li></ul></p>
 <p></p>
-</div><p>Returns <code>true</code> if the tree node pointed to by the given path exists,
-  otherwise <code>false</code>.</p>
+</div><p><p>Indicates if the tree node pointed to by the given path exists or not.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#exists/2" href="khepri.html#exists-2"><code>khepri:exists/2</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#exists-2">khepri:exists/2</a>.</p>
 
 <h3 class="function"><a name="exists-2">exists/2</a></h3>
 <div class="spec">
 <p><code>exists(PathPattern, Options) -&gt; Exists</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a></code></li><li><code>Exists = boolean()</code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Exists = boolean()</code></li></ul></p>
 <p></p>
-</div><p>Returns <code>true</code> if the tree node pointed to by the given path exists,
-  otherwise <code>false</code>.</p>
-
-<h3 class="function"><a name="get-1">get/1</a></h3>
-<div class="spec">
-<p><code>get(PathPattern) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
-<p></p>
-</div><p>Returns all tree nodes matching the path pattern.</p>
-
-<h3 class="function"><a name="get-2">get/2</a></h3>
-<div class="spec">
-<p><code>get(PathPattern, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
-<p></p>
-</div><p>Returns all tree nodes matching the path pattern.</p>
-
-<h3 class="function"><a name="get_node_props-1">get_node_props/1</a></h3>
-<div class="spec">
-<p><code>get_node_props(PathPattern) -&gt; NodeProps</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>NodeProps = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-node_props">khepri:node_props()</a></code></li></ul></p>
-<p></p>
-</div><p>Returns the tree node properties associated with the given node path.</p>
-
-<h3 class="function"><a name="get_node_props-2">get_node_props/2</a></h3>
-<div class="spec">
-<p><code>get_node_props(PathPattern, Options) -&gt; NodeProps</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a></code></li><li><code>NodeProps = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-node_props">khepri:node_props()</a></code></li></ul></p>
-<p></p>
-</div><p>Returns the tree node properties associated with the given node path.</p>
+</div><p><p>Indicates if the tree node pointed to by the given path exists or not.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#exists/3" href="khepri.html#exists-3"><code>khepri:exists/3</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#exists-3">khepri:exists/3</a>.</p>
 
 <h3 class="function"><a name="has_data-1">has_data/1</a></h3>
 <div class="spec">
-<p><code>has_data(PathPattern) -&gt; HasData</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>HasData = boolean()</code></li></ul></p>
+<p><code>has_data(PathPattern) -&gt; HasData | Error</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>HasData = boolean()</code></li><li><code>Error = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
 <p></p>
-</div><p>Returns <code>true</code> if the tree node pointed to by the given path has data,
-  otherwise <code>false</code>.</p>
+</div><p><p>Indicates if the tree node pointed to by the given path has data or  
+not.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#has_data/2" href="khepri.html#has_data-2"><code>khepri:has_data/2</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#has_data-2">khepri:has_data/2</a>.</p>
 
-<h3 class="function"><a name="get_data-1">get_data/1</a></h3>
+<h3 class="function"><a name="has_data-2">has_data/2</a></h3>
 <div class="spec">
-<p><code>get_data(PathPattern) -&gt; Data</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li></ul></p>
+<p><code>has_data(PathPattern, Options) -&gt; HasData | Error</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>HasData = boolean()</code></li><li><code>Error = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
 <p></p>
-</div><p>Returns the data associated with the given node path.</p>
+</div><p><p>Indicates if the tree node pointed to by the given path has data or  
+not.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#has_data/3" href="khepri.html#has_data-3"><code>khepri:has_data/3</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#has_data-3">khepri:has_data/3</a>.</p>
 
-<h3 class="function"><a name="get_data-2">get_data/2</a></h3>
+<h3 class="function"><a name="is_sproc-1">is_sproc/1</a></h3>
 <div class="spec">
-<p><code>get_data(PathPattern, Options) -&gt; Data</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li></ul></p>
+<p><code>is_sproc(PathPattern) -&gt; IsSproc | Error</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>IsSproc = boolean()</code></li><li><code>Error = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
 <p></p>
-</div><p>Returns the data associated with the given node path.</p>
+</div><p><p>Indicates if the tree node pointed to by the given path holds a stored  
+procedure or not.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#is_sproc/2" href="khepri.html#is_sproc-2"><code>khepri:is_sproc/2</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#is_sproc-2">khepri:is_sproc/2</a>.</p>
 
-<h3 class="function"><a name="get_data_or-2">get_data_or/2</a></h3>
+<h3 class="function"><a name="is_sproc-2">is_sproc/2</a></h3>
 <div class="spec">
-<p><code>get_data_or(PathPattern, Default) -&gt; Data</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Default = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li></ul></p>
+<p><code>is_sproc(PathPattern, Options) -&gt; IsSproc | Error</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>IsSproc = boolean()</code></li><li><code>Error = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
 <p></p>
-</div><p>Returns the data associated with the given node path, or <code>Default</code> if
-  there is no data.</p>
+</div><p><p>Indicates if the tree node pointed to by the given path holds a stored  
+procedure or not.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#is_sproc/3" href="khepri.html#is_sproc-3"><code>khepri:is_sproc/3</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#is_sproc-3">khepri:is_sproc/3</a>.</p>
 
-<h3 class="function"><a name="get_data_or-3">get_data_or/3</a></h3>
+<h3 class="function"><a name="count-1">count/1</a></h3>
 <div class="spec">
-<p><code>get_data_or(PathPattern, Default, Options) -&gt; Data</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Default = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li></ul></p>
+<p><code>count(PathPattern) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Count) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Count = non_neg_integer()</code></li></ul></p>
 <p></p>
-</div><p>Returns the data associated with the given node path, or <code>Default</code> if
-  there is no data.</p>
+</div><p><p>Counts all tree nodes matching the given path pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#count/2" href="khepri.html#count-2"><code>khepri:count/2</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#count-2">khepri:count/2</a>.</p>
 
-<h3 class="function"><a name="list-1">list/1</a></h3>
+<h3 class="function"><a name="count-2">count/2</a></h3>
 <div class="spec">
-<p><code>list(PathPattern) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
+<p><code>count(PathPattern, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Count) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Count = non_neg_integer()</code></li></ul></p>
 <p></p>
-</div><p>Returns all direct child nodes under the given path.</p>
+</div><p><p>Counts all tree nodes matching the given path pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#count/3" href="khepri.html#count-3"><code>khepri:count/3</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#count-3">khepri:count/3</a>.</p>
 
-<h3 class="function"><a name="list-2">list/2</a></h3>
+<h3 class="function"><a name="put-2">put/2</a></h3>
 <div class="spec">
-<p><code>list(PathPattern, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
+<p><code>put(PathPattern, Data) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
 <p></p>
-</div><p>Returns all direct child nodes under the given path.</p>
+</div><p><p>Runs the stored procedure pointed to by the given path and returns the  
+result.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#put/3" href="khepri.html#put-3"><code>khepri:put/3</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#put-3">khepri:put/3</a>.</p>
 
-<h3 class="function"><a name="find-2">find/2</a></h3>
+<h3 class="function"><a name="put-3">put/3</a></h3>
 <div class="spec">
-<p><code>find(PathPattern, Condition) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Condition = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
+<p><code>put(PathPattern, Data, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
 <p></p>
-</div><p>Returns all tree nodes matching the path pattern.</p>
+</div><p><p>Runs the stored procedure pointed to by the given path and returns the  
+result.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#put/4" href="khepri.html#put-4"><code>khepri:put/4</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#put-4">khepri:put/4</a>.</p>
 
-<h3 class="function"><a name="find-3">find/3</a></h3>
+<h3 class="function"><a name="put_many-2">put_many/2</a></h3>
 <div class="spec">
-<p><code>find(PathPattern, Condition, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Condition = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
+<p><code>put_many(PathPattern, Data) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
 <p></p>
-</div><p>Finds tree nodes under <code>PathPattern</code> which match the given <code>Condition</code>.</p>
+</div><p><p>Sets the payload of all the tree nodes matching the given path pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#put_many/3" href="khepri.html#put_many-3"><code>khepri:put_many/3</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#put_many-3">khepri:put_many/3</a>.</p>
+
+<h3 class="function"><a name="put_many-3">put_many/3</a></h3>
+<div class="spec">
+<p><code>put_many(PathPattern, Data, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Sets the payload of all the tree nodes matching the given path pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#put_many/4" href="khepri.html#put_many-4"><code>khepri:put_many/4</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#put_many-4">khepri:put_many/4</a>.</p>
+
+<h3 class="function"><a name="create-2">create/2</a></h3>
+<div class="spec">
+<p><code>create(PathPattern, Data) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Creates a tree node with the given payload.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#create/3" href="khepri.html#create-3"><code>khepri:create/3</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#create-3">khepri:create/3</a>.</p>
+
+<h3 class="function"><a name="create-3">create/3</a></h3>
+<div class="spec">
+<p><code>create(PathPattern, Data, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Creates a tree node with the given payload.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#create/4" href="khepri.html#create-4"><code>khepri:create/4</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#create-4">khepri:create/4</a>.</p>
+
+<h3 class="function"><a name="update-2">update/2</a></h3>
+<div class="spec">
+<p><code>update(PathPattern, Data) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Updates an existing tree node with the given payload.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#update/3" href="khepri.html#update-3"><code>khepri:update/3</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#update-3">khepri:update/3</a>.</p>
+
+<h3 class="function"><a name="update-3">update/3</a></h3>
+<div class="spec">
+<p><code>update(PathPattern, Data, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Updates an existing tree node with the given payload.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#update/4" href="khepri.html#update-4"><code>khepri:update/4</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#update-4">khepri:update/4</a>.</p>
+
+<h3 class="function"><a name="compare_and_swap-3">compare_and_swap/3</a></h3>
+<div class="spec">
+<p><code>compare_and_swap(PathPattern, DataPattern, Data) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Updates an existing tree node with the given payload only if its data  
+matches the given pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#compare_and_swap/4" href="khepri.html#compare_and_swap-4"><code>khepri:compare_and_swap/4</code></a> but inside the context
+  of a transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#compare_and_swap-4">khepri:compare_and_swap/4</a>.</p>
+
+<h3 class="function"><a name="compare_and_swap-4">compare_and_swap/4</a></h3>
+<div class="spec">
+<p><code>compare_and_swap(PathPattern, DataPattern, Data, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Updates an existing tree node with the given payload only if its data  
+matches the given pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#compare_and_swap/5" href="khepri.html#compare_and_swap-5"><code>khepri:compare_and_swap/5</code></a> but inside the context
+  of a transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#compare_and_swap-5">khepri:compare_and_swap/5</a>.</p>
+
+<h3 class="function"><a name="delete-1">delete/1</a></h3>
+<div class="spec">
+<p><code>delete(PathPattern) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Deletes the tree node pointed to by the given path pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#delete/2" href="khepri.html#delete-2"><code>khepri:delete/2</code></a> but inside the context
+  of a transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#delete-2">khepri:delete/2</a>.</p>
+
+<h3 class="function"><a name="delete-2">delete/2</a></h3>
+<div class="spec">
+<p><code>delete(PathPattern, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Deletes the tree node pointed to by the given path pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#delete/3" href="khepri.html#delete-3"><code>khepri:delete/3</code></a> but inside the context
+  of a transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#delete-3">khepri:delete/3</a>.</p>
+
+<h3 class="function"><a name="delete_many-1">delete_many/1</a></h3>
+<div class="spec">
+<p><code>delete_many(PathPattern) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Deletes all tree nodes matching the given path pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#delete_many/2" href="khepri.html#delete_many-2"><code>khepri:delete_many/2</code></a> but inside the context
+  of a transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#delete_many-2">khepri:delete_many/2</a>.</p>
+
+<h3 class="function"><a name="delete_many-2">delete_many/2</a></h3>
+<div class="spec">
+<p><code>delete_many(PathPattern, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Deletes all tree nodes matching the given path pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#delete_many/3" href="khepri.html#delete_many-3"><code>khepri:delete_many/3</code></a> but inside the context
+  of a transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#delete_many-3">khepri:delete_many/3</a>.</p>
+
+<h3 class="function"><a name="delete_payload-1">delete_payload/1</a></h3>
+<div class="spec">
+<p><code>delete_payload(PathPattern) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Deletes the payload of the tree node pointed to by the given path  
+pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#delete_payload/2" href="khepri.html#delete_payload-2"><code>khepri:delete_payload/2</code></a> but inside the context
+  of a transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#delete_payload-2">khepri:delete_payload/2</a>.</p>
+
+<h3 class="function"><a name="delete_payload-2">delete_payload/2</a></h3>
+<div class="spec">
+<p><code>delete_payload(PathPattern, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Deletes the payload of the tree node pointed to by the given path  
+pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#delete_payload/3" href="khepri.html#delete_payload-3"><code>khepri:delete_payload/3</code></a> but inside the context
+  of a transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#delete_payload-3">khepri:delete_payload/3</a>.</p>
+
+<h3 class="function"><a name="delete_many_payloads-1">delete_many_payloads/1</a></h3>
+<div class="spec">
+<p><code>delete_many_payloads(PathPattern) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Deletes the payload of all tree nodes matching the given path pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#delete_many_payloads/2" href="khepri.html#delete_many_payloads-2"><code>khepri:delete_many_payloads/2</code></a> but inside the
+  context of a transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#delete_many_payloads-2">khepri:delete_many_payloads/2</a>.</p>
+
+<h3 class="function"><a name="delete_many_payloads-2">delete_many_payloads/2</a></h3>
+<div class="spec">
+<p><code>delete_many_payloads(PathPattern, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Deletes the payload of all tree nodes matching the given path pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#delete_many_payloads/3" href="khepri.html#delete_many_payloads-3"><code>khepri:delete_many_payloads/3</code></a> but inside the
+  context of a transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#delete_many_payloads-3">khepri:delete_many_payloads/3</a>.</p>
 
 <h3 class="function"><a name="abort-1">abort/1</a></h3>
 <div class="spec">
@@ -310,7 +559,7 @@ catching up after a network partition.</p>
  
   <p>Any changes so far are not committed to the store.</p>
  
-  <a docgen-rel="seemfa" docgen-href="khepri#transaction/1" href="khepri.html#transaction-1"><code>khepri:transaction/1</code></a> and friends will return <code>{atomic, Reason}</code>.
+  <a docgen-rel="seemfa" docgen-href="khepri#transaction/1" href="khepri.html#transaction-1"><code>khepri:transaction/1</code></a> and friends will return <a docgen-rel="seetype" docgen-href="#tx_abort/0" href="#type-tx_abort"><code>tx_abort()</code></a>.
  </p>
 
 <h3 class="function"><a name="is_transaction-0">is_transaction/0</a></h3>

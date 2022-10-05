@@ -29,6 +29,14 @@ module.</p>
   never be called directly outside of Khepri.
 <h2><a name="types">Data Types</a></h2>
 
+<h3 class="typedecl"><a name="type-async_ret">async_ret()</a></h3>
+<p><code>async_ret() = ok</code></p>
+
+
+<h3 class="typedecl"><a name="type-common_ret">common_ret()</a></h3>
+<p><code>common_ret() = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-node_props_map">khepri_adv:node_props_map()</a>) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></p>
+
+
 <h3 class="typedecl"><a name="type-keep_while_conds_map">keep_while_conds_map()</a></h3>
 <p><code>keep_while_conds_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-native_keep_while">khepri_condition:native_keep_while()</a>}</code></p>
 <p>  Per-node <code>keep_while</code> conditions.</p>
@@ -43,27 +51,32 @@ module.</p>
 <p><code>machine_config() = #config{store_id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a>, member = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a>, snapshot_interval = non_neg_integer()}</code></p>
 <p>  Configuration record, holding read-only or rarely changing fields.</p>
 
-<h3 class="typedecl"><a name="type-stat">stat()</a></h3>
-<p><code>stat() = #{payload_version := <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_version">khepri:payload_version()</a>, child_list_version := <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_version">khepri:child_list_version()</a>}</code></p>
-<p>  Stats attached to each node in the tree structure.</p>
+<h3 class="typedecl"><a name="type-props">props()</a></h3>
+<p><code>props() = #{payload_version := <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_version">khepri:payload_version()</a>, child_list_version := <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_version">khepri:child_list_version()</a>}</code></p>
+<p>  Properties attached to each node in the tree structure.</p>
 
 <h3 class="typedecl"><a name="type-state">state()</a></h3>
 <p><code>state() = #khepri_machine{config = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-machine_config">khepri_machine:machine_config()</a>, root = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tree_node">khepri_machine:tree_node()</a>, keep_while_conds = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_while_conds_map">khepri_machine:keep_while_conds_map()</a>, keep_while_conds_revidx = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_while_conds_revidx">khepri_machine:keep_while_conds_revidx()</a>, triggers = #{<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id">khepri:trigger_id()</a> =&gt; #{sproc := <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a>, event_filter := <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a>}}, emitted_triggers = [<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-triggered">khepri_machine:triggered()</a>], metrics = #{applied_command_count =&gt; non_neg_integer()}}</code></p>
 <p>  State of this Ra state machine.</p>
 
 <h3 class="typedecl"><a name="type-tree_node">tree_node()</a></h3>
-<p><code>tree_node() = #node{stat = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-stat">khepri_machine:stat()</a>, payload = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a>, child_nodes = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-component">khepri_path:component()</a> := #node{stat = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-stat">khepri_machine:stat()</a>, payload = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a>, child_nodes = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-component">khepri_path:component()</a> := #node{}}}}}</code></p>
+<p><code>tree_node() = #node{props = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-props">khepri_machine:props()</a>, payload = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a>, child_nodes = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-component">khepri_path:component()</a> := #node{props = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-props">khepri_machine:props()</a>, payload = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a>, child_nodes = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-component">khepri_path:component()</a> := #node{}}}}}</code></p>
 <p>  A node in the tree structure.</p>
 
 <h3 class="typedecl"><a name="type-triggered">triggered()</a></h3>
 <p><code>triggered() = #triggered{id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id">khepri:trigger_id()</a>, event_filter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a>, sproc = <a href="/home/runner/work/khepri/khepri/doc/khepri_fun.html#type-standalone_fun">khepri_fun:standalone_fun()</a>, props = map()}</code></p>
 
 
+<h3 class="typedecl"><a name="type-tx_ret">tx_ret()</a></h3>
+<p><code>tx_ret() = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>) | <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a> | no_return()</code></p>
+
+
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get-3">get/3</a></td><td>Returns all tree nodes matching the path pattern.</td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get-3">get/3</a></td><td>Returns all tree nodes matching the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#count-3">count/3</a></td><td>Counts all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#delete-3">delete/3</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#transaction-4">transaction/4</a></td><td>Runs a transaction and returns the result.</td></tr>
+<tr><td valign="top"><a href="#handle_tx_exception-1">handle_tx_exception/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#run_sproc-4">run_sproc/4</a></td><td>Executes a stored procedure.</td></tr>
 <tr><td valign="top"><a href="#register_trigger-5">register_trigger/5</a></td><td>Registers a trigger.</td></tr>
 </table>
@@ -72,22 +85,22 @@ module.</p>
 
 <h3 class="function"><a name="get-3">get/3</a></h3>
 <div class="spec">
-<p><code>get(StoreId, PathPattern, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a></code></li></ul></p>
+<p><code>get(StoreId, PathPattern, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-common_ret">khepri_machine:common_ret()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to get.<br>
 <code>Options</code>: query options such as <code>favor</code>.
  <br>
 </p>
-<p>returns: an <code>{ok, Result}</code> tuple with a map with zero, one or more entries,
-  or an <code>{error, Reason}</code> tuple.</p>
-</div><p>Returns all tree nodes matching the path pattern.
+<p>returns: an <code>{ok, NodePropsMap}</code> tuple with a map with zero, one or more
+  entries, or an <code>{error, Reason}</code> tuple.</p>
+</div><p>Returns all tree nodes matching the given path pattern.
  </p>
 
 <h3 class="function"><a name="count-3">count/3</a></h3>
 <div class="spec">
-<p><code>count(StoreId, PathPattern, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(integer()) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p><code>count(StoreId, PathPattern, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Count) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Count = non_neg_integer()</code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to count.<br>
 <code>Options</code>: query options such as <code>favor</code>.
@@ -100,37 +113,43 @@ module.</p>
 
 <h3 class="function"><a name="delete-3">delete/3</a></h3>
 <div class="spec">
-<p><code>delete(StoreId, PathPattern, Options) -&gt; Result</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a></code></li><li><code>Result = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-result">khepri:result()</a> | NoRetIfAsync</code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<p><code>delete(StoreId, PathPattern, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-common_ret">khepri_machine:common_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to delete.<br>
 <code>Options</code>: command options such as the command type.
  <br>
 </p>
-<p>returns: in the case of a synchronous delete, an <code>{ok, Result}</code> tuple with
-  a map with zero, one or more entries, or an <code>{error, Reason}</code> tuple; in the
-  case of an asynchronous put, always <code>ok</code> (the actual return value may be
-  sent by a message if a correlation ID was specified).</p>
+<p>returns: in the case of a synchronous delete, an <code>{ok, NodePropsMap}</code> tuple
+  with a map with zero, one or more entries, or an <code>{error, Reason}</code> tuple;
+  in the case of an asynchronous put, always <code>ok</code> (the actual return value
+  may be sent by a message if a correlation ID was specified).</p>
 </div><p>Deletes all tree nodes matching the path pattern.
  </p>
 
 <h3 class="function"><a name="transaction-4">transaction/4</a></h3>
 <div class="spec">
 <p><code>transaction(StoreId, Fun, ReadWrite, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a></code></li><li><code>Ret = Atomic | Aborted | NoRetIfAsync</code></li><li><code>Atomic = {atomic, <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>}</code></li><li><code>Aborted = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a></code></li><li><code>NoRetIfAsync = ok</code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
 <code>Fun</code>: an arbitrary anonymous function.<br>
 <code>ReadWrite</code>: the read/write or read-only nature of the transaction.<br>
 <code>Options</code>: command options such as the command type.
  <br>
 </p>
-<p>returns: in the case of a synchronous transaction, <code>{atomic, Result}</code> where
-  <code>Result</code> is the return value of <code>Fun</code>, or <code>{aborted, Reason}</code> if the
+<p>returns: in the case of a synchronous transaction, <code>{ok, Result}</code> where
+  <code>Result</code> is the return value of <code>Fun</code>, or <code>{error, Reason}</code> if the
   anonymous function was aborted; in the case of an asynchronous transaction,
   always <code>ok</code> (the actual return value may be sent by a message if a
   correlation ID was specified).</p>
 </div><p>Runs a transaction and returns the result.
  </p>
+
+<h3 class="function"><a name="handle_tx_exception-1">handle_tx_exception/1</a></h3>
+<div class="spec">
+<p><code>handle_tx_exception(X1) -&gt; any()</code></p>
+<p></p>
+</div>
 
 <h3 class="function"><a name="run_sproc-4">run_sproc/4</a></h3>
 <div class="spec">

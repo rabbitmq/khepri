@@ -61,14 +61,14 @@ machine.</p>
  
   Special components are:
   <ol>
-  <li><code>?ROOT_NODE</code> to explicitly mark the root node. A path is absolute by
-  default. Using <code>?ROOT_NODE</code> is only useful when manipulating the root node
-  itself (querying it or storing something in the root node).</li>
-  <li><code>?THIS_NODE</code> to make a relative path (the default being an absolute
-  path). This is mostly useful for <a docgen-rel="seetype" docgen-href="khepri_condition#keep_while/0" href="khepri_condition.html#type-keep_while"><code>khepri_condition:keep_while()</code></a> to
-  make it easy to put a condition on the node itself.</li>
-  <li><code>?PARENT_NODE</code> to target the parent of a node, with the same benefits
-  and use cases as <code>?THIS_NODE</code>.</li>
+  <li><code>?KHEPRI_ROOT_NODE</code> to explicitly mark the root node. A path is absolute
+  by default. Using <code>?KHEPRI_ROOT_NODE</code> is only useful when manipulating the
+  root node itself (querying it or storing something in the root node).</li>
+  <li><code>?THIS_KHEPRI_NODE</code> to make a relative path (the default being an
+  absolute path). This is mostly useful for <a docgen-rel="seetype" docgen-href="khepri_condition#keep_while/0" href="khepri_condition.html#type-keep_while"><code>khepri_condition:keep_while()</code></a> to make it easy to put a condition on the
+  node itself.</li>
+  <li><code>?PARENT_KHEPRI_NODE</code> to target the parent of a node, with the same
+  benefits and use cases as <code>?THIS_KHEPRI_NODE</code>.</li>
   </ol>
  
   <p>Example:</p>
@@ -128,13 +128,15 @@ PathPattern = [stock,
   <li>Atom and binaries can be percent-encoded.</li>
   <li>An absolute path must start with <code>/</code>, otherwise it is considered a
   relative path</li>
-  <li><code>.</code> and <code>..</code> represent <code>?THIS_NODE</code> and <code>?PARENT_NODE</code>
+  <li><code>.</code> and <code>..</code> represent <code>?THIS_KHEPRI_NODE</code> and <code>?PARENT_KHEPRI_NODE</code>
   respectively</li>
   <li>Simple glob patterns are accepted:
   <ul>
   <li><code>abc*def</code> is the same as <code>#if_name_matches{regex = "^abc.*def$"}</code></li>
-  <li><code>*</code> is the same as <code>?STAR</code> or <code>#if_name_matches{regex = any}</code></li>
-  <li><code>**</code> is the same as <code>?STAR_STAR</code> or <code>if_path_matches{regex = any}</code></li>
+  <li><code>*</code> is the same as <code>?KHEPRI_WILDCARD_STAR</code> or <code>#if_name_matches{regex =
+  any}</code></li>
+  <li><code>**</code> is the same as <code>?KHEPRI_WILDCARD_STAR_STAR</code> or
+  <code>if_path_matches{regex = any}</code></li>
   </ul></li>
   </ul>
  

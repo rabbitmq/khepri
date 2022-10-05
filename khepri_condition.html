@@ -148,7 +148,7 @@ corresponds to the expected state.</p>
   <pre><code>#if_has_data{has_data = false}.</code></pre></p>
 
 <h3 class="typedecl"><a name="type-if_name_matches">if_name_matches()</a></h3>
-<p><code>if_name_matches() = #if_name_matches{regex = any | iodata() | <a href="/home/runner/work/khepri/stdlib/doc/unicode.html#type-charlist">unicode:charlist()</a>, compiled = <a href="#type-re_mp">re_mp()</a> | undefined}</code></p>
+<p><code>if_name_matches() = #if_name_matches{regex = any | iodata() | <a href="/home/runner/work/khepri/stdlib/doc/unicode.html#type-charlist">unicode:charlist()</a>, compiled = <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-re_compile_ret">khepri_condition:re_compile_ret()</a> | undefined}</code></p>
 <p><p>  Condition. Evaluates to true if the name of the tested node matches the  
 condition pattern.</p>
  
@@ -192,7 +192,7 @@ the expected state.</p>
   <pre><code>#if_not{condition = #if_name_matches{regex = "^a"}}.</code></pre></p>
 
 <h3 class="typedecl"><a name="type-if_path_matches">if_path_matches()</a></h3>
-<p><code>if_path_matches() = #if_path_matches{regex = any | iodata() | <a href="/home/runner/work/khepri/stdlib/doc/unicode.html#type-charlist">unicode:charlist()</a>, compiled = <a href="#type-re_mp">re_mp()</a> | undefined}</code></p>
+<p><code>if_path_matches() = #if_path_matches{regex = any | iodata() | <a href="/home/runner/work/khepri/stdlib/doc/unicode.html#type-charlist">unicode:charlist()</a>, compiled = <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-re_compile_ret">khepri_condition:re_compile_ret()</a> | undefined}</code></p>
 <p><p>  Condition. Evaluates to true if the name of the tested node matches the  
 condition pattern. If it does not match, child node names are tested  
 recursively.</p>
@@ -261,9 +261,13 @@ overwrite the other.</p>
   This is the same as <a docgen-rel="seetype" docgen-href="#keep_while/0" href="#type-keep_while"><code>keep_while()</code></a> but the paths in the map keys were
   converted to native paths if necessary.</p>
 
-<h3 class="typedecl"><a name="type-re_mp">re_mp()</a></h3>
-<p><code>re_mp() = tuple()</code></p>
-
+<h3 class="typedecl"><a name="type-re_compile_ret">re_compile_ret()</a></h3>
+<p><code>re_compile_ret() = {ok, {re_pattern, term(), term(), term(), term()}} | {error, {string(), non_neg_integer()}}</code></p>
+<p><p>  Return value of <a docgen-rel="seemfa" docgen-href="re#compile/1" href="re.html#compile-1"><code>re:compile/1</code></a>.</p>
+ 
+  The opaque compiled regex type, <a docgen-rel="seetype" docgen-href="re#mp/0" href="re.html#type-mp"><code>re:mp()</code></a>, is unfortunately not
+  exported by <a docgen-rel="seeerl" docgen-href="re" href="re.html"><code>re</code></a>, neither is the error tuple (at least up to
+  Erlang/OTP 25.1).</p>
 
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#ensure_native_keep_while-1">ensure_native_keep_while/1</a></td><td></td></tr>
