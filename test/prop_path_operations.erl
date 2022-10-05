@@ -37,12 +37,12 @@ prop_a_path_can_be_converted_back_and_forth_to_string() ->
 
 path() ->
     elements([list(path_component()),
-              [?ROOT_NODE | list(path_component())]]).
+              [?KHEPRI_ROOT_NODE | list(path_component())]]).
 
 path_component() ->
     elements([atom_component(),
               binary_component(),
-              ?THIS_NODE, ?PARENT_NODE]).
+              ?THIS_KHEPRI_NODE, ?PARENT_KHEPRI_NODE]).
 
 atom_component() ->
     atom().

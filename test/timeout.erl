@@ -10,7 +10,6 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("include/khepri.hrl").
--include("src/internal.hrl").
 -include("test/helpers.hrl").
 
 can_specify_timeout_in_milliseconds_test_() ->
@@ -18,19 +17,13 @@ can_specify_timeout_in_milliseconds_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{[foo] => #{}}},
+         ok,
          khepri:put(?FUNCTION_NAME, [foo], foo_value, #{timeout => 60000})),
       ?_assertEqual(
-         {ok, #{[foo] => #{data => foo_value,
-                           payload_version => 1,
-                           child_list_version => 1,
-                           child_list_length => 0}}},
+         {ok, foo_value},
          khepri:get(?FUNCTION_NAME, [foo], #{timeout => 60000})),
       ?_assertEqual(
-         {ok, #{[foo] => #{data => foo_value,
-                           payload_version => 1,
-                           child_list_version => 1,
-                           child_list_length => 0}}},
+         ok,
          khepri:delete(?FUNCTION_NAME, [foo], #{timeout => 60000}))]}.
 
 can_specify_infinity_timeout_test_() ->
@@ -38,17 +31,11 @@ can_specify_infinity_timeout_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{[foo] => #{}}},
+         ok,
          khepri:put(?FUNCTION_NAME, [foo], foo_value, #{timeout => infinity})),
       ?_assertEqual(
-         {ok, #{[foo] => #{data => foo_value,
-                           payload_version => 1,
-                           child_list_version => 1,
-                           child_list_length => 0}}},
+         {ok, foo_value},
          khepri:get(?FUNCTION_NAME, [foo], #{timeout => infinity})),
       ?_assertEqual(
-         {ok, #{[foo] => #{data => foo_value,
-                           payload_version => 1,
-                           child_list_version => 1,
-                           child_list_length => 0}}},
+         ok,
          khepri:delete(?FUNCTION_NAME, [foo], #{timeout => infinity}))]}.

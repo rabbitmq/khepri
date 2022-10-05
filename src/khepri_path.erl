@@ -46,6 +46,7 @@
 -include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
+-include("src/khepri_error.hrl").
 
 -export([compile/1,
          from_string/1,
@@ -70,7 +71,10 @@
 -type node_id() :: atom() | binary().
 %% A node name.
 
--type component() :: node_id() | ?ROOT_NODE | ?THIS_NODE | ?PARENT_NODE.
+-type component() :: node_id() |
+                    ?KHEPRI_ROOT_NODE |
+                    ?THIS_KHEPRI_NODE |
+                    ?PARENT_KHEPRI_NODE.
 %% Component name in a path to a node.
 
 -type native_path() :: [component()].
@@ -84,14 +88,15 @@
 %%
 %% Special components are:
 %% <ol>
-%% <li>`?ROOT_NODE' to explicitly mark the root node. A path is absolute by
-%% default. Using `?ROOT_NODE' is only useful when manipulating the root node
-%% itself (querying it or storing something in the root node).</li>
-%% <li>`?THIS_NODE' to make a relative path (the default being an absolute
-%% path). This is mostly useful for {@link khepri_condition:keep_while()} to
-%% make it easy to put a condition on the node itself.</li>
-%% <li>`?PARENT_NODE' to target the parent of a node, with the same benefits
-%% and use cases as `?THIS_NODE'.</li>
+%% <li>`?KHEPRI_ROOT_NODE' to explicitly mark the root node. A path is absolute
+%% by default. Using `?KHEPRI_ROOT_NODE' is only useful when manipulating the
+%% root node itself (querying it or storing something in the root node).</li>
+%% <li>`?THIS_KHEPRI_NODE' to make a relative path (the default being an
+%% absolute path). This is mostly useful for {@link
+%% khepri_condition:keep_while()} to make it easy to put a condition on the
+%% node itself.</li>
+%% <li>`?PARENT_KHEPRI_NODE' to target the parent of a node, with the same
+%% benefits and use cases as `?THIS_KHEPRI_NODE'.</li>
 %% </ol>
 %%
 %% Example:
@@ -138,13 +143,15 @@
 %% <li>Atom and binaries can be percent-encoded.</li>
 %% <li>An absolute path must start with `/', otherwise it is considered a
 %% relative path</li>
-%% <li>`.' and `..' represent `?THIS_NODE' and `?PARENT_NODE'
+%% <li>`.' and `..' represent `?THIS_KHEPRI_NODE' and `?PARENT_KHEPRI_NODE'
 %% respectively</li>
 %% <li>Simple glob patterns are accepted:
 %% <ul>
 %% <li>`abc*def' is the same as `#if_name_matches{regex = "^abc.*def$"}'</li>
-%% <li>`*' is the same as `?STAR' or `#if_name_matches{regex = any}'</li>
-%% <li>`**' is the same as `?STAR_STAR' or `if_path_matches{regex = any}'</li>
+%% <li>`*' is the same as `?KHEPRI_WILDCARD_STAR' or `#if_name_matches{regex =
+%% any}'</li>
+%% <li>`**' is the same as `?KHEPRI_WILDCARD_STAR_STAR' or
+%% `if_path_matches{regex = any}'</li>
 %% </ul></li>
 %% </ul>
 %%
@@ -203,6 +210,15 @@
               pattern_component/0,
               node_id/0]).
 
+-define(
+   reject_invalid_path(Path),
+   ?khepri_misuse(invalid_path, #{path => Path})).
+
+-define(
+   reject_invalid_path(Path, Component),
+   ?khepri_misuse(invalid_path, #{path => Path,
+                                  component => Component})).
+
 -spec compile(PathPattern) -> PathPattern when
       PathPattern :: native_pattern().
 %% @private
@@ -220,14 +236,14 @@ compile(PathPattern) ->
 %% For convenience, a native path is also accepted and returned as-is.
 
 from_string("/" ++ MaybeString) ->
-    from_string(MaybeString, [?ROOT_NODE]);
+    from_string(MaybeString, [?KHEPRI_ROOT_NODE]);
 from_string(MaybeString) when is_list(MaybeString) ->
     from_string(MaybeString, []);
 from_string(Binary) when is_binary(Binary) ->
     String = erlang:binary_to_list(Binary),
     from_string(String);
 from_string(NotPath) ->
-    throw({invalid_path, #{path => NotPath}}).
+    ?reject_invalid_path(NotPath).
 
 -spec from_binary(String) -> PathPattern when
       String :: pattern(),
@@ -257,12 +273,7 @@ from_binary(MaybeString) ->
 %% @private
 
 sigil_p(PathPattern, _Options) ->
-    try
-        from_string(PathPattern)
-    catch
-        throw:Reason:Stacktrace ->
-            erlang:raise(error, Reason, Stacktrace)
-    end.
+    from_string(PathPattern).
 
 -spec sigil_P(PathPattern, Options) -> NativePathPattern when
       PathPattern :: pattern(),
@@ -279,29 +290,24 @@ sigil_p(PathPattern, _Options) ->
 %% @private
 
 sigil_P(PathPattern, _Options) ->
-    try
-        from_string(PathPattern)
-    catch
-        throw:Reason:Stacktrace ->
-            erlang:raise(error, Reason, Stacktrace)
-    end.
+    from_string(PathPattern).
 
 from_string([Component | _] = Rest, ReversedPath)
-  when ?IS_NODE_ID(Component) orelse
-       ?IS_CONDITION(Component) ->
+  when ?IS_KHEPRI_NODE_ID(Component) orelse
+       ?IS_KHEPRI_CONDITION(Component) ->
     finalize_path(Rest, ReversedPath);
 from_string([Char, Component | _] = Rest, ReversedPath)
-  when ?IS_SPECIAL_PATH_COMPONENT(Char) andalso
-       (?IS_NODE_ID(Component) orelse
-        ?IS_CONDITION(Component)) ->
+  when ?IS_SPECIAL_KHEPRI_PATH_COMPONENT(Char) andalso
+       (?IS_KHEPRI_NODE_ID(Component) orelse
+        ?IS_KHEPRI_CONDITION(Component)) ->
     finalize_path(Rest, ReversedPath);
-from_string([?PARENT_NODE, $/ | _] = Rest, ReversedPath) ->
+from_string([?PARENT_KHEPRI_NODE, $/ | _] = Rest, ReversedPath) ->
     %% If the character used to represent the parent node in a regular path
     %% (`^') appears alone in a path component, it's a regular path. Other
     %% special path components may appear alone in both forms though.
     finalize_path(Rest, ReversedPath);
 from_string([Char] = Rest, [] = ReversedPath)
-  when ?IS_SPECIAL_PATH_COMPONENT(Char) ->
+  when ?IS_SPECIAL_KHEPRI_PATH_COMPONENT(Char) ->
     finalize_path(Rest, ReversedPath);
 
 from_string([$/ | Rest], ReversedPath) ->
@@ -318,8 +324,7 @@ from_string([], ReversedPath) ->
 
 from_string(Rest, ReversedPath) ->
     NotPath = lists:reverse(ReversedPath) ++ Rest,
-    throw({invalid_path, #{path => NotPath,
-                           tail => Rest}}).
+    ?reject_invalid_path(NotPath).
 
 parse_atom_from_string(Rest, ReversedPath) ->
     parse_atom_from_string(Rest, "", ReversedPath).
@@ -362,13 +367,13 @@ finalize_binary_componenent(Acc) ->
     Acc1 = lists:reverse(Acc),
     case Acc1 of
         "." ->
-            ?THIS_NODE;
+            ?THIS_KHEPRI_NODE;
         ".." ->
-            ?PARENT_NODE;
+            ?PARENT_KHEPRI_NODE;
         "*" ->
-            ?STAR;
+            ?KHEPRI_WILDCARD_STAR;
         "**" ->
-            ?STAR_STAR;
+            ?KHEPRI_WILDCARD_STAR_STAR;
         _ ->
             Acc2 = percent_decode_string(Acc1),
             case re:run(Acc2, "\\*", [{capture, none}]) of
@@ -381,9 +386,9 @@ finalize_binary_componenent(Acc) ->
             end
     end.
 
-prepend_component(Component, []) when ?IS_NODE_ID(Component) ->
+prepend_component(Component, []) when ?IS_KHEPRI_NODE_ID(Component) ->
     %% This is a relative path.
-    [Component, ?THIS_NODE];
+    [Component, ?THIS_KHEPRI_NODE];
 prepend_component(Component, ReversedPath) ->
     [Component | ReversedPath].
 
@@ -391,7 +396,7 @@ finalize_path(Rest, []) ->
     Rest;
 finalize_path(Rest, ReversedPath) ->
     case lists:reverse(ReversedPath) ++ Rest of
-        [?ROOT_NODE | Path] -> Path;
+        [?KHEPRI_ROOT_NODE | Path] -> Path;
         Path                -> Path
     end.
 
@@ -400,18 +405,18 @@ finalize_path(Rest, ReversedPath) ->
       UnixPath :: string().
 %% @doc Converts a native path to a string.
 
-to_string([?ROOT_NODE | Path]) ->
+to_string([?KHEPRI_ROOT_NODE | Path]) ->
     "/" ++
     string:join(
       lists:map(fun component_to_string/1, Path),
       "/");
-to_string([?THIS_NODE = Component]) ->
+to_string([?THIS_KHEPRI_NODE = Component]) ->
     component_to_string(Component);
-to_string([?THIS_NODE | Path]) ->
+to_string([?THIS_KHEPRI_NODE | Path]) ->
     string:join(
       lists:map(fun component_to_string/1, Path),
       "/");
-to_string([?PARENT_NODE | _] = Path) ->
+to_string([?PARENT_KHEPRI_NODE | _] = Path) ->
     string:join(
       lists:map(fun component_to_string/1, Path),
       "/");
@@ -433,11 +438,11 @@ to_binary(Path) ->
 -spec component_to_string(component()) -> string().
 %% @private
 
-component_to_string(?ROOT_NODE) ->
+component_to_string(?KHEPRI_ROOT_NODE) ->
     "/";
-component_to_string(?THIS_NODE) ->
+component_to_string(?THIS_KHEPRI_NODE) ->
     ".";
-component_to_string(?PARENT_NODE) ->
+component_to_string(?PARENT_KHEPRI_NODE) ->
     "..";
 component_to_string(Component) when is_atom(Component) ->
     ":" ++ percent_encode_string(erlang:atom_to_list(Component));
@@ -445,7 +450,7 @@ component_to_string(Component)
   when is_binary(Component) andalso Component =/= <<>> ->
     percent_encode_string(erlang:binary_to_list(Component));
 component_to_string(<<>>) ->
-    throw(unsupported).
+    ?khepri_misuse(empty_binary_unsupported_in_string_based_path, #{}).
 
 -define(IS_HEX(Digit), (is_integer(Digit) andalso
                         ((Digit >= $0 andalso Digit =< $9) orelse
@@ -519,7 +524,7 @@ targets_specific_node([], Path) ->
 %% @private
 
 component_targets_specific_node(ChildName)
-  when ?IS_PATH_COMPONENT(ChildName) ->
+  when ?IS_KHEPRI_PATH_COMPONENT(ChildName) ->
     {true, ChildName};
 component_targets_specific_node(#if_not{condition = Cond}) ->
     component_targets_specific_node(Cond);
@@ -580,9 +585,10 @@ is_valid(NotPathPattern) ->
 
 ensure_is_valid(PathPattern) ->
     case is_valid(PathPattern) of
-        true               -> ok;
-        {false, Component} -> throw({invalid_path, #{path => PathPattern,
-                                                     component => Component}})
+        true ->
+            ok;
+        {false, Component} ->
+            ?reject_invalid_path(PathPattern, Component)
     end.
 
 -spec abspath(Path, BasePath) -> Path when
@@ -590,7 +596,8 @@ ensure_is_valid(PathPattern) ->
       BasePath :: native_pattern().
 
 abspath([FirstComponent | _] = AbsolutePath, _)
-  when FirstComponent =/= ?THIS_NODE andalso FirstComponent =/= ?PARENT_NODE ->
+  when FirstComponent =/= ?THIS_KHEPRI_NODE andalso
+       FirstComponent =/= ?PARENT_KHEPRI_NODE ->
     AbsolutePath;
 abspath([_ | _] = RelativePath, BasePath) ->
     realpath(BasePath ++ RelativePath, []);
@@ -603,13 +610,13 @@ abspath([] = PathToRoot, _) ->
 realpath(Path) ->
     realpath(Path, []).
 
-realpath([?ROOT_NODE | Rest], _Result) ->
+realpath([?KHEPRI_ROOT_NODE | Rest], _Result) ->
     realpath(Rest, []);
-realpath([?THIS_NODE | Rest], Result) ->
+realpath([?THIS_KHEPRI_NODE | Rest], Result) ->
     realpath(Rest, Result);
-realpath([?PARENT_NODE | Rest], [_ | Result]) ->
+realpath([?PARENT_KHEPRI_NODE | Rest], [_ | Result]) ->
     realpath(Rest, Result);
-realpath([?PARENT_NODE | Rest], [] = Result) ->
+realpath([?PARENT_KHEPRI_NODE | Rest], [] = Result) ->
     realpath(Rest, Result);
 realpath([Component | Rest], Result) ->
     realpath(Rest, [Component | Result]);
@@ -617,8 +624,4 @@ realpath([], Result) ->
     lists:reverse(Result).
 
 pattern_includes_root_node(Path) ->
-    pattern_includes_root_node1(realpath(Path)).
-
-pattern_includes_root_node1([#if_name_matches{regex = any}]) -> true;
-pattern_includes_root_node1([#if_path_matches{regex = any}]) -> true;
-pattern_includes_root_node1(_)                               -> false.
+    [] =:= realpath(Path).

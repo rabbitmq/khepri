@@ -10,7 +10,6 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("include/khepri.hrl").
--include("src/internal.hrl").
 -include("test/helpers.hrl").
 
 event_triggers_associated_sproc_test_() ->
@@ -23,7 +22,7 @@ event_triggers_associated_sproc_test_() ->
      [{inorder,
        [{"Storing a procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
               make_sproc(self(), Key)))},
@@ -39,7 +38,7 @@ event_triggers_associated_sproc_test_() ->
 
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(?FUNCTION_NAME, [foo], value))},
 
         {"Checking the procedure was executed",
@@ -56,7 +55,7 @@ event_using_matching_pattern1_triggers_associated_sproc_test_() ->
      [{inorder,
        [{"Storing a procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
               make_sproc(self(), Key)))},
@@ -72,7 +71,7 @@ event_using_matching_pattern1_triggers_associated_sproc_test_() ->
 
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, [foo, bar], value))},
 
@@ -81,7 +80,7 @@ event_using_matching_pattern1_triggers_associated_sproc_test_() ->
       }]}.
 
 event_using_matching_pattern2_triggers_associated_sproc_test_() ->
-    EventFilter = khepri_evf:tree([foo, ?STAR_STAR]),
+    EventFilter = khepri_evf:tree([foo, ?KHEPRI_WILDCARD_STAR_STAR]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -90,7 +89,7 @@ event_using_matching_pattern2_triggers_associated_sproc_test_() ->
      [{inorder,
        [{"Storing a procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
               make_sproc(self(), Key)))},
@@ -106,7 +105,7 @@ event_using_matching_pattern2_triggers_associated_sproc_test_() ->
 
         {"Updating a matching grandchild node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, [foo, bar], value))},
 
@@ -115,9 +114,10 @@ event_using_matching_pattern2_triggers_associated_sproc_test_() ->
           {create, [foo, bar]},
           receive_sproc_msg_with_props(Key))},
 
-        {"Updating a matching great-grandchild node; should trigger the procedure",
+        {"Updating a matching great-grandchild node; "
+         "should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, [foo, bar, baz], value))},
 
@@ -128,7 +128,8 @@ event_using_matching_pattern2_triggers_associated_sproc_test_() ->
       }]}.
 
 event_using_non_matching_pattern1_does_not_trigger_associated_sproc_test_() ->
-    EventFilter = khepri_evf:tree([?STAR, #if_child_list_length{count = 1}]),
+    EventFilter = khepri_evf:tree(
+                    [?KHEPRI_WILDCARD_STAR, #if_child_list_length{count = 1}]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
     {setup,
@@ -137,7 +138,7 @@ event_using_non_matching_pattern1_does_not_trigger_associated_sproc_test_() ->
      [{inorder,
        [{"Storing a procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
               make_sproc(self(), Key)))},
@@ -153,7 +154,7 @@ event_using_non_matching_pattern1_does_not_trigger_associated_sproc_test_() ->
 
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, [foo, bar], value))},
 
@@ -171,7 +172,7 @@ event_using_non_matching_pattern2_does_not_trigger_associated_sproc_test_() ->
      [{inorder,
        [{"Storing a procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
               make_sproc(self(), Key)))},
@@ -187,7 +188,7 @@ event_using_non_matching_pattern2_does_not_trigger_associated_sproc_test_() ->
 
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, [foo, bar], value))},
 
@@ -205,7 +206,7 @@ event_using_non_matching_pattern3_does_not_trigger_associated_sproc_test_() ->
      [{inorder,
        [{"Storing a procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
               make_sproc(self(), Key)))},
@@ -221,7 +222,7 @@ event_using_non_matching_pattern3_does_not_trigger_associated_sproc_test_() ->
 
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, [foo], value))},
 
@@ -239,7 +240,7 @@ event_does_not_trigger_unassociated_sproc_test_() ->
      [{inorder,
        [{"Storing a procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
               make_sproc(self(), Key)))},
@@ -255,7 +256,7 @@ event_does_not_trigger_unassociated_sproc_test_() ->
 
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, [bar], value))},
 
@@ -273,7 +274,7 @@ event_does_not_trigger_non_existing_sproc_test_() ->
      [{inorder,
        [{"Storing a procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, [non_existing | StoredProcPath],
               make_sproc(self(), Key)))},
@@ -289,7 +290,7 @@ event_does_not_trigger_non_existing_sproc_test_() ->
 
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, [bar], value))},
 
@@ -307,7 +308,7 @@ event_does_not_trigger_data_node_test_() ->
      [{inorder,
        [{"Storing a procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, StoredProcPath,
               not_an_stored_proc))},
@@ -323,7 +324,7 @@ event_does_not_trigger_data_node_test_() ->
 
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, [bar], value))},
 
@@ -345,21 +346,21 @@ filter_on_change_type_test_() ->
      [{inorder,
        [{"Storing a procedure for `created` change",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, StoredProcPath ++ [created],
               make_sproc(self(), CreatedKey)))},
 
         {"Storing a procedure for `updated` change",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, StoredProcPath ++ [updated],
               make_sproc(self(), UpdatedKey)))},
 
         {"Storing a procedure for `deleted` change",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, StoredProcPath ++ [deleted],
               make_sproc(self(), DeletedKey)))},
@@ -393,7 +394,7 @@ filter_on_change_type_test_() ->
 
         {"Creating a node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, [foo], value1))},
 
@@ -406,7 +407,7 @@ filter_on_change_type_test_() ->
 
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, [foo], value2))},
 
@@ -419,7 +420,7 @@ filter_on_change_type_test_() ->
 
         {"Deleting a node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:delete(
               ?FUNCTION_NAME, [foo]))},
 
@@ -441,14 +442,14 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
      [{inorder,
        [{"Storing a working procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, StoredProcPath ++ [good],
               make_sproc(self(), Key)))},
 
         {"Storing a failing procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(
               ?FUNCTION_NAME, StoredProcPath ++ [bad],
               fun(_Props) -> throw("Expected crash") end))},
@@ -473,7 +474,7 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
 
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             khepri:put(?FUNCTION_NAME, [foo], 1))},
 
         {"Checking the procedure was executed",
@@ -481,7 +482,7 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
 
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             begin
                 timer:sleep(2000),
                 khepri:put(?FUNCTION_NAME, [foo], 2)
@@ -492,7 +493,7 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
 
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             begin
                 timer:sleep(2000),
                 khepri:put(?FUNCTION_NAME, [foo], 3)
@@ -503,7 +504,7 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
 
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             begin
                 timer:sleep(2000),
                 khepri:put(?FUNCTION_NAME, [foo], 4)
@@ -514,7 +515,7 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
 
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             begin
                 timer:sleep(2000),
                 khepri:put(?FUNCTION_NAME, [foo], 5)
@@ -525,7 +526,7 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
 
         {"Updating a node; should trigger the procedure",
          ?_assertMatch(
-            {ok, _},
+            ok,
             begin
                 timer:sleep(2000),
                 khepri:put(?FUNCTION_NAME, [foo], 6)

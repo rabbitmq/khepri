@@ -10,7 +10,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("include/khepri.hrl").
--include("src/internal.hrl").
+-include("src/khepri_machine.hrl").
 -include("test/helpers.hrl").
 
 %% khepri:get_root/1 is unexported when compiled without `-DTEST'.
@@ -30,7 +30,12 @@ query_an_existing_node_with_no_value_test() ->
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
-    Ret = khepri_machine:find_matching_nodes(Root, [foo], #{}),
+    Ret = khepri_machine:find_matching_nodes(
+            Root, [foo],
+            #{props_to_return => [payload,
+                                  payload_version,
+                                  child_list_version,
+                                  child_list_length]}),
 
     ?assertEqual(
        {ok, #{[foo] => #{payload_version => 1,
@@ -43,7 +48,12 @@ query_an_existing_node_with_value_test() ->
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
-    Ret = khepri_machine:find_matching_nodes(Root, [foo, bar], #{}),
+    Ret = khepri_machine:find_matching_nodes(
+            Root, [foo, bar],
+            #{props_to_return => [payload,
+                                  payload_version,
+                                  child_list_version,
+                                  child_list_length]}),
 
     ?assertEqual(
        {ok, #{[foo, bar] => #{data => value,
@@ -61,7 +71,10 @@ query_a_node_with_matching_condition_test() ->
             Root,
             [#if_all{conditions = [foo,
                                    #if_data_matches{pattern = value}]}],
-            #{}),
+            #{props_to_return => [payload,
+                                  payload_version,
+                                  child_list_version,
+                                  child_list_length]}),
 
     ?assertEqual(
        {ok, #{[foo] => #{data => value,
@@ -79,7 +92,10 @@ query_a_node_with_non_matching_condition_test() ->
             Root,
             [#if_all{conditions = [foo,
                                    #if_data_matches{pattern = other}]}],
-            #{}),
+            #{props_to_return => [payload,
+                                  payload_version,
+                                  child_list_version,
+                                  child_list_length]}),
 
     ?assertEqual(
        {ok, #{}},
@@ -95,13 +111,13 @@ query_child_nodes_of_a_specific_node_test() ->
     Ret = khepri_machine:find_matching_nodes(
             Root,
             [#if_name_matches{regex = any}],
-            #{}),
+            #{props_to_return => [payload,
+                                  payload_version,
+                                  child_list_version,
+                                  child_list_length]}),
 
     ?assertEqual(
-       {ok, #{[] => #{payload_version => 1,
-                      child_list_version => 3,
-                      child_list_length => 2},
-              [foo] => #{payload_version => 1,
+       {ok, #{[foo] => #{payload_version => 1,
                          child_list_version => 1,
                          child_list_length => 1},
               [baz] => #{data => baz_value,
@@ -121,7 +137,10 @@ query_child_nodes_of_a_specific_node_with_condition_on_leaf_test() ->
             Root,
             [#if_all{conditions = [#if_name_matches{regex = any},
                                    #if_child_list_length{count = {ge, 1}}]}],
-            #{}),
+            #{props_to_return => [payload,
+                                  payload_version,
+                                  child_list_version,
+                                  child_list_length]}),
 
     ?assertEqual(
        {ok, #{[foo] => #{payload_version => 1,
@@ -144,7 +163,10 @@ query_many_nodes_with_condition_on_parent_test() ->
             Root,
             [#if_child_list_length{count = {gt, 1}},
              #if_name_matches{regex = any}],
-            #{}),
+            #{props_to_return => [payload,
+                                  payload_version,
+                                  child_list_version,
+                                  child_list_length]}),
 
     ?assertEqual(
        {ok, #{[foo, bar] => #{data => bar_value,
@@ -171,13 +193,13 @@ query_many_nodes_recursively_test() ->
     Ret1 = khepri_machine:find_matching_nodes(
              Root,
              [#if_path_matches{regex = any}],
-             #{}),
+             #{props_to_return => [payload,
+                                  payload_version,
+                                  child_list_version,
+                                  child_list_length]}),
 
     ?assertEqual(
-       {ok, #{[] => #{payload_version => 1,
-                      child_list_version => 3,
-                      child_list_length => 2},
-              [foo] => #{payload_version => 1,
+       {ok, #{[foo] => #{payload_version => 1,
                          child_list_version => 2,
                          child_list_length => 2},
               [foo, bar] => #{data => bar_value,
@@ -200,8 +222,11 @@ query_many_nodes_recursively_test() ->
 
     Ret2 = khepri_machine:find_matching_nodes(
              Root,
-             [?ROOT_NODE, #if_path_matches{regex = any}],
-             #{}),
+             [#if_path_matches{regex = any}],
+             #{props_to_return => [payload,
+                                  payload_version,
+                                  child_list_version,
+                                  child_list_length]}),
     ?assertEqual(Ret1, Ret2).
 
 query_many_nodes_recursively_using_regex_test() ->
@@ -218,7 +243,10 @@ query_many_nodes_recursively_using_regex_test() ->
     Ret = khepri_machine:find_matching_nodes(
             Root,
             [#if_path_matches{regex = "o"}],
-            #{}),
+            #{props_to_return => [payload,
+                                  payload_version,
+                                  child_list_version,
+                                  child_list_length]}),
 
     ?assertEqual(
        {ok, #{[foo] => #{payload_version => 1,
@@ -248,7 +276,10 @@ query_many_nodes_recursively_with_condition_on_leaf_test() ->
     Ret = khepri_machine:find_matching_nodes(
             Root,
             [#if_path_matches{regex = any}, #if_name_matches{regex = "o"}],
-            #{}),
+            #{props_to_return => [payload,
+                                  payload_version,
+                                  child_list_version,
+                                  child_list_length]}),
 
     ?assertEqual(
        {ok, #{[foo, youpi] => #{data => youpi_value,
@@ -276,7 +307,10 @@ query_many_nodes_recursively_with_condition_on_self_test() ->
             Root,
             [#if_all{conditions = [#if_path_matches{regex = any},
                                    #if_data_matches{pattern = '_'}]}],
-            #{}),
+            #{props_to_return => [payload,
+                                  payload_version,
+                                  child_list_version,
+                                  child_list_length]}),
 
     ?assertEqual(
        {ok, #{[foo, bar] => #{data => bar_value,
@@ -313,7 +347,10 @@ query_many_nodes_recursively_with_several_star_star_test() ->
             [#if_path_matches{regex = any},
              baz,
              #if_path_matches{regex = any}],
-            #{}),
+            #{props_to_return => [payload,
+                                  payload_version,
+                                  child_list_version,
+                                  child_list_length]}),
 
     ?assertEqual(
        {ok, #{[foo, bar, baz, qux] => #{data => qux_value,
@@ -328,7 +365,11 @@ query_a_node_using_relative_path_components_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Root = khepri_machine:get_root(S0),
     Ret = khepri_machine:find_matching_nodes(
-            Root, [?THIS_NODE, foo, ?PARENT_NODE, foo, bar], #{}),
+            Root, [?THIS_KHEPRI_NODE, foo, ?PARENT_KHEPRI_NODE, foo, bar],
+            #{props_to_return => [payload,
+                                  payload_version,
+                                  child_list_version,
+                                  child_list_length]}),
 
     ?assertEqual(
        {ok, #{[foo, bar] => #{data => value,
@@ -347,11 +388,13 @@ include_child_names_in_query_response_test() ->
     Ret = khepri_machine:find_matching_nodes(
             Root,
             [foo],
-            #{include_child_names => true}),
+            #{props_to_return => [payload,
+                                  payload_version,
+                                  child_list_version,
+                                  child_names]}),
 
     ?assertEqual(
        {ok, #{[foo] => #{payload_version => 1,
                          child_list_version => 2,
-                         child_list_length => 2,
                          child_names => [bar, quux]}}},
        Ret).

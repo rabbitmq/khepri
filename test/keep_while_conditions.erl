@@ -10,8 +10,8 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("include/khepri.hrl").
--include("src/internal.hrl").
 -include("src/khepri_machine.hrl").
+-include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
 %% khepri:get_root/1 is unexported when compiled without `-DTEST'. Likewise
@@ -74,17 +74,17 @@ insert_when_keep_while_true_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 3},
           child_nodes =
           #{foo =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                payload = khepri_payload:data(foo_value)},
             baz =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                payload = khepri_payload:data(baz_value)}}},
        Root),
     ?assertEqual(
@@ -111,11 +111,12 @@ insert_when_keep_while_false_test() ->
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({error,
-                  {keep_while_conditions_not_met,
-                   #{node_name => baz,
-                     node_path => [baz],
-                     keep_while_reason =>
-                     {pattern_matches_no_nodes, [foo, bar]}}}},
+                  ?khepri_error(
+                     keep_while_conditions_not_met,
+                     #{node_name => baz,
+                       node_path => [baz],
+                       keep_while_reason =>
+                       {pattern_matches_no_nodes, [foo, bar]}})},
                  Ret1),
     ?assertEqual([], SE1),
 
@@ -130,17 +131,18 @@ insert_when_keep_while_false_test() ->
     ?assertEqual(S0#khepri_machine.root, S2#khepri_machine.root),
     ?assertEqual(#{applied_command_count => 1}, S2#khepri_machine.metrics),
     ?assertEqual({error,
-                  {keep_while_conditions_not_met,
-                   #{node_name => baz,
-                     node_path => [baz],
-                     keep_while_reason =>
-                     #if_child_list_length{count = 10}}}},
+                  ?khepri_error(
+                     keep_while_conditions_not_met,
+                     #{node_name => baz,
+                       node_path => [baz],
+                       keep_while_reason =>
+                       #if_child_list_length{count = 10}})},
                  Ret2),
     ?assertEqual([], SE2).
 
 insert_when_keep_while_true_on_self_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
-    KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = 0}},
+    KeepWhile = #{[?THIS_KHEPRI_NODE] => #if_child_list_length{count = 0}},
     Command = #put{path = [foo],
                    payload = khepri_payload:data(foo_value),
                    extra = #{keep_while => KeepWhile}},
@@ -149,13 +151,13 @@ insert_when_keep_while_true_on_self_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 2},
           child_nodes =
           #{foo =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                payload = khepri_payload:data(foo_value)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{}}}, Ret),
@@ -163,7 +165,7 @@ insert_when_keep_while_true_on_self_test() ->
 
 insert_when_keep_while_false_on_self_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
-    KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = 1}},
+    KeepWhile = #{[?THIS_KHEPRI_NODE] => #if_child_list_length{count = 1}},
     Command = #put{path = [foo],
                    payload = khepri_payload:data(foo_value),
                    extra = #{keep_while => KeepWhile}},
@@ -172,13 +174,13 @@ insert_when_keep_while_false_on_self_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 2},
           child_nodes =
           #{foo =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                payload = khepri_payload:data(foo_value)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{}}}, Ret),
@@ -194,28 +196,32 @@ keep_while_still_true_after_command_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
     Command = #put{path = [foo],
-                   payload = khepri_payload:data(new_foo_value)},
+                   payload = khepri_payload:data(new_foo_value),
+                   options = #{props_to_return => [payload,
+                                                   payload_version,
+                                                   child_list_version,
+                                                   child_list_length]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 3},
           child_nodes =
           #{foo =>
             #node{
-               stat = #{payload_version => 2,
-                        child_list_version => 1},
+               props = #{payload_version => 2,
+                         child_list_version => 1},
                payload = khepri_payload:data(new_foo_value)},
             baz =>
             #node{
-               stat = ?INIT_NODE_STAT,
+               props = ?INIT_NODE_PROPS,
                payload = khepri_payload:data(baz_value)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => foo_value,
-                                   payload_version => 1,
+                                   payload_version => 2,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
     ?assertEqual([], SE).
@@ -236,25 +242,26 @@ keep_while_now_false_after_command_test() ->
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 4},
           child_nodes =
           #{foo =>
             #node{
-               stat = #{payload_version => 1,
-                        child_list_version => 2},
+               props = #{payload_version => 1,
+                         child_list_version => 2},
                payload = khepri_payload:data(foo_value),
                child_nodes =
                #{bar =>
-                 #node{stat = ?INIT_NODE_STAT,
+                 #node{props = ?INIT_NODE_PROPS,
                        payload = khepri_payload:data(bar_value)}}}}},
        Root),
     ?assertEqual({ok, #{[foo, bar] => #{}}}, Ret),
     ?assertEqual([], SE).
 
 recursive_automatic_cleanup_test() ->
-    KeepWhile = #{[?THIS_NODE] => #if_child_list_length{count = {gt, 0}}},
+    KeepWhile = #{[?THIS_KHEPRI_NODE] =>
+                  #if_child_list_length{count = {gt, 0}}},
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(foo_value),
                      extra = #{keep_while => KeepWhile}},
@@ -265,13 +272,17 @@ recursive_automatic_cleanup_test() ->
                      payload = khepri_payload:data(baz_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
-    Command = #delete{path = [foo, bar, baz]},
+    Command = #delete{path = [foo, bar, baz],
+                      options = #{props_to_return => [payload,
+                                                      payload_version,
+                                                      child_list_version,
+                                                      child_list_length]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 3},
           child_nodes = #{}},
@@ -291,13 +302,17 @@ keep_while_now_false_after_delete_command_test() ->
                      extra = #{keep_while => KeepWhile}}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
-    Command = #delete{path = [foo]},
+    Command = #delete{path = [foo],
+                      options = #{props_to_return => [payload,
+                                                      payload_version,
+                                                      child_list_version,
+                                                      child_list_length]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
     ?assertEqual(
        #node{
-          stat =
+          props =
           #{payload_version => 1,
             child_list_version => 5},
           child_nodes = #{}},

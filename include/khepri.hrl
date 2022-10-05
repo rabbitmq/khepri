@@ -5,51 +5,51 @@
 %% Copyright © 2021-2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--define(IS_NODE_ID(PathComponent),
+-define(IS_KHEPRI_NODE_ID(PathComponent),
         (is_atom(PathComponent) orelse is_binary(PathComponent))).
 
--define(IS_PATH_COMPONENT(PathComponent),
-        (?IS_NODE_ID(PathComponent) orelse
-         ?IS_SPECIAL_PATH_COMPONENT(PathComponent))).
+-define(IS_KHEPRI_PATH_COMPONENT(PathComponent),
+        (?IS_KHEPRI_NODE_ID(PathComponent) orelse
+         ?IS_SPECIAL_KHEPRI_PATH_COMPONENT(PathComponent))).
 
--define(ROOT_NODE, $/).
--define(THIS_NODE, $.).
--define(PARENT_NODE, $^).
+-define(KHEPRI_ROOT_NODE, $/).
+-define(THIS_KHEPRI_NODE, $.).
+-define(PARENT_KHEPRI_NODE, $^).
 
--define(IS_SPECIAL_PATH_COMPONENT(PathComponent),
-        (PathComponent =:= ?ROOT_NODE orelse
-         PathComponent =:= ?THIS_NODE orelse
-         PathComponent =:= ?PARENT_NODE)).
+-define(IS_SPECIAL_KHEPRI_PATH_COMPONENT(PathComponent),
+        (PathComponent =:= ?KHEPRI_ROOT_NODE orelse
+         PathComponent =:= ?THIS_KHEPRI_NODE orelse
+         PathComponent =:= ?PARENT_KHEPRI_NODE)).
 
--define(IS_PATH(Path),
-        (Path =:= [] orelse ?IS_PATH_COMPONENT(hd(Path)))).
+-define(IS_KHEPRI_PATH(Path),
+        (Path =:= [] orelse ?IS_KHEPRI_PATH_COMPONENT(hd(Path)))).
 
--define(IS_CONDITION(Condition), is_tuple(Condition)).
+-define(IS_KHEPRI_CONDITION(Condition), is_tuple(Condition)).
 
--define(IS_PATH_CONDITION(PathCondition),
-        (?IS_PATH_COMPONENT(PathCondition) orelse
-         ?IS_CONDITION(PathCondition))).
+-define(IS_KHEPRI_PATH_CONDITION(PathCondition),
+        (?IS_KHEPRI_PATH_COMPONENT(PathCondition) orelse
+         ?IS_KHEPRI_CONDITION(PathCondition))).
 
--define(IS_PATH_PATTERN(Path),
-        (Path =:= [] orelse ?IS_PATH_CONDITION(hd(Path)))).
+-define(IS_KHEPRI_PATH_PATTERN(Path),
+        (Path =:= [] orelse ?IS_KHEPRI_PATH_CONDITION(hd(Path)))).
 
 %% -------------------------------------------------------------------
 %% Path conditions.
 %% -------------------------------------------------------------------
 
--type re_mp() :: tuple().
-
 -record(if_name_matches,
         {regex = any :: any | iodata() | unicode:charlist(),
-         compiled = undefined :: re_mp() | undefined}).
+         compiled = undefined :: khepri_condition:re_compile_ret() |
+                                 undefined}).
 
--define(STAR, #if_name_matches{regex = any}).
+-define(KHEPRI_WILDCARD_STAR, #if_name_matches{regex = any}).
 
 -record(if_path_matches,
         {regex = any :: any | iodata() | unicode:charlist(),
-         compiled = undefined :: re_mp() | undefined}).
+         compiled = undefined :: khepri_condition:re_compile_ret() |
+                                 undefined}).
 
--define(STAR_STAR, #if_path_matches{regex = any}).
+-define(KHEPRI_WILDCARD_STAR_STAR, #if_path_matches{regex = any}).
 
 -record(if_has_data,
         {has_data = true :: boolean()}).

@@ -9,6 +9,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+-include("src/khepri_error.hrl").
+
 -dialyzer({nowarn_function, [
                              %% The following functions explicitely break the
                              %% spec contract on purpose to generate an
@@ -24,7 +26,7 @@ sigil_p_test() ->
 
 sigil_p_error_test() ->
     ?assertError(
-       {invalid_path, #{path := not_a_path}},
+       ?khepri_exception(invalid_path, #{path := not_a_path}),
        khepri_path:sigil_p(not_a_path, [])).
 
 sigil_P_test() ->
@@ -34,5 +36,5 @@ sigil_P_test() ->
 
 sigil_P_error_test() ->
     ?assertError(
-       {invalid_path, #{path := not_a_path}},
+       ?khepri_exception(invalid_path, #{path := not_a_path}),
        khepri_path:sigil_P(not_a_path, [])).

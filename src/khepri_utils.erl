@@ -12,11 +12,13 @@
 -include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
+-include("src/khepri_error.hrl").
 
 -export([start_timeout_window/1,
          end_timeout_window/2,
          sleep/2,
          is_ra_server_alive/1,
+
          flat_struct_to_tree/1,
          display_tree/1,
          display_tree/2,
@@ -28,6 +30,15 @@
 
 %% khepri:get_root/1 is unexported when compiled without `-DTEST'.
 -dialyzer(no_missing_calls).
+
+-type display_tree() :: #{data => khepri:data(),
+                          sproc => khepri_fun:standalone_fun(),
+                          payload_version => khepri:payload_version(),
+                          child_list_version => khepri:child_list_version(),
+                          child_list_length => khepri:child_list_length(),
+                          child_names => [khepri_path:node_id()],
+                          child_nodes => #{khepri_path:node_id() =>
+                                           display_tree()}}.
 
 -spec start_timeout_window(Timeout) -> Timestamp | none when
       Timeout :: timeout(),
@@ -73,8 +84,9 @@ sleep(Time, Timeout) when Time > Timeout ->
 is_ra_server_alive({RegName, Node}) when Node =:= node() ->
     is_pid(erlang:whereis(RegName)).
 
--spec flat_struct_to_tree(khepri:node_props_map()) ->
-    khepri:node_props().
+-spec flat_struct_to_tree(NodePropsMap) -> DisplayTree when
+      NodePropsMap :: khepri_adv:node_props_map(),
+      DisplayTree :: display_tree().
 
 flat_struct_to_tree(FlatStruct) ->
     NodeProps = maps:get([], FlatStruct, #{}),
@@ -108,7 +120,7 @@ flat_struct_to_tree([ChildName], NodeProps, Tree) ->
             Tree#{ChildName => NodeProps}
     end.
 
--spec display_tree(khepri:node_props()) -> ok.
+-spec display_tree(display_tree()) -> ok.
 
 display_tree(Tree) ->
     display_tree(Tree, "").

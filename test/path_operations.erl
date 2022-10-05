@@ -10,6 +10,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("include/khepri.hrl").
+-include("src/khepri_error.hrl").
 
 %% -------------------------------------------------------------------
 %% Entire path parsing.
@@ -18,16 +19,17 @@
 root_path_from_string_test() ->
     ?assertEqual([], khepri_path:from_string("")),
     ?assertEqual([], khepri_path:from_string("/")),
-    ?assertEqual([], khepri_path:from_string([?ROOT_NODE])).
+    ?assertEqual([], khepri_path:from_string([?KHEPRI_ROOT_NODE])).
 
 path_with_one_component_from_string_test() ->
     ?assertEqual([foo], khepri_path:from_string("/:foo")),
     ?assertEqual([foo], khepri_path:from_string([foo])),
-    ?assertEqual([foo], khepri_path:from_string([?ROOT_NODE, foo])),
+    ?assertEqual([foo], khepri_path:from_string([?KHEPRI_ROOT_NODE, foo])),
     ?assertEqual(
-       [?THIS_NODE, foo], khepri_path:from_string(":foo")),
+       [?THIS_KHEPRI_NODE, foo], khepri_path:from_string(":foo")),
     ?assertEqual(
-       [?THIS_NODE, foo], khepri_path:from_string([?THIS_NODE, foo])).
+       [?THIS_KHEPRI_NODE, foo],
+       khepri_path:from_string([?THIS_KHEPRI_NODE, foo])).
 
 path_with_multiple_components_from_string_test() ->
     ?assertEqual(
@@ -38,54 +40,54 @@ path_with_multiple_components_from_string_test() ->
        khepri_path:from_string([foo, bar, baz])),
     ?assertEqual(
        [foo, bar, baz],
-       khepri_path:from_string([?ROOT_NODE, foo, bar, baz])).
+       khepri_path:from_string([?KHEPRI_ROOT_NODE, foo, bar, baz])).
 
 unprefixed_relative_path_from_string_test() ->
     ?assertEqual(
-       [?THIS_NODE, foo, bar, baz],
+       [?THIS_KHEPRI_NODE, foo, bar, baz],
        khepri_path:from_string(":foo/:bar/:baz")).
 
 relative_path_prefixed_with_dot_from_string_test() ->
     ?assertEqual(
-       [?THIS_NODE, foo, bar, baz],
+       [?THIS_KHEPRI_NODE, foo, bar, baz],
        khepri_path:from_string("./:foo/:bar/:baz")),
     ?assertEqual(
-       [?THIS_NODE, foo, bar, baz],
-       khepri_path:from_string([?THIS_NODE, foo, bar, baz])),
+       [?THIS_KHEPRI_NODE, foo, bar, baz],
+       khepri_path:from_string([?THIS_KHEPRI_NODE, foo, bar, baz])),
     ?assertEqual(
        khepri_path:from_string(":foo/:bar/:baz"),
        khepri_path:from_string("./:foo/:bar/:baz")).
 
 relative_path_prefixed_with_dot_dot_from_string_test() ->
     ?assertEqual(
-       [?PARENT_NODE, foo, bar, baz],
+       [?PARENT_KHEPRI_NODE, foo, bar, baz],
        khepri_path:from_string("../:foo/:bar/:baz")),
     ?assertEqual(
-       [?PARENT_NODE, foo, bar, baz],
-       khepri_path:from_string([?PARENT_NODE, foo, bar, baz])).
+       [?PARENT_KHEPRI_NODE, foo, bar, baz],
+       khepri_path:from_string([?PARENT_KHEPRI_NODE, foo, bar, baz])).
 
 path_with_star_from_string_test() ->
     ?assertEqual(
-       [foo, ?STAR],
+       [foo, ?KHEPRI_WILDCARD_STAR],
        khepri_path:from_string("/:foo/*")),
     ?assertEqual(
-       [foo, ?STAR],
-       khepri_path:from_string([foo, ?STAR])).
+       [foo, ?KHEPRI_WILDCARD_STAR],
+       khepri_path:from_string([foo, ?KHEPRI_WILDCARD_STAR])).
 
 path_with_star_star_from_string_test() ->
     ?assertEqual(
-       [foo, ?STAR_STAR],
+       [foo, ?KHEPRI_WILDCARD_STAR_STAR],
        khepri_path:from_string("/:foo/**")),
     ?assertEqual(
-       [foo, ?STAR_STAR],
-       khepri_path:from_string([foo, ?STAR_STAR])).
+       [foo, ?KHEPRI_WILDCARD_STAR_STAR],
+       khepri_path:from_string([foo, ?KHEPRI_WILDCARD_STAR_STAR])).
 
 path_with_binary_from_string_test() ->
     ?assertEqual(
        [<<"binary">>],
        khepri_path:from_string("/binary")),
     ?assertEqual(
-       [?THIS_NODE, <<"binary">>],
+       [?THIS_KHEPRI_NODE, <<"binary">>],
        khepri_path:from_string("binary")).
 
 path_with_percent_encoding_test() ->
@@ -122,16 +124,16 @@ special_chars_from_string_test() ->
        [],
        khepri_path:from_string("/")),
     ?assertEqual(
-       [?THIS_NODE],
+       [?THIS_KHEPRI_NODE],
        khepri_path:from_string(".")),
     ?assertEqual(
-       [?THIS_NODE],
+       [?THIS_KHEPRI_NODE],
        khepri_path:from_string("/.")),
     ?assertEqual(
-       [?PARENT_NODE],
+       [?PARENT_KHEPRI_NODE],
        khepri_path:from_string("^")),
     ?assertEqual(
-       [?PARENT_NODE],
+       [?PARENT_KHEPRI_NODE],
        khepri_path:from_string("..")).
 
 glob_pattern_from_string_test() ->
@@ -153,7 +155,7 @@ from_binary_test() ->
        ['foo', <<"bar">>],
        khepri_path:from_string(<<"/:foo/bar">>)),
     ?assertEqual(
-       [?THIS_NODE, <<"foo">>, ?PARENT_NODE],
+       [?THIS_KHEPRI_NODE, <<"foo">>, ?PARENT_KHEPRI_NODE],
        khepri_path:from_string(<<"./foo/..">>)),
     ?assertEqual(
        [#if_name_matches{regex = "^.*foo.*bar.*$"}],
@@ -166,7 +168,7 @@ from_binary_test() ->
        ['foo', <<"bar">>],
        khepri_path:from_binary(<<"/:foo/bar">>)),
     ?assertEqual(
-       [?THIS_NODE, <<"foo">>, ?PARENT_NODE],
+       [?THIS_KHEPRI_NODE, <<"foo">>, ?PARENT_KHEPRI_NODE],
        khepri_path:from_binary(<<"./foo/..">>)),
     ?assertEqual(
        [#if_name_matches{regex = "^.*foo.*bar.*$"}],
@@ -185,19 +187,21 @@ atom_component_to_string_test() ->
 
 binary_component_to_string_test() ->
     ?assertEqual("foo", khepri_path:component_to_string(<<"foo">>)),
-    ?assertThrow(unsupported, khepri_path:component_to_string(<<>>)),
+    ?assertError(
+       ?khepri_exception(empty_binary_unsupported_in_string_based_path, #{}),
+       khepri_path:component_to_string(<<>>)),
     ?assertEqual("%2E", khepri_path:component_to_string(<<".">>)),
     ?assertEqual("%2E.", khepri_path:component_to_string(<<"..">>)),
     ?assertEqual("%2F", khepri_path:component_to_string(<<"/">>)).
 
 root_component_to_string_test() ->
-    ?assertEqual("/", khepri_path:component_to_string(?ROOT_NODE)).
+    ?assertEqual("/", khepri_path:component_to_string(?KHEPRI_ROOT_NODE)).
 
 dot_component_to_string_test() ->
-    ?assertEqual(".", khepri_path:component_to_string(?THIS_NODE)).
+    ?assertEqual(".", khepri_path:component_to_string(?THIS_KHEPRI_NODE)).
 
 dot_dot_component_to_string_test() ->
-    ?assertEqual("..", khepri_path:component_to_string(?PARENT_NODE)).
+    ?assertEqual("..", khepri_path:component_to_string(?PARENT_KHEPRI_NODE)).
 
 %% -------------------------------------------------------------------
 %% Entire path serializing.
@@ -217,17 +221,17 @@ path_with_multiple_components_to_string_test() ->
 path_with_explicit_root_to_string_test() ->
     ?assertEqual(
        "/:foo/:bar/:baz",
-       khepri_path:to_string([?ROOT_NODE, foo, bar, baz])).
+       khepri_path:to_string([?KHEPRI_ROOT_NODE, foo, bar, baz])).
 
 unprefixed_relative_path_to_string_test() ->
     ?assertEqual(
        ":foo/:bar/:baz",
-       khepri_path:to_string([?THIS_NODE, foo, bar, baz])).
+       khepri_path:to_string([?THIS_KHEPRI_NODE, foo, bar, baz])).
 
 relative_path_prefixed_with_dot_dot_to_string_test() ->
     ?assertEqual(
        "../:foo/:bar/:baz",
-       khepri_path:to_string([?PARENT_NODE, foo, bar, baz])).
+       khepri_path:to_string([?PARENT_KHEPRI_NODE, foo, bar, baz])).
 
 path_with_binary_to_string_test() ->
     ?assertEqual(
@@ -249,7 +253,8 @@ path_to_binary_test() ->
        khepri_path:to_binary(['foo', <<"bar">>])),
     ?assertEqual(
        <<"foo/..">>,
-       khepri_path:to_binary([?THIS_NODE, <<"foo">>, ?PARENT_NODE])).
+       khepri_path:to_binary(
+         [?THIS_KHEPRI_NODE, <<"foo">>, ?PARENT_KHEPRI_NODE])).
 
 %% -------------------------------------------------------------------
 %% Combine path with conditions.
@@ -283,16 +288,19 @@ simple_component_targets_specific_node_test() ->
        {true, <<"foo">>},
        khepri_path:component_targets_specific_node(<<"foo">>)),
     ?assertEqual(
-       {true, ?ROOT_NODE},
-       khepri_path:component_targets_specific_node(?ROOT_NODE)),
+       {true, ?KHEPRI_ROOT_NODE},
+       khepri_path:component_targets_specific_node(?KHEPRI_ROOT_NODE)),
     ?assertEqual(
-       {true, ?THIS_NODE},
-       khepri_path:component_targets_specific_node(?THIS_NODE)),
+       {true, ?THIS_KHEPRI_NODE},
+       khepri_path:component_targets_specific_node(?THIS_KHEPRI_NODE)),
     ?assertEqual(
-       {true, ?PARENT_NODE},
-       khepri_path:component_targets_specific_node(?PARENT_NODE)),
-    ?assertNot(khepri_path:component_targets_specific_node(?STAR)),
-    ?assertNot(khepri_path:component_targets_specific_node(?STAR_STAR)).
+       {true, ?PARENT_KHEPRI_NODE},
+       khepri_path:component_targets_specific_node(?PARENT_KHEPRI_NODE)),
+    ?assertNot(
+       khepri_path:component_targets_specific_node(?KHEPRI_WILDCARD_STAR)),
+    ?assertNot(
+       khepri_path:component_targets_specific_node(
+         ?KHEPRI_WILDCARD_STAR_STAR)).
 
 pattern_component_targets_specific_node_test() ->
     ?assertNot(
@@ -328,7 +336,7 @@ if_not_condition_targets_specific_node_test() ->
          #if_not{condition = foo})),
     ?assertNot(
        khepri_path:component_targets_specific_node(
-         #if_not{condition = ?STAR})).
+         #if_not{condition = ?KHEPRI_WILDCARD_STAR})).
 
 if_all_condition_targets_specific_node_test() ->
     ?assertNot(
@@ -354,21 +362,21 @@ if_all_condition_targets_specific_node_test() ->
                                #if_name_matches{regex = "a"},
                                #if_child_list_version{version = 3}]})),
     ?assertEqual(
-       {true, ?ROOT_NODE},
+       {true, ?KHEPRI_ROOT_NODE},
        khepri_path:component_targets_specific_node(
-         #if_all{conditions = [?ROOT_NODE,
+         #if_all{conditions = [?KHEPRI_ROOT_NODE,
                                #if_name_matches{regex = "a"},
                                #if_child_list_version{version = 3}]})),
     ?assertEqual(
-       {true, ?THIS_NODE},
+       {true, ?THIS_KHEPRI_NODE},
        khepri_path:component_targets_specific_node(
-         #if_all{conditions = [?THIS_NODE,
+         #if_all{conditions = [?THIS_KHEPRI_NODE,
                                #if_name_matches{regex = "a"},
                                #if_child_list_version{version = 3}]})),
     ?assertEqual(
-       {true, ?PARENT_NODE},
+       {true, ?PARENT_KHEPRI_NODE},
        khepri_path:component_targets_specific_node(
-         #if_all{conditions = [?PARENT_NODE,
+         #if_all{conditions = [?PARENT_KHEPRI_NODE,
                                #if_name_matches{regex = "a"},
                                #if_child_list_version{version = 3}]})),
     ?assertEqual(
@@ -420,17 +428,17 @@ if_any_condition_targets_specific_node_test() ->
                                #if_child_list_version{version = 3}]})),
     ?assertNot(
        khepri_path:component_targets_specific_node(
-         #if_any{conditions = [?ROOT_NODE,
+         #if_any{conditions = [?KHEPRI_ROOT_NODE,
                                #if_name_matches{regex = "a"},
                                #if_child_list_version{version = 3}]})),
     ?assertNot(
        khepri_path:component_targets_specific_node(
-         #if_any{conditions = [?THIS_NODE,
+         #if_any{conditions = [?THIS_KHEPRI_NODE,
                                #if_name_matches{regex = "a"},
                                #if_child_list_version{version = 3}]})),
     ?assertNot(
        khepri_path:component_targets_specific_node(
-         #if_any{conditions = [?PARENT_NODE,
+         #if_any{conditions = [?PARENT_KHEPRI_NODE,
                                #if_name_matches{regex = "a"},
                                #if_child_list_version{version = 3}]})),
     ?assertNot(
@@ -476,11 +484,11 @@ path_targets_specific_node_test() ->
        {true, [foo, <<"bar">>]},
        khepri_path:targets_specific_node([foo, <<"bar">>])),
     ?assertEqual(
-       {true, [?THIS_NODE, foo, bar]},
-       khepri_path:targets_specific_node([?THIS_NODE, foo, bar])),
+       {true, [?THIS_KHEPRI_NODE, foo, bar]},
+       khepri_path:targets_specific_node([?THIS_KHEPRI_NODE, foo, bar])),
     ?assertEqual(
-       {true, [?PARENT_NODE, foo, bar]},
-       khepri_path:targets_specific_node([?PARENT_NODE, foo, bar])).
+       {true, [?PARENT_KHEPRI_NODE, foo, bar]},
+       khepri_path:targets_specific_node([?PARENT_KHEPRI_NODE, foo, bar])).
 
 path_pattern_targets_specific_node_test() ->
     ?assertNot(
@@ -518,34 +526,41 @@ abspath_test() ->
     ?assertEqual([foo, bar], khepri_path:abspath([foo, bar], [parent, node])),
     ?assertEqual(
        [parent, node, foo, bar],
-       khepri_path:abspath([?THIS_NODE, foo, bar], [parent, node])).
+       khepri_path:abspath([?THIS_KHEPRI_NODE, foo, bar], [parent, node])).
 
 realpath_test() ->
     ?assertEqual([], khepri_path:realpath([])),
     ?assertEqual([foo], khepri_path:realpath([foo])),
-    ?assertEqual([?STAR], khepri_path:realpath([?STAR])),
+    ?assertEqual(
+       [?KHEPRI_WILDCARD_STAR],
+       khepri_path:realpath([?KHEPRI_WILDCARD_STAR])),
 
-    ?assertEqual([], khepri_path:realpath([?THIS_NODE])),
-    ?assertEqual([], khepri_path:realpath([?THIS_NODE, ?THIS_NODE])),
-    ?assertEqual([foo], khepri_path:realpath([?THIS_NODE, foo])),
-    ?assertEqual([foo], khepri_path:realpath([foo, ?THIS_NODE])),
-    ?assertEqual([foo], khepri_path:realpath([foo, ?THIS_NODE, ?THIS_NODE])),
+    ?assertEqual([], khepri_path:realpath([?THIS_KHEPRI_NODE])),
+    ?assertEqual(
+       [],
+       khepri_path:realpath([?THIS_KHEPRI_NODE, ?THIS_KHEPRI_NODE])),
+    ?assertEqual([foo], khepri_path:realpath([?THIS_KHEPRI_NODE, foo])),
+    ?assertEqual([foo], khepri_path:realpath([foo, ?THIS_KHEPRI_NODE])),
+    ?assertEqual(
+       [foo],
+       khepri_path:realpath([foo, ?THIS_KHEPRI_NODE, ?THIS_KHEPRI_NODE])),
     ?assertEqual(
        [foo, bar],
-       khepri_path:realpath([foo, ?THIS_NODE, ?THIS_NODE, bar])),
+       khepri_path:realpath([foo, ?THIS_KHEPRI_NODE, ?THIS_KHEPRI_NODE, bar])),
 
-    ?assertEqual([], khepri_path:realpath([?PARENT_NODE])),
-    ?assertEqual([], khepri_path:realpath([foo, ?PARENT_NODE])),
-    ?assertEqual([foo], khepri_path:realpath([?PARENT_NODE, foo])),
-    ?assertEqual([foo], khepri_path:realpath([?PARENT_NODE, foo])),
+    ?assertEqual([], khepri_path:realpath([?PARENT_KHEPRI_NODE])),
+    ?assertEqual([], khepri_path:realpath([foo, ?PARENT_KHEPRI_NODE])),
+    ?assertEqual([foo], khepri_path:realpath([?PARENT_KHEPRI_NODE, foo])),
+    ?assertEqual([foo], khepri_path:realpath([?PARENT_KHEPRI_NODE, foo])),
     ?assertEqual(
        [foo, baz],
-       khepri_path:realpath([foo, bar, ?PARENT_NODE, baz])),
+       khepri_path:realpath([foo, bar, ?PARENT_KHEPRI_NODE, baz])),
     ?assertEqual(
        [qux],
-       khepri_path:realpath([foo, bar, ?PARENT_NODE, ?PARENT_NODE,
-                             baz, ?PARENT_NODE,
-                             qux])).
+       khepri_path:realpath
+       ([foo, bar, ?PARENT_KHEPRI_NODE, ?PARENT_KHEPRI_NODE,
+         baz, ?PARENT_KHEPRI_NODE,
+         qux])).
 
 %% -------------------------------------------------------------------
 %% Path compilation.
@@ -553,4 +568,6 @@ realpath_test() ->
 
 path_compilation_test() ->
     ?assertEqual([foo, bar], khepri_path:compile([foo, bar])),
-    ?assertEqual([foo, ?STAR], khepri_path:compile([foo, ?STAR])).
+    ?assertEqual(
+       [foo, ?KHEPRI_WILDCARD_STAR],
+       khepri_path:compile([foo, ?KHEPRI_WILDCARD_STAR])).

@@ -32,7 +32,7 @@
 -module(khepri_condition).
 
 -include("include/khepri.hrl").
--include("src/internal.hrl").
+-include("src/khepri_machine.hrl").
 
 -type comparison_op(Type) :: {eq, Type} |
                              {ne, Type} |
@@ -290,6 +290,14 @@
 %% This is the same as {@link keep_while()} but the paths in the map keys were
 %% converted to native paths if necessary.
 
+-type re_compile_ret() :: {ok, {re_pattern, term(), term(), term(), term()}} |
+                          {error, {string(), non_neg_integer()}}.
+%% Return value of {@link re:compile/1}.
+%%
+%% The opaque compiled regex type, {@link re:mp()}, is unfortunately not
+%% exported by {@link re}, neither is the error tuple (at least up to
+%% Erlang/OTP 25.1).
+
 -export([ensure_native_keep_while/1,
          compile/1,
          applies_to_grandchildren/1,
@@ -304,7 +312,8 @@
 -export_type([condition/0,
               comparison_op/1,
               keep_while/0,
-              native_keep_while/0]).
+              native_keep_while/0,
+              re_compile_ret/0]).
 
 -spec ensure_native_keep_while(KeepWhile) -> NativeKeepWhile when
       KeepWhile :: keep_while(),
@@ -381,7 +390,7 @@ optimize_if_all_conditions(Conds) ->
 %% @hidden
 
 optimize_if_all_conditions([ChildName | Rest], Result)
-  when ?IS_PATH_COMPONENT(ChildName) ->
+  when ?IS_KHEPRI_PATH_COMPONENT(ChildName) ->
     %% The path component exact match condition will become the first one
     %% tested.
     Result1 = Result ++ [ChildName],
@@ -436,7 +445,7 @@ applies_to_grandchildren(_) ->
 %%
 %% @private
 
-is_met(Condition, Path, Child) when ?IS_PATH(Path) ->
+is_met(Condition, Path, Child) when ?IS_KHEPRI_PATH(Path) ->
     ChildName = case Path of
                     [] -> '';
                     _  -> lists:last(Path)
@@ -444,12 +453,12 @@ is_met(Condition, Path, Child) when ?IS_PATH(Path) ->
     is_met(Condition, ChildName, Child);
 
 is_met(ChildName, ChildName, _Child)
-  when ?IS_PATH_COMPONENT(ChildName) ->
+  when ?IS_KHEPRI_PATH_COMPONENT(ChildName) ->
     true;
-is_met(?THIS_NODE, _ChildNameB, _Child) ->
+is_met(?THIS_KHEPRI_NODE, _ChildNameB, _Child) ->
     true;
 is_met(ChildNameA, _ChildNameB, _Child)
-  when ?IS_PATH_COMPONENT(ChildNameA) ->
+  when ?IS_KHEPRI_PATH_COMPONENT(ChildNameA) ->
     {false, ChildNameA};
 is_met(#if_node_exists{exists = true}, _ChildName, _Child) ->
     true;
@@ -488,13 +497,13 @@ is_met(#if_data_matches{compiled = CompMatchSpec} = Cond,
         false -> {false, Cond}
     end;
 is_met(#if_payload_version{version = DVersionB} = Cond, _ChildName,
-       #node{stat = #{payload_version := DVersionA}}) ->
+       #node{props = #{payload_version := DVersionA}}) ->
     compare_numerical_values(Cond, DVersionA, DVersionB);
 is_met(#if_payload_version{version = DVersionB} = Cond, _ChildName,
        #{payload_version := DVersionA}) ->
     compare_numerical_values(Cond, DVersionA, DVersionB);
 is_met(#if_child_list_version{version = CVersionB} = Cond, _ChildName,
-       #node{stat = #{child_list_version := CVersionA}}) ->
+       #node{props = #{child_list_version := CVersionA}}) ->
     compare_numerical_values(Cond, CVersionA, CVersionB);
 is_met(#if_child_list_version{version = CVersionB} = Cond, _ChildName,
        #{child_list_version := CVersionA}) ->
@@ -552,8 +561,7 @@ term_matches(Term, MatchSpec) ->
 -spec eval_regex(Condition, SourceRegex, CompiledRegex, Value) -> Ret when
       Condition :: condition_using_regex(),
       SourceRegex :: any | iodata() | unicode:charlist(),
-      CompiledRegex :: {ok, re_mp()} |
-                       {error, {string(), non_neg_integer()}} |
+      CompiledRegex :: khepri_condition:re_compile_ret() |
                        undefined,
       Value :: atom() | iodata() | unicode:charlist(),
       Ret :: true |
@@ -630,7 +638,7 @@ compare_numerical_values(_, _)                 -> false.
 %%
 %% @private
 
-is_valid(Component) when ?IS_PATH_COMPONENT(Component) ->
+is_valid(Component) when ?IS_KHEPRI_PATH_COMPONENT(Component) ->
     true;
 is_valid(#if_node_exists{exists = Exists}) ->
     is_boolean(Exists);

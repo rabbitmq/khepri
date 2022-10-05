@@ -22,7 +22,7 @@
 -module(khepri_payload).
 
 -include("src/khepri_fun.hrl").
--include("src/internal.hrl").
+-include("src/khepri_payload.hrl").
 
 -export([none/0,
          data/1,

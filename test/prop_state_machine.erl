@@ -12,7 +12,7 @@
 -include_lib("proper/include/proper.hrl").
 
 -include("include/khepri.hrl").
--include("src/internal.hrl").
+-include("src/khepri_payload.hrl").
 
 -dialyzer([{[no_opaque, no_return],
             [prop_commands_with_simple_paths_work_in_any_order/0]}]).
@@ -51,9 +51,14 @@ initial_state() ->
     #state{}.
 
 command(_State) ->
-    elements([{call, khepri, put, [?STORE_ID, path(), payload()]},
-              {call, khepri, get, [?STORE_ID, path()]},
-              {call, khepri, delete, [?STORE_ID, path()]}]).
+    Options = #{props_to_return => [payload,
+                                    payload_version,
+                                    child_list_version,
+                                    child_list_length]},
+    elements([{call, khepri_adv, put_many, [?STORE_ID, path(), payload(),
+                                            Options]},
+              {call, khepri_adv, get_many, [?STORE_ID, path(), Options]},
+              {call, khepri_adv, delete_many, [?STORE_ID, path(), Options]}]).
 
 precondition(_State, _Command) ->
     true.
@@ -61,36 +66,40 @@ precondition(_State, _Command) ->
 next_state(
   #state{} = State,
   _Result,
-  {call, khepri, get, [_StoreId, _Path]}) ->
+  {call, khepri_adv, get_many, [_StoreId, _Path, _Options]}) ->
     State;
 next_state(
   #state{entries = Entries} = State,
   _Result,
-  {call, khepri, put, [_StoreId, Path, Payload]}) ->
+  {call, khepri_adv, put_many, [_StoreId, Path, Payload, _Options]}) ->
     Entries1 = add_entry(Entries, Path, Payload),
     State#state{entries = Entries1,
                 old_entries = Entries};
 next_state(
   #state{entries = Entries} = State,
   _Result,
-  {call, khepri, delete, [_StoreId, Path]}) ->
+  {call, khepri_adv, delete_many, [_StoreId, Path, _Options]}) ->
     Entries1 = delete_entry(Entries, Path),
     State#state{entries = Entries1,
                 old_entries = Entries}.
 
 postcondition(
   #state{entries = Entries},
-  {call, khepri, get, [_StoreId, Path]},
+  {call, khepri_adv, get_many, [_StoreId, Path, _Options]},
   Result) ->
     result_is_ok(Result, Entries, Path, {ok, #{}});
 postcondition(
   #state{entries = Entries},
-  {call, khepri, put, [_StoreId, Path, _Payload]},
+  {call, khepri_adv, put_many, [_StoreId, Path, Payload, _Options]},
   Result) ->
-    result_is_ok(Result, Entries, Path, {ok, #{Path => #{}}});
+    result_is_ok_after_put(
+      Result, Entries, Path, Payload,
+      {ok, #{Path => #{payload_version => 1,
+                       child_list_version => 1,
+                       child_list_length => 0}}});
 postcondition(
   #state{entries = Entries},
-  {call, khepri, delete, [_StoreId, Path]},
+  {call, khepri_adv, delete_many, [_StoreId, Path, _Options]},
   Result) ->
     result_is_ok(Result, Entries, Path, {ok, #{}}).
 
@@ -110,11 +119,7 @@ add_entry(Entries, Path, Payload) ->
                                        Payload),
                             {Entry0, true}
                     end,
-    Entry2 = case Payload of
-                 #p_data{data = Data} -> Entry1#{data => Data};
-                 ?NO_PAYLOAD          -> maps:remove(data, Entry1)
-             end,
-    Entries1 = Entries#{Path => Entry2},
+    Entries1 = Entries#{Path => Entry1},
     add_entry1(Entries1, tl(lists:reverse(Path)), New).
 
 set_node_payload(#{data := Data} = Entry, #p_data{data = Data}) ->
@@ -172,6 +177,26 @@ result_is_ok(Result, Entries, Path, Default) ->
     case Entries of
         #{Path := NodeProps} ->
             Expected = {ok, #{Path => NodeProps}},
+            Expected =:= Result;
+        _ ->
+            Default =:= Result
+    end.
+
+result_is_ok_after_put(Result, Entries, Path, Payload, Default) ->
+    case Entries of
+        #{Path := #{data := Payload} = NodeProps} ->
+            %% The payload didn't change.
+            Expected = {ok, #{Path => NodeProps}},
+            Expected =:= Result;
+        #{Path := NodeProps}
+          when not is_map_key(data, NodeProps) andalso
+               Payload =:= ?NO_PAYLOAD ->
+            %% The payload didn't change; there is still none.
+            Expected = {ok, #{Path => NodeProps}},
+            Expected =:= Result;
+        #{Path := #{payload_version := PV} = NodeProps0} ->
+            NodeProps1 = NodeProps0#{payload_version => PV + 1},
+            Expected = {ok, #{Path => NodeProps1}},
             Expected =:= Result;
         _ ->
             Default =:= Result

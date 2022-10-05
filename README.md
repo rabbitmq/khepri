@@ -85,10 +85,10 @@ Here's how to **insert** a piece of data, say, an email address of Alice:
 
 ```erlang
 %% Using a native path:
-khepri:put([emails, <<"alice">>], "alice@example.org").
+ok = khepri:put([emails, <<"alice">>], "alice@example.org").
 
 %% Using a Unix-like path string:
-khepri:put("/:emails/alice", "alice@example.org").
+ok = khepri:put("/:emails/alice", "alice@example.org").
 ```
 
 ### Read data back
@@ -96,32 +96,15 @@ khepri:put("/:emails/alice", "alice@example.org").
 To get Alice's email address back, **query** the same path:
 
 ```erlang
-Ret = khepri:get("/:emails/alice"),
-
-%% Here is the value of `Ret':
-{ok, #{[emails, <<"alice">>] =>
-       #{child_list_count => 0,
-         child_list_version => 1,
-         data => "alice@example.org",
-         payload_version => 1}}} = Ret.
+{ok, "alice@example.org"} = khepri:get("/:emails/alice").
 ```
-```erlang
-%% Get the data directly, providing a default value if there is no data:
-"alice@example.org" = khepri:get_data_or("/:emails/alice", undefined).
-```
-
-The `khepri:get/1` function and many other ones accept a "path pattern".
-Therefore it is possible to get several nodes in a single call. The result is a
-map where keys are the path to each node which matched the path pattern, and
-the values are a map of properties. The data payload of the node is one of
-them.
 
 ### Delete data
 
 To **delete** Alice's email address:
 
 ```erlang
-khepri:delete("/:emails/alice").
+ok = khepri:delete("/:emails/alice").
 ```
 
 The `emails` parent node was automatically created when the `alice` node was
@@ -141,15 +124,14 @@ anonymous functions, similar to Mnesia:
 khepri:transaction(
     fun() ->
         case khepri_tx:get([stock, wood]) of
-            {ok, #{[stock, wood] := #{data := Quantity}}}
-              when Quantity >= 100 ->
+            {ok, Quantity} when Quantity >= 100 ->
                 %% There is enough wood left.
                 false;
             _ ->
                 %% There is less than 100 pieces of wood, or there is none
                 %% at all (the node does not exist in Khepri). We need to
                 %% request a new order.
-                {ok, _} = khepri_tx:put([order, wood], 1000),
+                ok = khepri_tx:put([order, wood], 1000),
                 true
         end
     end).

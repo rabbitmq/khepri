@@ -9,7 +9,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("src/internal.hrl").
+-include("src/khepri_cluster.hrl").
+-include("src/khepri_error.hrl").
 
 app_starts_workers_test_() ->
     {setup,
@@ -68,8 +69,10 @@ get_default_timeout_with_neg_integer_app_env_test() ->
     Timeout = -5000,
     application:set_env(
       khepri, default_timeout, Timeout, [{persistent, true}]),
-    ?assertThrow(
-       {invalid_timeout, Timeout},
+    ?assertError(
+       ?khepri_exception(
+          invalid_default_timeout_value,
+          #{default_timeout := Timeout}),
        khepri_app:get_default_timeout()),
     application:unset_env(
       khepri, default_timeout, [{persistent, true}]).
@@ -84,8 +87,10 @@ get_default_timeout_with_invalid_app_env_test() ->
     Invalid = {invalid},
     application:set_env(
       khepri, default_timeout, Invalid, [{persistent, true}]),
-    ?assertThrow(
-       {invalid_timeout, Invalid},
+    ?assertError(
+       ?khepri_exception(
+          invalid_default_timeout_value,
+          #{default_timeout := Invalid}),
        khepri_app:get_default_timeout()),
     application:unset_env(
       khepri, default_timeout, [{persistent, true}]),
@@ -132,8 +137,10 @@ get_default_ra_system_or_data_dir_with_invalid_app_env_test() ->
     Invalid = {invalid},
     application:set_env(
       khepri, default_ra_system, Invalid, [{persistent, true}]),
-    ?assertThrow(
-       {invalid_ra_system_or_data_dir, Invalid},
+    ?assertError(
+       ?khepri_exception(
+          invalid_default_ra_system_value,
+          #{default_ra_system := Invalid}),
        khepri_cluster:get_default_ra_system_or_data_dir()),
     application:unset_env(
       khepri, default_ra_system, [{persistent, true}]).
@@ -157,8 +164,10 @@ get_default_store_id_with_invalid_app_env_test() ->
     Invalid = {invalid},
     application:set_env(
       khepri, default_store_id, Invalid, [{persistent, true}]),
-    ?assertThrow(
-       {invalid_store_id, Invalid},
+    ?assertError(
+       ?khepri_exception(
+          invalid_default_store_id_value,
+          #{default_store_id := Invalid}),
        khepri_cluster:get_default_store_id()),
     application:unset_env(
       khepri, default_store_id, [{persistent, true}]).

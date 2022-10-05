@@ -1530,7 +1530,8 @@ lookup_function(
                                          Module, Name, Arity, Env),
     {find_function(Functions, Name, Arity), State};
 lookup_function(Module, Name, Arity, State) ->
-    {#beam_file_ext{code = Functions}, State1} = disassemble_module(Module, State),
+    {#beam_file_ext{code = Functions}, State1} = disassemble_module(
+                                                   Module, State),
     {find_function(Functions, Name, Arity), State1}.
 
 -spec find_function([Function], Name, Arity) -> Function when

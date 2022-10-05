@@ -14,7 +14,6 @@
 -include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
--include("src/internal.hrl").
 -include("src/khepri_machine.hrl").
 
 -export([start_link/0,

@@ -5,7 +5,7 @@
 %% Copyright © 2021-2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--module(simple_delete).
+-module(simple_tx_delete).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -18,8 +18,13 @@ delete_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
-         khepri:delete(?FUNCTION_NAME, [foo])),
+         {ok, ok},
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete([foo])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end),
       ?_assertMatch(
          {error, ?khepri_error(node_not_found, _)},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
@@ -31,9 +36,22 @@ delete_existing_node_test_() ->
      [?_assertEqual(
          ok,
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(denied_update_in_readonly_tx, #{}),
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete([foo])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end),
       ?_assertEqual(
-         ok,
-         khepri:delete(?FUNCTION_NAME, [foo])),
+         {ok, ok},
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete([foo])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end),
       ?_assertMatch(
          {error, ?khepri_error(node_not_found, _)},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
@@ -46,16 +64,26 @@ invalid_delete_call_test_() ->
          ?khepri_exception(
             possibly_matching_many_nodes_denied,
             #{path := _}),
-         khepri:delete(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR]))]}.
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete([?KHEPRI_WILDCARD_STAR])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end)]}.
 
 delete_many_on_non_existing_node_with_condition_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
-         khepri:delete_many(
-           ?FUNCTION_NAME, [#if_name_matches{regex = "foo"}])),
+         {ok, ok},
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete_many(
+                             [#if_name_matches{regex = "foo"}])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end),
       ?_assertMatch(
          {error, ?khepri_error(node_not_found, _)},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
@@ -67,10 +95,24 @@ delete_many_on_existing_node_with_condition_true_test_() ->
      [?_assertEqual(
          ok,
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(denied_update_in_readonly_tx, #{}),
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete_many(
+                             [#if_name_matches{regex = "foo"}])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end),
       ?_assertEqual(
-         ok,
-         khepri:delete_many(
-           ?FUNCTION_NAME, [#if_name_matches{regex = "foo"}])),
+         {ok, ok},
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete_many(
+                             [#if_name_matches{regex = "foo"}])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end),
       ?_assertMatch(
          {error, ?khepri_error(node_not_found, _)},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
@@ -83,9 +125,14 @@ delete_many_on_existing_node_with_condition_false_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
-         ok,
-         khepri:delete_many(
-           ?FUNCTION_NAME, [#if_name_matches{regex = "bar"}])),
+         {ok, ok},
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete_many(
+                             [#if_name_matches{regex = "bar"}])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end),
       ?_assertEqual(
          {ok, foo_value},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
@@ -95,8 +142,13 @@ delete_payload_from_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
-         khepri:delete_payload(?FUNCTION_NAME, [foo])),
+         {ok, ok},
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete_payload([foo])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end),
       ?_assertMatch(
          {error, ?khepri_error(node_not_found, _)},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
@@ -108,9 +160,22 @@ delete_payload_from_existing_node_test_() ->
      [?_assertEqual(
          ok,
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(denied_update_in_readonly_tx, #{}),
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete_payload([foo])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end),
       ?_assertEqual(
-         ok,
-         khepri:delete_payload(?FUNCTION_NAME, [foo])),
+         {ok, ok},
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete_payload([foo])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end),
       ?_assertEqual(
          {ok, undefined},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
@@ -123,8 +188,14 @@ delete_payload_with_keep_while_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
-         ok,
-         khepri:delete_payload(?FUNCTION_NAME, [foo], #{keep_while => #{}})),
+         {ok, ok},
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete_payload(
+                             [foo], #{keep_while => #{}})
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end),
       ?_assertEqual(
          {ok, undefined},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
@@ -137,8 +208,14 @@ delete_payload_with_options_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
-         ok,
-         khepri:delete_payload(?FUNCTION_NAME, [foo], #{async => false})),
+         {ok, ok},
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete_payload(
+                             [foo], #{})
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end),
       ?_assertEqual(
          {ok, undefined},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
@@ -148,9 +225,14 @@ delete_many_payloads_from_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         ok,
-         khepri:delete_many_payloads(
-           ?FUNCTION_NAME, [#if_name_matches{regex = "foo"}])),
+         {ok, ok},
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete_many_payloads(
+                             [#if_name_matches{regex = "foo"}])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end),
       ?_assertEqual(
          {ok, #{}},
          khepri:get_many(
@@ -166,10 +248,24 @@ delete_many_payloads_from_existing_node_test_() ->
       ?_assertEqual(
          ok,
          khepri:create(?FUNCTION_NAME, [foo2, bar], bar_value)),
+      ?_assertError(
+         ?khepri_exception(denied_update_in_readonly_tx, #{}),
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete_many_payloads(
+                             [#if_name_matches{regex = "foo"}])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end),
       ?_assertEqual(
-         ok,
-         khepri:delete_many_payloads(
-           ?FUNCTION_NAME, [#if_name_matches{regex = "foo"}])),
+         {ok, ok},
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete_many_payloads(
+                             [#if_name_matches{regex = "foo"}])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end),
       ?_assertEqual(
          {ok, #{[foo1] => undefined,
                 [foo2] => undefined,
@@ -177,12 +273,21 @@ delete_many_payloads_from_existing_node_test_() ->
          khepri:get_many(
            ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR_STAR])),
       ?_assertEqual(
-         ok,
-         khepri:delete_many_payloads(
-           ?FUNCTION_NAME, [#if_name_matches{regex = "foo"}],
-           #{})),
+         {ok, ok},
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete_many_payloads(
+                             [#if_name_matches{regex = "foo"}], #{})
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end),
       ?_assertEqual(
-         ok,
-         khepri:delete_many_payloads(
-           ?FUNCTION_NAME, [#if_name_matches{regex = "foo"}],
-           #{keep_while => #{}}))]}.
+         {ok, ok},
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete_many_payloads(
+                             [#if_name_matches{regex = "foo"}],
+                             #{keep_while => #{}})
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end)]}.

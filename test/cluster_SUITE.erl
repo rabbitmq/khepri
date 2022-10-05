@@ -12,6 +12,7 @@
 -include_lib("common_test/include/ct.hrl").
 
 -include("include/khepri.hrl").
+-include("src/khepri_error.hrl").
 
 -export([all/0,
          groups/0,
@@ -143,15 +144,8 @@ can_start_a_single_node(Config) ->
        khepri:start(RaSystem, StoreId)),
 
     ct:pal("Use database after starting it"),
-    ?assertEqual(
-       {ok, #{[foo] => #{}}},
-       khepri:put(StoreId, [foo], value2)),
-    ?assertEqual(
-       {ok, #{[foo] => #{data => value2,
-                         payload_version => 1,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:get(StoreId, [foo])),
+    ?assertEqual(ok, khepri:put(StoreId, [foo], value2)),
+    ?assertEqual({ok, value2}, khepri:get(StoreId, [foo])),
 
     ct:pal("Stop database"),
     ?assertEqual(
@@ -182,15 +176,8 @@ can_restart_a_single_node_with_ra_server_config(Config) ->
        khepri:start(RaSystem, RaServerConfig)),
 
     ct:pal("Use database after starting it"),
-    ?assertEqual(
-       {ok, #{[foo] => #{}}},
-       khepri:put(StoreId, [foo], value1)),
-    ?assertEqual(
-       {ok, #{[foo] => #{data => value1,
-                         payload_version => 1,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:get(StoreId, [foo])),
+    ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
+    ?assertEqual({ok, value1}, khepri:get(StoreId, [foo])),
 
     ct:pal("Stop database"),
     ?assertEqual(
@@ -200,21 +187,11 @@ can_restart_a_single_node_with_ra_server_config(Config) ->
     ct:pal("Restart database"),
     ?assertEqual(
        {ok, StoreId},
-       khepri:start(RaSystem, RaServerConfig)),
+       khepri:start(RaSystem, RaServerConfig, infinity)),
 
     ct:pal("Use database after restarting it"),
-    ?assertEqual(
-       {ok, #{[foo] => #{data => value1,
-                         payload_version => 1,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:put(StoreId, [foo], value2)),
-    ?assertEqual(
-       {ok, #{[foo] => #{data => value2,
-                         payload_version => 2,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:get(StoreId, [foo])),
+    ?assertEqual(ok, khepri:put(StoreId, [foo], value2)),
+    ?assertEqual({ok, value2}, khepri:get(StoreId, [foo])),
 
     ct:pal("Stop database"),
     ?assertEqual(
@@ -362,17 +339,12 @@ can_start_a_three_node_cluster(Config) ->
       end, Nodes),
 
     ct:pal("Use database after starting it"),
-    ?assertEqual(
-       {ok, #{[foo] => #{}}},
-       rpc:call(Node1, khepri, put, [StoreId, [foo], value2])),
+    ?assertEqual(ok, rpc:call(Node1, khepri, put, [StoreId, [foo], value2])),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
-                 {ok, #{[foo] => #{data => value2,
-                                   payload_version => 1,
-                                   child_list_version => 1,
-                                   child_list_length => 0}}},
+                 {ok, value2},
                  rpc:call(Node, khepri, get, [StoreId, [foo]]))
       end, Nodes),
 
@@ -400,19 +372,13 @@ can_start_a_three_node_cluster(Config) ->
       fun(Node) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
-                 {ok, #{[foo] => #{data => value2,
-                                   payload_version => 1,
-                                   child_list_version => 1,
-                                   child_list_length => 0}}},
+                 {ok, value2},
                  rpc:call(Node, khepri, get, [StoreId, [foo]]))
       end, RunningNodes1),
 
     %% Likewise, a put from a running node should succeed.
     ?assertEqual(
-       {ok, #{[foo] => #{data => value2,
-                         payload_version => 1,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
+       ok,
        rpc:call(hd(RunningNodes1), khepri, put, [StoreId, [foo], value4])),
 
     %% The stopped leader should still fail to respond because it is stopped
@@ -426,10 +392,7 @@ can_start_a_three_node_cluster(Config) ->
       fun(Node) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
-                 {ok, #{[foo] => #{data => value4,
-                                   payload_version => 2,
-                                   child_list_version => 1,
-                                   child_list_length => 0}}},
+                 {ok, value4},
                  rpc:call(Node, khepri, get, [StoreId, [foo]]))
       end, RunningNodes1),
 
@@ -486,17 +449,12 @@ can_join_several_times_a_three_node_cluster(Config) ->
       end, [Node1, Node2]),
 
     ct:pal("Use database after starting it"),
-    ?assertEqual(
-       {ok, #{[foo] => #{}}},
-       rpc:call(Node1, khepri, put, [StoreId, [foo], value1])),
+    ?assertEqual(ok, rpc:call(Node1, khepri, put, [StoreId, [foo], value1])),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
-                 {ok, #{[foo] => #{data => value1,
-                                   payload_version => 1,
-                                   child_list_version => 1,
-                                   child_list_length => 0}}},
+                 {ok, value1},
                  rpc:call(Node, khepri, get, [StoreId, [foo]]))
       end, Nodes),
 
@@ -512,19 +470,13 @@ can_join_several_times_a_three_node_cluster(Config) ->
 
     ct:pal("Use database after recreating the cluster it"),
     ?assertEqual(
-       {ok, #{[foo] => #{data => value1,
-                         payload_version => 1,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
+       ok,
        rpc:call(LeaderNode1, khepri, put, [StoreId, [foo], value2])),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
-                 {ok, #{[foo] => #{data => value2,
-                                   payload_version => 2,
-                                   child_list_version => 1,
-                                   child_list_length => 0}}},
+                 {ok, value2},
                  rpc:call(Node, khepri, get, [StoreId, [foo]]))
       end, Nodes),
 
@@ -570,17 +522,12 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
       end, [Node1, Node2]),
 
     ct:pal("Use database after starting it"),
-    ?assertEqual(
-       {ok, #{[foo] => #{}}},
-       rpc:call(Node1, khepri, put, [StoreId, [foo], value1])),
+    ?assertEqual(ok, rpc:call(Node1, khepri, put, [StoreId, [foo], value1])),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
-                 {ok, #{[foo] => #{data => value1,
-                                   payload_version => 1,
-                                   child_list_version => 1,
-                                   child_list_length => 0}}},
+                 {ok, value1},
                  rpc:call(Node, khepri, get, [StoreId, [foo]]))
       end, Nodes),
 
@@ -633,19 +580,13 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
       fun(Node) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
-                 {ok, #{[foo] => #{data => value1,
-                                   payload_version => 1,
-                                   child_list_version => 1,
-                                   child_list_length => 0}}},
+                 {ok, value1},
                  rpc:call(Node, khepri, get, [StoreId, [foo]]))
       end, RunningNodes3),
 
     %% Likewise, a put from a running node should succeed.
     ?assertEqual(
-       {ok, #{[foo] => #{data => value1,
-                         payload_version => 1,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
+       ok,
        rpc:call(hd(RunningNodes3), khepri, put, [StoreId, [foo], value3])),
 
     %% The stopped leader should still fail to respond because it is stopped
@@ -659,10 +600,7 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
       fun(Node) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
-                 {ok, #{[foo] => #{data => value3,
-                                   payload_version => 2,
-                                   child_list_version => 1,
-                                   child_list_length => 0}}},
+                 {ok, value3},
                  rpc:call(Node, khepri, get, [StoreId, [foo]]))
       end, RunningNodes3),
 
@@ -708,17 +646,12 @@ handle_leader_down_on_three_node_cluster_command(Config) ->
       end, [Node1, Node2]),
 
     ct:pal("Use database after starting it"),
-    ?assertEqual(
-       {ok, #{[foo] => #{}}},
-       rpc:call(Node1, khepri, put, [StoreId, [foo], value1])),
+    ?assertEqual(ok, rpc:call(Node1, khepri, put, [StoreId, [foo], value1])),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
-                 {ok, #{[foo] => #{data => value1,
-                                   payload_version => 1,
-                                   child_list_version => 1,
-                                   child_list_length => 0}}},
+                 {ok, value1},
                  rpc:call(Node, khepri, get, [StoreId, [foo]]))
       end, Nodes),
 
@@ -737,7 +670,7 @@ handle_leader_down_on_three_node_cluster_command(Config) ->
       fun(Node) ->
               ct:pal("- khepri:put() in node ~s", [Node]),
               ?assertMatch(
-                 {ok, #{[foo] := #{}}},
+                 ok,
                  rpc:call(Node, khepri, put, [StoreId, [foo], value1]))
       end, RunningNodes1),
     ok.
@@ -782,17 +715,12 @@ handle_leader_down_on_three_node_cluster_response(Config) ->
       end, [Node1, Node2]),
 
     ct:pal("Use database after starting it"),
-    ?assertEqual(
-       {ok, #{[foo] => #{}}},
-       rpc:call(Node1, khepri, put, [StoreId, [foo], value1])),
+    ?assertEqual(ok, rpc:call(Node1, khepri, put, [StoreId, [foo], value1])),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
-                 {ok, #{[foo] => #{data => value1,
-                                   payload_version => 1,
-                                   child_list_version => 1,
-                                   child_list_length => 0}}},
+                 {ok, value1},
                  rpc:call(Node, khepri, get, [StoreId, [foo]]))
       end, Nodes),
 
@@ -811,10 +739,7 @@ handle_leader_down_on_three_node_cluster_response(Config) ->
       fun(Node) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
-                 {ok, #{[foo] => #{data => value1,
-                                   payload_version => 1,
-                                   child_list_version => 1,
-                                   child_list_length => 0}}},
+                 {ok, value1},
                  rpc:call(Node, khepri, get, [StoreId, [foo]]))
       end, RunningNodes1),
     ok.
@@ -887,7 +812,9 @@ fail_to_join_if_not_started(Config) ->
 
     ct:pal("Cluster node"),
     ?assertEqual(
-       {error, {not_a_khepri_store, StoreId}},
+       {error, ?khepri_error(
+                  not_a_khepri_store,
+                  #{store_id => StoreId})},
        rpc:call(
          Node1, khepri_cluster, join, [StoreId, Node2])),
 
@@ -906,7 +833,10 @@ fail_to_join_non_existing_node(Config) ->
     ct:pal("Cluster node"),
     RemoteNode = non_existing@localhost,
     ?assertEqual(
-       {error, {nodedown, RemoteNode}},
+       {error, ?khepri_error(
+                  failed_to_join_remote_khepri_node,
+                  #{store_id => StoreId,
+                    node => RemoteNode})},
        khepri_cluster:join(StoreId, RemoteNode)),
 
     ThisMember = khepri_cluster:this_member(StoreId),
@@ -958,92 +888,140 @@ can_use_default_store_on_single_node(_Config) ->
     ?assertNot(filelib:is_dir(DataDir)),
 
     ?assertEqual({error, noproc}, khepri:get([foo])),
+    ?assertEqual({error, noproc}, khepri:exists([foo])),
+    ?assertEqual({error, noproc}, khepri:has_data([foo])),
+    ?assertEqual({error, noproc}, khepri:is_sproc([foo])),
 
     {ok, StoreId} = khepri:start(),
     ?assert(filelib:is_dir(DataDir)),
 
+    ?assertEqual(ok, khepri:create([foo], value1)),
+    ?assertEqual(ok, khepri:put([foo], value2)),
+    ?assertEqual(ok, khepri:put_many([foo], value2)),
+    ?assertEqual(ok, khepri:update([foo], value3)),
+    ?assertEqual(ok, khepri:compare_and_swap([foo], value3, value4)),
+
+    ?assertMatch(
+       {error, ?khepri_error(mismatching_node, _)},
+        khepri_adv:create([foo], value1)),
     ?assertEqual(
-       {ok, #{[foo] => #{}}},
-       khepri:create([foo], value1)),
-    ?assertEqual(
-       {ok, #{[foo] => #{data => value1,
-                         payload_version => 1,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:put([foo], value2)),
+       {ok, #{data => value4,
+              payload_version => 5}},
+       khepri_adv:put([foo], value2)),
     ?assertEqual(
        {ok, #{[foo] => #{data => value2,
-                         payload_version => 2,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:update([foo], value3)),
+                         payload_version => 5}}},
+       khepri_adv:put_many([foo], value2)),
     ?assertEqual(
-       {ok, #{[foo] => #{data => value3,
-                         payload_version => 3,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:compare_and_swap([foo], value3, value4)),
+       {ok, #{data => value2,
+              payload_version => 6}},
+       khepri_adv:update([foo], value3)),
+    ?assertEqual(
+       {ok, #{data => value3,
+              payload_version => 7}},
+       khepri_adv:compare_and_swap([foo], value3, value4)),
 
     ?assertEqual(true, khepri:exists([foo])),
+    ?assertEqual({ok, value4}, khepri:get([foo])),
+    ?assertEqual({ok, value4}, khepri:get([foo], #{})),
+    ?assertEqual({ok, value4}, khepri:get_or([foo], default)),
+    ?assertEqual({ok, value4}, khepri:get_or([foo], default, #{})),
+    ?assertEqual({ok, #{[foo] => value4}}, khepri:get_many([foo])),
+    ?assertEqual({ok, #{[foo] => value4}}, khepri:get_many([foo], #{})),
+    ?assertEqual({ok, #{[foo] => value4}}, khepri:get_many_or([foo], default)),
+    ?assertEqual(
+       {ok, #{[foo] => value4}},
+       khepri:get_many_or([foo], default, #{})),
+
+    ?assertEqual(
+       {ok, #{data => value4,
+              payload_version => 7}},
+       khepri_adv:get([foo])),
+    ?assertEqual(
+       {ok, #{data => value4,
+              payload_version => 7}},
+       khepri_adv:get([foo], #{})),
     ?assertEqual(
        {ok, #{[foo] => #{data => value4,
-                         payload_version => 4,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:get([foo])),
+                         payload_version => 7}}},
+       khepri_adv:get_many([foo])),
+    ?assertEqual(
+       {ok, #{[foo] => #{data => value4,
+                         payload_version => 7}}},
+       khepri_adv:get_many([foo], #{})),
 
     ?assertEqual(ok, khepri:stop()),
     ?assertEqual({error, noproc}, khepri:get([foo])),
+    ?assertEqual({error, noproc}, khepri:exists([foo])),
+    ?assertEqual({error, noproc}, khepri:has_data([foo])),
+    ?assertEqual({error, noproc}, khepri:is_sproc([foo])),
 
     ?assertEqual({ok, StoreId}, khepri:start()),
-    ?assertEqual(
-       {ok, #{[foo] => #{data => value4,
-                         payload_version => 4,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:get([foo])),
-    ?assertEqual(
-       #{data => value4,
-         payload_version => 4,
-         child_list_version => 1,
-         child_list_length => 0},
-       khepri:get_node_props([foo])),
+    ?assertEqual({ok, value4}, khepri:get([foo])),
     ?assertEqual(true, khepri:has_data([foo])),
-    ?assertEqual(value4, khepri:get_data([foo])),
-    ?assertEqual(value4, khepri:get_data_or([foo], no_data)),
-    ?assertEqual(false, khepri:has_sproc([foo])),
+    ?assertEqual(false, khepri:is_sproc([foo])),
     ?assertThrow(
-       {invalid_sproc_fun,
-        {no_sproc, [foo], #{data := value4,
-                            payload_version := 4,
-                            child_list_version := 1,
-                            child_list_length := 0}}},
+       ?khepri_exception(
+          denied_execution_of_non_sproc_node,
+          #{path := [foo],
+            args := [],
+            node_props := #{data := value4,
+                            payload_version := 7}}),
        khepri:run_sproc([foo], [])),
     ?assertEqual({ok, 1}, khepri:count("**")),
-    ?assertEqual({ok, #{}}, khepri:list([bar])),
-    ?assertEqual({ok, #{}}, khepri:find([bar], ?STAR)),
+    ?assertEqual(
+       ok,
+       khepri:register_trigger(
+         trigger_id,
+         [foo],
+         [sproc])),
+    ?assertEqual(
+       ok,
+       khepri:register_trigger(
+         trigger_id,
+         [foo],
+         [sproc], #{})),
+    ?assertEqual({ok, ok}, khepri:transaction(fun() -> ok end)),
+    ?assertEqual({ok, ok}, khepri:transaction(fun() -> ok end, ro)),
+    ?assertEqual({ok, ok}, khepri:transaction(fun() -> ok end, ro, #{})),
 
+    ?assertEqual(ok, khepri:create([bar], value1)),
+    ?assertEqual(ok, khepri:delete_payload([bar])),
+    ?assertEqual(ok, khepri:delete_many_payloads([bar])),
+    ?assertEqual(ok, khepri:delete([bar])),
+    ?assertEqual(ok, khepri:delete([bar], #{})),
+    ?assertEqual(ok, khepri:delete_many([bar])),
+    ?assertEqual(ok, khepri:delete_many([bar], #{})),
+
+    ?assertEqual(ok, khepri:create([bar], value1)),
     ?assertEqual(
-       {ok, #{[bar] => #{}}},
-       khepri:create([bar], value1)),
+       {ok, #{data => value1,
+              payload_version => 2}},
+       khepri_adv:delete_payload([bar])),
     ?assertEqual(
-       {ok, #{[bar] => #{data => value1,
-                         payload_version => 1,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:clear_payload([bar])),
+       {ok, #{[bar] => #{payload_version => 2}}},
+       khepri_adv:delete_many_payloads([bar])),
     ?assertEqual(
-       {ok, #{[bar] => #{payload_version => 2,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:delete([bar])),
+       {ok, #{payload_version => 2}},
+       khepri_adv:delete([bar])),
+    ?assertMatch(
+       {ok, #{}},
+       khepri_adv:delete([bar], #{})),
+    ?assertEqual(
+       {ok, #{}},
+       khepri_adv:delete_many([bar])),
+    ?assertEqual(
+       {ok, #{}},
+       khepri_adv:delete_many([bar], #{})),
 
     ?assertEqual({ok, StoreId}, khepri:start()),
     ?assertEqual(ok, khepri:reset()),
     ?assertEqual({error, noproc}, khepri:get([foo])),
 
     ?assertEqual({ok, StoreId}, khepri:start()),
-    ?assertEqual({ok, #{}}, khepri:get([foo])),
+    ?assertMatch(
+       {error, ?khepri_error(node_not_found, _)},
+       khepri:get([foo])),
 
     ?assertEqual(ok, khepri:stop()),
     ?assertEqual(ok, application:stop(khepri)),
@@ -1061,97 +1039,50 @@ can_start_store_in_specified_data_dir_on_single_node(_Config) ->
     {ok, StoreId} = khepri:start(DataDir),
     ?assert(filelib:is_dir(DataDir)),
 
+    ?assertEqual(ok, khepri:create(StoreId, [foo], value1, #{})),
+    ?assertEqual(ok, khepri:put(StoreId, [foo], value2, #{})),
+    ?assertEqual(ok, khepri:update(StoreId, [foo], value3, #{})),
     ?assertEqual(
-       {ok, #{[foo] => #{}}},
-       khepri:create(StoreId, [foo], value1, #{})),
-    ?assertMatch(
-       {error, {mismatching_node, _}},
-       khepri:create(StoreId, [foo], value1, #{keep_while => #{}})),
-    ?assertEqual(
-       {ok, #{[foo] => #{data => value1,
-                         payload_version => 1,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:put(StoreId, [foo], value2)),
-    ?assertEqual(
-       {ok, #{[foo] => #{data => value2,
-                         payload_version => 2,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:update(StoreId, [foo], value3, #{})),
-    ?assertEqual(
-       {ok, #{[foo] => #{data => value3,
-                         payload_version => 3,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:update(StoreId, [foo], value3, #{keep_while => #{}})),
-    ?assertEqual(
-       {ok, #{[foo] => #{data => value3,
-                         payload_version => 3,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:compare_and_swap([foo], value3, value4)),
+       ok,
+       khepri:compare_and_swap(StoreId, [foo], value3, value4, #{})),
 
     ?assertEqual(true, khepri:exists([foo], #{})),
-    ?assertEqual(
-       {ok, #{[foo] => #{data => value4,
-                         payload_version => 4,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:get([foo], #{})),
+    ?assertEqual({ok, value4}, khepri:get([foo], #{})),
 
     ?assertEqual(ok, khepri:stop()),
     ?assertEqual({error, noproc}, khepri:get([foo])),
 
     ?assertEqual({ok, StoreId}, khepri:start(list_to_binary(DataDir))),
-    ?assertEqual(
-       {ok, #{[foo] => #{data => value4,
-                         payload_version => 4,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:get([foo])),
-    ?assertEqual(
-       #{data => value4,
-         payload_version => 4,
-         child_list_version => 1,
-         child_list_length => 0},
-       khepri:get_node_props([foo], #{})),
+    ?assertEqual({ok, value4}, khepri:get([foo])),
+    ?assertEqual({ok, value4}, khepri:get_or([foo], no_data)),
     ?assertEqual(true, khepri:has_data([foo], #{})),
-    ?assertEqual(value4, khepri:get_data([foo], #{})),
-    ?assertEqual(value4, khepri:get_data_or([foo], no_data, #{})),
-    ?assertEqual(false, khepri:has_sproc([foo], #{})),
+    ?assertEqual(false, khepri:is_sproc([foo], #{})),
     ?assertThrow(
-       {invalid_sproc_fun,
-        {no_sproc, [foo], #{data := value4,
-                            payload_version := 4,
-                            child_list_version := 1,
-                            child_list_length := 0}}},
+       ?khepri_exception(
+          denied_execution_of_non_sproc_node,
+          #{path := [foo],
+            args := [],
+            node_props := #{data := value4,
+                            payload_version := 4}}),
        khepri:run_sproc([foo], [], #{})),
     ?assertEqual({ok, 1}, khepri:count("**", #{})),
-    ?assertEqual({ok, #{}}, khepri:list([bar], #{})),
-    ?assertEqual({ok, #{}}, khepri:find([bar], ?STAR, #{})),
 
-    ?assertEqual(
-       {ok, #{[bar] => #{}}},
-       khepri:create([bar], value1)),
-    ?assertEqual(
-       {ok, #{[bar] => #{data => value1,
-                         payload_version => 1,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:clear_payload([bar])),
-    ?assertEqual(
-       {ok, #{[bar] => #{payload_version => 2,
-                         child_list_version => 1,
-                         child_list_length => 0}}},
-       khepri:delete([bar], #{})),
+    ?assertEqual(ok, khepri:create([bar], value1)),
+    ?assertEqual(ok, khepri:delete_payload([bar])),
+    ?assertEqual(ok, khepri:delete([bar], #{})),
 
     ?assertEqual({ok, StoreId}, khepri:start(DataDir)),
     ?assertEqual(ok, khepri:reset(10000)),
     ?assertEqual({error, noproc}, khepri:get([foo])),
 
     ?assertEqual({ok, StoreId}, khepri:start(DataDir)),
-    ?assertEqual({ok, #{}}, khepri:get([foo])),
+    ?assertMatch(
+       {error, ?khepri_error(node_not_found, _)},
+       khepri:get([foo])),
+
+    ?assertEqual({ok, StoreId}, khepri:start(DataDir)),
+    ?assertEqual(ok, khepri:reset(StoreId, 10000)),
+    ?assertEqual({error, noproc}, khepri:get([foo])),
 
     ?assertEqual(ok, khepri:stop()),
     ?assertEqual(ok, application:stop(khepri)),
