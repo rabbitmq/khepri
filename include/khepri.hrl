@@ -39,13 +39,15 @@
 
 -record(if_name_matches,
         {regex = any :: any | iodata() | unicode:charlist(),
-         compiled = undefined :: khepri_condition:re_mp() | undefined}).
+         compiled = undefined :: khepri_condition:re_compile_ret() |
+                                 undefined}).
 
 -define(KHEPRI_WILDCARD_STAR, #if_name_matches{regex = any}).
 
 -record(if_path_matches,
         {regex = any :: any | iodata() | unicode:charlist(),
-         compiled = undefined :: khepri_condition:re_mp() | undefined}).
+         compiled = undefined :: khepri_condition:re_compile_ret() |
+                                 undefined}).
 
 -define(KHEPRI_WILDCARD_STAR_STAR, #if_path_matches{regex = any}).
 

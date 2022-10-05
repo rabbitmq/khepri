@@ -290,8 +290,13 @@
 %% This is the same as {@link keep_while()} but the paths in the map keys were
 %% converted to native paths if necessary.
 
--type re_mp() :: tuple().
-%% `mp()` type defined by {@link re} but not exported.
+-type re_compile_ret() :: {ok, {re_pattern, term(), term(), term(), term()}} |
+                          {error, {string(), non_neg_integer()}}.
+%% Return value of {@link re:compile/1}.
+%%
+%% The opaque compiled regex type, {@link re:mp()}, is unfortunately not
+%% exported by {@link re}, neither is the error tuple (at least up to
+%% Erlang/OTP 25.1).
 
 -export([ensure_native_keep_while/1,
          compile/1,
@@ -308,7 +313,7 @@
               comparison_op/1,
               keep_while/0,
               native_keep_while/0,
-              re_mp/0]).
+              re_compile_ret/0]).
 
 -spec ensure_native_keep_while(KeepWhile) -> NativeKeepWhile when
       KeepWhile :: keep_while(),
@@ -556,8 +561,7 @@ term_matches(Term, MatchSpec) ->
 -spec eval_regex(Condition, SourceRegex, CompiledRegex, Value) -> Ret when
       Condition :: condition_using_regex(),
       SourceRegex :: any | iodata() | unicode:charlist(),
-      CompiledRegex :: {ok, khepri_condition:re_mp()} |
-                       {error, {string(), non_neg_integer()}} |
+      CompiledRegex :: khepri_condition:re_compile_ret() |
                        undefined,
       Value :: atom() | iodata() | unicode:charlist(),
       Ret :: true |
