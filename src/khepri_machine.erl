@@ -843,31 +843,31 @@ init(#{store_id := StoreId,
 %% TODO: Handle unknown/invalid commands.
 apply(
   Meta,
-  #put{path = PathPattern, payload = Payload, extra = Extra},
+  #put{path = PathPattern, payload = Payload, extra = Extra} = Command,
   State) ->
     Ret = insert_or_update_node(State, PathPattern, Payload, Extra),
-    bump_applied_command_count(Ret, Meta);
+    bump_applied_command_count(Command, Ret, Meta);
 apply(
   Meta,
-  #delete{path = PathPattern},
+  #delete{path = PathPattern} = Command,
   State) ->
     Ret = delete_matching_nodes(State, PathPattern),
-    bump_applied_command_count(Ret, Meta);
+    bump_applied_command_count(Command, Ret, Meta);
 apply(
   Meta,
-  #tx{'fun' = StandaloneFun},
+  #tx{'fun' = StandaloneFun} = Command,
   State) ->
     Fun = case is_function(StandaloneFun) of
               false -> fun() -> khepri_fun:exec(StandaloneFun, []) end;
               true  -> StandaloneFun
           end,
     Ret = khepri_tx:run(State, Fun, true),
-    bump_applied_command_count(Ret, Meta);
+    bump_applied_command_count(Command, Ret, Meta);
 apply(
   Meta,
   #register_trigger{id = TriggerId,
                     sproc = StoredProcPath,
-                    event_filter = EventFilter},
+                    event_filter = EventFilter} = Command,
   #?MODULE{triggers = Triggers} = State) ->
     StoredProcPath1 = khepri_path:realpath(StoredProcPath),
     EventFilter1 = case EventFilter of
@@ -879,18 +879,19 @@ apply(
                                          event_filter => EventFilter1}},
     State1 = State#?MODULE{triggers = Triggers1},
     Ret = {State1, ok},
-    bump_applied_command_count(Ret, Meta);
+    bump_applied_command_count(Command, Ret, Meta);
 apply(
   Meta,
-  #ack_triggered{triggered = ProcessedTriggers},
+  #ack_triggered{triggered = ProcessedTriggers} = Command,
   #?MODULE{emitted_triggers = EmittedTriggers} = State) ->
     EmittedTriggers1 = EmittedTriggers -- ProcessedTriggers,
     State1 = State#?MODULE{emitted_triggers = EmittedTriggers1},
     Ret = {State1, ok},
-    bump_applied_command_count(Ret, Meta).
+    bump_applied_command_count(Command, Ret, Meta).
 
--spec bump_applied_command_count(ApplyRet, Meta) ->
+-spec bump_applied_command_count(Command, ApplyRet, Meta) ->
     {State, Ret, SideEffects} when
+      Command :: command(),
       ApplyRet :: {State, Ret} | {State, Ret, SideEffects},
       State :: state(),
       Ret :: any(),
@@ -898,16 +899,18 @@ apply(
       SideEffects :: ra_machine:effects().
 %% @private
 
-bump_applied_command_count({State, Result}, Meta) ->
-    bump_applied_command_count({State, Result, []}, Meta);
+bump_applied_command_count(Command, {State, Result}, Meta) ->
+    bump_applied_command_count(Command, {State, Result, []}, Meta);
 bump_applied_command_count(
+  Command,
   {#?MODULE{config = #config{snapshot_interval = SnapshotInterval},
             metrics = Metrics} = State,
    Result,
    SideEffects},
   #{index := RaftIndex}) ->
     AppliedCmdCount0 = maps:get(applied_command_count, Metrics, 0),
-    AppliedCmdCount = AppliedCmdCount0 + 1,
+    AppliedCmdCount = compute_applied_command_count(
+                        Command, Result, AppliedCmdCount0),
     case AppliedCmdCount < SnapshotInterval of
         true ->
             Metrics1 = Metrics#{applied_command_count => AppliedCmdCount},
@@ -924,6 +927,15 @@ bump_applied_command_count(
             SideEffects1 = [ReleaseCursor | SideEffects],
             {State1, Result, SideEffects1}
     end.
+
+compute_applied_command_count(#put{}, {ok, Result}, Count) ->
+    [Value] = maps:values(Result),
+    case Value of
+        #{created := true} -> Count + 1;
+        _ -> Count + 1
+    end;
+compute_applied_command_count(_Command, _Ret, Count) ->
+    Count + 1.
 
 reset_applied_command_count(#?MODULE{metrics = Metrics} = State) ->
     Metrics1 = maps:remove(applied_command_count, Metrics),
@@ -1355,7 +1367,7 @@ insert_or_update_node_cb(
         true when IsTarget ->
             Node = create_node_record(Payload),
             NodeProps = #{},
-            {ok, Node, Result#{Path => NodeProps}};
+            {ok, Node, Result#{Path => NodeProps#{created => true}}};
         true ->
             Node = create_node_record(khepri_payload:none()),
             {ok, Node, Result};
