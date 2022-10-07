@@ -1382,3 +1382,26 @@ is_tuple_arguments_are_correctly_disassembled_test() ->
     %% disassembled instruction arguments (they may not be validated at
     %% compile time apparently).
     ?assertEqual(atom, khepri_fun:exec(StandaloneFun, [])).
+
+with_module_info_test() ->
+    Fun = fun() -> ok end,
+    StandaloneFun = khepri_fun:to_standalone_fun(
+                            Fun, #{add_module_info => true}),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertMatch(ok, khepri_fun:exec(StandaloneFun, [])),
+
+    #standalone_fun{module = Module} = StandaloneFun,
+    ?assert(erlang:function_exported(Module, module_info, 0)),
+    ?assert(erlang:function_exported(Module, module_info, 1)),
+    ?assertEqual(erlang:get_module_info(Module), Module:module_info()).
+
+without_module_info_test() ->
+    Fun = fun() -> ok end,
+    StandaloneFun = khepri_fun:to_standalone_fun(
+                            Fun, #{add_module_info => false}),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertMatch(ok, khepri_fun:exec(StandaloneFun, [])),
+
+    #standalone_fun{module = Module} = StandaloneFun,
+    ?assertNot(erlang:function_exported(Module, module_info, 0)),
+    ?assertNot(erlang:function_exported(Module, module_info, 1)).

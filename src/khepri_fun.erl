@@ -234,7 +234,8 @@ fun((#{calls := #{Call :: mfa() => true},
                      should_process_function =>
                      should_process_function_fun(),
                      is_standalone_fun_still_needed =>
-                     is_standalone_fun_still_needed_fun()}.
+                     is_standalone_fun_still_needed_fun(),
+                     add_module_info => boolean()}.
 %% Options to tune the extraction of an anonymous function.
 %%
 %% <ul>
@@ -245,6 +246,10 @@ fun((#{calls := #{Call :: mfa() => true},
 %% <li>`is_standalone_fun_still_needed': a function which returns if, after
 %% the extraction is finished, the extracted function is still needed in
 %% comparison to keeping the initial anonymous function.</li>
+%% <li>`add_module_info': a boolean to indicate of the `module_info/0' and
+%% `module_info/1' functions should be added to the generated module. There
+%% are used by tracing and debugging tools in Erlang, but they take some space
+%% (about 140 bytes). Default is true.</li>
 %% </ul>
 
 -export_type([standalone_fun/0,
@@ -435,10 +440,14 @@ to_standalone_fun3(
                 true ->
                     process_errors(State3),
 
-                    #state{literal_funs = LiteralFuns0} = State3,
+                    %% Extract the `module_info/{0,1}` functions from an
+                    %% arbitrary module if requested.
+                    State4 = extract_module_info_functions(State3),
+
+                    #state{literal_funs = LiteralFuns0} = State4,
                     LiteralFuns = maps:values(LiteralFuns0),
 
-                    Asm = pass2(State3),
+                    Asm = pass2(State4),
                     {GeneratedModuleName, Beam} = compile(Asm),
 
                     StandaloneFun = #standalone_fun{
@@ -447,8 +456,8 @@ to_standalone_fun3(
                                        arity = Arity,
                                        literal_funs = LiteralFuns,
                                        env = Env},
-                    cache_standalone_fun(State3, StandaloneFun),
-                    {StandaloneFun, State3};
+                    cache_standalone_fun(State4, StandaloneFun),
+                    {StandaloneFun, State4};
                 false ->
                     cache_standalone_fun(State3, fun_kept),
                     {Fun, State3}
@@ -643,6 +652,24 @@ cache_standalone_fun(
             persistent_term:put(Key, Value)
     end,
     ok.
+
+-define(MOD_FOR_MODULE_INFO_FUN, ?MODULE).
+
+extract_module_info_functions(State) ->
+    case should_generate_module_info_functions(State) of
+        true ->
+            State1 = pass1_process_function(
+                       ?MOD_FOR_MODULE_INFO_FUN, module_info, 0, State),
+            State2 = pass1_process_function(
+                       ?MOD_FOR_MODULE_INFO_FUN, module_info, 1, State1),
+            State#state{functions = State2#state.functions,
+                        next_label = State2#state.next_label};
+        false ->
+            State
+    end.
+
+should_generate_module_info_functions(#state{options = Options}) ->
+    maps:get(add_module_info, Options, true).
 
 -spec compile(Asm) -> {Module, Beam} when
       Asm :: asm(), %% FIXME: compile:forms/2 is incorrectly specified.
@@ -2143,13 +2170,13 @@ process_errors(#state{errors = [Error | _]}) -> throw(Error).
       Asm :: asm().
 
 pass2(
-  #state{functions = Functions,
+  #state{functions = Functions0,
          next_label = NextLabel} = State) ->
     %% The module name is based on a hash of its entire code.
     GeneratedModuleName = gen_module_name(State),
     State1 = State#state{generated_module_name = GeneratedModuleName},
 
-    Functions1 = pass2_process_functions(Functions, State1),
+    Functions1 = pass2_process_functions(Functions0, State1),
 
     %% Sort functions by their entrypoint label.
     Functions2 = lists:sort(
@@ -2160,7 +2187,10 @@ pass2(
 
     %% The first function (the lambda) is the only one exported.
     [#function{name = Name, arity = Arity} | _] = Functions2,
-    Exports = [{Name, Arity}],
+    Exports = case should_generate_module_info_functions(State) of
+                  true  -> [{Name, Arity}, {module_info, 0}, {module_info, 1}];
+                  false -> [{Name, Arity}]
+              end,
 
     Attributes = [],
     Labels = NextLabel,
@@ -2301,6 +2331,13 @@ pass2_process_instruction(
   {loop_rec, _, _} = Instruction, State) ->
     replace_label(Instruction, 2, State);
 pass2_process_instruction(
+  {move, {atom, ?MOD_FOR_MODULE_INFO_FUN}, _} = Instruction,
+  #state{mfa_in_progress = {?MOD_FOR_MODULE_INFO_FUN, module_info, _Arity},
+         generated_module_name = GeneratedModuleName}) ->
+    Atom = {atom, GeneratedModuleName},
+    Instruction1 = setelement(2, Instruction, Atom),
+    Instruction1;
+pass2_process_instruction(
   {Select, _, _, {list, Cases}} = Instruction,
   #state{mfa_in_progress = {Module, _, _},
          label_map = LabelMap} = State)
@@ -2393,6 +2430,11 @@ gen_function_name(
   Module, Name, Arity,
   #state{entrypoint = {Module, Name, Arity}}) ->
     ?SF_ENTRYPOINT;
+gen_function_name(
+  ?MOD_FOR_MODULE_INFO_FUN, module_info = Name, Arity,
+  _State)
+  when Arity =:= 0 orelse Arity =:= 1 ->
+    Name;
 gen_function_name(
   Module, Name, _Arity,
   _State) ->
