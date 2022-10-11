@@ -512,12 +512,14 @@ allowed_higher_order_external_call_test() ->
 
 projection_fun_for_sets(MapFun) ->
     ChangesFromSet =
-      fun(Path, Set, Kind) ->
+      fun(Set, Path, Change) ->
               sets:fold(fun(Element, Acc) ->
-                                [{Kind, MapFun(Path, Element)} | Acc]
+                                [{Change, MapFun(Path, Element)} | Acc]
                         end, [], Set)
       end,
-    fun (Change, Path, Payload) -> ChangesFromSet(Path, Payload, Change) end.
+    fun(Set, Path, Change) ->
+            ChangesFromSet(Set, Path, Change)
+    end.
 
 allowed_multiple_nested_higher_order_functions_test() ->
     StandaloneFun = ?make_standalone_fun(
@@ -527,7 +529,12 @@ allowed_multiple_nested_higher_order_functions_test() ->
                             Fun(MapFun)
                         end),
     ?assertMatch(#standalone_fun{}, StandaloneFun),
-    ?assert(is_function(khepri_fun:exec(StandaloneFun, []), 3)).
+    Ret1 = khepri_fun:exec(StandaloneFun, []),
+    ?assert(is_function(Ret1, 3)),
+
+    Sets = sets:from_list([a, b]),
+    Ret2 = Ret1(Sets, path, change),
+    ?assertEqual([{change, {path, a}}, {change, {path, b}}], Ret2).
 
 reverse(List) ->
     reverse(List, []).

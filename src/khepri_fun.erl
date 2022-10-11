@@ -128,8 +128,18 @@
 -record(line, {name_index,
                location}).
 
-%% The following record is also linked to the decoding of the "Line" beam
-%% chunk.
+%% The following record is used to stored the decoded "FunT" beam chunk. They
+%% are used while processing instructions such as `call_fun2' to resolve the
+%% label where the call must jump.
+
+-record(lambda, {function,
+                 num_free,
+                 arity,
+                 label,
+                 index,
+                 old_uniq}).
+
+%% The following record is used to decode tagged types.
 
 -record(tag, {tag,
               size,
@@ -156,10 +166,10 @@
                         attributes      = [] :: [beam_lib:attrib_entry()],
                         compile_info    = [] :: [beam_lib:compinfo_entry()],
                         code            = [] :: [#function{}],
-                        %% Added in this module to stored the decoded "Line"
-                        %% chunk.
+                        %% Added in this module to stored the decoded chunks.
                         lines                :: #lines{} | undefined,
-                        strings              :: binary() | undefined}).
+                        strings              :: binary() | undefined,
+                        lambdas              :: [#lambda{}] | undefined}).
 
 -type ensure_instruction_is_permitted_fun() ::
 fun((Instruction :: beam_instr()) -> ok).
@@ -250,6 +260,7 @@ fun((#{calls := #{Call :: mfa() => true},
 
                 lines_in_progress :: #lines{} | undefined,
                 strings_in_progress :: binary() | undefined,
+                lambdas_in_progress :: [#lambda{}] | undefined,
                 mfa_in_progress :: mfa() | undefined,
                 function_in_progress :: atom() | undefined,
                 next_label = 1 :: label(),
@@ -1120,21 +1131,34 @@ pass1_process_instructions(
     pass1_process_instructions([Instruction | Rest], State, Result);
 pass1_process_instructions(
   [{call_fun2,
-    {u, _},
+    {u, LambdaIndex},
     Arity,
-    {tr, FunReg, {{t_fun, _Arity, _Domain, _Range} = Type, _, _}}} | Rest],
-  State,
+    {tr, FunReg, {{t_fun, _Arity, _Domain, _Range}, _, _}}} | Rest],
+  #state{lambdas_in_progress = Lambdas,
+         mfa_in_progress = {Module, _, _}} = State,
   Result) ->
-    %% `beam_disasm' did not decode this instruction correctly. The
-    %% type in the type-tagged record is wrapped with extra information
-    %% we discard. We also need to patch it to remove the referenced
-    %% FunIndex. We don't have enough information to lookup the local
-    %% function referenced by the live register but if the compiler knows
-    %% that there is an exact local function used in this call that it
-    %% must have the correct arity, so we can demote the function info
-    %% part of this instruction to `{atom, safe}'. That tag asserts that
-    %% the function is known to be the correct arity.
-    Instruction = {call_fun2, {atom, safe}, Arity, {tr, FunReg, Type}},
+    %% `beam_disasm' did not decode this instruction correctly. The first
+    %% argument of the instruction should have been a label pointing to the
+    %% function body in the same module. Instead, we only have the index in
+    %% the lambda table ("FunT" in the beam chunks).
+    %%
+    %% Therefore we use this index and resolve it to the label in the original
+    %% module. This label will be updated in the second pass to point to the
+    %% actual label in the generated module.
+    %%
+    %% `Lambdas' uses a 0-based index, but `lists:nth()' uses a 1-based index,
+    %% thus the "+ 1".
+    #lambda{function = FunName,
+            arity = FullArity,
+            label = Label} = lists:nth(LambdaIndex + 1, Lambdas),
+
+    %% The compiler requires us to have a proper tagged type. The type decoded
+    %% by `beam_disasm' is too broad and is rejected. To recreate a correct
+    %% tagged type, we have to convert the initial function name to the name
+    %% it has in the generated module.
+    FunName1 = gen_function_name(Module, FunName, Arity, State),
+    TypeField = {t_fun, Arity, {FunName1, FullArity}, any},
+    Instruction = {call_fun2, {f, Label}, Arity, {tr, FunReg, TypeField}},
     pass1_process_instructions([Instruction | Rest], State, Result);
 pass1_process_instructions(
   [{test, BsGetSomething,
@@ -1608,11 +1632,13 @@ disassemble_module(Module, #state{checksums = Checksums} = State) ->
     case Checksums of
         #{Module := Checksum} ->
             {#beam_file_ext{lines = Lines,
-                            strings = Strings} = BeamFileRecord,
+                            strings = Strings,
+                            lambdas = Lambdas} = BeamFileRecord,
              Checksum} = disassemble_module1(Module, Checksum),
 
             State1 = State#state{lines_in_progress = Lines,
-                                 strings_in_progress = Strings},
+                                 strings_in_progress = Strings,
+                                 lambdas_in_progress = Lambdas},
             {BeamFileRecord, State1};
         _ ->
             {#beam_file_ext{lines = Lines,
@@ -1693,6 +1719,7 @@ do_disassemble(Beam) ->
        code = Code} = BeamFileRecord,
     Lines = get_and_decode_line_chunk(Module, Beam),
     Strings = get_and_decode_string_chunk(Module, Beam),
+    Lambdas = get_and_decode_lambda_chunk(Module, Beam),
     BeamFileRecordExt = #beam_file_ext{
                            module = Module,
                            labeled_exports = LabeledExports,
@@ -1700,7 +1727,8 @@ do_disassemble(Beam) ->
                            compile_info = CompileInfo,
                            code = Code,
                            lines = Lines,
-                           strings = Strings},
+                           strings = Strings,
+                           lambdas = Lambdas},
     BeamFileRecordExt.
 
 %% The "Line" beam chunk decoding is based on the equivalent C code in ERTS.
@@ -1816,6 +1844,47 @@ get_and_decode_string_chunk(Module, Beam) ->
         _ ->
             undefined
     end.
+
+get_and_decode_lambda_chunk(Module, Beam) ->
+    case beam_lib:chunks(Beam, ["FunT"]) of
+        {ok, {Module, [{"FunT", Chunk}]}} ->
+            case beam_lib:chunks(Beam, [atoms]) of
+                {ok, {Module, [{atoms, AtomsTable}]}} ->
+                    decode_lambda_chunk(Chunk, AtomsTable);
+                _ ->
+                    undefined
+            end;
+        _ ->
+            undefined
+    end.
+
+decode_lambda_chunk(Chunk, AtomsTable) ->
+    decode_lambda_chunk_count(Chunk, AtomsTable, []).
+
+decode_lambda_chunk_count(
+  <<Count:32/integer, Rest/binary>>, AtomsTable, Entries) ->
+    decode_lambda_chunk_entries(Rest, Count, AtomsTable, Entries).
+
+decode_lambda_chunk_entries(
+  <<AtomIndex:32/integer,
+    Arity:32/integer,
+    Label:32/integer,
+    FunIndex:32/integer,
+    NumFree:32/integer,
+    OldUniq:32/integer,
+    Rest/binary>>, Count, AtomsTable, Entries)
+  when Count > 0 ->
+    {_, Atom} = lists:nth(AtomIndex, AtomsTable),
+    Lambda = #lambda{function = Atom,
+                     num_free = NumFree,
+                     arity = Arity,
+                     label = Label,
+                     index = FunIndex,
+                     old_uniq = OldUniq},
+    Entries1 = [Lambda | Entries],
+    decode_lambda_chunk_entries(Rest, Count - 1, AtomsTable, Entries1);
+decode_lambda_chunk_entries(<<>>, 0, _AtomsTable, Entries) ->
+    lists:reverse(Entries).
 
 %% See: erts/emulator/beam/beam_file.c, beamreader_read_tagged().
 
@@ -2185,6 +2254,9 @@ pass2_process_instruction(
   {BsPutSomething, _, _, _, _, _} = Instruction, State)
   when BsPutSomething =:= bs_put_binary orelse
        BsPutSomething =:= bs_put_integer ->
+    replace_label(Instruction, 2, State);
+pass2_process_instruction(
+  {call_fun2, {f, _}, _, _} = Instruction, State) ->
     replace_label(Instruction, 2, State);
 pass2_process_instruction(
   {call_last, Arity, {Module, Name, Arity}, Opaque} = Instruction,
