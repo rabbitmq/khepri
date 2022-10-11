@@ -931,8 +931,8 @@ bump_applied_command_count(
 compute_applied_command_count(#put{}, {ok, Result}, Count) ->
     [Value] = maps:values(Result),
     case Value of
-        #{created := true} -> Count + 1;
-        _ -> Count + 1
+        #{created := true} -> Count;
+        _                  -> Count + 1
     end;
 compute_applied_command_count(_Command, _Ret, Count) ->
     Count + 1.
