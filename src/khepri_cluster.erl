@@ -1118,8 +1118,14 @@ complete_ra_server_config(#{cluster_name := StoreId,
                       end,
 
     UId = ra:new_uid(ra_lib:to_binary(StoreId)),
-    MachineConfig = #{store_id => StoreId,
-                      member => Member},
+    MachineConfig0 = case RaServerConfig of
+                         #{machine_config := MachineConfig00} ->
+                             MachineConfig00;
+                         _ ->
+                             #{}
+                     end,
+    MachineConfig = MachineConfig0#{store_id => StoreId,
+                                    member => Member},
     Machine = {module, khepri_machine, MachineConfig},
     RaServerConfig2#{uid => UId,
                      log_init_args => #{uid => UId},
