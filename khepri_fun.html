@@ -96,7 +96,7 @@ end. It returns true if it is, false otherwise.</p>
   </ul></p>
 
 <h3 class="typedecl"><a name="type-options">options()</a></h3>
-<p><code>options() = #{ensure_instruction_is_permitted =&gt; <a href="#type-ensure_instruction_is_permitted_fun">ensure_instruction_is_permitted_fun()</a>, should_process_function =&gt; <a href="#type-should_process_function_fun">should_process_function_fun()</a>, is_standalone_fun_still_needed =&gt; <a href="#type-is_standalone_fun_still_needed_fun">is_standalone_fun_still_needed_fun()</a>}</code></p>
+<p><code>options() = #{ensure_instruction_is_permitted =&gt; <a href="#type-ensure_instruction_is_permitted_fun">ensure_instruction_is_permitted_fun()</a>, should_process_function =&gt; <a href="#type-should_process_function_fun">should_process_function_fun()</a>, is_standalone_fun_still_needed =&gt; <a href="#type-is_standalone_fun_still_needed_fun">is_standalone_fun_still_needed_fun()</a>, add_module_info =&gt; boolean()}</code></p>
 <p><p>  Options to tune the extraction of an anonymous function.</p>
  
   <ul>
@@ -107,6 +107,10 @@ end. It returns true if it is, false otherwise.</p>
   <li><code>is_standalone_fun_still_needed</code>: a function which returns if, after
   the extraction is finished, the extracted function is still needed in
   comparison to keeping the initial anonymous function.</li>
+  <li><code>add_module_info</code>: a boolean to indicate of the <code>module_info/0</code> and
+  <code>module_info/1</code> functions should be added to the generated module. There
+  are used by tracing and debugging tools in Erlang, but they take some space
+  (about 140 bytes). Default is true.</li>
   </ul></p>
 
 <h3 class="typedecl"><a name="type-should_process_function_fun">should_process_function_fun()</a></h3>
