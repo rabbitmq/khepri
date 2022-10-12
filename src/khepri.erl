@@ -2309,13 +2309,13 @@ transaction(Fun, ReadWriteOrOptions) when is_function(Fun) ->
 %%
 %% This function accepts the following three forms:
 %% <ul>
-%% <li>`transaction(StoreId, PathPattern, ReadWrite)'. Calling it is the same
-%% as calling `transaction(StoreId, PathPattern, ReadWrite, #{})'.</li>
-%% <li>`transaction(StoreId, PathPattern, Options)'. Calling it is the same
-%% as calling `transaction(StoreId, PathPattern, auto, Options)'.</li>
-%% <li>`transaction(PathPattern, ReadWrite, Options)'. Calling it is the same
-%% as calling `transaction(StoreId, PathPattern, ReadWrite, Options)' with the
-%% default store ID.</li>
+%% <li>`transaction(StoreId, Fun, ReadWrite)'. Calling it is the same as
+%% calling `transaction(StoreId, Fun, ReadWrite, #{})'.</li>
+%% <li>`transaction(StoreId, Fun, Options)'. Calling it is the same as calling
+%% `transaction(StoreId, Fun, auto, Options)'.</li>
+%% <li>`transaction(Fun, ReadWrite, Options)'. Calling it is the same as
+%% calling `transaction(StoreId, Fun, ReadWrite, Options)' with the default
+%% store ID.</li>
 %% </ul>
 %%
 %% @see transaction/4.
