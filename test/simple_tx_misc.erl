@@ -252,7 +252,7 @@ not_a_function_as_ro_transaction_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         ?khepri_exception(non_fun_term_used_as_tx_fun, #{term := Term}),
+         function_clause,
          khepri:transaction(?FUNCTION_NAME, Term, ro))]}.
 
 not_a_function_as_rw_transaction_test_() ->
@@ -261,7 +261,7 @@ not_a_function_as_rw_transaction_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         ?khepri_exception(non_fun_term_used_as_tx_fun, #{term := Term}),
+         function_clause,
          khepri:transaction(?FUNCTION_NAME, Term, rw))]}.
 
 exception_in_ro_transaction_test_() ->

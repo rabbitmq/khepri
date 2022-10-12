@@ -314,10 +314,7 @@ transaction(StoreId, Fun, _ReadWrite, _Options)
     {arity, Arity} = erlang:fun_info(Fun, arity),
     ?khepri_misuse(
        denied_tx_fun_with_arguments,
-       #{'fun' => Fun, arity => Arity});
-transaction(StoreId, Term, _ReadWrite, _Options)
-  when ?IS_STORE_ID(StoreId) ->
-    ?khepri_misuse(non_fun_term_used_as_tx_fun, #{term => Term}).
+       #{'fun' => Fun, arity => Arity}).
 
 -spec readonly_transaction(StoreId, Fun, Options) -> Ret when
       StoreId :: khepri:store_id(),
