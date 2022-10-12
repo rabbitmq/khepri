@@ -114,6 +114,7 @@
          %% Transactions; `khepri_tx' provides the API to use inside
          %% transaction functions.
          transaction/1, transaction/2, transaction/3, transaction/4,
+         transaction/5,
 
          wait_for_async_ret/1, wait_for_async_ret/2,
 
@@ -2251,19 +2252,22 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
       Ret :: khepri_machine:tx_ret().
 %% @doc Runs a transaction and returns its result.
 %%
-%% Calling this function is the same as calling `transaction(StoreId, Fun)'
-%% with the default store ID.
+%% Calling this function is the same as calling `transaction(Fun, [])' with
+%% the default store ID.
 %%
 %% @see transaction/2.
 
 transaction(Fun) ->
-    StoreId = khepri_cluster:get_default_store_id(),
-    transaction(StoreId, Fun).
+    transaction(Fun, []).
 
 -spec transaction
 (StoreId, Fun) -> Ret when
       StoreId :: store_id(),
       Fun :: khepri_tx:tx_fun(),
+      Ret :: khepri_machine:tx_ret();
+(Fun, Args) -> Ret when
+      Fun :: khepri_tx:tx_fun(),
+      Args :: list(),
       Ret :: khepri_machine:tx_ret();
 (Fun, ReadWriteOrOptions) -> Ret when
       Fun :: khepri_tx:tx_fun(),
@@ -2276,28 +2280,47 @@ transaction(Fun) ->
 %% This function accepts the following two forms:
 %% <ul>
 %% <li>`transaction(StoreId, Fun)'. Calling it is the same as calling
-%% `transaction(StoreId, Fun, #{})'.</li>
-%% <li>`transaction(Fun, Options)'. Calling it is the same as calling
-%% `transaction(StoreId, Fun, Options)' with the default store ID.</li>
+%% `transaction(StoreId, Fun, [])'.</li>
+%% <li>`transaction(Fun, Args)'. Calling it is the same as calling
+%% `transaction(StoreId, Fun, Args)' with the default store ID.</li>
+%% <li>`transaction(Fun, ReadWriteOrOptions)'. Calling it is the same as
+%% calling `transaction(StoreId, Fun, [], ReadWriteOrOptions)' with the
+%% default store ID.</li>
 %% </ul>
 %%
 %% @see transaction/3.
 
-transaction(StoreId, Fun) when is_function(Fun) ->
-    transaction(StoreId, Fun, auto);
-transaction(Fun, ReadWriteOrOptions) when is_function(Fun) ->
+transaction(Fun, Args)
+  when is_function(Fun) andalso is_list(Args) ->
     StoreId = khepri_cluster:get_default_store_id(),
-    transaction(StoreId, Fun, ReadWriteOrOptions).
+    transaction(StoreId, Fun, Args);
+transaction(Fun, ReadWriteOrOptions)
+  when is_function(Fun) andalso
+       (is_atom(ReadWriteOrOptions) orelse is_map(ReadWriteOrOptions)) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    transaction(StoreId, Fun, ReadWriteOrOptions);
+transaction(StoreId, Fun)
+  when ?IS_STORE_ID(StoreId) andalso is_function(Fun) ->
+    transaction(StoreId, Fun, []).
 
 -spec transaction
-(StoreId, Fun, ReadWrite) -> Ret when
+(StoreId, Fun, Args) -> Ret when
       StoreId :: store_id(),
       Fun :: khepri_tx:tx_fun(),
-      ReadWrite :: ro | rw | auto,
+      Args :: list(),
       Ret :: khepri_machine:tx_ret();
-(StoreId, Fun, Options) -> Ret when
+(StoreId, Fun, ReadWriteOrOptions) -> Ret when
       StoreId :: store_id(),
       Fun :: khepri_tx:tx_fun(),
+      ReadWriteOrOptions :: ReadWrite | Options,
+      ReadWrite :: ro | rw | auto,
+      Options :: command_options() | query_options(),
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
+(Fun, Args, ReadWriteOrOptions) -> Ret when
+      Fun :: khepri_tx:tx_fun(),
+      Args :: list(),
+      ReadWriteOrOptions :: ReadWrite | Options,
+      ReadWrite :: ro | rw | auto,
       Options :: command_options() | query_options(),
       Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
 (Fun, ReadWrite, Options) -> Ret when
@@ -2307,39 +2330,106 @@ transaction(Fun, ReadWriteOrOptions) when is_function(Fun) ->
       Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
 %% @doc Runs a transaction and returns its result.
 %%
-%% This function accepts the following three forms:
+%% This function accepts the following two forms:
 %% <ul>
-%% <li>`transaction(StoreId, Fun, ReadWrite)'. Calling it is the same as
-%% calling `transaction(StoreId, Fun, ReadWrite, #{})'.</li>
-%% <li>`transaction(StoreId, Fun, Options)'. Calling it is the same as calling
-%% `transaction(StoreId, Fun, auto, Options)'.</li>
-%% <li>`transaction(Fun, ReadWrite, Options)'. Calling it is the same as
-%% calling `transaction(StoreId, Fun, ReadWrite, Options)' with the default
-%% store ID.</li>
+%% <li>`transaction(StoreId, Fun, Args)'. Calling it is the same as calling
+%% `transaction(StoreId, Fun, Args, auto)'.</li>
+%% <li>`transaction(StoreId, Fun, ReadWriteOrOptions)'. Calling it is the same
+%% as calling `transaction(StoreId, Fun, [], ReadWriteOrOptions)'.</li>
+%% <li>`transaction(Fun, Args, ReadWriteOrOptions)'. Calling it is the same as
+%% calling `transaction(StoreId, Fun, Args, ReadWriteOrOptions)' with the
+%% default store ID.</li>
 %% </ul>
 %%
 %% @see transaction/4.
 
-transaction(StoreId, Fun, ReadWrite)
-  when is_atom(StoreId) andalso is_atom(ReadWrite) ->
-    transaction(StoreId, Fun, ReadWrite, #{});
-transaction(StoreId, Fun, Options)
-  when is_atom(StoreId) andalso is_map(Options) ->
-    transaction(StoreId, Fun, auto, Options);
+transaction(StoreId, Fun, Args)
+  when ?IS_STORE_ID(StoreId) andalso is_function(Fun) andalso is_list(Args) ->
+    transaction(StoreId, Fun, Args, auto);
+transaction(StoreId, Fun, ReadWriteOrOptions)
+  when ?IS_STORE_ID(StoreId) andalso is_function(Fun) andalso
+       (is_atom(ReadWriteOrOptions) orelse is_map(ReadWriteOrOptions)) ->
+    transaction(StoreId, Fun, [], ReadWriteOrOptions);
+transaction(Fun, Args, ReadWriteOrOptions)
+  when is_function(Fun) andalso is_list(Args) andalso
+       (is_atom(ReadWriteOrOptions) orelse is_map(ReadWriteOrOptions)) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    transaction(StoreId, Fun, Args, ReadWriteOrOptions);
 transaction(Fun, ReadWrite, Options)
-  when is_atom(ReadWrite) andalso is_map(Options) ->
+  when is_function(Fun) andalso is_atom(ReadWrite) andalso is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
     transaction(StoreId, Fun, ReadWrite, Options).
 
--spec transaction(StoreId, Fun, ReadWrite, Options) -> Ret when
+-spec transaction
+(StoreId, Fun, Args, ReadWrite) -> Ret when
       StoreId :: store_id(),
       Fun :: khepri_tx:tx_fun(),
+      Args :: list(),
+      ReadWrite :: ro | rw | auto,
+      Ret :: khepri_machine:tx_ret();
+(StoreId, Fun, Args, Options) -> Ret when
+      StoreId :: store_id(),
+      Fun :: khepri_tx:tx_fun(),
+      Args :: list(),
+      Options :: command_options() | query_options(),
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
+(StoreId, Fun, ReadWrite, Options) -> Ret when
+      StoreId :: store_id(),
+      Fun :: khepri_tx:tx_fun(),
+      ReadWrite :: ro | rw | auto,
+      Options :: command_options() | query_options(),
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
+(Fun, Args, ReadWrite, Options) -> Ret when
+      Fun :: khepri_tx:tx_fun(),
+      Args :: list(),
+      ReadWrite :: ro | rw | auto,
+      Options :: command_options() | query_options(),
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
+%% @doc Runs a transaction and returns its result.
+%%
+%% This function accepts the following three forms:
+%% <ul>
+%% <li>`transaction(StoreId, Fun, Args, ReadWrite)'. Calling it is the same as
+%% calling `transaction(StoreId, Fun, Args, ReadWrite, #{})'.</li>
+%% <li>`transaction(StoreId, Fun, Args, Options)'. Calling it is the same as
+%% calling `transaction(StoreId, Fun, Args, auto, Options)'.</li>
+%% <li>`transaction(Fun, Args, ReadWrite, Options)'. Calling it is the same as
+%% calling `transaction(StoreId, Fun, Args, ReadWrite, Options)' with the
+%% default store ID.</li>
+%% </ul>
+%%
+%% @see transaction/5.
+
+transaction(StoreId, Fun, Args, ReadWrite)
+  when ?IS_STORE_ID(StoreId) andalso is_function(Fun) andalso
+       is_list(Args) andalso is_atom(ReadWrite) ->
+    transaction(StoreId, Fun, Args, ReadWrite, #{});
+transaction(StoreId, Fun, Args, Options)
+  when ?IS_STORE_ID(StoreId) andalso is_function(Fun) andalso
+       is_list(Args) andalso is_map(Options) ->
+    transaction(StoreId, Fun, Args, auto, Options);
+transaction(StoreId, Fun, ReadWrite, Options)
+  when ?IS_STORE_ID(StoreId) andalso is_function(Fun) andalso
+       is_atom(ReadWrite) andalso is_map(Options) ->
+    transaction(StoreId, Fun, [], ReadWrite, Options);
+transaction(Fun, Args, ReadWrite, Options)
+  when is_function(Fun) andalso is_list(Args) andalso
+       is_atom(ReadWrite) andalso is_map(Options) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    transaction(StoreId, Fun, Args, ReadWrite, Options).
+
+-spec transaction(StoreId, Fun, Args, ReadWrite, Options) -> Ret when
+      StoreId :: store_id(),
+      Fun :: khepri_tx:tx_fun(),
+      Args :: list(),
       ReadWrite :: ro | rw | auto,
       Options :: khepri:command_options() | khepri:query_options(),
       Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
 %% @doc Runs a transaction and returns its result.
 %%
-%% `Fun' is an arbitrary anonymous function which takes no arguments.
+%% `Fun' is an arbitrary anonymous function which takes the content of `Args'
+%% as its arguments. In other words, the length of `Args' must correspond to
+%% the arity of `Fun'.
 %%
 %% The `ReadWrite' flag determines what the anonymous function is allowed to
 %% do and in which context it runs:
@@ -2373,6 +2463,7 @@ transaction(Fun, ReadWrite, Options)
 %%
 %% @param StoreId the name of the Khepri store.
 %% @param Fun an arbitrary anonymous function.
+%% @param Args a list of arguments to pass to `Fun'.
 %% @param ReadWrite the read/write or read-only nature of the transaction.
 %% @param Options command options such as the command type.
 %%
@@ -2382,8 +2473,8 @@ transaction(Fun, ReadWrite, Options)
 %% `ok' (the actual return value may be sent by a message if a correlation ID
 %% was specified).
 
-transaction(StoreId, Fun, ReadWrite, Options) ->
-    khepri_machine:transaction(StoreId, Fun, ReadWrite, Options).
+transaction(StoreId, Fun, Args, ReadWrite, Options) ->
+    khepri_machine:transaction(StoreId, Fun, Args, ReadWrite, Options).
 
 %% -------------------------------------------------------------------
 %% wait_for_async_ret().

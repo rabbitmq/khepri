@@ -35,7 +35,7 @@
          count/3,
          put/4,
          delete/3,
-         transaction/4,
+         transaction/5,
          run_sproc/4,
          register_trigger/5]).
 -export([get_keep_while_conds_state/2]).
@@ -275,9 +275,10 @@ delete(StoreId, PathPattern, Options) when ?IS_STORE_ID(StoreId) ->
                       options = TreeOptions},
     process_command(StoreId, Command, CommandOptions).
 
--spec transaction(StoreId, Fun, ReadWrite, Options) -> Ret when
+-spec transaction(StoreId, Fun, Args, ReadWrite, Options) -> Ret when
       StoreId :: khepri:store_id(),
       Fun :: khepri_tx:tx_fun(),
+      Args :: list(),
       ReadWrite :: ro | rw | auto,
       Options :: khepri:command_options() | khepri:query_options(),
       Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
@@ -285,6 +286,7 @@ delete(StoreId, PathPattern, Options) when ?IS_STORE_ID(StoreId) ->
 %%
 %% @param StoreId the name of the Ra cluster.
 %% @param Fun an arbitrary anonymous function.
+%% @param Args a list of arguments to pass to `Fun'.
 %% @param ReadWrite the read/write or read-only nature of the transaction.
 %% @param Options command options such as the command type.
 %%
@@ -294,40 +296,56 @@ delete(StoreId, PathPattern, Options) when ?IS_STORE_ID(StoreId) ->
 %% always `ok' (the actual return value may be sent by a message if a
 %% correlation ID was specified).
 
-transaction(StoreId, Fun, auto = ReadWrite, Options)
-  when ?IS_STORE_ID(StoreId) andalso is_function(Fun, 0) ->
+transaction(StoreId, Fun, Args, auto = ReadWrite, Options)
+  when ?IS_STORE_ID(StoreId) andalso
+       is_list(Args) andalso
+       is_function(Fun, length(Args)) andalso
+       is_map(Options) ->
     case khepri_tx_adv:to_standalone_fun(Fun, ReadWrite) of
         #standalone_fun{} = StandaloneFun ->
-            readwrite_transaction(StoreId, StandaloneFun, Options);
+            readwrite_transaction(StoreId, StandaloneFun, Args, Options);
         _ ->
-            readonly_transaction(StoreId, Fun, Options)
+            readonly_transaction(StoreId, Fun, Args, Options)
     end;
-transaction(StoreId, Fun, rw = ReadWrite, Options)
-  when ?IS_STORE_ID(StoreId) andalso is_function(Fun, 0) ->
+transaction(StoreId, Fun, Args, rw = ReadWrite, Options)
+  when ?IS_STORE_ID(StoreId) andalso
+       is_list(Args) andalso
+       is_function(Fun, length(Args)) andalso
+       is_map(Options) ->
     StandaloneFun = khepri_tx_adv:to_standalone_fun(Fun, ReadWrite),
-    readwrite_transaction(StoreId, StandaloneFun, Options);
-transaction(StoreId, Fun, ro, Options)
-  when ?IS_STORE_ID(StoreId) andalso is_function(Fun, 0) ->
-    readonly_transaction(StoreId, Fun, Options);
-transaction(StoreId, Fun, _ReadWrite, _Options)
-  when ?IS_STORE_ID(StoreId) andalso is_function(Fun) ->
+    readwrite_transaction(StoreId, StandaloneFun, Args, Options);
+transaction(StoreId, Fun, Args, ro, Options)
+  when ?IS_STORE_ID(StoreId) andalso
+       is_list(Args) andalso
+       is_function(Fun, length(Args)) andalso
+       is_map(Options) ->
+    readonly_transaction(StoreId, Fun, Args, Options);
+transaction(StoreId, Fun, Args, ReadWrite, Options)
+  when ?IS_STORE_ID(StoreId) andalso
+       is_function(Fun) andalso
+       is_list(Args) andalso
+       is_atom(ReadWrite) andalso
+       is_map(Options) ->
     {arity, Arity} = erlang:fun_info(Fun, arity),
     ?khepri_misuse(
-       denied_tx_fun_with_arguments,
-       #{'fun' => Fun, arity => Arity}).
+       denied_tx_fun_with_invalid_args,
+       #{'fun' => Fun, arity => Arity, args => Args}).
 
--spec readonly_transaction(StoreId, Fun, Options) -> Ret when
+-spec readonly_transaction(StoreId, Fun, Args, Options) -> Ret when
       StoreId :: khepri:store_id(),
       Fun :: khepri_tx:tx_fun(),
+      Args :: list(),
       Options :: khepri:query_options(),
       Ret :: khepri_machine:tx_ret().
 
-readonly_transaction(StoreId, Fun, Options) when is_function(Fun, 0) ->
+readonly_transaction(StoreId, Fun, Args, Options)
+  when is_list(Args) andalso is_function(Fun, length(Args)) ->
     Query = fun(State) ->
                     %% It is a read-only transaction, therefore we assert that
                     %% the state is unchanged and that there are no side
                     %% effects.
-                    {State, Ret, []} = khepri_tx_adv:run(State, Fun, false),
+                    {State, Ret, []} = khepri_tx_adv:run(
+                                         State, Fun, Args, false),
                     Ret
             end,
     case process_query(StoreId, Query, Options) of
@@ -337,14 +355,24 @@ readonly_transaction(StoreId, Fun, Options) when is_function(Fun, 0) ->
             {ok, Ret}
     end.
 
--spec readwrite_transaction(StoreId, Fun, Options) -> Ret when
+-spec readwrite_transaction(StoreId, Fun, Args, Options) -> Ret when
       StoreId :: khepri:store_id(),
       Fun :: khepri_fun:standalone_fun(),
+      Args :: list(),
       Options :: khepri:command_options(),
       Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
 
-readwrite_transaction(StoreId, StandaloneFun, Options) ->
-    Command = #tx{'fun' = StandaloneFun},
+readwrite_transaction(
+  StoreId, #standalone_fun{arity = Arity} = StandaloneFun, Args, Options)
+  when is_list(Args) andalso length(Args) =:= Arity ->
+    readwrite_transaction1(StoreId, StandaloneFun, Args, Options);
+readwrite_transaction(
+  StoreId, Fun, Args, Options)
+  when is_list(Args) andalso is_function(Fun, length(Args)) ->
+    readwrite_transaction1(StoreId, Fun, Args, Options).
+
+readwrite_transaction1(StoreId, StandaloneFun, Args, Options) ->
+    Command = #tx{'fun' = StandaloneFun, args = Args},
     case process_command(StoreId, Command, Options) of
         {exception, _, _, _} = Exception ->
             handle_tx_exception(Exception);
@@ -972,13 +1000,9 @@ apply(
     bump_applied_command_count(Ret, Meta);
 apply(
   Meta,
-  #tx{'fun' = StandaloneFun},
+  #tx{'fun' = StandaloneFun, args = Args},
   State) ->
-    Fun = case is_function(StandaloneFun) of
-              false -> fun() -> khepri_fun:exec(StandaloneFun, []) end;
-              true  -> StandaloneFun
-          end,
-    Ret = khepri_tx_adv:run(State, Fun, true),
+    Ret = khepri_tx_adv:run(State, StandaloneFun, Args, true),
     bump_applied_command_count(Ret, Meta);
 apply(
   Meta,

@@ -43,7 +43,7 @@
 
 %% For internal user only.
 -export([to_standalone_fun/2,
-         run/3,
+         run/4,
          get_tx_state/0,
          path_from_string/1]).
 
@@ -490,7 +490,7 @@ delete_many_payloads(PathPattern, Options) ->
 %% @private
 
 to_standalone_fun(Fun, ReadWrite)
-  when is_function(Fun, 0) andalso
+  when is_function(Fun) andalso
        (ReadWrite =:= auto orelse ReadWrite =:= rw) ->
     Options =
     #{ensure_instruction_is_permitted =>
@@ -930,9 +930,10 @@ is_standalone_fun_still_needed(#{calls := Calls}, auto) ->
                 end,
     ReadWrite =:= rw.
 
--spec run(State, Fun, AllowUpdates) -> Ret when
+-spec run(State, StandaloneFun, Args, AllowUpdates) -> Ret when
       State :: khepri_machine:state(),
-      Fun :: khepri_tx:tx_fun(),
+      StandaloneFun :: khepri_fun:standalone_fun(),
+      Args :: list(),
       AllowUpdates :: boolean(),
       Ret :: {State, khepri_tx:tx_fun_result() | Exception, SideEffects},
       Exception :: {exception, Class, Reason, Stacktrace},
@@ -942,7 +943,7 @@ is_standalone_fun_still_needed(#{calls := Calls}, auto) ->
       SideEffects :: ra_machine:effects().
 %% @private
 
-run(State, Fun, AllowUpdates) ->
+run(State, StandaloneFun, Args, AllowUpdates) ->
     SideEffects = [],
     TxProps = #{allow_updates => AllowUpdates},
     NoState = erlang:put(?TX_STATE_KEY, {State, SideEffects}),
@@ -950,7 +951,7 @@ run(State, Fun, AllowUpdates) ->
     ?assertEqual(undefined, NoState),
     ?assertEqual(undefined, NoProps),
     try
-        Ret = Fun(),
+        Ret = khepri_fun:exec(StandaloneFun, Args),
 
         {NewState, NewSideEffects} = erlang:erase(?TX_STATE_KEY),
         NewTxProps = erlang:erase(?TX_PROPS),
