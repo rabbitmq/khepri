@@ -7,3 +7,5 @@
 
 -define(TX_STATE_KEY, khepri_tx_machine_state).
 -define(TX_PROPS, khepri_tx_properties).
+
+-define(TX_ABORT(Reason), {'$__ABORTED_KHEPRI_TX__', Reason}).

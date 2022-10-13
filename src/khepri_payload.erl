@@ -21,6 +21,7 @@
 
 -module(khepri_payload).
 
+-include("src/khepri_error.hrl").
 -include("src/khepri_fun.hrl").
 -include("src/khepri_payload.hrl").
 
@@ -83,9 +84,15 @@ data(Term) ->
 %% @see sproc().
 
 sproc(Fun) when is_function(Fun) ->
-    #p_sproc{sproc = Fun};
+    #p_sproc{sproc = Fun,
+             %% This will be overridden with the correct value when the
+             %% function will be extracted.
+             is_valid_as_tx_fun = false};
 sproc(#standalone_fun{} = Fun) ->
-    #p_sproc{sproc = Fun}.
+    #p_sproc{sproc = Fun,
+             %% This will be overriden with the correct value when the
+             %% function will be extracted.
+             is_valid_as_tx_fun = false}.
 
 -spec wrap(Payload) -> WrappedPayload when
       Payload :: payload() | khepri:data() | fun(),
@@ -121,5 +128,23 @@ prepare(#p_data{} = Payload) ->
     Payload;
 prepare(#p_sproc{sproc = Fun} = Payload)
   when is_function(Fun) ->
-    StandaloneFun = khepri_sproc:to_standalone_fun(Fun),
-    Payload#p_sproc{sproc = StandaloneFun}.
+    try
+        case khepri_tx_adv:to_standalone_fun(Fun, auto) of
+            #standalone_fun{} = StandaloneFun1 ->
+                Payload#p_sproc{sproc = StandaloneFun1,
+                                is_valid_as_tx_fun = rw};
+            _ ->
+                %% TODO: Improve `khepri_fun' API to avoid a second
+                %% extraction.
+                StandaloneFun1 = khepri_tx_adv:to_standalone_fun(Fun, rw),
+                Payload#p_sproc{sproc = StandaloneFun1,
+                                is_valid_as_tx_fun = ro}
+        end
+    catch
+        error:?khepri_exception(failed_to_prepare_tx_fun, _) ->
+            %% TODO: Prevent the use of `khepri_tx' and `khepri_tx_adv' in
+            %% regular stored procedures.
+            StandaloneFun2 = khepri_sproc:to_standalone_fun(Fun),
+            Payload#p_sproc{sproc = StandaloneFun2,
+                            is_valid_as_tx_fun = false}
+    end.

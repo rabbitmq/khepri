@@ -30,6 +30,7 @@
 -include("src/khepri_fun.hrl").
 -include("src/khepri_machine.hrl").
 -include("src/khepri_ret.hrl").
+-include("src/khepri_tx.hrl").
 
 -export([get/3,
          count/3,
@@ -275,9 +276,11 @@ delete(StoreId, PathPattern, Options) when ?IS_STORE_ID(StoreId) ->
                       options = TreeOptions},
     process_command(StoreId, Command, CommandOptions).
 
--spec transaction(StoreId, Fun, Args, ReadWrite, Options) -> Ret when
+-spec transaction(StoreId, FunOrPath, Args, ReadWrite, Options) -> Ret when
       StoreId :: khepri:store_id(),
+      FunOrPath :: Fun | PathPattern,
       Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
       Args :: list(),
       ReadWrite :: ro | rw | auto,
       Options :: khepri:command_options() | khepri:query_options(),
@@ -285,13 +288,14 @@ delete(StoreId, PathPattern, Options) when ?IS_STORE_ID(StoreId) ->
 %% @doc Runs a transaction and returns the result.
 %%
 %% @param StoreId the name of the Ra cluster.
-%% @param Fun an arbitrary anonymous function.
-%% @param Args a list of arguments to pass to `Fun'.
+%% @param FunOrPath an arbitrary anonymous function or a path pattern pointing
+%%        to a stored procedure.
+%% @param Args a list of arguments to pass to `FunOrPath'.
 %% @param ReadWrite the read/write or read-only nature of the transaction.
 %% @param Options command options such as the command type.
 %%
 %% @returns in the case of a synchronous transaction, `{ok, Result}' where
-%% `Result' is the return value of `Fun', or `{error, Reason}' if the
+%% `Result' is the return value of `FunOrPath', or `{error, Reason}' if the
 %% anonymous function was aborted; in the case of an asynchronous transaction,
 %% always `ok' (the actual return value may be sent by a message if a
 %% correlation ID was specified).
@@ -307,6 +311,14 @@ transaction(StoreId, Fun, Args, auto = ReadWrite, Options)
         _ ->
             readonly_transaction(StoreId, Fun, Args, Options)
     end;
+transaction(StoreId, PathPattern, Args, auto, Options)
+  when ?IS_STORE_ID(StoreId) andalso
+       ?IS_KHEPRI_PATH_PATTERN(PathPattern) andalso
+       is_list(Args) andalso
+       is_map(Options) ->
+    PathPattern1 = khepri_path:from_string(PathPattern),
+    khepri_path:ensure_is_valid(PathPattern1),
+    readwrite_transaction(StoreId, PathPattern1, Args, Options);
 transaction(StoreId, Fun, Args, rw = ReadWrite, Options)
   when ?IS_STORE_ID(StoreId) andalso
        is_list(Args) andalso
@@ -314,12 +326,28 @@ transaction(StoreId, Fun, Args, rw = ReadWrite, Options)
        is_map(Options) ->
     StandaloneFun = khepri_tx_adv:to_standalone_fun(Fun, ReadWrite),
     readwrite_transaction(StoreId, StandaloneFun, Args, Options);
+transaction(StoreId, PathPattern, Args, rw, Options)
+  when ?IS_STORE_ID(StoreId) andalso
+       ?IS_KHEPRI_PATH_PATTERN(PathPattern) andalso
+       is_list(Args) andalso
+       is_map(Options) ->
+    PathPattern1 = khepri_path:from_string(PathPattern),
+    khepri_path:ensure_is_valid(PathPattern1),
+    readwrite_transaction(StoreId, PathPattern1, Args, Options);
 transaction(StoreId, Fun, Args, ro, Options)
   when ?IS_STORE_ID(StoreId) andalso
        is_list(Args) andalso
        is_function(Fun, length(Args)) andalso
        is_map(Options) ->
     readonly_transaction(StoreId, Fun, Args, Options);
+transaction(StoreId, PathPattern, Args, ro, Options)
+  when ?IS_STORE_ID(StoreId) andalso
+       ?IS_KHEPRI_PATH_PATTERN(PathPattern) andalso
+       is_list(Args) andalso
+       is_map(Options) ->
+    PathPattern1 = khepri_path:from_string(PathPattern),
+    khepri_path:ensure_is_valid(PathPattern1),
+    readonly_transaction(StoreId, PathPattern1, Args, Options);
 transaction(StoreId, Fun, Args, ReadWrite, Options)
   when ?IS_STORE_ID(StoreId) andalso
        is_function(Fun) andalso
@@ -331,9 +359,11 @@ transaction(StoreId, Fun, Args, ReadWrite, Options)
        denied_tx_fun_with_invalid_args,
        #{'fun' => Fun, arity => Arity, args => Args}).
 
--spec readonly_transaction(StoreId, Fun, Args, Options) -> Ret when
+-spec readonly_transaction(StoreId, FunOrPath, Args, Options) -> Ret when
       StoreId :: khepri:store_id(),
+      FunOrPath :: Fun | PathPattern,
       Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
       Args :: list(),
       Options :: khepri:query_options(),
       Ret :: khepri_machine:tx_ret().
@@ -353,11 +383,29 @@ readonly_transaction(StoreId, Fun, Args, Options)
             handle_tx_exception(Exception);
         Ret ->
             {ok, Ret}
+    end;
+readonly_transaction(StoreId, PathPattern, Args, Options)
+  when ?IS_KHEPRI_PATH_PATTERN(PathPattern) andalso is_list(Args) ->
+    Query = fun(State) ->
+                    %% It is a read-only transaction, therefore we assert that
+                    %% the state is unchanged and that there are no side
+                    %% effects.
+                    {State, Ret, []} = locate_sproc_and_execute_tx(
+                                         State, PathPattern, Args, false),
+                    Ret
+            end,
+    case process_query(StoreId, Query, Options) of
+        {exception, _, _, _} = Exception ->
+            handle_tx_exception(Exception);
+        Ret ->
+            {ok, Ret}
     end.
 
--spec readwrite_transaction(StoreId, Fun, Args, Options) -> Ret when
+-spec readwrite_transaction(StoreId, FunOrPath, Args, Options) -> Ret when
       StoreId :: khepri:store_id(),
+      FunOrPath :: Fun | PathPattern,
       Fun :: khepri_fun:standalone_fun(),
+      PathPattern :: khepri_path:pattern(),
       Args :: list(),
       Options :: khepri:command_options(),
       Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
@@ -369,10 +417,16 @@ readwrite_transaction(
 readwrite_transaction(
   StoreId, Fun, Args, Options)
   when is_list(Args) andalso is_function(Fun, length(Args)) ->
-    readwrite_transaction1(StoreId, Fun, Args, Options).
+    readwrite_transaction1(StoreId, Fun, Args, Options);
+readwrite_transaction(
+  StoreId, PathPattern, Args, Options)
+  when ?IS_KHEPRI_PATH_PATTERN(PathPattern) andalso is_list(Args) ->
+    PathPattern1 = khepri_path:from_string(PathPattern),
+    khepri_path:ensure_is_valid(PathPattern1),
+    readwrite_transaction1(StoreId, PathPattern1, Args, Options).
 
-readwrite_transaction1(StoreId, StandaloneFun, Args, Options) ->
-    Command = #tx{'fun' = StandaloneFun, args = Args},
+readwrite_transaction1(StoreId, StandaloneFunOrPath, Args, Options) ->
+    Command = #tx{'fun' = StandaloneFunOrPath, args = Args},
     case process_command(StoreId, Command, Options) of
         {exception, _, _, _} = Exception ->
             handle_tx_exception(Exception);
@@ -387,7 +441,7 @@ readwrite_transaction1(StoreId, StandaloneFun, Args, Options) ->
     end.
 
 handle_tx_exception(
-  {exception, _, {aborted, Reason}, _}) ->
+  {exception, _, ?TX_ABORT(Reason), _}) ->
     {error, Reason};
 handle_tx_exception(
   {exception, error, ?khepri_exception(_, _) = Reason, _Stacktrace}) ->
@@ -1001,8 +1055,14 @@ apply(
 apply(
   Meta,
   #tx{'fun' = StandaloneFun, args = Args},
-  State) ->
+  State) when ?IS_STANDALONE_FUN(StandaloneFun) ->
     Ret = khepri_tx_adv:run(State, StandaloneFun, Args, true),
+    bump_applied_command_count(Ret, Meta);
+apply(
+  Meta,
+  #tx{'fun' = PathPattern, args = Args},
+  State) when ?IS_KHEPRI_PATH_PATTERN(PathPattern) ->
+    Ret = locate_sproc_and_execute_tx(State, PathPattern, Args, true),
     bump_applied_command_count(Ret, Meta);
 apply(
   Meta,
@@ -1206,7 +1266,9 @@ gather_node_props(#node{props = #{payload_version := PVersion,
                   #p_data{data = _}   -> Acc#{has_data => true};
                   #p_sproc{sproc = _} -> Acc#{is_sproc => true};
                   _                   -> Acc
-              end
+              end;
+          (raw_payload, Acc) ->
+              Acc#{raw_payload => Payload}
       end, #{}, WantedProps);
 gather_node_props(#node{}, _Options) ->
     #{}.
@@ -1314,6 +1376,48 @@ update_keep_while_conds_revidx(
               Watchers1 = Watchers#{Watcher => ok},
               KWRevIdx#{Watched => Watchers1}
       end, KeepWhileCondsRevIdx1, KeepWhile).
+
+locate_sproc_and_execute_tx(
+  #?MODULE{root = Root} = State, PathPattern, Args, AllowUpdates) ->
+    TreeOptions = #{expect_specific_node => true,
+                    props_to_return => [raw_payload]},
+    {StandaloneFun, Args1} =
+    case find_matching_nodes(Root, PathPattern, TreeOptions) of
+        {ok, Result} ->
+            case maps:values(Result) of
+                [#{raw_payload := #p_sproc{
+                                     sproc = StoredProc,
+                                     is_valid_as_tx_fun = ReadWrite}}]
+                  when AllowUpdates andalso
+                       (ReadWrite =:= ro orelse ReadWrite =:= rw) ->
+                    {StoredProc, Args};
+                [#{raw_payload := #p_sproc{
+                                     sproc = StoredProc,
+                                     is_valid_as_tx_fun = ro}}]
+                  when not AllowUpdates ->
+                    {StoredProc, Args};
+                [#{raw_payload := #p_sproc{}}] ->
+                    Reason = ?khepri_error(
+                                sproc_invalid_as_tx_fun,
+                                #{path => PathPattern}),
+                    {fun failed_to_locate_sproc/1, [Reason]};
+                _ ->
+                    Reason = ?khepri_error(
+                                no_sproc_at_given_path,
+                                #{path => PathPattern}),
+                    {fun failed_to_locate_sproc/1, [Reason]}
+            end;
+        {error, Reason} ->
+            {fun failed_to_locate_sproc/1, [Reason]}
+    end,
+    khepri_tx_adv:run(State, StandaloneFun, Args1, AllowUpdates).
+
+-spec failed_to_locate_sproc(Reason) -> no_return() when
+      Reason :: any().
+%% @private
+
+failed_to_locate_sproc(Reason) ->
+    khepri_tx:abort(Reason).
 
 -spec find_matching_nodes(Root, PathPattern, Options) -> Result when
       Root :: tree_node(),

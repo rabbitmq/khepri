@@ -750,7 +750,7 @@ delete_many_payloads(PathPattern, Options) ->
 %% @param Reason term to return to caller of the transaction.
 
 abort(Reason) ->
-    throw({aborted, Reason}).
+    throw(?TX_ABORT(Reason)).
 
 %% -------------------------------------------------------------------
 %% is_transaction().

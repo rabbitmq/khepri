@@ -12,3 +12,7 @@
                          arity :: arity(),
                          literal_funs :: [khepri_fun:standalone_fun()],
                          env :: list()}).
+
+-define(IS_STANDALONE_FUN(StandaloneFun),
+        (is_record(StandaloneFun, standalone_fun) orelse
+         is_function(StandaloneFun))).
