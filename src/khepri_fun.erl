@@ -2404,7 +2404,11 @@ replace_label(
             NewLabel = maps:get({Module, OldLabel}, LabelMap),
             setelement(Pos, Instruction, {f, NewLabel});
         nofail ->
-            Instruction
+            %% `beam_disasm' decodes the label of an instruction which can't
+            %% fail as `nofail'. The compiler never emits such a "label" and
+            %% crashes with that incorrect label. Instead the compiler seems to
+            %% use `{f,0}' to signify that the instruction can't/must not fail.
+            setelement(Pos, Instruction, {f, 0})
     end.
 
 -spec gen_module_name(State) -> Module when
