@@ -474,7 +474,7 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options)
 ack_triggers_execution(StoreId, TriggeredStoredProcs)
   when ?IS_STORE_ID(StoreId) ->
     Command = #ack_triggered{triggered = TriggeredStoredProcs},
-    process_command(StoreId, Command, #{}).
+    process_command(StoreId, Command, #{async => true}).
 
 -spec get_keep_while_conds_state(StoreId, Options) -> Ret when
       StoreId :: khepri:store_id(),
