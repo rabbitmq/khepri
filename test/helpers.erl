@@ -16,6 +16,8 @@
          remove_store_dir/1,
          with_log/1,
          capture_log/1,
+         silence_default_logger/0,
+         restore_default_logger/1,
          %% For internal use only.
          log/2,
          format/2]).
@@ -78,6 +80,15 @@ remove_store_dir(StoreDir) ->
         Error ->
             throw(Error)
     end.
+
+silence_default_logger() ->
+    {ok, #{level := OldDefaultLoggerLevel}} =
+      logger:get_handler_config(default),
+    ok = logger:set_handler_config(default, level, none),
+    OldDefaultLoggerLevel.
+
+restore_default_logger(OldDefaultLoggerLevel) ->
+    ok = logger:set_handler_config(default, level, OldDefaultLoggerLevel).
 
 -spec with_log(Fun) -> {Result, Log}
     when

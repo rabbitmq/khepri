@@ -12,10 +12,19 @@
 -include("src/khepri_cluster.hrl").
 -include("src/khepri_error.hrl").
 
+-include("test/helpers.hrl").
+
 app_starts_workers_test_() ->
     {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     fun() ->
+             Priv = test_ra_server_helpers:setup(?FUNCTION_NAME),
+             LogLevel = helpers:silence_default_logger(),
+             {Priv, LogLevel}
+     end,
+     fun({Priv, LogLevel}) ->
+             test_ra_server_helpers:cleanup(Priv),
+             helpers:restore_default_logger(LogLevel)
+     end,
      [{inorder,
        [?_assertMatch({ok, _}, application:ensure_all_started(khepri)),
         ?_assert(is_process_alive(whereis(khepri_event_handler))),
@@ -28,17 +37,24 @@ app_starts_workers_test_() ->
         ?_assertEqual([], [PT || {Key, _} = PT <- persistent_term:get(),
                                  element(1, Key) =:= khepri])]}]}.
 
-event_handler_gen_server_callbacks_test() ->
+event_handler_gen_server_callbacks_test_() ->
     %% This testcase is mostly to improve code coverage. We don't really care
     %% about the unused mandatory callbacks of this gen_server.
-    ?assertMatch({ok, _}, application:ensure_all_started(khepri)),
-    ?assert(is_process_alive(whereis(khepri_event_handler))),
-    khepri_event_handler ! timeout,
-    khepri_event_handler ! any_message,
-    ?assertEqual(ok, gen_server:cast(khepri_event_handler, any_cast)),
-    ?assertEqual(ok, gen_server:call(khepri_event_handler, any_call)),
-    ?assert(is_process_alive(whereis(khepri_event_handler))),
-    ?assertEqual(ok, application:stop(khepri)).
+    {setup,
+     fun helpers:silence_default_logger/0,
+     fun helpers:restore_default_logger/1,
+     [{inorder,
+       [?_assertMatch(
+          {ok, _},
+          application:ensure_all_started(khepri)),
+        ?_assert(is_process_alive(whereis(khepri_event_handler))),
+        ?_test(khepri_event_handler ! timeout),
+        ?_test(khepri_event_handler ! any_message),
+
+        ?_assertEqual(ok, gen_server:cast(khepri_event_handler, any_cast)),
+        ?_assertEqual(ok, gen_server:call(khepri_event_handler, any_call)),
+        ?_assert(is_process_alive(whereis(khepri_event_handler))),
+        ?_assertEqual(ok, application:stop(khepri))]}]}.
 
 get_default_timeout_with_no_app_env_test() ->
     ?assertEqual(
