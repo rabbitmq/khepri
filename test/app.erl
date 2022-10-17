@@ -69,11 +69,16 @@ get_default_timeout_with_neg_integer_app_env_test() ->
     Timeout = -5000,
     application:set_env(
       khepri, default_timeout, Timeout, [{persistent, true}]),
-    ?assertError(
-       ?khepri_exception(
-          invalid_default_timeout_value,
-          #{default_timeout := Timeout}),
-       khepri_app:get_default_timeout()),
+    Log = helpers:capture_log(
+            fun() ->
+                    ?assertError(
+                       ?khepri_exception(
+                          invalid_default_timeout_value,
+                          #{default_timeout := Timeout}),
+                       khepri_app:get_default_timeout())
+            end),
+    ?assertSubString(
+      <<"Invalid timeout set in `default_timeout`">>, Log),
     application:unset_env(
       khepri, default_timeout, [{persistent, true}]).
 
@@ -137,11 +142,17 @@ get_default_ra_system_or_data_dir_with_invalid_app_env_test() ->
     Invalid = {invalid},
     application:set_env(
       khepri, default_ra_system, Invalid, [{persistent, true}]),
-    ?assertError(
-       ?khepri_exception(
-          invalid_default_ra_system_value,
-          #{default_ra_system := Invalid}),
-       khepri_cluster:get_default_ra_system_or_data_dir()),
+    Log = helpers:capture_log(
+            fun() ->
+                    ?assertError(
+                       ?khepri_exception(
+                          invalid_default_ra_system_value,
+                          #{default_ra_system := Invalid}),
+                       khepri_cluster:get_default_ra_system_or_data_dir())
+            end),
+    ?assertSubString(
+      <<"Invalid Ra system or data directory set in `default_ra_system`">>,
+      Log),
     application:unset_env(
       khepri, default_ra_system, [{persistent, true}]).
 
@@ -164,11 +175,16 @@ get_default_store_id_with_invalid_app_env_test() ->
     Invalid = {invalid},
     application:set_env(
       khepri, default_store_id, Invalid, [{persistent, true}]),
-    ?assertError(
-       ?khepri_exception(
-          invalid_default_store_id_value,
-          #{default_store_id := Invalid}),
-       khepri_cluster:get_default_store_id()),
+    Log = helpers:capture_log(
+            fun() ->
+                    ?assertError(
+                       ?khepri_exception(
+                          invalid_default_store_id_value,
+                          #{default_store_id := Invalid}),
+                       khepri_cluster:get_default_store_id())
+            end),
+    ?assertSubString(
+      <<"Invalid store ID set in `default_store_id`">>, Log),
     application:unset_env(
       khepri, default_store_id, [{persistent, true}]).
 

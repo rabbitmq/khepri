@@ -16,3 +16,10 @@
         #{store_id => ?FUNCTION_NAME,
           member => khepri_cluster:this_member(?FUNCTION_NAME),
           commands => Commands}).
+
+%% Asserts that `SubString' is contained in `String'.
+%%
+%% `SubString' and `String' may either be lists or binaries but both must be
+%% the same type in any call.
+-define(assertSubString(SubString, String),
+        ?assertNotMatch(nomatch, string:find(String, SubString))).

@@ -473,9 +473,15 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
               StoredProcPath ++ [bad]))},
 
         {"Updating a node; should trigger the procedure",
-         ?_assertMatch(
-            ok,
-            khepri:put(?FUNCTION_NAME, [foo], 1))},
+         ?_test(
+            begin
+                Log = helpers:capture_log(
+                        fun() ->
+                                ?assertEqual(
+                                  ok, khepri:put(?FUNCTION_NAME, [foo], 1))
+                        end),
+                ?assertMatch(<<"Triggered stored procedure crash", _/binary>>, Log)
+            end)},
 
         {"Checking the procedure was executed",
          ?_assertEqual(executed, receive_sproc_msg(Key))},
@@ -529,7 +535,16 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
             ok,
             begin
                 timer:sleep(2000),
-                khepri:put(?FUNCTION_NAME, [foo], 6)
+                {Result, Log} = helpers:with_log(
+                                  fun() ->
+                                          khepri:put(?FUNCTION_NAME, [foo], 6)
+                                  end),
+                ?assertSubString(
+                  <<"Triggered stored procedure crash">>, Log),
+                ?assertSubString(
+                  <<"(this crash occurred 6 times in the last 10 seconds)">>,
+                  Log),
+                Result
             end)},
 
         {"Checking the procedure was executed",
