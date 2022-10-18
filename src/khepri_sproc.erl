@@ -16,6 +16,7 @@
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
 -include("src/khepri_fun.hrl").
+-include("src/khepri_tx.hrl").
 
 %% For internal user only.
 -export([to_standalone_fun/1,
@@ -47,7 +48,14 @@ to_standalone_fun(#standalone_fun{} = Fun) ->
       Ret :: any().
 
 run(StandaloneFun, Args) ->
-    khepri_fun:exec(StandaloneFun, Args).
+    try
+        khepri_fun:exec(StandaloneFun, Args)
+    catch
+        throw:?TX_ABORT(_Reason):Stacktrace ->
+            ?khepri_raise_misuse(
+               invalid_use_of_khepri_tx_outside_transaction, #{},
+               Stacktrace)
+    end.
 
 should_process_function(Module, Name, Arity, FromModule) ->
     ShouldCollect = khepri_utils:should_collect_code_for_module(Module),

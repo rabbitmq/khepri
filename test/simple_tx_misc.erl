@@ -24,8 +24,8 @@
              exception_in_ro_transaction_test_/0,
              exception_in_rw_transaction_test_/0]},
            {nowarn_function,
-            [fun_taking_args_in_ro_transaction_test_/0,
-             fun_taking_args_in_rw_transaction_test_/0,
+            [fun_taking_invalid_args_in_ro_transaction_test_/0,
+             fun_taking_invalid_args_in_rw_transaction_test_/0,
              not_a_function_as_ro_transaction_test_/0,
              not_a_function_as_rw_transaction_test_/0,
              use_an_invalid_path_in_tx_test_/0]}]).
@@ -224,8 +224,37 @@ fun_taking_args_in_ro_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, {ok, arg1, arg2}},
+         begin
+             Fun = fun(Arg1, Arg2) ->
+                           {ok, Arg1, Arg2}
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, [arg1, arg2], ro)
+         end)]}.
+
+fun_taking_args_in_rw_transaction_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, {ok, arg1, arg2}},
+         begin
+             Fun = fun(Arg1, Arg2) ->
+                           {ok, Arg1, Arg2}
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, [arg1, arg2], rw)
+         end)]}.
+
+fun_taking_invalid_args_in_ro_transaction_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         ?khepri_exception(denied_tx_fun_with_arguments, #{arity := 1}),
+         ?khepri_exception(
+            denied_tx_fun_with_invalid_args,
+            #{arity := 1,
+              args := []}),
          begin
              Fun = fun(Arg) ->
                            Arg
@@ -233,12 +262,15 @@ fun_taking_args_in_ro_transaction_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end)]}.
 
-fun_taking_args_in_rw_transaction_test_() ->
+fun_taking_invalid_args_in_rw_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         ?khepri_exception(denied_tx_fun_with_arguments, #{arity := 1}),
+         ?khepri_exception(
+            denied_tx_fun_with_invalid_args,
+            #{arity := 1,
+              args := []}),
          begin
              Fun = fun(Arg) ->
                            Arg
@@ -246,13 +278,40 @@ fun_taking_args_in_rw_transaction_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
 
+test_transaction_api_args_permutations_test_() ->
+    Fun = fun() -> ok end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, ok},
+         khepri:transaction(?FUNCTION_NAME, Fun)),
+      ?_assertEqual(
+         {ok, ok},
+         khepri:transaction(?FUNCTION_NAME, Fun, [])),
+      ?_assertEqual(
+         {ok, ok},
+         khepri:transaction(?FUNCTION_NAME, Fun, rw)),
+      ?_assertEqual(
+         {ok, ok},
+         khepri:transaction(?FUNCTION_NAME, Fun, #{})),
+      ?_assertEqual(
+         {ok, ok},
+         khepri:transaction(?FUNCTION_NAME, Fun, [], rw)),
+      ?_assertEqual(
+         {ok, ok},
+         khepri:transaction(?FUNCTION_NAME, Fun, [], #{})),
+      ?_assertEqual(
+         {ok, ok},
+         khepri:transaction(?FUNCTION_NAME, Fun, rw, #{}))]}.
+
 not_a_function_as_ro_transaction_test_() ->
     Term = an_atom,
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         ?khepri_exception(non_fun_term_used_as_tx_fun, #{term := Term}),
+         function_clause,
          khepri:transaction(?FUNCTION_NAME, Term, ro))]}.
 
 not_a_function_as_rw_transaction_test_() ->
@@ -261,7 +320,7 @@ not_a_function_as_rw_transaction_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertError(
-         ?khepri_exception(non_fun_term_used_as_tx_fun, #{term := Term}),
+         function_clause,
          khepri:transaction(?FUNCTION_NAME, Term, rw))]}.
 
 exception_in_ro_transaction_test_() ->

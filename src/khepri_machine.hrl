@@ -52,7 +52,8 @@
 -record(delete, {path :: khepri_path:native_pattern(),
                  options  = #{} :: khepri:tree_options()}).
 
--record(tx, {'fun' :: khepri_fun:standalone_fun()}).
+-record(tx, {'fun' :: khepri_fun:standalone_fun() | khepri_path:pattern(),
+             args = [] :: list()}).
 
 -record(register_trigger, {id :: khepri:trigger_id(),
                            event_filter :: khepri_evf:event_filter(),

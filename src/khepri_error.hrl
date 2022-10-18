@@ -20,3 +20,7 @@
 -define(
    khepri_misuse(Name, Props),
    ?khepri_misuse(?khepri_exception(Name, Props))).
+
+-define(
+   khepri_raise_misuse(Name, Props, Stacktrace),
+   erlang:raise(error, ?khepri_exception(Name, Props), Stacktrace)).

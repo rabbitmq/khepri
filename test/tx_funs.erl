@@ -64,7 +64,7 @@ allowed_khepri_tx_api_test() ->
            _ = khepri_tx:is_transaction()
        end).
 
-denied_khepri_tx_adv_run_3_test() ->
+denied_khepri_tx_adv_run_4_test() ->
     MachineState = #khepri_machine{
                       config = #config{store_id = ?FUNCTION_NAME,
                                        member = {?FUNCTION_NAME, node()}}
@@ -72,8 +72,8 @@ denied_khepri_tx_adv_run_3_test() ->
     ?assertToFunError(
        ?khepri_exception(
           failed_to_prepare_tx_fun,
-          #{error := {call_denied, {khepri_tx_adv, run, 3}}}),
-       _ = khepri_tx_adv:run(MachineState, fun() -> ok end, true)).
+          #{error := {call_denied, {khepri_tx_adv, run, 4}}}),
+       _ = khepri_tx_adv:run(MachineState, fun() -> ok end, [], true)).
 
 allowed_erlang_expressions_add_test() ->
     One = mask(1),

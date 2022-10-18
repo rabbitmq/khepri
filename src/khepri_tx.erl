@@ -92,7 +92,7 @@
 -type tx_fun_result() :: any() | no_return().
 %% Return value of a transaction function.
 
--type tx_fun() :: fun(() -> khepri_tx:tx_fun_result()).
+-type tx_fun() :: fun().
 %% Transaction function signature.
 
 -type tx_abort() :: khepri:error(any()).
@@ -750,7 +750,7 @@ delete_many_payloads(PathPattern, Options) ->
 %% @param Reason term to return to caller of the transaction.
 
 abort(Reason) ->
-    throw({aborted, Reason}).
+    throw(?TX_ABORT(Reason)).
 
 %% -------------------------------------------------------------------
 %% is_transaction().

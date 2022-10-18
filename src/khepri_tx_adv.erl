@@ -17,6 +17,7 @@
 
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
+-include("src/khepri_fun.hrl").
 -include("src/khepri_machine.hrl").
 -include("src/khepri_ret.hrl").
 -include("src/khepri_tx.hrl").
@@ -43,7 +44,7 @@
 
 %% For internal user only.
 -export([to_standalone_fun/2,
-         run/3,
+         run/4,
          get_tx_state/0,
          path_from_string/1]).
 
@@ -490,7 +491,7 @@ delete_many_payloads(PathPattern, Options) ->
 %% @private
 
 to_standalone_fun(Fun, ReadWrite)
-  when is_function(Fun, 0) andalso
+  when is_function(Fun) andalso
        (ReadWrite =:= auto orelse ReadWrite =:= rw) ->
     Options =
     #{ensure_instruction_is_permitted =>
@@ -930,9 +931,10 @@ is_standalone_fun_still_needed(#{calls := Calls}, auto) ->
                 end,
     ReadWrite =:= rw.
 
--spec run(State, Fun, AllowUpdates) -> Ret when
+-spec run(State, StandaloneFun, Args, AllowUpdates) -> Ret when
       State :: khepri_machine:state(),
-      Fun :: khepri_tx:tx_fun(),
+      StandaloneFun :: khepri_fun:standalone_fun(),
+      Args :: list(),
       AllowUpdates :: boolean(),
       Ret :: {State, khepri_tx:tx_fun_result() | Exception, SideEffects},
       Exception :: {exception, Class, Reason, Stacktrace},
@@ -942,7 +944,8 @@ is_standalone_fun_still_needed(#{calls := Calls}, auto) ->
       SideEffects :: ra_machine:effects().
 %% @private
 
-run(State, Fun, AllowUpdates) ->
+run(State, StandaloneFun, Args, AllowUpdates)
+  when ?IS_STANDALONE_FUN(StandaloneFun) ->
     SideEffects = [],
     TxProps = #{allow_updates => AllowUpdates},
     NoState = erlang:put(?TX_STATE_KEY, {State, SideEffects}),
@@ -950,7 +953,7 @@ run(State, Fun, AllowUpdates) ->
     ?assertEqual(undefined, NoState),
     ?assertEqual(undefined, NoProps),
     try
-        Ret = Fun(),
+        Ret = khepri_fun:exec(StandaloneFun, Args),
 
         {NewState, NewSideEffects} = erlang:erase(?TX_STATE_KEY),
         NewTxProps = erlang:erase(?TX_PROPS),
@@ -982,9 +985,12 @@ handle_state_for_call(Fun) ->
 %% @private
 
 get_tx_state() ->
-    StateAndSideEffects =
-    {#khepri_machine{}, _SideEffects} = erlang:get(?TX_STATE_KEY),
-    StateAndSideEffects.
+    case erlang:get(?TX_STATE_KEY) of
+        {#khepri_machine{}, _SideEffects} = StateAndSideEffects ->
+            StateAndSideEffects;
+        undefined ->
+            ?khepri_misuse(invalid_use_of_khepri_tx_outside_transaction, #{})
+    end.
 
 -spec set_tx_state(State, SideEffects) -> ok when
       State :: khepri_machine:state(),
@@ -1000,7 +1006,12 @@ set_tx_state(#khepri_machine{} = NewState, SideEffects) ->
 %% @private
 
 get_tx_props() ->
-    erlang:get(?TX_PROPS).
+    case erlang:get(?TX_PROPS) of
+        TxProps when is_map(TxProps) ->
+            TxProps;
+        undefined ->
+            ?khepri_misuse(invalid_use_of_khepri_tx_outside_transaction, #{})
+    end.
 
 -spec path_from_string(PathPattern) -> NativePathPattern | no_return() when
       PathPattern :: khepri_path:pattern(),
