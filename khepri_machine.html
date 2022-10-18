@@ -75,7 +75,7 @@ module.</p>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get-3">get/3</a></td><td>Returns all tree nodes matching the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#count-3">count/3</a></td><td>Counts all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#delete-3">delete/3</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
-<tr><td valign="top"><a href="#transaction-4">transaction/4</a></td><td>Runs a transaction and returns the result.</td></tr>
+<tr><td valign="top"><a href="#transaction-5">transaction/5</a></td><td>Runs a transaction and returns the result.</td></tr>
 <tr><td valign="top"><a href="#handle_tx_exception-1">handle_tx_exception/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#run_sproc-4">run_sproc/4</a></td><td>Executes a stored procedure.</td></tr>
 <tr><td valign="top"><a href="#register_trigger-5">register_trigger/5</a></td><td>Registers a trigger.</td></tr>
@@ -127,18 +127,20 @@ module.</p>
 </div><p>Deletes all tree nodes matching the path pattern.
  </p>
 
-<h3 class="function"><a name="transaction-4">transaction/4</a></h3>
+<h3 class="function"><a name="transaction-5">transaction/5</a></h3>
 <div class="spec">
-<p><code>transaction(StoreId, Fun, ReadWrite, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
+<p><code>transaction(StoreId, FunOrPath, Args, ReadWrite, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>FunOrPath = Fun | PathPattern</code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Args = list()</code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Ra cluster.<br>
-<code>Fun</code>: an arbitrary anonymous function.<br>
+<code>FunOrPath</code>: an arbitrary anonymous function or a path pattern pointing
+         to a stored procedure.<br>
+<code>Args</code>: a list of arguments to pass to <code>FunOrPath</code>.<br>
 <code>ReadWrite</code>: the read/write or read-only nature of the transaction.<br>
 <code>Options</code>: command options such as the command type.
  <br>
 </p>
 <p>returns: in the case of a synchronous transaction, <code>{ok, Result}</code> where
-  <code>Result</code> is the return value of <code>Fun</code>, or <code>{error, Reason}</code> if the
+  <code>Result</code> is the return value of <code>FunOrPath</code>, or <code>{error, Reason}</code> if the
   anonymous function was aborted; in the case of an asynchronous transaction,
   always <code>ok</code> (the actual return value may be sent by a message if a
   correlation ID was specified).</p>

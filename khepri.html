@@ -230,7 +230,7 @@ on a single tree node.</p>
   This is the same as the Ra cluster name hosting the Khepri store.</p>
 
 <h3 class="typedecl"><a name="type-tree_options">tree_options()</a></h3>
-<p><code>tree_options() = #{expect_specific_node =&gt; boolean(), props_to_return =&gt; [payload_version | child_list_version | child_list_length | child_names | payload | has_payload], include_root_props =&gt; boolean()}</code></p>
+<p><code>tree_options() = #{expect_specific_node =&gt; boolean(), props_to_return =&gt; [payload_version | child_list_version | child_list_length | child_names | payload | has_payload | raw_payload], include_root_props =&gt; boolean()}</code></p>
 <p><p>  Options used during tree traversal.</p>
  
   <ul>
@@ -240,7 +240,8 @@ on a single tree node.</p>
   returned tree node properties map. The default is <code>[payload,
   payload_version]</code>. Note that <code>payload</code> and <code>has_payload</code> are a bit special:
   the actually returned properties will be <code>data</code>/<code>sproc</code> and
-  <code>has_data</code>/<code>is_sproc</code> respectively.</li>
+  <code>has_data</code>/<code>is_sproc</code> respectively. <code>raw_payload</code> is for internal use
+  only.</li>
   <li><code>include_root_props</code> indicates if root properties and payload should be
   returned as well.</li>
   </ul></p>
@@ -371,6 +372,7 @@ pattern.</td></tr>
 <tr><td valign="top"><a href="#transaction-2">transaction/2</a></td><td>Runs a transaction and returns its result.</td></tr>
 <tr><td valign="top"><a href="#transaction-3">transaction/3</a></td><td>Runs a transaction and returns its result.</td></tr>
 <tr><td valign="top"><a href="#transaction-4">transaction/4</a></td><td>Runs a transaction and returns its result.</td></tr>
+<tr><td valign="top"><a href="#transaction-5">transaction/5</a></td><td>Runs a transaction and returns its result.</td></tr>
 <tr><td valign="top"><a href="#wait_for_async_ret-1">wait_for_async_ret/1</a></td><td>Waits for an asynchronous call.</td></tr>
 <tr><td valign="top"><a href="#wait_for_async_ret-2">wait_for_async_ret/2</a></td><td>Waits for an asynchronous call.</td></tr>
 <tr><td valign="top"><a href="#get%21-1">'get!'/1</a></td><td></td></tr>
@@ -1729,41 +1731,75 @@ is a map containing the event properties. Here is an example:</p>
 
 <h3 class="function"><a name="transaction-1">transaction/1</a></h3>
 <div class="spec">
-<p><code>transaction(Fun) -&gt; Ret</code>
-<ul class="definitions"><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a></code></li></ul></p>
+<p><code>transaction(FunOrPath) -&gt; Ret</code>
+<ul class="definitions"><li><code>FunOrPath = Fun | PathPattern</code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Runs a transaction and returns its result.</p>
  
-  Calling this function is the same as calling <code>transaction(StoreId, Fun)</code>
+  Calling this function is the same as calling <code>transaction(FunOrPath, [])</code>
   with the default store ID.
  </p>
 <p><b>See also:</b> <a href="#transaction-2">transaction/2</a>.</p>
 
 <h3 class="function"><a name="transaction-2">transaction/2</a></h3>
 <div class="spec">
-<p><code>transaction(StoreId, Fun) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a></code></li></ul></p><p><code>transaction(Fun, ReadWriteOrOptions) -&gt; Ret</code>
-<ul class="definitions"><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWriteOrOptions = ReadWrite | Options</code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="#type-command_options">command_options()</a> | <a href="#type-query_options">query_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
+<p><code>transaction(StoreId, FunOrPath) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>FunOrPath = Fun | PathPattern</code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a></code></li></ul></p><p><code>transaction(FunOrPath, Args) -&gt; Ret</code>
+<ul class="definitions"><li><code>FunOrPath = Fun | PathPattern</code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Args = list()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a></code></li></ul></p><p><code>transaction(FunOrPath, ReadWriteOrOptions) -&gt; Ret</code>
+<ul class="definitions"><li><code>FunOrPath = Fun | PathPattern</code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>ReadWriteOrOptions = ReadWrite | Options</code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="#type-command_options">command_options()</a> | <a href="#type-query_options">query_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
+<p></p>
 <p></p>
 <p></p>
 </div><p><p>Runs a transaction and returns its result.</p>
  
   This function accepts the following two forms:
   <ul>
-  <li><code>transaction(StoreId, Fun)</code>. Calling it is the same as calling
-  <code>transaction(StoreId, Fun, #{})</code>.</li>
-  <li><code>transaction(Fun, Options)</code>. Calling it is the same as calling
-  <code>transaction(StoreId, Fun, Options)</code> with the default store ID.</li>
+  <li><code>transaction(StoreId, FunOrPath)</code>. Calling it is the same as calling
+  <code>transaction(StoreId, FunOrPath, [])</code>.</li>
+  <li><code>transaction(FunOrPath, Args)</code>. Calling it is the same as calling
+  <code>transaction(StoreId, FunOrPath, Args)</code> with the default store ID.</li>
+  <li><code>transaction(FunOrPath, ReadWriteOrOptions)</code>. Calling it is the same as
+  calling <code>transaction(StoreId, FunOrPath, [], ReadWriteOrOptions)</code> with the
+  default store ID.</li>
   </ul>
  </p>
 <p><b>See also:</b> <a href="#transaction-3">transaction/3</a>.</p>
 
 <h3 class="function"><a name="transaction-3">transaction/3</a></h3>
 <div class="spec">
-<p><code>transaction(StoreId, Fun, ReadWrite) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a></code></li></ul></p><p><code>transaction(StoreId, Fun, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>Options = <a href="#type-command_options">command_options()</a> | <a href="#type-query_options">query_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p><p><code>transaction(Fun, ReadWrite, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="#type-command_options">command_options()</a> | <a href="#type-query_options">query_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
+<p><code>transaction(StoreId, FunOrPath, Args) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>FunOrPath = Fun | PathPattern</code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Args = list()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a></code></li></ul></p><p><code>transaction(StoreId, FunOrPath, ReadWriteOrOptions) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>FunOrPath = Fun | PathPattern</code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>ReadWriteOrOptions = ReadWrite | Options</code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="#type-command_options">command_options()</a> | <a href="#type-query_options">query_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p><p><code>transaction(FunOrPath, Args, ReadWriteOrOptions) -&gt; Ret</code>
+<ul class="definitions"><li><code>FunOrPath = Fun | PathPattern</code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Args = list()</code></li><li><code>ReadWriteOrOptions = ReadWrite | Options</code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="#type-command_options">command_options()</a> | <a href="#type-query_options">query_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p><p><code>transaction(FunOrPath, ReadWrite, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>FunOrPath = Fun | PathPattern</code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="#type-command_options">command_options()</a> | <a href="#type-query_options">query_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
+<p></p>
+<p></p>
+<p></p>
+<p></p>
+</div><p><p>Runs a transaction and returns its result.</p>
+ 
+  This function accepts the following two forms:
+  <ul>
+  <li><code>transaction(StoreId, FunOrPath, Args)</code>. Calling it is the same as
+  calling <code>transaction(StoreId, FunOrPath, Args, auto)</code>.</li>
+  <li><code>transaction(StoreId, FunOrPath, ReadWriteOrOptions)</code>. Calling it is
+  the same as calling <code>transaction(StoreId, FunOrPath, [],
+  ReadWriteOrOptions)</code>.</li>
+  <li><code>transaction(FunOrPath, Args, ReadWriteOrOptions)</code>. Calling it is the
+  same as calling <code>transaction(StoreId, FunOrPath, Args, ReadWriteOrOptions)</code>
+  with the default store ID.</li>
+  </ul>
+ </p>
+<p><b>See also:</b> <a href="#transaction-4">transaction/4</a>.</p>
+
+<h3 class="function"><a name="transaction-4">transaction/4</a></h3>
+<div class="spec">
+<p><code>transaction(StoreId, FunOrPath, Args, ReadWrite) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>FunOrPath = Fun | PathPattern</code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Args = list()</code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a></code></li></ul></p><p><code>transaction(StoreId, FunOrPath, Args, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>FunOrPath = Fun | PathPattern</code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Args = list()</code></li><li><code>Options = <a href="#type-command_options">command_options()</a> | <a href="#type-query_options">query_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p><p><code>transaction(StoreId, FunOrPath, ReadWrite, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>FunOrPath = Fun | PathPattern</code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="#type-command_options">command_options()</a> | <a href="#type-query_options">query_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p><p><code>transaction(FunOrPath, Args, ReadWrite, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>FunOrPath = Fun | PathPattern</code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Args = list()</code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="#type-command_options">command_options()</a> | <a href="#type-query_options">query_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
+<p></p>
 <p></p>
 <p></p>
 <p></p>
@@ -1771,38 +1807,48 @@ is a map containing the event properties. Here is an example:</p>
  
   This function accepts the following three forms:
   <ul>
-  <li><code>transaction(StoreId, PathPattern, ReadWrite)</code>. Calling it is the same
-  as calling <code>transaction(StoreId, PathPattern, ReadWrite, #{})</code>.</li>
-  <li><code>transaction(StoreId, PathPattern, Options)</code>. Calling it is the same
-  as calling <code>transaction(StoreId, PathPattern, auto, Options)</code>.</li>
-  <li><code>transaction(PathPattern, ReadWrite, Options)</code>. Calling it is the same
-  as calling <code>transaction(StoreId, PathPattern, ReadWrite, Options)</code> with the
-  default store ID.</li>
+  <li><code>transaction(StoreId, FunOrPath, Args, ReadWrite)</code>. Calling it is the
+  same as calling <code>transaction(StoreId, FunOrPath, Args, ReadWrite,
+  #{})</code>.</li>
+  <li><code>transaction(StoreId, FunOrPath, Args, Options)</code>. Calling it is the
+  same as calling <code>transaction(StoreId, FunOrPath, Args, auto,
+  Options)</code>.</li>
+  <li><code>transaction(FunOrPath, Args, ReadWrite, Options)</code>. Calling it is the
+  same as calling <code>transaction(StoreId, FunOrPath, Args, ReadWrite, Options)</code>
+  with the default store ID.</li>
   </ul>
  </p>
-<p><b>See also:</b> <a href="#transaction-4">transaction/4</a>.</p>
+<p><b>See also:</b> <a href="#transaction-5">transaction/5</a>.</p>
 
-<h3 class="function"><a name="transaction-4">transaction/4</a></h3>
+<h3 class="function"><a name="transaction-5">transaction/5</a></h3>
 <div class="spec">
-<p><code>transaction(StoreId, Fun, ReadWrite, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
+<p><code>transaction(StoreId, FunOrPath, Args, ReadWrite, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>FunOrPath = Fun | PathPattern</code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun">khepri_tx:tx_fun()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Args = list()</code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Khepri store.<br>
-<code>Fun</code>: an arbitrary anonymous function.<br>
+<code>FunOrPath</code>: an arbitrary anonymous function or a path pattern pointing
+         to a stored procedure.<br>
+<code>Args</code>: a list of arguments to pass to <code>FunOrPath</code>.<br>
 <code>ReadWrite</code>: the read/write or read-only nature of the transaction.<br>
 <code>Options</code>: command options such as the command type.
  <br>
 </p>
 <p>returns: in the case of a synchronous transaction, <code>{ok, Result}</code> where
-  <code>Result</code> is the return value of <code>Fun</code>, or <code>{error, Reason}</code> if the anonymous
-  function was aborted; in the case of an asynchronous transaction, always
-  <code>ok</code> (the actual return value may be sent by a message if a correlation ID
-  was specified).</p>
+  <code>Result</code> is the return value of <code>FunOrPath</code>, or <code>{error, Reason}</code> if the
+  anonymous function was aborted; in the case of an asynchronous transaction,
+  always <code>ok</code> (the actual return value may be sent by a message if a
+  correlation ID was specified).</p>
 </div><p><p>Runs a transaction and returns its result.</p>
  
-  <p><code>Fun</code> is an arbitrary anonymous function which takes no arguments.</p>
+  <p><code>Fun</code> is an arbitrary anonymous function which takes the content of <code>Args</code>
+  as its arguments. In other words, the length of <code>Args</code> must correspond to
+  the arity of <code>Fun</code>.</p>
  
-  <p>The <code>ReadWrite</code> flag determines what the anonymous function is allowed to  
-do and in which context it runs:</p>
+  <p>Instead of <code>Fun</code>, <code>PathPattern` can be passed. It must point to an existing
+  stored procedure. The length to `Args</code> must correspond to the arity of that  
+stored procedure.</p>
+ 
+  <p>The <code>ReadWrite</code> flag determines what the <code>Fun</code> anonymous function is  
+allowed to do and in which context it runs:</p>
  
   <ul>
   <li>If <code>ReadWrite</code> is <code>ro</code>, <code>Fun</code> can do whatever it wants, except modify
@@ -1822,13 +1868,15 @@ do and in which context it runs:</p>
   <code>ReadWrite</code> to false.</li>
   </ul>
  
+  <p>When using <code>PathPattern</code>, a <code>ReadWrite</code> of <code>auto</code> is synonymous of <code>rw</code>.</p>
+ 
   <p><code>Options</code> is relevant for both read-only and read-write transactions  
 (including audetected ones). However note that both types expect different  
 options.</p>
  
-  The result of <code>Fun</code> can be any term. That result is returned in an <code>{ok,
-  Result}</code> tuple if the transaction is synchronous. The result is sent by
-  message if the transaction is asynchronous and a correlation ID was
+  The result of <code>FunOrPath</code> can be any term. That result is returned in an
+  <code>{ok, Result}</code> tuple if the transaction is synchronous. The result is sent
+  by message if the transaction is asynchronous and a correlation ID was
   specified.
  </p>
 
