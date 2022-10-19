@@ -2572,7 +2572,7 @@ handle_applied_changes(
     keep_while_conds_revidx := KeepWhileCondsRevIdx,
     applied_changes := AppliedChanges} = Extra,
   FunAcc) ->
-    ToRemove = eval_keep_while_conditions(
+    ToDelete = eval_keep_while_conditions(
                  AppliedChanges, KeepWhileConds, KeepWhileCondsRevIdx,
                  Root),
 
@@ -2592,8 +2592,8 @@ handle_applied_changes(
     Extra1 = Extra#{keep_while_conds => KeepWhileConds1,
                     keep_while_conds_revidx => KeepWhileCondsRevIdx1},
 
-    ToRemove1 = filter_and_sort_paths_to_remove(ToRemove, AppliedChanges),
-    remove_expired_nodes(ToRemove1, Root, Extra1, FunAcc).
+    ToDelete1 = filter_and_sort_paths_to_delete(ToDelete, AppliedChanges),
+    remove_expired_nodes(ToDelete1, Root, Extra1, FunAcc).
 
 eval_keep_while_conditions(
   AppliedChanges, KeepWhileConds, KeepWhileCondsRevIdx, Root) ->
@@ -2610,59 +2610,59 @@ eval_keep_while_conditions(
     %% if they should be removed.
     maps:fold(
       fun
-          (RemovedPath, delete, ToRemove) ->
+          (RemovedPath, delete, ToDelete) ->
               maps:fold(
-                fun(Path, Watchers, ToRemove1) ->
+                fun(Path, Watchers, ToDelete1) ->
                         case lists:prefix(RemovedPath, Path) of
                             true ->
                                 eval_keep_while_conditions_after_removal(
-                                  Watchers, KeepWhileConds, Root, ToRemove1);
+                                  Watchers, KeepWhileConds, Root, ToDelete1);
                             false ->
-                                ToRemove1
+                                ToDelete1
                         end
-                end, ToRemove, KeepWhileCondsRevIdx);
-          (UpdatedPath, NodeProps, ToRemove) ->
+                end, ToDelete, KeepWhileCondsRevIdx);
+          (UpdatedPath, NodeProps, ToDelete) ->
               case KeepWhileCondsRevIdx of
                   #{UpdatedPath := Watchers} ->
                       eval_keep_while_conditions_after_update(
                         UpdatedPath, NodeProps,
-                        Watchers, KeepWhileConds, Root, ToRemove);
+                        Watchers, KeepWhileConds, Root, ToDelete);
                   _ ->
-                      ToRemove
+                      ToDelete
               end
       end, #{}, AppliedChanges).
 
 eval_keep_while_conditions_after_update(
-  UpdatedPath, NodeProps, Watchers, KeepWhileConds, Root, ToRemove) ->
+  UpdatedPath, NodeProps, Watchers, KeepWhileConds, Root, ToDelete) ->
     maps:fold(
-      fun(Watcher, ok, ToRemove1) ->
+      fun(Watcher, ok, ToDelete1) ->
               KeepWhile = maps:get(Watcher, KeepWhileConds),
               CondOnUpdated = maps:get(UpdatedPath, KeepWhile),
               IsMet = khepri_condition:is_met(
                         CondOnUpdated, UpdatedPath, NodeProps),
               case IsMet of
                   true ->
-                      ToRemove1;
+                      ToDelete1;
                   {false, _} ->
                       case are_keep_while_conditions_met(Root, KeepWhile) of
-                          true       -> ToRemove1;
-                          {false, _} -> ToRemove1#{Watcher => remove}
+                          true       -> ToDelete1;
+                          {false, _} -> ToDelete1#{Watcher => delete}
                       end
               end
-      end, ToRemove, Watchers).
+      end, ToDelete, Watchers).
 
 eval_keep_while_conditions_after_removal(
-  Watchers, KeepWhileConds, Root, ToRemove) ->
+  Watchers, KeepWhileConds, Root, ToDelete) ->
     maps:fold(
-      fun(Watcher, ok, ToRemove1) ->
+      fun(Watcher, ok, ToDelete1) ->
               KeepWhile = maps:get(Watcher, KeepWhileConds),
               case are_keep_while_conditions_met(Root, KeepWhile) of
-                  true       -> ToRemove1;
-                  {false, _} -> ToRemove1#{Watcher => delete}
+                  true       -> ToDelete1;
+                  {false, _} -> ToDelete1#{Watcher => delete}
               end
-      end, ToRemove, Watchers).
+      end, ToDelete, Watchers).
 
-filter_and_sort_paths_to_remove(ToRemove, AppliedChanges) ->
+filter_and_sort_paths_to_delete(ToDelete, AppliedChanges) ->
     Paths1 = lists:sort(
                fun
                    (A, B) when length(A) =:= length(B) ->
@@ -2670,7 +2670,7 @@ filter_and_sort_paths_to_remove(ToRemove, AppliedChanges) ->
                    (A, B) ->
                        length(A) < length(B)
                end,
-               maps:keys(ToRemove)),
+               maps:keys(ToDelete)),
     Paths2 = lists:foldl(
                fun(Path, Map) ->
                        case AppliedChanges of
@@ -2700,8 +2700,8 @@ is_parent_being_removed1([], _) ->
 
 remove_expired_nodes([], Root, Extra, FunAcc) ->
     {ok, Root, Extra, FunAcc};
-remove_expired_nodes([PathToRemove | Rest], Root, Extra, FunAcc) ->
-    case do_delete_matching_nodes(PathToRemove, Root, Extra, #{}) of
+remove_expired_nodes([PathToDelete | Rest], Root, Extra, FunAcc) ->
+    case do_delete_matching_nodes(PathToDelete, Root, Extra, #{}) of
         {ok, Root1, Extra1, _} ->
             remove_expired_nodes(Rest, Root1, Extra1, FunAcc)
     end.
