@@ -480,6 +480,12 @@ is_met(#if_has_data{has_data = true},
 is_met(#if_has_data{has_data = false} = Cond,
        _ChildName, #node{payload = #p_data{data = _}}) ->
     {false, Cond};
+is_met(#if_has_data{has_data = true},
+       _ChildName, #{data := _}) ->
+    true;
+is_met(#if_has_data{has_data = false} = Cond,
+       _ChildName, #{data := _}) ->
+    {false, Cond};
 is_met(#if_has_data{has_data = true} = Cond, _ChildName, _Child) ->
     {false, Cond};
 is_met(#if_has_data{has_data = false}, _ChildName, _Child) ->

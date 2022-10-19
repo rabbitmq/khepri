@@ -157,7 +157,19 @@ if_name_matches_matching_test() ->
     CompiledCond = khepri_condition:compile(#if_name_matches{regex = "a"}),
     ?assertEqual(
        {false, CompiledCond},
-       khepri_condition:is_met(CompiledCond, foo, #node{})).
+       khepri_condition:is_met(CompiledCond, foo, #node{})),
+
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_name_matches{regex = any}),
+         foo, #{})),
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_name_matches{regex = "o"}),
+         foo, #{})),
+    ?assertEqual(
+       {false, CompiledCond},
+       khepri_condition:is_met(CompiledCond, foo, #{})).
 
 if_path_matches_matching_test() ->
     ?assert(
@@ -171,7 +183,19 @@ if_path_matches_matching_test() ->
     CompiledCond = khepri_condition:compile(#if_path_matches{regex = "a"}),
     ?assertEqual(
        {false, CompiledCond},
-       khepri_condition:is_met(CompiledCond, foo, #node{})).
+       khepri_condition:is_met(CompiledCond, foo, #node{})),
+
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_path_matches{regex = any}),
+         foo, #{})),
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_path_matches{regex = "o"}),
+         foo, #{})),
+    ?assertEqual(
+       {false, CompiledCond},
+       khepri_condition:is_met(CompiledCond, foo, #{})).
 
 if_has_data_matching_test() ->
     ?assert(
@@ -191,7 +215,26 @@ if_has_data_matching_test() ->
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(#if_has_data{has_data = true}),
-         foo, #node{payload = khepri_payload:data(foo)})).
+         foo, #node{payload = khepri_payload:data(foo)})),
+
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_data{has_data = false}),
+         foo, #{})),
+    ?assertEqual(
+       {false, #if_has_data{has_data = true}},
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_data{has_data = true}),
+         foo, #{})),
+    ?assertEqual(
+       {false, #if_has_data{has_data = false}},
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_data{has_data = false}),
+         foo, #{data => foo})),
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_data{has_data = true}),
+         foo, #{data => foo})).
 
 if_data_matches_matching_test() ->
     CompiledCond1 = khepri_condition:compile(
@@ -276,12 +319,6 @@ if_payload_version_matching_test() ->
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(#if_payload_version{version = 2}),
-         foo, #{payload_version => 2,
-                child_list_version => 1})),
-
-    ?assert(
-       khepri_condition:is_met(
-         khepri_condition:compile(#if_payload_version{version = 2}),
          foo, #node{props = #{payload_version => 2,
                               child_list_version => 1}})),
     ?assertEqual(
@@ -300,15 +337,32 @@ if_payload_version_matching_test() ->
        khepri_condition:is_met(
          khepri_condition:compile(#if_payload_version{version = {ge, 2}}),
          foo, #node{props = #{payload_version => 1,
-                              child_list_version => 1}})).
+                              child_list_version => 1}})),
 
-if_child_list_version_matching_test() ->
     ?assert(
        khepri_condition:is_met(
-         khepri_condition:compile(#if_child_list_version{version = 2}),
+         khepri_condition:compile(#if_payload_version{version = 2}),
+         foo, #{payload_version => 2,
+                child_list_version => 1})),
+    ?assertEqual(
+       {false, #if_payload_version{version = 2}},
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_payload_version{version = 2}),
          foo, #{payload_version => 1,
-                child_list_version => 2})),
+                child_list_version => 1})),
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_payload_version{version = {ge, 1}}),
+         foo, #{payload_version => 1,
+                child_list_version => 1})),
+    ?assertEqual(
+       {false, #if_payload_version{version = {ge, 2}}},
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_payload_version{version = {ge, 2}}),
+         foo, #{payload_version => 1,
+                child_list_version => 1})).
 
+if_child_list_version_matching_test() ->
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(#if_child_list_version{version = 2}),
@@ -330,16 +384,32 @@ if_child_list_version_matching_test() ->
        khepri_condition:is_met(
          khepri_condition:compile(#if_child_list_version{version = {ge, 2}}),
          foo, #node{props = #{payload_version => 1,
-                              child_list_version => 1}})).
+                              child_list_version => 1}})),
 
-if_child_list_length_matching_test() ->
     ?assert(
        khepri_condition:is_met(
-         khepri_condition:compile(#if_child_list_length{count = 2}),
+         khepri_condition:compile(#if_child_list_version{version = 2}),
          foo, #{payload_version => 1,
-                child_list_version => 1,
-                child_list_length => 2})),
+                child_list_version => 2})),
+    ?assertEqual(
+       {false, #if_child_list_version{version = 2}},
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_child_list_version{version = 2}),
+         foo, #{payload_version => 1,
+                child_list_version => 1})),
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_child_list_version{version = {ge, 1}}),
+         foo, #{payload_version => 1,
+                child_list_version => 1})),
+    ?assertEqual(
+       {false, #if_child_list_version{version = {ge, 2}}},
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_child_list_version{version = {ge, 2}}),
+         foo, #{payload_version => 1,
+                child_list_version => 1})).
 
+if_child_list_length_matching_test() ->
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(#if_child_list_length{count = 2}),
@@ -357,7 +427,26 @@ if_child_list_length_matching_test() ->
        {false, #if_child_list_length{count = {eq, 1}}},
        khepri_condition:is_met(
          khepri_condition:compile(#if_child_list_length{count = {eq, 1}}),
-         foo, #node{child_nodes = #{a => #node{}, b => #node{}}})).
+         foo, #node{child_nodes = #{a => #node{}, b => #node{}}})),
+
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_child_list_length{count = 2}),
+         foo, #{child_list_length => 2})),
+    ?assertEqual(
+       {false, #if_child_list_length{count = 3}},
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_child_list_length{count = 3}),
+         foo, #{child_list_length => 2})),
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_child_list_length{count = {ge, 1}}),
+         foo, #{child_list_length => 2})),
+    ?assertEqual(
+       {false, #if_child_list_length{count = {eq, 1}}},
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_child_list_length{count = {eq, 1}}),
+         foo, #{child_list_length => 2})).
 
 if_not_matching_test() ->
     ?assertEqual(
