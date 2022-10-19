@@ -638,7 +638,7 @@ split_command_options(Options) ->
 
 set_default_options(Options) ->
     %% By default, return payload-related properties. The caller can set
-    %% `props_to_return' to `none' to get a minimal return value.
+    %% `props_to_return' to an empty map to get a minimal return value.
     Options1 = case Options of
                    #{props_to_return := _} ->
                        Options;
