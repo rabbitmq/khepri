@@ -1217,7 +1217,7 @@ update_node_child(#node{child_nodes = Children} = Node, ChildName, Child) ->
 
 remove_node_child(#node{props = #{child_list_version := CVersion} = Stat,
                         child_nodes = Children} = Node,
-                 ChildName) ->
+                  ChildName) ->
     ?assert(maps:is_key(ChildName, Children)),
     Stat1 = Stat#{child_list_version => CVersion + 1},
     Children1 = maps:remove(ChildName, Children),
