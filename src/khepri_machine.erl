@@ -1346,6 +1346,18 @@ is_keep_while_condition_met_on_self(
 is_keep_while_condition_met_on_self(_, _, _) ->
     true.
 
+update_keep_while_conds_extra(
+  #{keep_while_conds := KeepWhileConds,
+    keep_while_conds_revidx := KeepWhileCondsRevIdx} = Extra,
+  Path, KeepWhile) ->
+    AbsKeepWhile = to_absolute_keep_while(Path, KeepWhile),
+    KeepWhileCondsRevIdx1 = update_keep_while_conds_revidx(
+                              KeepWhileConds, KeepWhileCondsRevIdx,
+                              Path, AbsKeepWhile),
+    KeepWhileConds1 = KeepWhileConds#{Path => AbsKeepWhile},
+    Extra#{keep_while_conds => KeepWhileConds1,
+           keep_while_conds_revidx => KeepWhileCondsRevIdx1}.
+
 -spec update_keep_while_conds_revidx(
         KeepWhileConds, KeepWhileCondsRevIdx, Watcher, KeepWhile) ->
     KeepWhileConds when
@@ -1552,19 +1564,15 @@ insert_or_update_node(
                applied_changes => #{}},
              Fun, {undefined, [], #{}}),
     case Ret1 of
-        {ok, Root1, #{keep_while_conds := KeepWhileConds1,
-                      keep_while_conds_revidx := KeepWhileCondsRevIdx1,
-                      applied_changes := AppliedChanges},
+        {ok, Root1, #{applied_changes := AppliedChanges} = Extra,
          {updated, ResolvedPath, Ret2}} ->
-            AbsKeepWhile = to_absolute_keep_while(ResolvedPath, KeepWhile),
-            KeepWhileCondsRevIdx2 = update_keep_while_conds_revidx(
-                                  KeepWhileConds1, KeepWhileCondsRevIdx1,
-                                  ResolvedPath, AbsKeepWhile),
-            KeepWhileConds2 = KeepWhileConds1#{ResolvedPath => AbsKeepWhile},
-            State1 = State#?MODULE{root = Root1,
-                                   keep_while_conds = KeepWhileConds2,
-                                   keep_while_conds_revidx =
-                                   KeepWhileCondsRevIdx2},
+            #{keep_while_conds := KeepWhileConds1,
+              keep_while_conds_revidx := KeepWhileCondsRevIdx1} =
+            update_keep_while_conds_extra(Extra, ResolvedPath, KeepWhile),
+            State1 = State#?MODULE{
+                              root = Root1,
+                              keep_while_conds = KeepWhileConds1,
+                              keep_while_conds_revidx = KeepWhileCondsRevIdx1},
             {State2, SideEffects} = create_tree_change_side_effects(
                                       State, State1, Ret2, AppliedChanges),
             {State2, {ok, Ret2}, SideEffects};
@@ -2365,10 +2373,21 @@ interrupted_walk_down(
                       NewNode, ReversedPath, ReversedParentTree1,
                       Extra, FunAcc1);
                 _ ->
+                    %% We created a tree node automatically on our way to the
+                    %% target. We want to add a `keep_while' condition for it
+                    %% so it is automatically reclaimed when it becomes
+                    %% useless (i.e., no payload and no child nodes).
+                    Cond = #if_any{conditions =
+                                   [#if_child_list_length{count = {gt, 0}},
+                                    #if_has_payload{has_payload = true}]},
+                    KeepWhile = #{NodePath => Cond},
+                    Extra1 = update_keep_while_conds_extra(
+                               Extra, NodePath, KeepWhile),
+
                     walk_down_the_tree1(
                       NewNode, PathPattern, TreeOptions,
                       ReversedPath, ReversedParentTree1,
-                      Extra, Fun, FunAcc1)
+                      Extra1, Fun, FunAcc1)
             end;
         Error ->
             Error
@@ -2506,6 +2525,16 @@ walk_back_up_the_tree(
     Extra1 = merge_applied_changes(Extra, AppliedChanges),
     {ok, StartingNode, Extra1, FunAcc}.
 
+handle_keep_while_for_parent_update(
+  ParentNode,
+  ReversedPath,
+  [{_GrandParentNode, child_created} | _] = ReversedParentTree,
+  Extra, AppliedChanges, FunAcc) ->
+    %% This is a freshly created node, we don't want to get rid of it right
+    %% away.
+    walk_back_up_the_tree(
+      ParentNode, ReversedPath, ReversedParentTree,
+      Extra, AppliedChanges, FunAcc);
 handle_keep_while_for_parent_update(
   ParentNode,
   ReversedPath,
