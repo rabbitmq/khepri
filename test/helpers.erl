@@ -13,7 +13,16 @@
          start_ra_system/1,
          stop_ra_system/1,
          store_dir_name/1,
-         remove_store_dir/1]).
+         remove_store_dir/1,
+         with_log/1,
+         capture_log/1,
+         silence_default_logger/0,
+         restore_default_logger/1,
+         %% For internal use only.
+         log/2,
+         format/2]).
+
+-define(CAPTURE_LOGGER_ID, capture_logger).
 
 init_list_of_modules_to_skip() ->
     _ = application:load(khepri),
@@ -70,4 +79,78 @@ remove_store_dir(StoreDir) ->
             ok;
         Error ->
             throw(Error)
+    end.
+
+silence_default_logger() ->
+    {ok, #{level := OldDefaultLoggerLevel}} =
+      logger:get_handler_config(default),
+    ok = logger:set_handler_config(default, level, none),
+    OldDefaultLoggerLevel.
+
+restore_default_logger(OldDefaultLoggerLevel) ->
+    ok = logger:set_handler_config(default, level, OldDefaultLoggerLevel).
+
+-spec with_log(Fun) -> {Result, Log}
+    when
+      Fun :: fun(() -> Result),
+      Result :: term(),
+      Log :: binary().
+
+%% @doc Returns the value of executing the given `Fun' and any log messages
+%% produced while executing it, concatenated into a binary.
+with_log(Fun) ->
+    FormatterConfig = #{},
+    HandlerConfig = #{config => self(),
+                      formatter => {?MODULE, FormatterConfig}},
+    {ok, #{level := OldDefaultLogLevel}} = logger:get_handler_config(default),
+    ok = logger:set_handler_config(default, level, none),
+    ok = logger:add_handler(?CAPTURE_LOGGER_ID, ?MODULE, HandlerConfig),
+    try
+        Result = Fun(),
+        Log = collect_logs(),
+        {Result, Log}
+    after
+        _ = logger:remove_handler(?CAPTURE_LOGGER_ID),
+        _ = logger:set_handler_config(default, level, OldDefaultLogLevel)
+    end.
+
+-spec capture_log(Fun) -> Log
+    when
+      Fun :: fun(() -> any()),
+      Log :: binary().
+
+%% @doc Returns the logger messages produced while executing the given `Fun'
+%% concatenated into a binary.
+capture_log(Fun) ->
+    {_Result, Log} = with_log(Fun),
+    Log.
+
+%% Implements the `log/2' callback for logger handlers
+log(LogEvent, Config) ->
+    #{config := TestPid} = Config,
+    Msg = case maps:get(msg, LogEvent) of
+              {report, Report} ->
+                  {Format, Args} = logger:format_report(Report),
+                  iolist_to_binary(io_lib:format(Format, Args));
+              {string, Chardata} ->
+                  unicode:characters_to_binary(Chardata);
+              {Format, Args} ->
+                  iolist_to_binary(io_lib:format(Format, Args))
+          end,
+    TestPid ! {?MODULE, Msg},
+    ok.
+
+%% Implements the `format/2' callback for logger formatters
+format(_LogEvent, _FormatConfig) ->
+    %% No-op: print nothing to the console.
+    ok.
+
+collect_logs() ->
+    collect_logs(<<>>).
+
+collect_logs(Acc) ->
+    receive
+        {?MODULE, Msg} -> collect_logs(<<Msg/binary, Acc/binary>>)
+    after
+        50 -> Acc
     end.
