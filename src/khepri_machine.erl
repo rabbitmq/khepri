@@ -56,7 +56,10 @@
          count_matching_nodes/3,
          insert_or_update_node/5,
          delete_matching_nodes/3,
-         handle_tx_exception/1]).
+         handle_tx_exception/1,
+         process_query/3,
+         process_command/3,
+         walk_down_the_tree/6]).
 
 -ifdef(TEST).
 -export([are_keep_while_conditions_met/2,
