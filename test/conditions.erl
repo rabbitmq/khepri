@@ -273,6 +273,15 @@ if_has_data_matching_test() ->
        khepri_condition:is_met(
          khepri_condition:compile(#if_has_data{has_data = true}),
          foo, #node{payload = khepri_payload:data(foo)})),
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_data{has_data = false}),
+         foo, #node{payload = khepri_payload:sproc(fun() -> ok end)})),
+    ?assertEqual(
+       {false, #if_has_data{has_data = true}},
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_data{has_data = true}),
+         foo, #node{payload = khepri_payload:sproc(fun() -> ok end)})),
 
     ?assert(
        khepri_condition:is_met(
@@ -291,6 +300,72 @@ if_has_data_matching_test() ->
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(#if_has_data{has_data = true}),
+         foo, #{data => foo})),
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_data{has_data = false}),
+         foo, #{sproc => fun() -> ok end})),
+    ?assertEqual(
+       {false, #if_has_data{has_data = true}},
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_data{has_data = true}),
+         foo, #{sproc => fun() -> ok end})).
+
+if_has_sproc_matching_test() ->
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_sproc{has_sproc = false}),
+         foo, #node{})),
+    ?assertEqual(
+       {false, #if_has_sproc{has_sproc = true}},
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_sproc{has_sproc = true}),
+         foo, #node{})),
+    ?assertEqual(
+       {false, #if_has_sproc{has_sproc = false}},
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_sproc{has_sproc = false}),
+         foo, #node{payload = khepri_payload:sproc(fun() -> ok end)})),
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_sproc{has_sproc = true}),
+         foo, #node{payload = khepri_payload:sproc(fun() -> ok end)})),
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_sproc{has_sproc = false}),
+         foo, #node{payload = khepri_payload:data(foo)})),
+    ?assertEqual(
+       {false, #if_has_sproc{has_sproc = true}},
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_sproc{has_sproc = true}),
+         foo, #node{payload = khepri_payload:data(foo)})),
+
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_sproc{has_sproc = false}),
+         foo, #{})),
+    ?assertEqual(
+       {false, #if_has_sproc{has_sproc = true}},
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_sproc{has_sproc = true}),
+         foo, #{})),
+    ?assertEqual(
+       {false, #if_has_sproc{has_sproc = false}},
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_sproc{has_sproc = false}),
+         foo, #{sproc => fun() -> ok end})),
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_sproc{has_sproc = true}),
+         foo, #{sproc => fun() -> ok end})),
+    ?assert(
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_sproc{has_sproc = false}),
+         foo, #{data => foo})),
+    ?assertEqual(
+       {false, #if_has_sproc{has_sproc = true}},
+       khepri_condition:is_met(
+         khepri_condition:compile(#if_has_sproc{has_sproc = true}),
          foo, #{data => foo})).
 
 if_data_matches_matching_test() ->
