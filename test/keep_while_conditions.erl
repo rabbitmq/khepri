@@ -322,3 +322,82 @@ keep_while_now_false_after_delete_command_test() ->
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
     ?assertEqual([], SE).
+
+automatic_reclaim_of_useless_nodes_works_test() ->
+    Commands = [#put{path = [foo, bar, baz, qux],
+                     payload = khepri_payload:data(value)}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+    Command = #delete{path = [foo, bar, baz]},
+    {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
+    Root = khepri_machine:get_root(S1),
+
+    ?assertEqual(
+       #node{
+          props =
+          #{payload_version => 1,
+            child_list_version => 3},
+          child_nodes = #{}},
+       Root),
+    ?assertEqual({ok, #{[foo, bar, baz] => #{}}}, Ret),
+    ?assertEqual([], SE).
+
+automatic_reclaim_keeps_relevant_nodes_1_test() ->
+    %% `/:foo' was created automatically, but later gained a payload. It should
+    %% not be automatically reclaimed.
+    Commands = [#put{path = [foo, bar, baz, qux],
+                     payload = khepri_payload:data(value)},
+                #put{path = [foo],
+                     payload = khepri_payload:data(relevant)}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+    Command = #delete{path = [foo, bar, baz]},
+    {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
+    Root = khepri_machine:get_root(S1),
+
+    ?assertEqual(
+       #node{
+          props =
+          #{payload_version => 1,
+            child_list_version => 2},
+          child_nodes =
+          #{foo =>
+            #node{props =
+                  #{payload_version => 2,
+                    child_list_version => 2},
+                  payload = khepri_payload:data(relevant),
+                  child_nodes = #{}}}},
+       Root),
+    ?assertEqual({ok, #{[foo, bar, baz] => #{}}}, Ret),
+    ?assertEqual([], SE).
+
+automatic_reclaim_keeps_relevant_nodes_2_test() ->
+    %% `/:bar' was created with a payload. It later gained a child node. It
+    %% should not be automatically reclaimed when this child node goes away.
+    Commands = [#put{path = [foo, bar],
+                     payload = khepri_payload:data(bar_value)},
+                #put{path = [foo, bar, baz, qux],
+                     payload = khepri_payload:data(qux_value)}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+    Command = #delete{path = [foo, bar, baz, qux]},
+    {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
+    Root = khepri_machine:get_root(S1),
+
+    ?assertEqual(
+       #node{
+          props =
+          #{payload_version => 1,
+            child_list_version => 2},
+          child_nodes =
+          #{foo =>
+            #node{props =
+                  #{payload_version => 1,
+                    child_list_version => 1},
+                  child_nodes =
+                  #{bar =>
+                    #node{props =
+                          #{payload_version => 1,
+                            child_list_version => 3},
+                          payload = khepri_payload:data(bar_value),
+                          child_nodes = #{}}}}}},
+       Root),
+    ?assertEqual({ok, #{[foo, bar, baz, qux] => #{}}}, Ret),
+    ?assertEqual([], SE).

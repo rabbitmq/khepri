@@ -51,8 +51,14 @@
 
 -define(KHEPRI_WILDCARD_STAR_STAR, #if_path_matches{regex = any}).
 
+-record(if_has_payload,
+        {has_payload = true :: boolean()}).
+
 -record(if_has_data,
         {has_data = true :: boolean()}).
+
+-record(if_has_sproc,
+        {has_sproc = true :: boolean()}).
 
 -record(if_data_matches,
         {pattern = '_' :: ets:match_pattern(),

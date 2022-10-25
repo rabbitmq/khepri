@@ -83,6 +83,20 @@
 %% #if_path_matches{regex = any}.
 %% '''
 
+-type if_has_payload() :: #if_has_payload{}.
+%% Condition. Evaluates to true if the tested node has any kind of payload.
+%%
+%% Record fields:
+%% <ul>
+%% <li>`has_payload': boolean set to the expected presence of any kind of
+%% payload.</li>
+%% </ul>
+%%
+%% Example:
+%% ```
+%% #if_has_payload{has_payload = true}.
+%% '''
+
 -type if_has_data() :: #if_has_data{}.
 %% Condition. Evaluates to true if the tested node's data payload presence
 %% corresponds to the expected state.
@@ -98,6 +112,24 @@
 %% Example:
 %% ```
 %% #if_has_data{has_data = false}.
+%% '''
+
+-type if_has_sproc() :: #if_has_sproc{}.
+%% Condition. Evaluates to true if the tested node's stored procedure payload
+%% presence corresponds to the expected state.
+%%
+%% Record fields:
+%% <ul>
+%% <li>`has_sproc': boolean set to the expected presence of a stored procedure
+%% payload.</li>
+%% </ul>
+%%
+%% Stored procedure absence is either no payload or a non-sproc type of
+%% payload.
+%%
+%% Example:
+%% ```
+%% #if_has_sproc{has_sproc = false}.
 %% '''
 
 -type if_data_matches() :: #if_data_matches{}.
@@ -238,7 +270,9 @@
 
 -type condition() :: if_name_matches() |
                      if_path_matches() |
+                     if_has_payload() |
                      if_has_data() |
+                     if_has_sproc() |
                      if_data_matches() |
                      if_node_exists() |
                      if_payload_version() |
@@ -474,6 +508,30 @@ is_met(
   ChildName,
   _Child) ->
     eval_regex(Cond, SourceRegex, CompiledRegex, ChildName);
+is_met(
+  #if_has_payload{has_payload = false},
+  _ChildName, #node{payload = ?NO_PAYLOAD}) ->
+    true;
+is_met(
+  #if_has_payload{has_payload = true} = Cond,
+  _ChildName, #node{payload = ?NO_PAYLOAD}) ->
+    {false, Cond};
+is_met(
+  #if_has_payload{has_payload = true},
+  _ChildName, #node{payload = _}) ->
+    true;
+is_met(
+  #if_has_payload{has_payload = false},
+  _ChildName, NodeProps)
+  when not (is_map_key(data, NodeProps) orelse
+            is_map_key(sproc, NodeProps)) ->
+    true;
+is_met(
+  #if_has_payload{has_payload = true},
+  _ChildName, NodeProps)
+  when is_map_key(data, NodeProps) orelse
+       is_map_key(sproc, NodeProps) ->
+    true;
 is_met(#if_has_data{has_data = true},
        _ChildName, #node{payload = #p_data{data = _}}) ->
     true;
@@ -489,6 +547,22 @@ is_met(#if_has_data{has_data = false} = Cond,
 is_met(#if_has_data{has_data = true} = Cond, _ChildName, _Child) ->
     {false, Cond};
 is_met(#if_has_data{has_data = false}, _ChildName, _Child) ->
+    true;
+is_met(#if_has_sproc{has_sproc = true},
+       _ChildName, #node{payload = #p_sproc{sproc = _}}) ->
+    true;
+is_met(#if_has_sproc{has_sproc = false} = Cond,
+       _ChildName, #node{payload = #p_sproc{sproc = _}}) ->
+    {false, Cond};
+is_met(#if_has_sproc{has_sproc = true},
+       _ChildName, #{sproc := _}) ->
+    true;
+is_met(#if_has_sproc{has_sproc = false} = Cond,
+       _ChildName, #{sproc := _}) ->
+    {false, Cond};
+is_met(#if_has_sproc{has_sproc = true} = Cond, _ChildName, _Child) ->
+    {false, Cond};
+is_met(#if_has_sproc{has_sproc = false}, _ChildName, _Child) ->
     true;
 is_met(#if_data_matches{compiled = CompMatchSpec} = Cond,
        _ChildName, #node{payload = #p_data{data = Data}}) ->
@@ -652,8 +726,12 @@ is_valid(#if_name_matches{}) ->
     true;
 is_valid(#if_path_matches{}) ->
     true;
+is_valid(#if_has_payload{has_payload = HasPayload}) ->
+    is_boolean(HasPayload);
 is_valid(#if_has_data{has_data = HasData}) ->
     is_boolean(HasData);
+is_valid(#if_has_sproc{has_sproc = HasStoredProc}) ->
+    is_boolean(HasStoredProc);
 is_valid(#if_data_matches{conditions = Conditions})
   when is_list(Conditions) ->
     true;
