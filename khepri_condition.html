@@ -42,7 +42,7 @@ have arguments to further define the condition.</p>
 <p>  Comparison operator in some <a docgen-rel="seetype" docgen-href="#condition/0" href="#type-condition"><code>condition()</code></a>.</p>
 
 <h3 class="typedecl"><a name="type-condition">condition()</a></h3>
-<p><code>condition() = <a href="#type-if_name_matches">if_name_matches()</a> | <a href="#type-if_path_matches">if_path_matches()</a> | <a href="#type-if_has_data">if_has_data()</a> | <a href="#type-if_data_matches">if_data_matches()</a> | <a href="#type-if_node_exists">if_node_exists()</a> | <a href="#type-if_payload_version">if_payload_version()</a> | <a href="#type-if_child_list_version">if_child_list_version()</a> | <a href="#type-if_child_list_length">if_child_list_length()</a> | <a href="#type-if_not">if_not()</a> | <a href="#type-if_all">if_all()</a> | <a href="#type-if_any">if_any()</a></code></p>
+<p><code>condition() = <a href="#type-if_name_matches">if_name_matches()</a> | <a href="#type-if_path_matches">if_path_matches()</a> | <a href="#type-if_has_payload">if_has_payload()</a> | <a href="#type-if_has_data">if_has_data()</a> | <a href="#type-if_has_sproc">if_has_sproc()</a> | <a href="#type-if_data_matches">if_data_matches()</a> | <a href="#type-if_node_exists">if_node_exists()</a> | <a href="#type-if_payload_version">if_payload_version()</a> | <a href="#type-if_child_list_version">if_child_list_version()</a> | <a href="#type-if_child_list_length">if_child_list_length()</a> | <a href="#type-if_not">if_not()</a> | <a href="#type-if_all">if_all()</a> | <a href="#type-if_any">if_any()</a></code></p>
 <p>  All supported conditions.</p>
 
 <h3 class="typedecl"><a name="type-if_all">if_all()</a></h3>
@@ -146,6 +146,36 @@ corresponds to the expected state.</p>
  
   Example:
   <pre><code>#if_has_data{has_data = false}.</code></pre></p>
+
+<h3 class="typedecl"><a name="type-if_has_payload">if_has_payload()</a></h3>
+<p><code>if_has_payload() = #if_has_payload{has_payload = boolean()}</code></p>
+<p><p>  Condition. Evaluates to true if the tested node has any kind of payload.</p>
+ 
+  Record fields:
+  <ul>
+  <li><code>has_payload</code>: boolean set to the expected presence of any kind of
+  payload.</li>
+  </ul>
+ 
+  Example:
+  <pre><code>#if_has_payload{has_payload = true}.</code></pre></p>
+
+<h3 class="typedecl"><a name="type-if_has_sproc">if_has_sproc()</a></h3>
+<p><code>if_has_sproc() = #if_has_sproc{has_sproc = boolean()}</code></p>
+<p><p>  Condition. Evaluates to true if the tested node's stored procedure payload  
+presence corresponds to the expected state.</p>
+ 
+  Record fields:
+  <ul>
+  <li><code>has_sproc</code>: boolean set to the expected presence of a stored procedure
+  payload.</li>
+  </ul>
+ 
+  <p>Stored procedure absence is either no payload or a non-sproc type of  
+payload.</p>
+ 
+  Example:
+  <pre><code>#if_has_sproc{has_sproc = false}.</code></pre></p>
 
 <h3 class="typedecl"><a name="type-if_name_matches">if_name_matches()</a></h3>
 <p><code>if_name_matches() = #if_name_matches{regex = any | iodata() | <a href="/home/runner/work/khepri/stdlib/doc/unicode.html#type-charlist">unicode:charlist()</a>, compiled = <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-re_compile_ret">khepri_condition:re_compile_ret()</a> | undefined}</code></p>
