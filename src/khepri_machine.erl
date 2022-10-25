@@ -2296,10 +2296,7 @@ handle_branch(
   CurrentNode, ChildName, Child,
   [Condition | PathPattern] = WholePathPattern,
   WorkOnWhat, ReversedPath, Extra, Fun, FunAcc) ->
-    %% FIXME: A condition such as #if_path_matches{regex = any} at the end of
-    %% a path matches non-leaf nodes as well: we should call Fun() for them!
-    CondMet = khepri_condition:is_met(
-                Condition, ChildName, Child),
+    CondMet = khepri_condition:is_met(Condition, ChildName, Child),
     Ret = case CondMet of
               true ->
                   walk_down_the_tree1(
@@ -2311,7 +2308,8 @@ handle_branch(
                   {ok, CurrentNode, Extra, FunAcc}
           end,
     case Ret of
-        {ok, CurrentNode1, Extra1, FunAcc1} ->
+        {ok, #node{child_nodes = Children} = CurrentNode1, Extra1, FunAcc1}
+          when is_map_key(ChildName, Children) ->
             case khepri_condition:applies_to_grandchildren(Condition) of
                 false ->
                     Ret;
@@ -2322,6 +2320,10 @@ handle_branch(
                       [CurrentNode1],
                       Extra1, Fun, FunAcc1)
             end;
+        {ok, _CurrentNode1, _Extra1, _FunAcc1} ->
+            %% The child node is gone, no need to test if the condition
+            %% applies to it or recurse.
+            Ret;
         Error ->
             Error
     end.

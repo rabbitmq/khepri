@@ -137,6 +137,52 @@ delete_many_on_existing_node_with_condition_false_test_() ->
          {ok, foo_value},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
+delete_many_recursively_1_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
+      ?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo, bar, baz], baz_value)),
+      ?_assertEqual(
+         {ok, ok},
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete_many(
+                             [#if_path_matches{regex = any}])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end),
+      ?_assertEqual(
+         {ok, #{}},
+         khepri:get_many(?FUNCTION_NAME, [#if_path_matches{regex = any}]))]}.
+
+delete_many_recursively_2_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
+      ?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo, bar, baz], baz_value)),
+      ?_assertEqual(
+         {ok, ok},
+         begin
+             Fun = fun() ->
+                           khepri_tx:delete_many(
+                             [foo, #if_path_matches{regex = any}])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end),
+      ?_assertEqual(
+         {ok, #{[foo] => undefined}},
+         khepri:get_many(?FUNCTION_NAME, [#if_path_matches{regex = any}]))]}.
+
 delete_payload_from_non_existing_node_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
