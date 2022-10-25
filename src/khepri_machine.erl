@@ -2210,6 +2210,8 @@ walk_down_the_tree1(
                     CurrentNode2 = case CurrentNode1 of
                                        CurrentNode ->
                                            CurrentNode;
+                                       delete ->
+                                           CurrentNode1;
                                        _ ->
                                            %% Because of the loop, payload &
                                            %% child list versions may have
