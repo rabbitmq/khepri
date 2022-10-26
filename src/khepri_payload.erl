@@ -90,8 +90,6 @@ sproc(Fun) when is_function(Fun) ->
              is_valid_as_tx_fun = false};
 sproc(#standalone_fun{} = Fun) ->
     #p_sproc{sproc = Fun,
-             %% This will be overriden with the correct value when the
-             %% function will be extracted.
              is_valid_as_tx_fun = false}.
 
 -spec wrap(Payload) -> WrappedPayload when
