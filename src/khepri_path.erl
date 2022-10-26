@@ -235,7 +235,11 @@ compile(PathPattern) ->
 %%
 %% For convenience, a native path is also accepted and returned as-is.
 
-from_string("/" ++ MaybeString) ->
+from_string([$/, $/ | MaybeString]) ->
+    %% The path starts with two forward slashes. Therefore the path starts
+    %% with an empty binary.
+    from_string([$/ | MaybeString], [<<>>, ?KHEPRI_ROOT_NODE]);
+from_string([$/ | MaybeString]) ->
     from_string(MaybeString, [?KHEPRI_ROOT_NODE]);
 from_string(MaybeString) when is_list(MaybeString) ->
     from_string(MaybeString, []);
@@ -309,6 +313,12 @@ from_string([?PARENT_KHEPRI_NODE, $/ | _] = Rest, ReversedPath) ->
 from_string([Char] = Rest, [] = ReversedPath)
   when ?IS_SPECIAL_KHEPRI_PATH_COMPONENT(Char) ->
     finalize_path(Rest, ReversedPath);
+
+from_string([$/, $/ | Rest], ReversedPath) ->
+    %% Two consecutive forward slashes mean there is an empty binary
+    %% component.
+    ReversedPath1 = prepend_component(<<>>, ReversedPath),
+    from_string([$/ | Rest], ReversedPath1);
 
 from_string([$/ | Rest], ReversedPath) ->
     from_string(Rest, ReversedPath);
@@ -405,26 +415,39 @@ finalize_path(Rest, ReversedPath) ->
       UnixPath :: string().
 %% @doc Converts a native path to a string.
 
+to_string([] = Path) ->
+    to_string(Path, "/", false);
 to_string([?KHEPRI_ROOT_NODE | Path]) ->
-    "/" ++
-    string:join(
-      lists:map(fun component_to_string/1, Path),
-      "/");
-to_string([?THIS_KHEPRI_NODE = Component]) ->
-    component_to_string(Component);
+    to_string(Path, "/", false);
+to_string([?THIS_KHEPRI_NODE] = Path) ->
+    to_string(Path, "", false);
+to_string([?THIS_KHEPRI_NODE, <<>> | _] = Path) ->
+    %% Special case: a relative path starting with an empty binary. We need to
+    %% keep the leading '.' because we rely on forward slashes to "encode" the
+    %% empty binary. If we don't keep the '.', the path will become absolute.
+    to_string(Path, "", false);
 to_string([?THIS_KHEPRI_NODE | Path]) ->
-    string:join(
-      lists:map(fun component_to_string/1, Path),
-      "/");
+    to_string(Path, "", false);
 to_string([?PARENT_KHEPRI_NODE | _] = Path) ->
-    string:join(
-      lists:map(fun component_to_string/1, Path),
-      "/");
+    to_string(Path, "", false);
 to_string(Path) ->
-    "/" ++
-    string:join(
-      lists:map(fun component_to_string/1, Path),
-      "/").
+    to_string(Path, "", true).
+
+to_string([<<>> = Component], Result, NeedSlash) ->
+    Component1 = component_to_string(Component),
+    Result1 = append_string_component(Component1, Result, NeedSlash) ++ [$/],
+    Result1;
+to_string([Component | Rest], Result, NeedSlash) ->
+    Component1 = component_to_string(Component),
+    Result1 = append_string_component(Component1, Result, NeedSlash),
+    to_string(Rest, Result1, true);
+to_string([], Result, _NeedSlash) ->
+    Result.
+
+append_string_component(Component, Result, true) ->
+    Result ++ [$/ | Component];
+append_string_component(Component, Result, false) ->
+    Result ++ Component.
 
 -spec to_binary(NativePath) -> UnixPath when
       NativePath :: native_path(),
@@ -446,11 +469,8 @@ component_to_string(?PARENT_KHEPRI_NODE) ->
     "..";
 component_to_string(Component) when is_atom(Component) ->
     ":" ++ percent_encode_string(erlang:atom_to_list(Component));
-component_to_string(Component)
-  when is_binary(Component) andalso Component =/= <<>> ->
-    percent_encode_string(erlang:binary_to_list(Component));
-component_to_string(<<>>) ->
-    ?khepri_misuse(empty_binary_unsupported_in_string_based_path, #{}).
+component_to_string(Component) when is_binary(Component) ->
+    percent_encode_string(erlang:binary_to_list(Component)).
 
 -define(IS_HEX(Digit), (is_integer(Digit) andalso
                         ((Digit >= $0 andalso Digit =< $9) orelse

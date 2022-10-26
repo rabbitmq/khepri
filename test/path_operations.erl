@@ -98,18 +98,27 @@ path_with_percent_encoding_test() ->
        [<<"bin/ary">>],
        khepri_path:from_string("/bin%2Fary")).
 
-path_with_consecutive_slashes_from_string_test() ->
+path_with_empty_atoms_from_string_test() ->
     ?assertEqual(
-       [foo, bar],
-       khepri_path:from_string("////:foo////:bar")).
+       ['', '', foo, '', '', bar],
+       khepri_path:from_string("/:/:/:foo/:/:/:bar")),
+    ?assertEqual(
+       [foo, bar, ''],
+       khepri_path:from_string("/:foo/:bar/:")),
+    ?assertEqual(
+       [foo, bar, '', ''],
+       khepri_path:from_string("/:foo/:bar/:/:")).
 
-path_with_trailing_slashes_from_string_test() ->
+path_with_empty_binaries_from_string_test() ->
     ?assertEqual(
-       [foo, bar],
-       khepri_path:from_string("/:foo/:bar/")),
+       [<<>>, <<>>, foo, <<>>, <<>>, bar],
+       khepri_path:from_string("///:foo///:bar")),
     ?assertEqual(
-       [foo, bar],
-       khepri_path:from_string("/:foo/:bar////")).
+       [foo, bar, <<>>],
+       khepri_path:from_string("/:foo/:bar//")),
+    ?assertEqual(
+       [foo, bar, <<>>, <<>>],
+       khepri_path:from_string("/:foo/:bar///")).
 
 path_with_whitespaces_from_string_test() ->
     ?assertEqual(
@@ -187,9 +196,7 @@ atom_component_to_string_test() ->
 
 binary_component_to_string_test() ->
     ?assertEqual("foo", khepri_path:component_to_string(<<"foo">>)),
-    ?assertError(
-       ?khepri_exception(empty_binary_unsupported_in_string_based_path, #{}),
-       khepri_path:component_to_string(<<>>)),
+    ?assertEqual("", khepri_path:component_to_string(<<>>)),
     ?assertEqual("%2E", khepri_path:component_to_string(<<".">>)),
     ?assertEqual("%2E.", khepri_path:component_to_string(<<"..">>)),
     ?assertEqual("%2F", khepri_path:component_to_string(<<"/">>)).
@@ -255,6 +262,28 @@ path_to_binary_test() ->
        <<"foo/..">>,
        khepri_path:to_binary(
          [?THIS_KHEPRI_NODE, <<"foo">>, ?PARENT_KHEPRI_NODE])).
+
+path_with_empty_atoms_to_string_test() ->
+    ?assertEqual(
+       "/:/:/:foo/:/:/:bar",
+       khepri_path:to_string(['', '', foo, '', '', bar])),
+    ?assertEqual(
+       "/:foo/:bar/:",
+       khepri_path:to_string([foo, bar, ''])),
+    ?assertEqual(
+       "/:foo/:bar/:/:",
+       khepri_path:to_string([foo, bar, '', ''])).
+
+path_with_empty_binaries_to_string_test() ->
+    ?assertEqual(
+       "///:foo///:bar",
+       khepri_path:to_string([<<>>, <<>>, foo, <<>>, <<>>, bar])),
+    ?assertEqual(
+       "/:foo/:bar//",
+       khepri_path:to_string([foo, bar, <<>>])),
+    ?assertEqual(
+       "/:foo/:bar///",
+       khepri_path:to_string([foo, bar, <<>>, <<>>])).
 
 %% -------------------------------------------------------------------
 %% Combine path with conditions.

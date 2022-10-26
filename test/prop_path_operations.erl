@@ -51,5 +51,5 @@ binary_component() ->
     %% We discard any binary-based component which will be converted to a
     %% pattern.
     ?SUCHTHAT(Binary,
-              non_empty(binary()),
+              binary(),
               string:chr(binary_to_list(Binary), $*) =:= 0).
