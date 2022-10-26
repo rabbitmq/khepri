@@ -273,10 +273,6 @@
     Ret = get_many_or(StoreId, PathPattern, Default, Options),
     unwrap_result(Ret).
 
-%% XXX has_data!
-%% XXX has_sproc!
-%% XXX count!
-
 %% -------------------------------------------------------------------
 %% exists().
 %% -------------------------------------------------------------------
