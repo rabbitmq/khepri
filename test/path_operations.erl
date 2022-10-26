@@ -285,6 +285,14 @@ path_with_empty_binaries_to_string_test() ->
        "/:foo/:bar///",
        khepri_path:to_string([foo, bar, <<>>, <<>>])).
 
+path_mixing_dot_and_empty_binaries_to_string_test() ->
+    ?assertEqual(
+       ".//",
+       khepri_path:to_string([$., <<>>])),
+    ?assertEqual(
+       ".//./:foo",
+       khepri_path:to_string([$., <<>>, $., foo])).
+
 %% -------------------------------------------------------------------
 %% Combine path with conditions.
 %% -------------------------------------------------------------------
