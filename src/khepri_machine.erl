@@ -44,7 +44,8 @@
 %% ra_machine callbacks.
 -export([init/1,
          apply/3,
-         state_enter/2]).
+         state_enter/2,
+         overview/1]).
 
 %% For internal use only.
 -export([clear_cache/1,
@@ -1152,6 +1153,30 @@ emitted_triggers_to_side_effects(
     [SideEffect];
 emitted_triggers_to_side_effects(_StateName, _State) ->
     [].
+
+%% @private
+
+overview(#?MODULE{config = #config{store_id = StoreId},
+                  root = Root,
+                  triggers = Triggers,
+                  keep_while_conds = KeepWhileConds}) ->
+    TreeOptions = #{props_to_return => [payload,
+                                        payload_version,
+                                        child_list_version,
+                                        child_list_length],
+                    include_root_props => true},
+    {ok, NodePropsMap} = find_matching_nodes(
+                           Root, [?KHEPRI_WILDCARD_STAR_STAR], TreeOptions),
+    MapFun = fun (#{sproc := Sproc} = Props) ->
+                     Props#{sproc => khepri_fun:to_fun(Sproc)};
+                 (Props) ->
+                     Props
+             end,
+    Tree = khepri_utils:flat_struct_to_tree(NodePropsMap, MapFun),
+    #{store_id => StoreId,
+      tree => Tree,
+      triggers => Triggers,
+      keep_while_conds => KeepWhileConds}.
 
 %% -------------------------------------------------------------------
 %% Internal functions.

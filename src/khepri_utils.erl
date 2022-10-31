@@ -20,6 +20,7 @@
          is_ra_server_alive/1,
 
          flat_struct_to_tree/1,
+         flat_struct_to_tree/2,
          display_tree/1,
          display_tree/2,
          display_tree/3,
@@ -89,35 +90,45 @@ is_ra_server_alive({RegName, Node}) when Node =:= node() ->
       DisplayTree :: display_tree().
 
 flat_struct_to_tree(FlatStruct) ->
+    flat_struct_to_tree(FlatStruct, fun(NodeProps) -> NodeProps end).
+
+-spec flat_struct_to_tree(NodePropsMap, MapFun) -> DisplayTree when
+      NodePropsMap :: khepri_adv:node_props_map(),
+      MapFun :: fun((khepri:node_props()) -> khepri:node_props()),
+      DisplayTree :: display_tree().
+
+flat_struct_to_tree(FlatStruct, MapFun) ->
     NodeProps = maps:get([], FlatStruct, #{}),
     Children = maps:fold(
-                 fun flat_struct_to_tree/3,
+                 fun(Children, Props, Tree) ->
+                         flat_struct_to_tree(Children, Props, Tree, MapFun)
+                 end,
                  #{},
                  maps:remove([], FlatStruct)),
     NodeProps#{child_nodes => Children}.
 
-flat_struct_to_tree([ChildName | [_ | _] = Path], NodeProps, Tree) ->
+flat_struct_to_tree([ChildName | [_ | _] = Path], NodeProps, Tree, MapFun) ->
     Child1 = case Tree of
                  #{ChildName := Child} ->
                      Children = maps:get(child_nodes, Child, #{}),
                      Children1 = flat_struct_to_tree(
-                                   Path, NodeProps, Children),
+                                   Path, NodeProps, Children, MapFun),
                      Child#{child_nodes => Children1};
                  _ ->
                      Children1 = flat_struct_to_tree(
-                                   Path, NodeProps, #{}),
+                                   Path, NodeProps, #{}, MapFun),
                      #{child_nodes => Children1}
     end,
     Tree#{ChildName => Child1};
-flat_struct_to_tree([ChildName], NodeProps, Tree) ->
+flat_struct_to_tree([ChildName], NodeProps, Tree, MapFun) ->
     case Tree of
         #{ChildName := Child} ->
             ?assertEqual([child_nodes], maps:keys(Child)),
             ?assertNot(maps:is_key(child_nodes, NodeProps)),
             NodeProps1 = maps:merge(NodeProps, Child),
-            Tree#{ChildName => NodeProps1};
+            Tree#{ChildName => MapFun(NodeProps1)};
         _ ->
-            Tree#{ChildName => NodeProps}
+            Tree#{ChildName => MapFun(NodeProps)}
     end.
 
 -spec display_tree(display_tree()) -> ok.

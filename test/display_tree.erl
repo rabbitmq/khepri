@@ -359,6 +359,65 @@ flat_struct_with_children_before_parents_test() ->
                #{child_list_length => 0, child_list_version => 1,
                  data => true, payload_version => 1}}}}}, Tree).
 
+machine_overview_test() ->
+    %% `khepri_machine' uses `khepri_utils:flat_struct_to_map/2' to format
+    %% the `gen_statem' status in the `ra_machine:overview/1' callback
+    %% implementation.
+    Fun = fun() -> return_value end,
+    helpers:init_list_of_modules_to_skip(),
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(Fun, rw),
+    Commands = [#put{path = [foo],
+                     payload = khepri_payload:data(foo_value)},
+                #put{path = [foo, bar],
+                     payload = khepri_payload:data(bar_value)},
+                #put{path = [baz, fizz],
+                     payload = khepri_payload:sproc(Fun)},
+                #put{path = [baz, buzz],
+                     payload = khepri_payload:sproc(StandaloneFun)}],
+    #{store_id := StoreId} = Params = ?MACH_PARAMS(Commands),
+    S0 = khepri_machine:init(Params),
+    O0 = khepri_machine:overview(S0),
+
+    ?assertEqual(StoreId, maps:get(store_id, O0)),
+    ?assertEqual(#{}, maps:get(triggers, O0)),
+    ?assertEqual(
+      #{[baz] => #{[baz] =>
+                   #if_any{conditions =
+                           [#if_child_list_length{count = {gt,0}},
+                           #if_has_payload{has_payload = true}]}}},
+      maps:get(keep_while_conds, O0)),
+
+    #{tree :=
+      #{child_list_length := 2,
+        child_list_version := 3,
+        payload_version := 1,
+        child_nodes :=
+        #{baz :=
+          #{child_list_length := 2,
+            child_list_version := 2,
+            payload_version := 1,
+            child_nodes := #{buzz := #{child_list_length := 0,
+                                       child_list_version := 1,
+                                       payload_version := 1,
+                                       sproc := CapturedStandaloneFun},
+                             fizz := #{child_list_length := 0,
+                                       child_list_version := 1,
+                                       payload_version := 1,
+                                       sproc := Fun}}},
+          foo :=
+          #{child_list_length := 1,
+            child_list_version := 2,
+            payload_version := 1,
+            data := foo_value,
+            child_nodes := #{bar := #{child_list_length := 0,
+                                      child_list_version := 1,
+                                      data := bar_value,
+                                      payload_version := 1}}}}}} = O0,
+
+      ?assert(is_function(CapturedStandaloneFun, 0)),
+      ?assertEqual(return_value, CapturedStandaloneFun()).
+
+
 display_simple_tree_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(foo_value)}],
