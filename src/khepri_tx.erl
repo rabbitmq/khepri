@@ -13,7 +13,8 @@
 %%
 %% <ul>
 %% <li>Calls to BIFs and other functions is limited to a set of whitelisted
-%% APIs. See {@link is_remote_call_valid/3} for the complete list.</li>
+%% APIs. See {@link khepri_tx_adv:is_remote_call_valid/3} for the complete
+%% list.</li>
 %% <li>Sending or receiving messages is denied.</li>
 %% </ul>
 %%

@@ -360,7 +360,7 @@ put(StoreId, PathPattern, Data) ->
 %% khepri:command_options()}, {@link khepri:tree_options()} and {@link
 %% khepri:put_options()}.
 %%
-%% When doing an asynchronous update, the {@link wait_for_async_ret/1}
+%% When doing an asynchronous update, the {@link khepri:wait_for_async_ret/1}
 %% function can be used to receive the message from Ra.
 %%
 %% The returned `{ok, NodeProps}' tuple contains a map with the properties and
@@ -481,7 +481,7 @@ put_many(StoreId, PathPattern, Data) ->
 %% khepri:command_options()}, {@link khepri:tree_options()} and {@link
 %% khepri:put_options()}.
 %%
-%% When doing an asynchronous update, the {@link wait_for_async_ret/1}
+%% When doing an asynchronous update, the {@link khepri:wait_for_async_ret/1}
 %% function can be used to receive the message from Ra.
 %%
 %% Example:
@@ -847,7 +847,7 @@ delete(PathPattern, Options) when is_map(Options) ->
 %% payload (if any) of the targeted tree node as they were before the delete.
 %% If the targeted tree node didn't exist, `NodeProps' will be an empty map.
 %%
-%% When doing an asynchronous update, the {@link wait_for_async_ret/1}
+%% When doing an asynchronous update, the {@link khepri:wait_for_async_ret/1}
 %% function can be used to receive the message from Ra.
 %%
 %% Example:
@@ -951,7 +951,7 @@ delete_many(PathPattern, Options) when is_map(Options) ->
 %% map containing the properties and payload (if any) of that deleted tree
 %% node as they were before the delete.
 %%
-%% When doing an asynchronous update, the {@link wait_for_async_ret/1}
+%% When doing an asynchronous update, the {@link khepri:wait_for_async_ret/1}
 %% function can be used to receive the message from Ra.
 %%
 %% Example:
