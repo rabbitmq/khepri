@@ -247,7 +247,7 @@ fun((#{calls := #{Call :: mfa() => true},
 %% <li>`is_standalone_fun_still_needed': a function which returns if, after
 %% the extraction is finished, the extracted function is still needed in
 %% comparison to keeping the initial anonymous function.</li>
-%% <li>`add_module_info': a boolean to indicate of the `module_info/0' and
+%% <li>`add_module_info': a boolean to indicate if the `module_info/0' and
 %% `module_info/1' functions should be added to the generated module. There
 %% are used by tracing and debugging tools in Erlang, but they take some space
 %% (about 140 bytes). Default is true.</li>
