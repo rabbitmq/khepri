@@ -267,7 +267,7 @@
                              reply_from => reply_from_option()}.
 %% Options used in commands.
 %%
-%% Commands are {@link put/5}, {@link delete/3} and read-write {@link
+%% Commands are {@link put/4}, {@link delete/3} and read-write {@link
 %% transaction/4}.
 %%
 %% <ul>

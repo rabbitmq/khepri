@@ -15,7 +15,7 @@
 %% <li>Distinguish a tree node with the `undefined' atom as its payload, from
 %% a tree node with no payload, from a non-existing tree node.</li>
 %% <li>Know the payload version after a call to the functions based on {@link
-%% put/5} which can be useful to perform transactional operations without
+%% put/4} which can be useful to perform transactional operations without
 %% using {@link khepri:transaction/4}.</li>
 %% </ul>
 %%
@@ -769,7 +769,7 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) ->
                  khepri:tree_options() |
                  khepri:put_options(),
       Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
-%% @doc Prepares the payload and calls {@link khepri_machine:put/5}.
+%% @doc Prepares the payload and calls {@link khepri_machine:put/4}.
 %%
 %% @private
 
