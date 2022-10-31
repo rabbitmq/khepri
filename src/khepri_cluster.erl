@@ -144,7 +144,7 @@
 %% them if necessary. Important parameters for Khepri (e.g. `machine') will be
 %% overridden anyway.
 %%
-%% @see ra_server:ra_server_config/0.
+%% @see ra_server:ra_server_config().
 
 -type ra_server_config_with_cluster_name() :: #{cluster_name :=
                                                 khepri:store_id()}.
