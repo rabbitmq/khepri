@@ -1158,15 +1158,16 @@ pass1_process_instructions(
     pass1_process_instructions([Instruction | Rest], State, Result);
 pass1_process_instructions(
   [{call_fun2,
-    {atom, safe},
+    {atom, SafeOrNot},
     Arity,
     {tr, FunReg, {{t_fun, _Arity, _Domain, _Range} = Type, _, _}}} | Rest],
   State,
-  Result) ->
+  Result)
+  when SafeOrNot =:= safe orelse SafeOrNot =:= unsafe ->
     %% `beam_disasm' did not decode this instruction correctly. The
     %% type in the type-tagged record is wrapped with extra information
     %% we discard.
-    Instruction = {call_fun2, {atom, safe}, Arity, {tr, FunReg, Type}},
+    Instruction = {call_fun2, {atom, SafeOrNot}, Arity, {tr, FunReg, Type}},
     pass1_process_instructions([Instruction | Rest], State, Result);
 pass1_process_instructions(
   [{call_fun2,
