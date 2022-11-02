@@ -64,6 +64,7 @@
 
 -export([to_standalone_fun/1,
          to_standalone_fun/2,
+         to_fun/1,
          exec/2]).
 
 -ifdef(TEST).
@@ -936,6 +937,17 @@ load_standalone_fun(#standalone_fun{module = Module, beam = Beam}) ->
     end;
 load_standalone_fun(Fun) when is_function(Fun) ->
     ok.
+
+-spec to_fun(StandaloneFun) -> Fun when
+      StandaloneFun :: standalone_fun(),
+      Fun :: fun().
+%% @private
+
+to_fun(#standalone_fun{module = Module, arity = Arity} = StandaloneFun) ->
+    load_standalone_fun(StandaloneFun),
+    erlang:make_fun(Module, run, Arity);
+to_fun(Fun) when is_function(Fun) ->
+    Fun.
 
 %% -------------------------------------------------------------------
 %% Code processing [Pass 1]
