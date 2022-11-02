@@ -536,6 +536,38 @@ allowed_multiple_nested_higher_order_functions_test() ->
     Ret2 = Ret1(Sets, path, change),
     ?assertEqual([{change, {path, a}}, {change, {path, b}}], Ret2).
 
+call_fun2_instruction_with_jump_label_test() ->
+    OuterFun = fun(Ret) -> {outer, Ret} end,
+    InnerInnerFun = fun inner_function/1,
+    InnerFun = fun() ->
+                       case erlang:phash2(a) of
+                           H when H > 1 -> InnerInnerFun(H);
+                           _            -> error
+                       end
+               end,
+
+    StandaloneFun = ?make_standalone_fun(
+                        begin
+                            R = call_outer_function_local(
+                                  OuterFun, InnerFun, #{}),
+                            {ok, R}
+                        end),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    Ret = khepri_fun:exec(StandaloneFun, []),
+    ?assertEqual({ok, {outer, inner}}, Ret).
+
+inner_function(_) ->
+    inner.
+
+call_outer_function_local(OuterFun, InnerFun, Options) ->
+    OuterFun(
+      call_inner_function(
+        fun() -> InnerFun() end,
+        Options)).
+
+call_inner_function(InnerFun, Options) when is_map(Options) ->
+    InnerFun().
+
 reverse(List) ->
     reverse(List, []).
 

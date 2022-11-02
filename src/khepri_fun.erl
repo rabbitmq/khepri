@@ -2298,8 +2298,20 @@ pass2_process_instruction(
        BsPutSomething =:= bs_put_integer ->
     replace_label(Instruction, 2, State);
 pass2_process_instruction(
-  {call_fun2, {f, _}, _, _} = Instruction, State) ->
-    replace_label(Instruction, 2, State);
+  {call_fun2, {f, _} = Label, _, _} = Instruction,
+  #state{label_map = LabelMap} = State) ->
+    %% If the label used in this instruction is unavailable in the label map,
+    %% it means the targeted function was not extracted with this one. It
+    %% must be that the called function is another anonymous function inside
+    %% the same module. However, after extraction, both this function and the
+    %% called one end up in two separate modules.
+    %%
+    %% Therefore, if we can't find the label in the map, we use `{atom, safe}'
+    %% as the instruction argument.
+    case LabelMap of
+        #{Label := _} -> replace_label(Instruction, 2, State);
+        _             -> setelement(2, Instruction, {atom, safe})
+    end;
 pass2_process_instruction(
   {call_last, Arity, {Module, Name, Arity}, Opaque} = Instruction,
   #state{functions = Functions}) ->
