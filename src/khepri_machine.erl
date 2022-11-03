@@ -617,6 +617,7 @@ split_command_options(Options) ->
     maps:fold(
       fun
           (Option, Value, {C, TP}) when
+                Option =:= reply_from orelse
                 Option =:= timeout orelse
                 Option =:= async ->
               C1 = C#{Option => Value},
@@ -700,10 +701,12 @@ process_command(StoreId, Command, Options) ->
 
 process_sync_command(StoreId, Command, Options) ->
     Timeout = get_timeout(Options),
+    ReplyFrom = maps:get(reply_from, Options, leader),
+    CommandOptions = #{timeout => Timeout, reply_from => ReplyFrom},
     T0 = khepri_utils:start_timeout_window(Timeout),
     LeaderId = khepri_cluster:get_cached_leader(StoreId),
     RaServer = use_leader_or_local_ra_server(StoreId, LeaderId),
-    case ra:process_command(RaServer, Command, Timeout) of
+    case ra:process_command(RaServer, Command, CommandOptions) of
         {ok, Ret, NewLeaderId} ->
             khepri_cluster:cache_leader_if_changed(
               StoreId, LeaderId, NewLeaderId),

@@ -233,6 +233,44 @@
 %% asynchronous command with the specified parameters.</li>
 %% </ul>
 
+-type reply_from_option() :: leader | local | {member, ra:server_id()}.
+%% Options to indicate which member of the cluster should reply to a command
+%% request.
+%%
+%% Note that commands are always handled by the leader. This option only
+%% controls which member of the cluster carries out the reply.
+%%
+%% <ul>
+%% <li>`leader': the cluster leader will reply. This is the default value.</li>
+%% <li>`{member, Member}': the given cluster member will reply.</li>
+%% <li>`local': a member of the cluster on the same node as the caller will
+%% perform the reply.</li>
+%% </ul>
+%%
+%% When `reply_from' is `{member, Member}' and the given member is not part of
+%% the cluster or when `reply_from' is `local' and there is no member local to
+%% the caller, the leader member will perform the reply. This mechanism uses
+%% the cluster membership information to decide which member should reply: if
+%% the given `Member' or local member is a member of the cluster but is offline
+%% or unreachable, no reply may be sent even though the leader may have
+%% successfully handled the command.
+
+-type command_options() :: #{timeout => timeout(),
+                             async => async_option(),
+                             reply_from => reply_from_option()}.
+%% Options used in commands.
+%%
+%% Commands are {@link put/5}, {@link delete/3} and read-write {@link
+%% transaction/4}.
+%%
+%% <ul>
+%% <li>`timeout' is passed to Ra command processing function.</li>
+%% <li>`async' indicates the synchronous or asynchronous nature of the
+%% command; see {@link async_option()}.</li>
+%% <li>`reply_from' indicates which cluster member should reply to the
+%% command request; see {@link reply_from_option()}.</li>
+%% </ul>
+
 -type favor_option() :: consistency | compromise | low_latency.
 %% Option to indicate where to put the cursor between freshness of the
 %% returned data and low latency of queries.
@@ -253,19 +291,6 @@
 %% whatever the local Ra server has. It could be out-of-date if it has
 %% troubles keeping up with the Ra cluster. The chance of blocking and timing
 %% out is very small.</li>
-%% </ul>
-
--type command_options() :: #{timeout => timeout(),
-                             async => async_option()}.
-%% Options used in commands.
-%%
-%% Commands are {@link put/5}, {@link delete/3} and read-write {@link
-%% transaction/4}.
-%%
-%% <ul>
-%% <li>`timeout' is passed to Ra command processing function.</li>
-%% <li>`async' indicates the synchronous or asynchronous nature of the
-%% command; see {@link async_option()}.</li>
 %% </ul>
 
 -type query_options() :: #{timeout => timeout(),
@@ -367,8 +392,9 @@
               trigger_id/0,
 
               async_option/0,
-              favor_option/0,
+              reply_from_option/0,
               command_options/0,
+              favor_option/0,
               query_options/0,
               tree_options/0,
               put_options/0,
