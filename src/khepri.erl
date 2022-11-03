@@ -111,6 +111,8 @@
 
          register_trigger/3, register_trigger/4, register_trigger/5,
 
+         register_projection/2, register_projection/3, register_projection/4,
+
          %% Transactions; `khepri_tx' provides the API to use inside
          %% transaction functions.
          transaction/1, transaction/2, transaction/3, transaction/4,
@@ -243,8 +245,8 @@
 %% <ul>
 %% <li>`leader': the cluster leader will reply. This is the default value.</li>
 %% <li>`{member, Member}': the given cluster member will reply.</li>
-%% <li>`local': a member of the cluster on the same node as the caller will
-%% perform the reply.</li>
+%% <li>`local': a member of the cluster on the same Erlang node as the caller
+%% will perform the reply.</li>
 %% </ul>
 %%
 %% When `reply_from' is `{member, Member}' and the given member is not part of
@@ -2273,6 +2275,95 @@ register_trigger(TriggerId, EventFilter, StoredProcPath, Options)
 register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
     khepri_machine:register_trigger(
       StoreId, TriggerId, EventFilter, StoredProcPath, Options).
+
+%% -------------------------------------------------------------------
+%% register_projection().
+%% -------------------------------------------------------------------
+
+-spec register_projection(PathPattern, Projection) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Projection :: khepri_projection:projection(),
+      Ret :: ok | khepri:error().
+%% @doc Registers a projection.
+%%
+%% Calling this function is the same as calling
+%% `register_projection(StoreId, PathPattern, Projection)' with the default
+%% store ID (see {@link khepri_cluster:get_default_store_id/0}).
+%%
+%% @see register_projection/3.
+
+register_projection(PathPattern, Projection) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    register_projection(StoreId, PathPattern, Projection).
+
+-spec register_projection
+(StoreId, PathPattern, Projection) -> Ret when
+      StoreId :: khepri:store_id(),
+      PathPattern :: khepri_path:pattern(),
+      Projection :: khepri_projection:projection(),
+      Ret :: ok | khepri:error();
+(PathPattern, Projection, Options) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Projection :: khepri_projection:projection(),
+      Options :: khepri:command_options(),
+      Ret :: ok | khepri:error().
+%% @doc Registers a projection.
+%%
+%% This function accepts the following two forms:
+%% <ul>
+%% <li>`register_projection(StoreId, PathPattern, Projection)'. Calling it is
+%% the same as calling `register_projection(StoreId, PathPattern, Projection,
+%% #{})'.</li>
+%% <li>`register_projection(PathPattern, Projection, Options)'. Calling it is
+%% the same as calling `register_projection(StoreId, PathPattern, Projection,
+%% Options)' with the default store ID (see {@link
+%% khepri_cluster:get_default_store_id/0}).</li>
+%% </ul>
+%%
+%% @see register_projection/4.
+
+register_projection(StoreId, PathPattern, Projection)
+  when ?IS_STORE_ID(StoreId) ->
+    register_projection(StoreId, PathPattern, Projection, #{});
+register_projection(PathPattern, Projection, Options)
+  when is_map(Options) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    register_projection(StoreId, PathPattern, Projection, Options).
+
+-spec register_projection(StoreId, PathPattern, Projection, Options) ->
+    Ret when
+      StoreId :: khepri:store_id(),
+      PathPattern :: khepri_path:pattern(),
+      Projection :: khepri_projection:projection(),
+      Options :: khepri:command_options(),
+      Ret :: ok | khepri:error().
+%% @doc Registers a projection.
+%%
+%% A projection is a replicated ETS cache which is kept up to date by
+%% Khepri. See the {@link khepri_projection} module-docs for more information
+%% about projections.
+%%
+%% This function associates a projection created with {@link
+%% khepri_projection:new/3} with a pattern. Any changes to tree nodes matching
+%% the provided pattern will be turned into records using the projection's
+%% {@link khepri_projection:projection_fun()} and then applied to the
+%% projection's ETS table.
+%%
+%% Registering a projection fills the projection's ETS table with records from
+%% any tree nodes which match the `PathPattern' and are already in the store.
+%%
+%% @param StoreId the name of the Khepri store.
+%% @param PathPattern the pattern of tree nodes which the projection should
+%%        watch.
+%% @param Projection the projection resource, created with
+%%        `khepri_projection:new/3'.
+%% @param Options command options for registering the projection.
+%% @returns `ok' if the projection was registered, an `{error, Reason}' tuple
+%% otherwise.
+
+register_projection(StoreId, PathPattern, Projection, Options) ->
+    khepri_machine:register_projection(
+      StoreId, PathPattern, Projection, Options).
 
 %% -------------------------------------------------------------------
 %% transaction().

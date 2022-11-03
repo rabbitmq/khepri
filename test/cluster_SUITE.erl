@@ -41,7 +41,8 @@
          can_start_store_in_specified_data_dir_on_single_node/1,
          handle_leader_down_on_three_node_cluster_command/1,
          handle_leader_down_on_three_node_cluster_response/1,
-         can_set_snapshot_interval/1]).
+         can_set_snapshot_interval/1,
+         projections_are_consistent_on_three_node_cluster/1]).
 
 all() ->
     [can_start_a_single_node,
@@ -59,7 +60,8 @@ all() ->
      can_start_store_in_specified_data_dir_on_single_node,
      handle_leader_down_on_three_node_cluster_command,
      handle_leader_down_on_three_node_cluster_response,
-     can_set_snapshot_interval].
+     can_set_snapshot_interval,
+     projections_are_consistent_on_three_node_cluster].
 
 groups() ->
     [].
@@ -97,7 +99,8 @@ init_per_testcase(Testcase, Config)
        Testcase =:= fail_to_join_if_not_started orelse
        Testcase =:= fail_to_join_non_existing_store orelse
        Testcase =:= handle_leader_down_on_three_node_cluster_command orelse
-       Testcase =:= handle_leader_down_on_three_node_cluster_response ->
+       Testcase =:= handle_leader_down_on_three_node_cluster_response orelse
+       Testcase =:= projections_are_consistent_on_three_node_cluster ->
     Nodes = start_n_nodes(Testcase, 3),
     PropsPerNode0 = [begin
                          {ok, _} = rpc:call(
@@ -1154,6 +1157,106 @@ can_set_snapshot_interval(Config) ->
        khepri:stop(StoreId)),
 
     ok.
+
+projections_are_consistent_on_three_node_cluster(Config) ->
+    ProjectionName = ?MODULE,
+
+    PropsPerNode = ?config(ra_system_props, Config),
+    [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
+
+    %% We assume all nodes are using the same Ra system name & store ID.
+    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    StoreId = RaSystem,
+
+    ct:pal("Projection table does not exist before registering"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- ets:info/1 from node ~s", [Node]),
+              ?assertEqual(
+                 undefined,
+                 rpc:call(Node, ets, info, [ProjectionName]))
+      end, Nodes),
+
+    ct:pal("Start database + cluster nodes"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
+      end, Nodes),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:join() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+      end, [Node1, Node2]),
+
+    ct:pal("Register projection on node ~s", [Node1]),
+    Projection = khepri_projection:new(
+                   ProjectionName, fun(Path, Payload) -> {Path, Payload} end),
+    rpc:call(Node1,
+      khepri, register_projection,
+      [StoreId, [?KHEPRI_WILDCARD_STAR_STAR], Projection]),
+
+    ct:pal("The projection table exists on node ~s", [Node1]),
+    ?assertNotEqual(undefined, rpc:call(Node1, ets, info, [ProjectionName])),
+
+    ct:pal("Wait for the projection table to exist on all nodes"),
+    %% `khepri:register_projection/4' uses a `reply_mode' of `local' which
+    %% blocks until the projection is registered by the cluster member on
+    %% `Node1'. The projection is also guaranteed to exist on the leader
+    %% member but the remaining cluster members are eventually consistent.
+    %% This function polls for the remaining cluster members.
+    ok = wait_for_projection_on_nodes([Node2, Node3], ProjectionName),
+
+    ct:pal("An update by a member looks consistent to that member "
+           "when using the `local' `reply_mode'"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:put/4 from node ~s", [Node]),
+              %% `#{reply_from => local}' makes the `put' immediately
+              %% consistent on the caller node.
+              ?assertEqual(
+                 ok,
+                 rpc:call(Node1, khepri, put, [StoreId, [foo], value1,
+                                               #{reply_from => local}])),
+
+              ct:pal("- ets:lookup() from node ~s", [Node]),
+              ?assertEqual(
+                 [{[foo], value1}],
+                 rpc:call(Node, ets, lookup, [ProjectionName, [foo]]))
+      end, Nodes),
+
+    LeaderId = get_leader_in_store(StoreId, Nodes),
+    {StoreId, LeaderNode} = LeaderId,
+    [FollowerNode | _] = Nodes -- [LeaderNode],
+
+    ct:pal("An update by a follower (~s) is immediately consistent on the "
+           "leader (~s) with a `local' `reply_mode'",
+           [FollowerNode, LeaderNode]),
+    ?assertEqual(
+       ok,
+       rpc:call(FollowerNode, khepri, put, [StoreId, [foo], value2,
+                                            #{reply_from => local}])),
+    ?assertEqual(
+       [{[foo], value2}],
+       rpc:call(LeaderNode, ets, lookup, [ProjectionName, [foo]])),
+
+    ok.
+
+wait_for_projection_on_nodes([], _ProjectionName) ->
+   ok;
+wait_for_projection_on_nodes([Node | Rest] = Nodes, ProjectionName) ->
+   case rpc:call(Node, ets, info, [ProjectionName]) of
+      undefined ->
+         timer:sleep(10),
+         wait_for_projection_on_nodes(Nodes, ProjectionName);
+      _Info ->
+         ct:pal("- projection ~s exists on node ~s", [ProjectionName, Node]),
+         wait_for_projection_on_nodes(Rest, ProjectionName)
+   end.
 
 %% -------------------------------------------------------------------
 %% Internal functions

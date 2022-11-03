@@ -19,6 +19,7 @@ setup(Testcase) ->
            khepri,
            consistent_query_interval_in_compromise,
            2),
+    khepri_utils:init_list_of_modules_to_skip(),
 
     #{ra_system := RaSystem} = Props = helpers:start_ra_system(Testcase),
     {ok, StoreId} = khepri:start(RaSystem, Testcase),

@@ -497,3 +497,51 @@ blanket approvals to tamper with the data.
 
 So even though Khepri uses the same naming than many RDBMS, triggers in Khepri
 can't have unexpected consequences.
+
+== Projections ==
+
+Projections are a system within Khepri for maintaining replicated ETS caches
+for tree nodes matching a given path pattern.
+
+Projection resources are created with the {@link khepri_projection:new/3}
+function and are registered in a store with {@link
+khepri:register_projection/4}:
+
+```
+ProjectionName = wood_stocks,
+ProjectionFun = fun([stock, wood, Kind], Stock) -> {Kind, Stock} end,
+Options = #{type => set, read_concurrency => true},
+Projection = khepri_projection:new(ProjectionName, ProjectionFun, Options).
+
+StoreId = stock,
+PathPattern = "/:stock/:wood/*",
+khepri:register_projection(StoreId, PathPattern, Projection).
+'''
+
+When a path within the store which matches `PathPattern' changes, the changed
+path and data are passed to the given `ProjectionFun' to create ETS objects
+which are then stored in the projection's ETS table.
+
+Projection tables may be queried directly with functions from the {@link ets}
+module.
+
+```
+khepri:put(StoreId, "/:stock/:wood/oak", 100),
+ets:lookup(ProjectionName, <<"oak">>, 2).
+%%=> [{<<"oak">>,100}]
+
+khepri:put(StoreId, "/:stock/:wood/oak", 80),
+ets:lookup(ProjectionName, <<"oak">>, 2).
+%%=> [{<<"oak">>,80}]
+
+khepri:delete(StoreId, "/:stock/:wood/oak"),
+ets:member(ProjectionName, <<"oak">>).
+%%=> false
+'''
+
+Use projections to maximize query throughput and/or minimize query latency.
+
+Projections have some costs though. Expect some increased memory consumption
+since information in the projection tables is duplicated between the Khepri
+store and ETS. Khepri may also take longer to accomplish writes since
+projections are updated by Khepri synchronously when writing to the store.
