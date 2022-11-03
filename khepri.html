@@ -426,6 +426,13 @@ pattern.</td></tr>
 <tr><td valign="top"><a href="#delete_many_payloads%21-1">'delete_many_payloads!'/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#delete_many_payloads%21-2">'delete_many_payloads!'/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#delete_many_payloads%21-3">'delete_many_payloads!'/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#export-2">export/2</a></td><td>Exports a Khepri store using the <code>Module</code> callback module.</td></tr>
+<tr><td valign="top"><a href="#export-3">export/3</a></td><td>Exports a Khepri store using the <code>Module</code> callback module.</td></tr>
+<tr><td valign="top"><a href="#export-4">export/4</a></td><td>Exports a Khepri store using the <code>Module</code> callback module.</td></tr>
+<tr><td valign="top"><a href="#import-2">import/2</a></td><td>Imports a previously exported set of tree nodes using the <code>Module</code>  
+callback module.</td></tr>
+<tr><td valign="top"><a href="#import-3">import/3</a></td><td>Imports a previously exported set of tree nodes using the <code>Module</code>  
+callback module.</td></tr>
 <tr><td valign="top"><a href="#info-0">info/0</a></td><td>Lists the running stores on <em>stdout</em>.</td></tr>
 <tr><td valign="top"><a href="#info-1">info/1</a></td><td>Lists the content of specified store on <em>stdout</em>.</td></tr>
 <tr><td valign="top"><a href="#info-2">info/2</a></td><td>Lists the content of specified store on <em>stdout</em>.</td></tr>
@@ -2281,6 +2288,117 @@ options.</p>
 <ul class="definitions"><li><code>StoreId = <a href="#type-store_id">store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-unwrapped_minimal_ret">khepri:unwrapped_minimal_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
 <p></p>
 </div>
+
+<h3 class="function"><a name="export-2">export/2</a></h3>
+<div class="spec">
+<p><code>export(Module, ModulePriv) -&gt; Ret</code>
+<ul class="definitions"><li><code>Module = module()</code></li><li><code>ModulePriv = <a href="/home/runner/work/khepri/khepri/doc/khepri_import_export.html#type-module_priv">khepri_import_export:module_priv()</a></code></li><li><code>Ret = ok | {ok, ModulePriv} | {error, any()}</code></li></ul></p>
+<p></p>
+</div><p><p>Exports a Khepri store using the <code>Module</code> callback module.</p>
+ 
+  Calling this function is the same as calling <code>export(StoreId, Module,
+  ModulePriv)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
+ </p>
+<p><b>See also:</b> <a href="#export-3">export/3</a>, <a href="#export-4">export/4</a>.</p>
+
+<h3 class="function"><a name="export-3">export/3</a></h3>
+<div class="spec">
+<p><code>export(StoreId::StoreId | PathPattern, Module, ModulePriv) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Module = module()</code></li><li><code>ModulePriv = <a href="/home/runner/work/khepri/khepri/doc/khepri_import_export.html#type-module_priv">khepri_import_export:module_priv()</a></code></li><li><code>Ret = ok | {ok, ModulePriv} | {error, any()}</code></li></ul></p>
+<p></p>
+</div><p><p>Exports a Khepri store using the <code>Module</code> callback module.</p>
+ 
+  This function accepts the following two forms:
+  <ul>
+  <li><code>export(StoreId, Module, ModulePriv)</code>. Calling it is the same as
+  calling <code>export(StoreId, "**", Module, ModulePriv)</code>.</li>
+  <li><code>export(PathPattern, Module, ModulePriv)</code>. Calling it is the same as
+  calling <code>export(StoreId, PathPattern, Module, ModulePriv)</code> with the default
+  store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).</li>
+  </ul>
+ </p>
+<p><b>See also:</b> <a href="#export-4">export/4</a>.</p>
+
+<h3 class="function"><a name="export-4">export/4</a></h3>
+<div class="spec">
+<p><code>export(StoreId, PathPattern, Module, ModulePriv) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Module = module()</code></li><li><code>ModulePriv = <a href="/home/runner/work/khepri/khepri/doc/khepri_import_export.html#type-module_priv">khepri_import_export:module_priv()</a></code></li><li><code>Ret = ok | {ok, ModulePriv} | {error, any()}</code></li></ul></p>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
+<code>PathPattern</code>: the path pattern matching the tree nodes to export.<br>
+<code>Module</code>: the callback module to use to export.<br>
+<code>ModulePriv</code>: arguments passed to <code>Module:open_write/1</code>.
+ <br>
+</p>
+<p>returns: <code>ok</code> or an <code>{ok, Term}</code> tuple if the export succeeded (the actual
+  return value depends on whether the callback module wants to return anything
+  to the caller), or an <code>{error, Reason}</code> tuple if it failed.
+ </p>
+</div><p><p>Exports a Khepri store using the <code>Module</code> callback module.</p>
+ 
+  <p>The <code>PathPattern</code> allows to filter which tree nodes are exported. The path
+  pattern can be provided as a native path pattern (a list of tree node names
+  and conditions) or as a string. See <a docgen-rel="seemfa" docgen-href="khepri_path#from_string/1" href="khepri_path.html#from_string-1"><code>khepri_path:from_string/1</code></a>.</p>
+ 
+  <p><code>Module</code> is the callback module called to perform the actual export. It
+  must conform to the Mnesia Backup &amp; Restore API. See <a docgen-rel="seeerl" docgen-href="khepri_import_export" href="khepri_import_export.html"><code>khepri_import_export</code></a> for more details.</p>
+ 
+  <p><code>ModulePriv</code> is the term passed to <code>Module:open_write/1</code>.</p>
+ 
+  Example: export the full Khepri store using <a docgen-rel="seeerl" docgen-href="khepri_export_erlang" href="khepri_export_erlang.html"><code>khepri_export_erlang</code></a> as
+  the callback module
+  <pre><code>ok = khepri:export(StoreId, khepri_export_erlang, "export-1.erl").</code></pre>
+ 
+  Example: export a subset of the Khepri store
+  <pre><code>ok = khepri:export(
+       StoreId,
+       "/:stock/:wood/**",
+       khepri_export_erlang,
+       "export-wood-stock-1.erl").</code></pre>
+ </p>
+<p><b>See also:</b> <a href="#import-3">import/3</a>.</p>
+
+<h3 class="function"><a name="import-2">import/2</a></h3>
+<div class="spec">
+<p><code>import(Module, ModulePriv) -&gt; Ret</code>
+<ul class="definitions"><li><code>Module = module()</code></li><li><code>ModulePriv = <a href="/home/runner/work/khepri/khepri/doc/khepri_import_export.html#type-module_priv">khepri_import_export:module_priv()</a></code></li><li><code>Ret = ok | {ok, ModulePriv} | {error, any()}</code></li></ul></p>
+<p></p>
+</div><p><p>Imports a previously exported set of tree nodes using the <code>Module</code>  
+callback module.</p>
+ 
+  Calling this function is the same as calling <code>import(StoreId, Module,
+  ModulePriv)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
+ </p>
+<p><b>See also:</b> <a href="#import-3">import/3</a>.</p>
+
+<h3 class="function"><a name="import-3">import/3</a></h3>
+<div class="spec">
+<p><code>import(StoreId, Module, ModulePriv) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Module = module()</code></li><li><code>ModulePriv = <a href="/home/runner/work/khepri/khepri/doc/khepri_import_export.html#type-module_priv">khepri_import_export:module_priv()</a></code></li><li><code>Ret = ok | {ok, ModulePriv} | {error, any()}</code></li></ul></p>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
+<code>Module</code>: the callback module to use to import.<br>
+<code>ModulePriv</code>: arguments passed to <code>Module:open_read/1</code>.
+ <br>
+</p>
+<p>returns: <code>ok</code> or an <code>{ok, Term}</code> tuple if the import succeeded (the actual
+  return value depends on whether the callback module wants to return anything
+  to the caller), or an <code>{error, Reason}</code> tuple if it failed.
+ </p>
+</div><p><p>Imports a previously exported set of tree nodes using the <code>Module</code>  
+callback module.</p>
+ 
+  <p><code>Module</code> is the callback module called to perform the actual import. It
+  must conform to the Mnesia Backup &amp; Restore API. See <a docgen-rel="seeerl" docgen-href="khepri_import_export" href="khepri_import_export.html"><code>khepri_import_export</code></a> for more details.</p>
+ 
+  <p><code>ModulePriv</code> is the term passed to <code>Module:open_read/1</code>.</p>
+ 
+  <p>Importing something doesn't delete existing tree nodes. The caller is  
+responsible for deleting the existing content of a store if he needs to.</p>
+ 
+  Example: import a set of tree nodes using <a docgen-rel="seeerl" docgen-href="khepri_export_erlang" href="khepri_export_erlang.html"><code>khepri_export_erlang</code></a> as
+  the callback module
+  <pre><code>ok = khepri:import(StoreId, khepri_export_erlang, "export-1.erl").</code></pre>
+ </p>
+<p><b>See also:</b> <a href="#export-3">export/3</a>.</p>
 
 <h3 class="function"><a name="info-0">info/0</a></h3>
 <div class="spec">
