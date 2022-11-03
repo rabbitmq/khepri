@@ -572,6 +572,8 @@ ensure_instruction_is_permitted({call_fun, _}) ->
     ok;
 ensure_instruction_is_permitted({call_fun2, {atom, safe}, _, _}) ->
     ok;
+ensure_instruction_is_permitted({call_fun2, {atom, unsafe}, _, _}) ->
+    ok;
 ensure_instruction_is_permitted({call_fun2, {f, _}, _, _}) ->
     ok;
 ensure_instruction_is_permitted({case_end, _}) ->

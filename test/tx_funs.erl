@@ -16,7 +16,10 @@
 
 -dialyzer([{no_return, [allowed_khepri_tx_api_test/0,
                         allowed_erlang_module_api_test/0,
-                        allowed_bs_match_accepts_match_context_test/0]},
+                        allowed_bs_match_accepts_match_context_test/0,
+                        call_fun2_instruction_with_atom_unsafe_test/0,
+                        call_outer_function_external/3]},
+           {no_fail_call, [call_outer_function_external/3]},
            {no_missing_calls,
             [extracting_unexported_external_function_test/0]},
            {no_match,
@@ -535,6 +538,61 @@ allowed_multiple_nested_higher_order_functions_test() ->
     Sets = sets:from_list([a, b]),
     Ret2 = Ret1(Sets, path, change),
     ?assertEqual([{change, {path, a}}, {change, {path, b}}], Ret2).
+
+call_fun2_instruction_with_atom_unsafe_test() ->
+    OuterFun = fun(Ret) -> {outer, Ret} end,
+    InnerFun = fun inner_function/1,
+
+    StandaloneFun = ?make_standalone_fun(
+                        begin
+                            R = call_outer_function_external(
+                                  OuterFun, InnerFun, #{}),
+                            {ok, R}
+                        end),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    ?assertError(
+       {badarity, {_, [#{}]}},
+       khepri_fun:exec(StandaloneFun, [])).
+
+-spec call_outer_function_external(fun(), fun(), map()) -> no_return().
+
+call_outer_function_external(OuterFun, InnerFun, Options) ->
+    OuterFun(
+      mod_used_for_transactions:call_inner_function(
+        fun() -> InnerFun() end,
+        Options)).
+
+call_fun2_instruction_with_jump_label_test() ->
+    OuterFun = fun(Ret) -> {outer, Ret} end,
+    InnerInnerFun = fun inner_function/1,
+    InnerFun = fun() ->
+                       case erlang:phash2(a) of
+                           H when H > 1 -> InnerInnerFun(H);
+                           _            -> error
+                       end
+               end,
+
+    StandaloneFun = ?make_standalone_fun(
+                        begin
+                            R = call_outer_function_local(
+                                  OuterFun, InnerFun, #{}),
+                            {ok, R}
+                        end),
+    ?assertMatch(#standalone_fun{}, StandaloneFun),
+    Ret = khepri_fun:exec(StandaloneFun, []),
+    ?assertEqual({ok, {outer, inner}}, Ret).
+
+call_outer_function_local(OuterFun, InnerFun, Options) ->
+    OuterFun(
+      call_inner_function(
+        fun() -> InnerFun() end,
+        Options)).
+
+call_inner_function(InnerFun, Options) when is_map(Options) ->
+    InnerFun().
+
+inner_function(_) ->
+    inner.
 
 reverse(List) ->
     reverse(List, []).

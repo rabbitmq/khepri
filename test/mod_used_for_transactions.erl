@@ -7,6 +7,10 @@
 
 -module(mod_used_for_transactions).
 
+-include_lib("stdlib/include/assert.hrl").
+
+-include("src/khepri_fun.hrl").
+
 -export([exported/0,
          get_lambda/0,
          %% We export this one just to try to prevent inlining.
@@ -14,7 +18,8 @@
          crashing_fun/0,
          make_record/1,
          outer_function/2,
-         min/2]).
+         min/2,
+         call_inner_function/2]).
 
 exported() -> unexported().
 unexported() -> ok.
@@ -49,3 +54,6 @@ inner_function(_, _) ->
 
 min(A, B) ->
     erlang:min(A, B).
+
+call_inner_function(InnerFun, Options) when is_map(Options) ->
+    InnerFun(Options).
