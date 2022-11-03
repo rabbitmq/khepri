@@ -138,6 +138,9 @@
          'delete_many_payloads!'/1, 'delete_many_payloads!'/2,
          'delete_many_payloads!'/3,
 
+         export/2, export/3, export/4,
+         import/2, import/3,
+
          info/0,
          info/1, info/2]).
 
@@ -2594,7 +2597,161 @@ wait_for_async_ret(Correlation, Timeout) ->
               {error, timeout}
     end.
 
+%% -------------------------------------------------------------------
+%% Bang functions.
+%% -------------------------------------------------------------------
+
 -include("khepri_bang.hrl").
+
+%% -------------------------------------------------------------------
+%% Import/export (backup & restore in Mnesia terms).
+%% -------------------------------------------------------------------
+
+-spec export(Module, ModulePriv) -> Ret when
+      Module :: module(),
+      ModulePriv :: khepri_import_export:module_priv(),
+      Ret :: ok | {ok, ModulePriv} | {error, any()}.
+%% @doc Exports a Khepri store using the `Module' callback module.
+%%
+%% Calling this function is the same as calling `export(StoreId, Module,
+%% ModulePriv)' with the default store ID (see {@link
+%% khepri_cluster:get_default_store_id/0}).
+%%
+%% @see export/3.
+%% @see export/4.
+
+export(Module, ModulePriv) when is_atom(Module) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    export(StoreId, Module, ModulePriv).
+
+-spec export(StoreId | PathPattern, Module, ModulePriv) -> Ret when
+      StoreId :: khepri:store_id(),
+      PathPattern :: khepri_path:pattern(),
+      Module :: module(),
+      ModulePriv :: khepri_import_export:module_priv(),
+      Ret :: ok | {ok, ModulePriv} | {error, any()}.
+%% @doc Exports a Khepri store using the `Module' callback module.
+%%
+%% This function accepts the following two forms:
+%% <ul>
+%% <li>`export(StoreId, Module, ModulePriv)'. Calling it is the same as
+%% calling `export(StoreId, "**", Module, ModulePriv)'.</li>
+%% <li>`export(PathPattern, Module, ModulePriv)'. Calling it is the same as
+%% calling `export(StoreId, PathPattern, Module, ModulePriv)' with the default
+%% store ID (see {@link khepri_cluster:get_default_store_id/0}).</li>
+%% </ul>
+%%
+%% @see export/4.
+
+export(StoreId, Module, ModulePriv)
+  when?IS_STORE_ID(StoreId) andalso is_atom(Module) ->
+    export(StoreId, [?KHEPRI_WILDCARD_STAR_STAR], Module, ModulePriv);
+export(PathPattern, Module, ModulePriv)
+  when is_atom(Module) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    export(StoreId, PathPattern, Module, ModulePriv).
+
+-spec export(StoreId, PathPattern, Module, ModulePriv) -> Ret when
+      StoreId :: khepri:store_id(),
+      PathPattern :: khepri_path:pattern(),
+      Module :: module(),
+      ModulePriv :: khepri_import_export:module_priv(),
+      Ret :: ok | {ok, ModulePriv} | {error, any()}.
+%% @doc Exports a Khepri store using the `Module' callback module.
+%%
+%% The `PathPattern' allows to filter which tree nodes are exported. The path
+%% pattern can be provided as a native path pattern (a list of tree node names
+%% and conditions) or as a string. See {@link khepri_path:from_string/1}.
+%%
+%% `Module' is the callback module called to perform the actual export. It
+%% must conform to the Mnesia Backup &amp; Restore API. See {@link
+%% khepri_import_export} for more details.
+%%
+%% `ModulePriv' is the term passed to `Module:open_write/1'.
+%%
+%% Example: export the full Khepri store using {@link khepri_export_erlang} as
+%% the callback module
+%% ```
+%% ok = khepri:export(StoreId, khepri_export_erlang, "export-1.erl").
+%% '''
+%%
+%% Example: export a subset of the Khepri store
+%% ```
+%% ok = khepri:export(
+%%        StoreId,
+%%        "/:stock/:wood/**",
+%%        khepri_export_erlang,
+%%        "export-wood-stock-1.erl").
+%% '''
+%%
+%% @param StoreId the name of the Khepri store.
+%% @param PathPattern the path pattern matching the tree nodes to export.
+%% @param Module the callback module to use to export.
+%% @param ModulePriv arguments passed to `Module:open_write/1'.
+%%
+%% @returns `ok' or an `{ok, Term}' tuple if the export succeeded (the actual
+%% return value depends on whether the callback module wants to return anything
+%% to the caller), or an `{error, Reason}' tuple if it failed.
+%%
+%% @see import/3.
+
+export(StoreId, PathPattern, Module, ModulePriv)
+  when ?IS_STORE_ID(StoreId) andalso is_atom(Module) ->
+    khepri_import_export:export(StoreId, PathPattern, Module, ModulePriv).
+
+-spec import(Module, ModulePriv) -> Ret when
+      Module :: module(),
+      ModulePriv :: khepri_import_export:module_priv(),
+      Ret :: ok | {ok, ModulePriv} | {error, any()}.
+%% @doc Imports a previously exported set of tree nodes using the `Module'
+%% callback module.
+%%
+%% Calling this function is the same as calling `import(StoreId, Module,
+%% ModulePriv)' with the default store ID (see {@link
+%% khepri_cluster:get_default_store_id/0}).
+%%
+%% @see import/3.
+
+import(Module, ModulePriv) when is_atom(Module) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    import(StoreId, Module, ModulePriv).
+
+-spec import(StoreId, Module, ModulePriv) -> Ret when
+      StoreId :: khepri:store_id(),
+      Module :: module(),
+      ModulePriv :: khepri_import_export:module_priv(),
+      Ret :: ok | {ok, ModulePriv} | {error, any()}.
+%% @doc Imports a previously exported set of tree nodes using the `Module'
+%% callback module.
+%%
+%% `Module' is the callback module called to perform the actual import. It
+%% must conform to the Mnesia Backup &amp; Restore API. See {@link
+%% khepri_import_export} for more details.
+%%
+%% `ModulePriv' is the term passed to `Module:open_read/1'.
+%%
+%% Importing something doesn't delete existing tree nodes. The caller is
+%% responsible for deleting the existing content of a store if he needs to.
+%%
+%% Example: import a set of tree nodes using {@link khepri_export_erlang} as
+%% the callback module
+%% ```
+%% ok = khepri:import(StoreId, khepri_export_erlang, "export-1.erl").
+%% '''
+%%
+%% @param StoreId the name of the Khepri store.
+%% @param Module the callback module to use to import.
+%% @param ModulePriv arguments passed to `Module:open_read/1'.
+%%
+%% @returns `ok' or an `{ok, Term}' tuple if the import succeeded (the actual
+%% return value depends on whether the callback module wants to return anything
+%% to the caller), or an `{error, Reason}' tuple if it failed.
+%%
+%% @see export/3.
+
+import(StoreId, Module, ModulePriv)
+  when ?IS_STORE_ID(StoreId) andalso is_atom(Module) ->
+    khepri_import_export:import(StoreId, Module, ModulePriv).
 
 %% -------------------------------------------------------------------
 %% Public helpers.
