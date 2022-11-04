@@ -291,3 +291,66 @@ count_many_nodes_test_() ->
       ?_assertEqual(
          {ok, 3},
          khepri:count(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR_STAR]))]}.
+
+fold_non_existing_node_test_() ->
+    Fun = fun list_nodes_cb/3,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, []},
+         khepri:fold(?FUNCTION_NAME, [foo], Fun, [])),
+      ?_assertEqual(
+         {ok, []},
+         khepri:fold(
+           ?FUNCTION_NAME, [foo], Fun, [], #{expect_specific_node => true}))]}.
+
+fold_existing_node_test_() ->
+    Fun = fun list_nodes_cb/3,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertEqual(
+         {ok, [[foo]]},
+         khepri:fold(?FUNCTION_NAME, [foo], Fun, []))]}.
+
+fold_many_nodes_test_() ->
+    Fun = fun list_nodes_cb/3,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
+      ?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [baz], baz_value)),
+
+      ?_assertEqual(
+         {ok, [[baz], [foo]]},
+         khepri:fold(
+           ?FUNCTION_NAME, [?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR],
+           Fun, [])),
+      ?_assertEqual(
+         {ok, [[baz], [foo], [foo, bar]]},
+         khepri:fold(
+           ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR_STAR],
+           Fun, []))]}.
+
+crash_during_fold_test_() ->
+    Fun = fun(_Path, _NodeProps, _Acc) -> throw(bug) end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertThrow(
+         bug,
+         khepri:fold(?FUNCTION_NAME, [foo], Fun, []))]}.
+
+list_nodes_cb(Path, _NodeProps, List) ->
+    lists:sort([Path | List]).

@@ -718,6 +718,7 @@ is_remote_call_valid(khepri_tx, exists, _) -> true;
 is_remote_call_valid(khepri_tx, has_data, _) -> true;
 is_remote_call_valid(khepri_tx, is_sproc, _) -> true;
 is_remote_call_valid(khepri_tx, count, _) -> true;
+is_remote_call_valid(khepri_tx, fold, _) -> true;
 is_remote_call_valid(khepri_tx, put, _) -> true;
 is_remote_call_valid(khepri_tx, put_many, _) -> true;
 is_remote_call_valid(khepri_tx, create, _) -> true;

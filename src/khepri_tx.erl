@@ -65,6 +65,7 @@
          has_data/1, has_data/2,
          is_sproc/1, is_sproc/2,
          count/1, count/2,
+         fold/3, fold/4,
 
          put/2, put/3,
          put_many/2, put_many/3,
@@ -416,6 +417,57 @@ count(PathPattern, Options) ->
     TreeOptions1 = TreeOptions#{expect_specific_node => false},
     Ret = khepri_machine:find_matching_nodes(
             Root, PathPattern1, Fun, 0, TreeOptions1),
+    case Ret of
+        {error, ?khepri_exception(_, _) = Exception} ->
+            ?khepri_misuse(Exception);
+        _ ->
+            Ret
+    end.
+
+%% -------------------------------------------------------------------
+%% fold().
+%% -------------------------------------------------------------------
+
+-spec fold(PathPattern, Fun, Acc) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Fun :: khepri:fold_fun(),
+      Acc :: khepri:fold_acc(),
+      Ret :: khepri:ok(NewAcc) | khepri:error(),
+      NewAcc :: Acc.
+%% @doc Calls `Fun' on successive tree nodes matching the given path pattern,
+%% starting with `Acc'.
+%%
+%% This is the same as {@link khepri:fold/4} but inside the context of a
+%% transaction function.
+%%
+%% @see khepri:fold/4.
+
+fold(PathPattern, Fun, Acc) ->
+    fold(PathPattern, Fun, Acc, #{}).
+
+-spec fold(PathPattern, Fun, Acc, Options) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Fun :: khepri:fold_fun(),
+      Acc :: khepri:fold_acc(),
+      Options :: khepri:tree_options(),
+      Ret :: khepri:ok(NewAcc) | khepri:error(),
+      NewAcc :: Acc.
+%% @doc Calls `Fun' on successive tree nodes matching the given path pattern,
+%% starting with `Acc'.
+%%
+%% This is the same as {@link khepri:fold/5} but inside the context of a
+%% transaction function.
+%%
+%% @see khepri:fold/5.
+
+fold(PathPattern, Fun, Acc, Options) ->
+    PathPattern1 = khepri_tx_adv:path_from_string(PathPattern),
+    {#khepri_machine{root = Root},
+     _SideEffects} = khepri_tx_adv:get_tx_state(),
+    {_QueryOptions, TreeOptions} = khepri_machine:split_query_options(Options),
+    TreeOptions1 = TreeOptions#{expect_specific_node => false},
+    Ret = khepri_machine:find_matching_nodes(
+            Root, PathPattern1, Fun, Acc, TreeOptions1),
     case Ret of
         {error, ?khepri_exception(_, _) = Exception} ->
             ?khepri_misuse(Exception);
