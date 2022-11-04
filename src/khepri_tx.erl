@@ -412,9 +412,10 @@ count(PathPattern, Options) ->
     {#khepri_machine{root = Root},
      _SideEffects} = khepri_tx_adv:get_tx_state(),
     Fun = fun khepri_machine:count_node_cb/3,
-    Options1 = Options#{expect_specific_node => false},
+    {_QueryOptions, TreeOptions} = khepri_machine:split_query_options(Options),
+    TreeOptions1 = TreeOptions#{expect_specific_node => false},
     Ret = khepri_machine:find_matching_nodes(
-            Root, PathPattern1, Fun, 0, Options1),
+            Root, PathPattern1, Fun, 0, TreeOptions1),
     case Ret of
         {error, ?khepri_exception(_, _) = Exception} ->
             ?khepri_misuse(Exception);
