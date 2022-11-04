@@ -337,6 +337,14 @@
 %% created/updated tree node.</li>
 %% </ul>
 
+-type fold_fun() :: fun((khepri_path:native_path(),
+                         khepri:node_props(),
+                         khepri:fold_acc()) -> khepri:fold_acc()).
+%% Function passed to {@link khepri:fold/3} and similar functions.
+
+-type fold_acc() :: any().
+%% Term passed to and returned by a {@link fold_fun/0}.
+
 -type ok(Type) :: {ok, Type}.
 %% The result of a function after a successful call, wrapped in an "ok" tuple.
 
@@ -400,6 +408,9 @@
               query_options/0,
               tree_options/0,
               put_options/0,
+
+              fold_fun/0,
+              fold_acc/0,
 
               minimal_ret/0,
               payload_ret/0, payload_ret/1,
@@ -1306,7 +1317,9 @@ count(PathPattern, Options) when is_map(Options) ->
 %% an `{error, Reason}' tuple.
 
 count(StoreId, PathPattern, Options) ->
-    khepri_machine:count(StoreId, PathPattern, Options).
+    Fun = fun khepri_machine:count_node_cb/3,
+    Options1 = Options#{expect_specific_node => false},
+    khepri_machine:fold(StoreId, PathPattern, Fun, 0, Options1).
 
 %% -------------------------------------------------------------------
 %% run_sproc().

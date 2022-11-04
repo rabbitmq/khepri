@@ -33,8 +33,7 @@
 -include("src/khepri_tx.hrl").
 -include("src/khepri_projection.hrl").
 
--export([get/3,
-         count/3,
+-export([fold/5,
          put/4,
          delete/3,
          transaction/5,
@@ -58,7 +57,9 @@
          split_command_options/1,
          split_put_options/1,
          find_matching_nodes/3,
-         count_matching_nodes/3,
+         find_matching_nodes/5,
+         collect_node_props_cb/3,
+         count_node_cb/3,
          insert_or_update_node/5,
          delete_matching_nodes/3,
          handle_tx_exception/1,
@@ -189,11 +190,14 @@
 %% TODO: Verify arguments carefully to avoid the construction of an invalid
 %% command.
 
--spec get(StoreId, PathPattern, Options) -> Ret when
+-spec fold(StoreId, PathPattern, Fun, Acc, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
+      Fun :: khepri:fold_fun(),
+      Acc :: khepri:fold_acc(),
       Options :: khepri:query_options() | khepri:tree_options(),
-      Ret :: khepri_machine:common_ret().
+      Ret :: khepri:ok(NewAcc) | khepri:error(),
+      NewAcc :: Acc.
 %% @doc Returns all tree nodes matching the given path pattern.
 %%
 %% @param StoreId the name of the Ra cluster.
@@ -203,38 +207,25 @@
 %% @returns an `{ok, NodePropsMap}' tuple with a map with zero, one or more
 %% entries, or an `{error, Reason}' tuple.
 
-get(StoreId, PathPattern, Options) when ?IS_STORE_ID(StoreId) ->
+fold(StoreId, PathPattern, Fun, Acc, Options)
+  when ?IS_STORE_ID(StoreId) andalso
+       is_function(Fun, 3) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     {QueryOptions, TreeOptions} = split_query_options(Options),
     Query = fun(#?MODULE{root = Root}) ->
-                    find_matching_nodes(Root, PathPattern1, TreeOptions)
+                    try
+                        find_matching_nodes(
+                          Root, PathPattern1, Fun, Acc, TreeOptions)
+                    catch
+                        Class:Reason:Stacktrace ->
+                            {exception, Class, Reason, Stacktrace}
+                    end
             end,
-    process_query(StoreId, Query, QueryOptions).
-
--spec count(StoreId, PathPattern, Options) -> Ret when
-      StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
-      Options :: khepri:query_options() | khepri:tree_options(),
-      Ret :: khepri:ok(Count) | khepri:error(),
-      Count :: non_neg_integer().
-%% @doc Counts all tree nodes matching the path pattern.
-%%
-%% @param StoreId the name of the Ra cluster.
-%% @param PathPattern the path (or path pattern) to the nodes to count.
-%% @param Options query options such as `favor'.
-%%
-%% @returns an `{ok, Count}' tuple with the number of matching tree nodes, or
-%% an `{error, Reason}' tuple.
-
-count(StoreId, PathPattern, Options) when ?IS_STORE_ID(StoreId) ->
-    PathPattern1 = khepri_path:from_string(PathPattern),
-    khepri_path:ensure_is_valid(PathPattern1),
-    {QueryOptions, TreeOptions} = split_query_options(Options),
-    Query = fun(#?MODULE{root = Root}) ->
-                    count_matching_nodes(Root, PathPattern1, TreeOptions)
-            end,
-    process_query(StoreId, Query, QueryOptions).
+    case process_query(StoreId, Query, QueryOptions) of
+        {exception, _, _, _} = Exception -> handle_tx_exception(Exception);
+        Ret                              -> Ret
+    end.
 
 -spec put(StoreId, PathPattern, Payload, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -1570,71 +1561,76 @@ locate_sproc_and_execute_tx(
 failed_to_locate_sproc(Reason) ->
     khepri_tx:abort(Reason).
 
--spec find_matching_nodes(Root, PathPattern, TreeOptions) -> Result when
+-spec find_matching_nodes(Root, PathPattern, TreeOptions) ->
+    Ret when
       Root :: tree_node(),
       PathPattern :: khepri_path:native_pattern(),
       TreeOptions :: khepri:tree_options(),
-      Result :: khepri_machine:common_ret().
+      Ret :: khepri_machine:common_ret().
 %% @private
 
 find_matching_nodes(Root, PathPattern, TreeOptions) ->
-    do_find_matching_nodes(Root, PathPattern, TreeOptions, #{}, #{}).
+    find_matching_nodes(
+      Root, PathPattern,
+      fun collect_node_props_cb/3, #{},
+      TreeOptions).
 
--spec count_matching_nodes(Root, PathPattern, TreeOptions) -> Result when
-      Root :: tree_node(),
-      PathPattern :: khepri_path:native_pattern(),
-      TreeOptions :: khepri:tree_options(),
-      Result :: khepri:ok(integer()) | khepri:error().
+-spec collect_node_props_cb(Path, NodeProps, Map) ->
+    Ret when
+      Path :: khepri_path:native_path(),
+      NodeProps :: khepri:node_props(),
+      Map :: khepri_adv:node_props_map(),
+      Ret :: Map.
 %% @private
 
-count_matching_nodes(Root, PathPattern, TreeOptions) ->
-    do_find_matching_nodes(Root, PathPattern, TreeOptions, #{}, 0).
+collect_node_props_cb(Path, NodeProps, Map) when is_map(Map) ->
+    Map#{Path => NodeProps}.
 
--spec do_find_matching_nodes
-(Root, PathPattern, TreeOptions, Extra, Map) -> Result when
-      Root :: tree_node(),
-      PathPattern :: khepri_path:native_pattern(),
-      TreeOptions :: khepri:tree_options(),
-      Extra :: khepri:put_options(),
-      Map :: map(),
-      Result :: khepri_machine:common_ret();
-(Root, PathPattern, TreeOptions, Extra, Integer) ->
-    Result when
-      Root :: tree_node(),
-      PathPattern :: khepri_path:native_pattern(),
-      TreeOptions :: khepri:tree_options(),
-      Extra :: khepri:put_options(),
-      Integer :: integer(),
-      Result :: khepri:ok(integer()) | khepri:error().
+-spec count_node_cb(Path, NodeProps, Count) ->
+    Ret when
+      Path :: khepri_path:native_path(),
+      NodeProps :: khepri:node_props(),
+      Count :: non_neg_integer(),
+      Ret :: Count.
 %% @private
 
-do_find_matching_nodes(Root, PathPattern, TreeOptions, Extra, MapOrInteger) ->
-    Fun = fun(Path, Node, Result) ->
-                  find_matching_nodes_cb(Path, Node, TreeOptions, Result)
-          end,
+count_node_cb(_Path, _NodeProps, Count) when is_integer(Count) ->
+    Count + 1.
+
+-spec find_matching_nodes(Root, PathPattern, Fun, Acc, TreeOptions) ->
+    Ret when
+      Root :: tree_node(),
+      PathPattern :: khepri_path:native_pattern(),
+      Fun :: khepri:fold_fun(),
+      Acc :: khepri:fold_acc(),
+      TreeOptions :: khepri:tree_options(),
+      Ret :: khepri:ok(Acc) | khepri:error().
+%% @private
+
+find_matching_nodes(Root, PathPattern, Fun, Acc, TreeOptions) ->
+    WalkFun = fun(Path, Node, Acc1) ->
+                      find_matching_nodes_cb(
+                        Path, Node, Fun, Acc1, TreeOptions)
+              end,
     Ret = walk_down_the_tree(
-            Root, PathPattern, TreeOptions, Extra, Fun, MapOrInteger),
+            Root, PathPattern, TreeOptions, #{}, WalkFun, Acc),
     case Ret of
-        {ok, NewRoot, _, Result} ->
+        {ok, NewRoot, _, Acc2} ->
             ?assertEqual(Root, NewRoot),
-            {ok, Result};
+            {ok, Acc2};
         Error ->
             Error
     end.
 
-find_matching_nodes_cb(Path, #node{} = Node, TreeOptions, Map)
-  when is_map(Map) ->
+find_matching_nodes_cb(Path, #node{} = Node, Fun, Acc, TreeOptions) ->
     NodeProps = gather_node_props(Node, TreeOptions),
-    {ok, keep, Map#{Path => NodeProps}};
-find_matching_nodes_cb(_Path, #node{} = _Node, _Options, Count)
-  when is_integer(Count) ->
-    {ok, keep, Count + 1};
+    Acc1 = Fun(Path, NodeProps, Acc),
+    {ok, keep, Acc1};
 find_matching_nodes_cb(
   _,
   {interrupted, node_not_found = Reason, Info},
-  #{expect_specific_node := true},
-  Map)
-  when is_map(Map) ->
+  _Fun, _Acc,
+  #{expect_specific_node := true}) ->
     %% If we are collecting node properties (the result is a map) and the path
     %% targets a specific node which is not found, we return an error.
     %%
@@ -1642,8 +1638,8 @@ find_matching_nodes_cb(
     %% run. The walk won't be interrupted.
     Reason1 = ?khepri_error(Reason, Info),
     {error, Reason1};
-find_matching_nodes_cb(_, {interrupted, _, _}, _, Result) ->
-    {ok, keep, Result}.
+find_matching_nodes_cb(_, {interrupted, _, _}, _, Acc, _) ->
+    {ok, keep, Acc}.
 
 -spec insert_or_update_node(State, PathPattern, Payload, Extra, TreeOptions) ->
     Ret when
@@ -2059,7 +2055,7 @@ does_path_match(
                                         payload_version,
                                         child_list_version,
                                         child_list_length]},
-    {ok, #{CurrentPath := Node}} = khepri_machine:find_matching_nodes(
+    {ok, #{CurrentPath := Node}} = find_matching_nodes(
                                      Root,
                                      lists:reverse([Component | ReversedPath]),
                                      TreeOptions),
@@ -2085,7 +2081,7 @@ find_stored_proc(Root, StoredProcPath) ->
                                         payload_version,
                                         child_list_version,
                                         child_list_length]},
-    Ret = khepri_machine:find_matching_nodes(
+    Ret = find_matching_nodes(
             Root, StoredProcPath, TreeOptions),
     %% Non-existing nodes and nodes which are not stored procedures are
     %% ignored.

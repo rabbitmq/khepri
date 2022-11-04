@@ -554,16 +554,4 @@ count_many_nodes_test_() ->
                            khepri_tx:count([?KHEPRI_WILDCARD_STAR_STAR])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end),
-      ?_assertError(
-         ?khepri_exception(
-            possibly_matching_many_nodes_denied,
-            #{path := [?KHEPRI_WILDCARD_STAR]}),
-         begin
-             Fun = fun() ->
-                           khepri_tx:count(
-                             [?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR],
-                             #{expect_specific_node => true})
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.

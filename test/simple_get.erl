@@ -290,12 +290,4 @@ count_many_nodes_test_() ->
            ?FUNCTION_NAME, [?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR])),
       ?_assertEqual(
          {ok, 3},
-         khepri:count(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR_STAR])),
-      ?_assertError(
-         ?khepri_exception(
-            possibly_matching_many_nodes_denied,
-            #{path := [?KHEPRI_WILDCARD_STAR]}),
-         khepri:count(
-           ?FUNCTION_NAME,
-           [?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR],
-           #{expect_specific_node => true}))]}.
+         khepri:count(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR_STAR]))]}.
