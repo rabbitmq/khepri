@@ -38,7 +38,6 @@
          put/4,
          delete/3,
          transaction/5,
-         run_sproc/4,
          register_trigger/5,
          register_projection/4]).
 -export([get_keep_while_conds_state/2,
@@ -482,53 +481,6 @@ handle_tx_exception(
 handle_tx_exception(
   {exception, Class, Reason, Stacktrace}) ->
     erlang:raise(Class, Reason, Stacktrace).
-
--spec run_sproc(StoreId, PathPattern, Args, Options) -> Ret when
-      StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
-      Args :: [any()],
-      Options :: khepri:query_options(),
-      Ret :: any().
-%% @doc Executes a stored procedure.
-%%
-%% The stored procedure is executed in the context of the caller of {@link
-%% run_sproc/3}.
-%%
-%% @param StoreId the name of the Ra cluster.
-%% @param PathPattern the path to the stored procedure.
-%% @param Args the list of args to pass to the stored procedure; its length
-%%        must be equal to the stored procedure arity.
-%% @param Options options to tune the tree traversal or the returned structure
-%%        content.
-%%
-%% @returns the result of the stored procedure execution, or throws an
-%% exception if the node does not exist, does not hold a stored procedure or
-%% if there was an error.
-
-run_sproc(StoreId, PathPattern, Args, Options)
-  when ?IS_STORE_ID(StoreId) andalso is_list(Args) ->
-    Options1 = Options#{expect_specific_node => true},
-    case get(StoreId, PathPattern, Options1) of
-        {ok, NodePropsMap} ->
-            [NodeProps] = maps:values(NodePropsMap),
-            case NodeProps of
-                #{sproc := StandaloneFun} ->
-                    khepri_sproc:run(StandaloneFun, Args);
-                _ ->
-                    [Path] = maps:keys(NodePropsMap),
-                    throw(?khepri_exception(
-                             denied_execution_of_non_sproc_node,
-                             #{path => Path,
-                               args => Args,
-                               node_props => NodeProps}))
-            end;
-        {error, Reason} ->
-            throw(?khepri_error(
-                     failed_to_get_sproc,
-                     #{path => PathPattern,
-                       args => Args,
-                       error => Reason}))
-    end.
 
 -spec register_trigger(
         StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->

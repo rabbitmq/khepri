@@ -1397,7 +1397,22 @@ run_sproc(PathPattern, Args, Options) when is_map(Options) ->
 %% @see is_sproc/3.
 
 run_sproc(StoreId, PathPattern, Args, Options) ->
-    khepri_machine:run_sproc(StoreId, PathPattern, Args, Options).
+    case khepri_adv:get(StoreId, PathPattern, Options) of
+        {ok, #{sproc := StandaloneFun}} ->
+            khepri_sproc:run(StandaloneFun, Args);
+        {ok, NodeProps} ->
+            throw(?khepri_exception(
+                     denied_execution_of_non_sproc_node,
+                     #{path => PathPattern,
+                       args => Args,
+                       node_props => NodeProps}));
+        {error, Reason} ->
+            throw(?khepri_error(
+                     failed_to_get_sproc,
+                     #{path => PathPattern,
+                       args => Args,
+                       error => Reason}))
+    end.
 
 %% -------------------------------------------------------------------
 %% put().
