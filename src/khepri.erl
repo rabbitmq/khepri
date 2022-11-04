@@ -2630,7 +2630,7 @@ transaction(FunOrPath, Args, ReadWrite, Options)
 %% </ul>
 %%
 %% When using `PathPattern', a `ReadWrite' of `auto' is synonymous of `rw'.
-%% 
+%%
 %% `Options' is relevant for both read-only and read-write transactions
 %% (including audetected ones). However note that both types expect different
 %% options.
