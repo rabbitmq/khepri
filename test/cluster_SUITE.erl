@@ -948,6 +948,13 @@ can_use_default_store_on_single_node(_Config) ->
        khepri:fold([foo], fun(P, _NP, Acc) -> Acc#{P => ok} end, #{}, #{})),
 
     ?assertEqual(
+       ok,
+       khepri:foreach([foo], fun(_P, _NP) -> ok end)),
+    ?assertEqual(
+       ok,
+       khepri:foreach([foo], fun(_P, _NP) -> ok end, #{})),
+
+    ?assertEqual(
        {ok, #{data => value4,
               payload_version => 7}},
        khepri_adv:get([foo])),

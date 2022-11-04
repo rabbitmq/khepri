@@ -66,6 +66,7 @@
          is_sproc/1, is_sproc/2,
          count/1, count/2,
          fold/3, fold/4,
+         foreach/2, foreach/3,
 
          put/2, put/3,
          put_many/2, put_many/3,
@@ -473,6 +474,46 @@ fold(PathPattern, Fun, Acc, Options) ->
             ?khepri_misuse(Exception);
         _ ->
             Ret
+    end.
+
+%% -------------------------------------------------------------------
+%% foreach().
+%% -------------------------------------------------------------------
+
+-spec foreach(PathPattern, Fun) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Fun :: khepri:foreach_fun(),
+      Ret :: ok | khepri:error().
+%% @doc Calls `Fun' for each tree node matching the given path pattern.
+%%
+%% This is the same as {@link khepri:foreach/3} but inside the context of a
+%% transaction function.
+%%
+%% @see khepri:foreach/3.
+
+foreach(PathPattern, Fun) ->
+    foreach(PathPattern, Fun, #{}).
+
+-spec foreach(PathPattern, Fun, Options) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Fun :: khepri:foreach_fun(),
+      Options :: khepri:tree_options(),
+      Ret :: ok | khepri:error().
+%% @doc Calls `Fun' for each tree node matching the given path pattern.
+%%
+%% This is the same as {@link khepri:foreach/4} but inside the context of a
+%% transaction function.
+%%
+%% @see khepri:foreach/4.
+
+foreach(PathPattern, Fun, Options) when is_function(Fun, 2) ->
+    FoldFun = fun(Path, NodeProps, Acc) ->
+                      _ = Fun(Path, NodeProps),
+                      Acc
+              end,
+    case fold(PathPattern, FoldFun, ok, Options) of
+        {ok, ok}                 -> ok;
+        {error, _Reason} = Error -> Error
     end.
 
 %% -------------------------------------------------------------------

@@ -674,3 +674,112 @@ crash_during_fold_test_() ->
 
 list_nodes_cb(Path, _NodeProps, List) ->
     lists:sort([Path | List]).
+
+foreach_non_existing_node_test_() ->
+    Fun = fun foreach_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, ok},
+         begin
+             Tx = fun() ->
+                          khepri_tx:foreach([foo], Fun)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual({ok, #{}}, khepri_adv:get_many(?FUNCTION_NAME, "**")),
+      ?_assertEqual(
+         {ok, ok},
+         begin
+             Tx = fun() ->
+                          khepri_tx:foreach(
+                            [foo], Fun, #{expect_specific_node => true})
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual({ok, #{}}, khepri_adv:get_many(?FUNCTION_NAME, "**"))]}.
+
+foreach_existing_node_test_() ->
+    Fun = fun foreach_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(denied_update_in_readonly_tx, #{}),
+         begin
+             Tx = fun() ->
+                          khepri_tx:foreach([foo], Fun)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, ro)
+         end),
+      ?_assertEqual(
+         {ok, #{[foo] => #{data => foo_value,
+                           payload_version => 1}}},
+         khepri_adv:get_many(?FUNCTION_NAME, "**")),
+      ?_assertEqual(
+         {ok, ok},
+         begin
+             Tx = fun() ->
+                          khepri_tx:foreach([foo], Fun)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual(
+         {ok, #{[foo] => #{data => foreach_value1,
+                           payload_version => 2}}},
+         khepri_adv:get_many(?FUNCTION_NAME, "**"))]}.
+
+foreach_many_nodes_test_() ->
+    Fun = fun foreach_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
+      ?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [baz], baz_value)),
+
+      ?_assertEqual(
+         {ok, ok},
+         begin
+             Tx = fun() ->
+                          khepri_tx:foreach(
+                            [?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR], Fun)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual(
+         {ok, #{[foo] => #{data => foreach_value1,
+                           payload_version => 2},
+                [foo, bar] => #{data => bar_value,
+                                payload_version => 1},
+                [baz] => #{data => foreach_value1,
+                           payload_version => 2}}},
+         khepri_adv:get_many(?FUNCTION_NAME, "**")),
+      ?_assertEqual(
+         {ok, ok},
+         begin
+             Tx = fun() ->
+                          khepri_tx:foreach([?KHEPRI_WILDCARD_STAR_STAR], Fun)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual(
+         {ok, #{[foo] => #{data => foreach_value2,
+                           payload_version => 3},
+                [foo, bar] => #{data => foreach_value1,
+                                payload_version => 2},
+                [baz] => #{data => foreach_value2,
+                           payload_version => 3}}},
+         khepri_adv:get_many(?FUNCTION_NAME, "**"))]}.
+
+foreach_node_cb(Path, #{data := foreach_value1}) ->
+    ok = khepri_tx:put(Path, foreach_value2);
+foreach_node_cb(Path, _NodeProps) ->
+    ok = khepri_tx:put(Path, foreach_value1).
