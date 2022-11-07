@@ -977,8 +977,12 @@ get_many_or(PathPattern, Default, Options) when is_map(Options) ->
 %% @see khepri_adv:get_many/3.
 
 get_many_or(StoreId, PathPattern, Default, Options) ->
-    Ret = khepri_adv:get_many(StoreId, PathPattern, Options),
-    ?many_results_ret_to_payloads_ret(Ret, Default).
+    Fun = fun(Path, NodeProps, Acc) ->
+                  Payload = khepri_utils:node_props_to_payload(
+                              NodeProps, Default),
+                  Acc#{Path => Payload}
+          end,
+    khepri_machine:fold(StoreId, PathPattern, Fun, #{}, Options).
 
 %% -------------------------------------------------------------------
 %% exists().

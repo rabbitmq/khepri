@@ -43,7 +43,8 @@
          clear_many_payloads/1, clear_many_payloads/2]).
 
 %% For internal use only.
--export([to_standalone_fun/2,
+-export([do_get_many/4,
+         to_standalone_fun/2,
          run/4,
          ensure_instruction_is_permitted/1,
          should_process_function/4,
@@ -121,10 +122,16 @@ get_many(PathPattern) ->
 %% @see khepri_adv:get_many/3.
 
 get_many(PathPattern, Options) ->
+    Fun = fun khepri_machine:collect_node_props_cb/3,
+    Acc = #{},
+    do_get_many(PathPattern, Fun, Acc, Options).
+
+do_get_many(PathPattern, Fun, Acc, Options) ->
     PathPattern1 = path_from_string(PathPattern),
     {_QueryOptions, TreeOptions} = khepri_machine:split_query_options(Options),
     {#khepri_machine{root = Root}, _SideEffects} = get_tx_state(),
-    Ret = khepri_machine:find_matching_nodes(Root, PathPattern1, TreeOptions),
+    Ret = khepri_machine:find_matching_nodes(
+            Root, PathPattern1, Fun, Acc, TreeOptions),
     case Ret of
         {error, ?khepri_exception(_, _) = Exception} ->
             ?khepri_misuse(Exception);

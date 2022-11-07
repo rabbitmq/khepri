@@ -251,8 +251,13 @@ get_many_or(PathPattern, Default) ->
 %% @see khepri:get_many_or/4.
 
 get_many_or(PathPattern, Default, Options) ->
-    Ret = khepri_tx_adv:get_many(PathPattern, Options),
-    ?many_results_ret_to_payloads_ret(Ret, Default).
+    Fun = fun(Path, NodeProps, Acc) ->
+                  Payload = khepri_utils:node_props_to_payload(
+                              NodeProps, Default),
+                  Acc#{Path => Payload}
+          end,
+    Acc = #{},
+    khepri_tx_adv:do_get_many(PathPattern, Fun, Acc, Options).
 
 %% -------------------------------------------------------------------
 %% exists().
