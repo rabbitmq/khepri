@@ -74,8 +74,8 @@
 
          delete/1, delete/2,
          delete_many/1, delete_many/2,
-         delete_payload/1, delete_payload/2,
-         delete_many_payloads/1, delete_many_payloads/2,
+         clear_payload/1, clear_payload/2,
+         clear_many_payloads/1, clear_many_payloads/2,
 
          abort/1,
          is_transaction/0]).
@@ -668,71 +668,71 @@ delete_many(PathPattern, Options) ->
     ?result_ret_to_minimal_ret(Ret).
 
 %% -------------------------------------------------------------------
-%% delete_payload().
+%% clear_payload().
 %% -------------------------------------------------------------------
 
--spec delete_payload(PathPattern) -> Ret when
+-spec clear_payload(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Ret :: khepri:minimal_ret().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
-%% This is the same as {@link khepri:delete_payload/2} but inside the context
+%% This is the same as {@link khepri:clear_payload/2} but inside the context
 %% of a transaction function.
 %%
-%% @see khepri:delete_payload/2.
+%% @see khepri:clear_payload/2.
 
-delete_payload(PathPattern) ->
-    delete_payload(PathPattern, #{}).
+clear_payload(PathPattern) ->
+    clear_payload(PathPattern, #{}).
 
--spec delete_payload(PathPattern, Options) -> Ret when
+-spec clear_payload(PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:tree_options() | khepri:put_options(),
       Ret :: khepri:minimal_ret().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
-%% This is the same as {@link khepri:delete_payload/3} but inside the context
+%% This is the same as {@link khepri:clear_payload/3} but inside the context
 %% of a transaction function.
 %%
-%% @see khepri:delete_payload/3.
+%% @see khepri:clear_payload/3.
 
-delete_payload(PathPattern, Options) ->
+clear_payload(PathPattern, Options) ->
     Options1 = Options#{props_to_return => []},
-    Ret = khepri_tx_adv:delete_payload(PathPattern, Options1),
+    Ret = khepri_tx_adv:clear_payload(PathPattern, Options1),
     ?result_ret_to_minimal_ret(Ret).
 
 %% -------------------------------------------------------------------
-%% delete_many_payloads().
+%% clear_many_payloads().
 %% -------------------------------------------------------------------
 
--spec delete_many_payloads(PathPattern) -> Ret when
+-spec clear_many_payloads(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Ret :: khepri:minimal_ret().
 %% @doc Deletes the payload of all tree nodes matching the given path pattern.
 %%
-%% This is the same as {@link khepri:delete_many_payloads/2} but inside the
+%% This is the same as {@link khepri:clear_many_payloads/2} but inside the
 %% context of a transaction function.
 %%
-%% @see khepri:delete_many_payloads/2.
+%% @see khepri:clear_many_payloads/2.
 
-delete_many_payloads(PathPattern) ->
-    delete_many_payloads(PathPattern, #{}).
+clear_many_payloads(PathPattern) ->
+    clear_many_payloads(PathPattern, #{}).
 
--spec delete_many_payloads(PathPattern, Options) -> Ret when
+-spec clear_many_payloads(PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:tree_options() | khepri:put_options(),
       Ret :: khepri:minimal_ret().
 %% @doc Deletes the payload of all tree nodes matching the given path pattern.
 %%
-%% This is the same as {@link khepri:delete_many_payloads/3} but inside the
+%% This is the same as {@link khepri:clear_many_payloads/3} but inside the
 %% context of a transaction function.
 %%
-%% @see khepri:delete_many_payloads/3.
+%% @see khepri:clear_many_payloads/3.
 
-delete_many_payloads(PathPattern, Options) ->
+clear_many_payloads(PathPattern, Options) ->
     Options1 = Options#{props_to_return => []},
-    Ret = khepri_tx_adv:delete_many_payloads(PathPattern, Options1),
+    Ret = khepri_tx_adv:clear_many_payloads(PathPattern, Options1),
     ?result_ret_to_minimal_ret(Ret).
 
 %% -------------------------------------------------------------------

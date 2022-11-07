@@ -40,9 +40,9 @@
 
          delete/1, delete/2, delete/3,
          delete_many/1, delete_many/2, delete_many/3,
-         delete_payload/1, delete_payload/2, delete_payload/3,
-         delete_many_payloads/1, delete_many_payloads/2,
-         delete_many_payloads/3]).
+         clear_payload/1, clear_payload/2, clear_payload/3,
+         clear_many_payloads/1, clear_many_payloads/2,
+         clear_many_payloads/3]).
 
 -type node_props_map() :: #{khepri_path:native_path() => khepri:node_props()}.
 %% Structure used to return a map of nodes and their associated properties,
@@ -978,42 +978,42 @@ delete_many(StoreId, PathPattern, Options) ->
     khepri_machine:delete(StoreId, PathPattern, Options).
 
 %% -------------------------------------------------------------------
-%% delete_payload().
+%% clear_payload().
 %% -------------------------------------------------------------------
 
--spec delete_payload(PathPattern) -> Ret when
+-spec clear_payload(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Ret :: khepri_adv:single_result().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
-%% Calling this function is the same as calling `delete_payload(StoreId,
+%% Calling this function is the same as calling `clear_payload(StoreId,
 %% PathPattern)' with the default store ID (see {@link
 %% khepri_cluster:get_default_store_id/0}).
 %%
-%% @see delete_payload/2.
-%% @see delete_payload/3.
+%% @see clear_payload/2.
+%% @see clear_payload/3.
 
-delete_payload(PathPattern) ->
+clear_payload(PathPattern) ->
     StoreId = khepri_cluster:get_default_store_id(),
-    delete_payload(StoreId, PathPattern).
+    clear_payload(StoreId, PathPattern).
 
--spec delete_payload(StoreId, PathPattern) -> Ret when
+-spec clear_payload(StoreId, PathPattern) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Ret :: khepri_adv:single_result().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
-%% Calling this function is the same as calling `delete_payload(StoreId,
+%% Calling this function is the same as calling `clear_payload(StoreId,
 %% PathPattern, #{})'.
 %%
-%% @see delete_payload/3.
+%% @see clear_payload/3.
 
-delete_payload(StoreId, PathPattern) ->
-    delete_payload(StoreId, PathPattern, #{}).
+clear_payload(StoreId, PathPattern) ->
+    clear_payload(StoreId, PathPattern, #{}).
 
--spec delete_payload(StoreId, PathPattern, Options) -> Ret when
+-spec clear_payload(StoreId, PathPattern, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() |
@@ -1037,9 +1037,9 @@ delete_payload(StoreId, PathPattern) ->
 %% was specified).
 %%
 %% @see update/4.
-%% @see khepri:delete_payload/3.
+%% @see khepri:clear_payload/3.
 
-delete_payload(StoreId, PathPattern, Options) ->
+clear_payload(StoreId, PathPattern, Options) ->
     Ret = update(StoreId, PathPattern, khepri_payload:none(), Options),
     case Ret of
         {error, ?khepri_error(node_not_found, _)} -> {ok, #{}};
@@ -1047,40 +1047,40 @@ delete_payload(StoreId, PathPattern, Options) ->
     end.
 
 %% -------------------------------------------------------------------
-%% delete_many_payloads().
+%% clear_many_payloads().
 %% -------------------------------------------------------------------
 
--spec delete_many_payloads(PathPattern) -> Ret when
+-spec clear_many_payloads(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Ret :: khepri_adv:many_results().
 %% @doc Deletes the payload of all tree nodes matching the given path pattern.
 %%
-%% Calling this function is the same as calling `delete_many_payloads(StoreId,
+%% Calling this function is the same as calling `clear_many_payloads(StoreId,
 %% PathPattern)' with the default store ID (see {@link
 %% khepri_cluster:get_default_store_id/0}).
 %%
-%% @see delete_many_payloads/2.
-%% @see delete_many_payloads/3.
+%% @see clear_many_payloads/2.
+%% @see clear_many_payloads/3.
 
-delete_many_payloads(PathPattern) ->
+clear_many_payloads(PathPattern) ->
     StoreId = khepri_cluster:get_default_store_id(),
-    delete_many_payloads(StoreId, PathPattern).
+    clear_many_payloads(StoreId, PathPattern).
 
--spec delete_many_payloads(StoreId, PathPattern) -> Ret when
+-spec clear_many_payloads(StoreId, PathPattern) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Ret :: khepri_adv:many_results().
 %% @doc Deletes the payload of all tree nodes matching the given path pattern.
 %%
-%% Calling this function is the same as calling `delete_many_payloads(StoreId,
+%% Calling this function is the same as calling `clear_many_payloads(StoreId,
 %% PathPattern, #{})'.
 %%
-%% @see delete_many_payloads/3.
+%% @see clear_many_payloads/3.
 
-delete_many_payloads(StoreId, PathPattern) ->
-    delete_many_payloads(StoreId, PathPattern, #{}).
+clear_many_payloads(StoreId, PathPattern) ->
+    clear_many_payloads(StoreId, PathPattern, #{}).
 
--spec delete_many_payloads(StoreId, PathPattern, Options) ->
+-spec clear_many_payloads(StoreId, PathPattern, Options) ->
     Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
@@ -1105,9 +1105,9 @@ delete_many_payloads(StoreId, PathPattern) ->
 %%
 %% @see delete_many/3.
 %% @see put/4.
-%% @see khepri:delete_many_payloads/3.
+%% @see khepri:clear_many_payloads/3.
 
-delete_many_payloads(StoreId, PathPattern, Options) ->
+clear_many_payloads(StoreId, PathPattern, Options) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     PathPattern2 = khepri_path:combine_with_conditions(
                      PathPattern1, [#if_node_exists{exists = true}]),

@@ -931,43 +931,43 @@
     unwrap_result(Ret).
 
 %% -------------------------------------------------------------------
-%% delete_payload().
+%% clear_payload().
 %% -------------------------------------------------------------------
 
--spec 'delete_payload!'(PathPattern) -> Payload when
+-spec 'clear_payload!'(PathPattern) -> Payload when
       PathPattern :: khepri_path:pattern(),
       Payload :: khepri:unwrapped_minimal_ret().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
-%% Calling this function is the same as calling {@link delete_payload/1} but
+%% Calling this function is the same as calling {@link clear_payload/1} but
 %% the result is unwrapped (from the `{ok, Result}' tuple) and returned
 %% directly. If there is an error, an exception is thrown.
 %%
-%% @see delete_payload/1.
+%% @see clear_payload/1.
 
-'delete_payload!'(PathPattern) ->
-    Ret = delete_payload(PathPattern),
+'clear_payload!'(PathPattern) ->
+    Ret = clear_payload(PathPattern),
     unwrap_result(Ret).
 
--spec 'delete_payload!'(StoreId, PathPattern) -> Payload when
+-spec 'clear_payload!'(StoreId, PathPattern) -> Payload when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       Payload :: khepri:unwrapped_minimal_ret().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
-%% Calling this function is the same as calling {@link delete_payload/2} but
+%% Calling this function is the same as calling {@link clear_payload/2} but
 %% the result is unwrapped (from the `{ok, Result}' tuple) and returned
 %% directly. If there is an error, an exception is thrown.
 %%
-%% @see delete_payload/2.
+%% @see clear_payload/2.
 
-'delete_payload!'(StoreId, PathPattern) ->
-    Ret = delete_payload(StoreId, PathPattern),
+'clear_payload!'(StoreId, PathPattern) ->
+    Ret = clear_payload(StoreId, PathPattern),
     unwrap_result(Ret).
 
--spec 'delete_payload!'(StoreId, PathPattern, Options) -> Ret when
+-spec 'clear_payload!'(StoreId, PathPattern, Options) -> Ret when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() |
@@ -978,52 +978,52 @@
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
-%% Calling this function is the same as calling {@link delete_payload/3} but
+%% Calling this function is the same as calling {@link clear_payload/3} but
 %% the result is unwrapped (from the `{ok, Result}' tuple) and returned
 %% directly. If there is an error, an exception is thrown.
 %%
-%% @see delete_payload/3.
+%% @see clear_payload/3.
 
-'delete_payload!'(StoreId, PathPattern, Options) ->
-    Ret = delete_payload(StoreId, PathPattern, Options),
+'clear_payload!'(StoreId, PathPattern, Options) ->
+    Ret = clear_payload(StoreId, PathPattern, Options),
     unwrap_result(Ret).
 
 %% -------------------------------------------------------------------
-%% delete_many_payloads().
+%% clear_many_payloads().
 %% -------------------------------------------------------------------
 
--spec 'delete_many_payloads!'(PathPattern) -> Payload when
+-spec 'clear_many_payloads!'(PathPattern) -> Payload when
       PathPattern :: khepri_path:pattern(),
       Payload :: khepri:unwrapped_minimal_ret().
 %% @doc Deletes the payload of all tree nodes matching the given path pattern.
 %%
-%% Calling this function is the same as calling {@link delete_many_payloads/1}
+%% Calling this function is the same as calling {@link clear_many_payloads/1}
 %% but the result is unwrapped (from the `{ok, Result}' tuple) and returned
 %% directly. If there is an error, an exception is thrown.
 %%
-%% @see delete_many_payloads/1.
+%% @see clear_many_payloads/1.
 
-'delete_many_payloads!'(PathPattern) ->
-    Ret = delete_many_payloads(PathPattern),
+'clear_many_payloads!'(PathPattern) ->
+    Ret = clear_many_payloads(PathPattern),
     unwrap_result(Ret).
 
--spec 'delete_many_payloads!'(StoreId, PathPattern) -> Payload when
+-spec 'clear_many_payloads!'(StoreId, PathPattern) -> Payload when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       Payload :: khepri:unwrapped_minimal_ret().
 %% @doc Deletes the payload of all tree nodes matching the given path pattern.
 %%
-%% Calling this function is the same as calling {@link delete_many_payloads/2}
+%% Calling this function is the same as calling {@link clear_many_payloads/2}
 %% but the result is unwrapped (from the `{ok, Result}' tuple) and returned
 %% directly. If there is an error, an exception is thrown.
 %%
-%% @see delete_many_payloads/2.
+%% @see clear_many_payloads/2.
 
-'delete_many_payloads!'(StoreId, PathPattern) ->
-    Ret = delete_many_payloads(StoreId, PathPattern),
+'clear_many_payloads!'(StoreId, PathPattern) ->
+    Ret = clear_many_payloads(StoreId, PathPattern),
     unwrap_result(Ret).
 
--spec 'delete_many_payloads!'(StoreId, PathPattern, Options) -> Ret when
+-spec 'clear_many_payloads!'(StoreId, PathPattern, Options) -> Ret when
       StoreId :: store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() |
@@ -1033,14 +1033,14 @@
              khepri_machine:async_ret().
 %% @doc Deletes the payload of all tree nodes matching the given path pattern.
 %%
-%% Calling this function is the same as calling {@link delete_many_payloads/3}
+%% Calling this function is the same as calling {@link clear_many_payloads/3}
 %% but the result is unwrapped (from the `{ok, Result}' tuple) and returned
 %% directly. If there is an error, an exception is thrown.
 %%
-%% @see delete_many_payloads/3.
+%% @see clear_many_payloads/3.
 
-'delete_many_payloads!'(StoreId, PathPattern, Options) ->
-    Ret = delete_many_payloads(StoreId, PathPattern, Options),
+'clear_many_payloads!'(StoreId, PathPattern, Options) ->
+    Ret = clear_many_payloads(StoreId, PathPattern, Options),
     unwrap_result(Ret).
 
 %% -------------------------------------------------------------------

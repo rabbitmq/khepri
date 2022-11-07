@@ -986,8 +986,8 @@ can_use_default_store_on_single_node(_Config) ->
     ?assertEqual({ok, ok}, khepri:transaction(fun() -> ok end, ro, #{})),
 
     ?assertEqual(ok, khepri:create([bar], value1)),
-    ?assertEqual(ok, khepri:delete_payload([bar])),
-    ?assertEqual(ok, khepri:delete_many_payloads([bar])),
+    ?assertEqual(ok, khepri:clear_payload([bar])),
+    ?assertEqual(ok, khepri:clear_many_payloads([bar])),
     ?assertEqual(ok, khepri:delete([bar])),
     ?assertEqual(ok, khepri:delete([bar], #{})),
     ?assertEqual(ok, khepri:delete_many([bar])),
@@ -997,10 +997,10 @@ can_use_default_store_on_single_node(_Config) ->
     ?assertEqual(
        {ok, #{data => value1,
               payload_version => 2}},
-       khepri_adv:delete_payload([bar])),
+       khepri_adv:clear_payload([bar])),
     ?assertEqual(
        {ok, #{[bar] => #{payload_version => 2}}},
-       khepri_adv:delete_many_payloads([bar])),
+       khepri_adv:clear_many_payloads([bar])),
     ?assertEqual(
        {ok, #{payload_version => 2}},
        khepri_adv:delete([bar])),
@@ -1068,7 +1068,7 @@ can_start_store_in_specified_data_dir_on_single_node(_Config) ->
     ?assertEqual({ok, 1}, khepri:count("**", #{})),
 
     ?assertEqual(ok, khepri:create([bar], value1)),
-    ?assertEqual(ok, khepri:delete_payload([bar])),
+    ?assertEqual(ok, khepri:clear_payload([bar])),
     ?assertEqual(ok, khepri:delete([bar], #{})),
 
     ?assertEqual({ok, StoreId}, khepri:start(DataDir)),
