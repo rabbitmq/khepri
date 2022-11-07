@@ -59,7 +59,7 @@ export_import_full_store_to_file_test_() ->
       ?_assertEqual(ok, khepri:export(?FUNCTION_NAME, Module, Filename)),
       ?_assertEqual(
          {ok, [#put{path = [foo],
-                    extra = #{keep_while => #{[foo] => Cond}}},
+                    options = #{keep_while => #{[foo] => Cond}}},
                #put{path = [foo, bar],
                     payload = khepri_payload:data(bar_value)},
                #put{path = [foo, bar, baz],
@@ -164,7 +164,7 @@ export_import_full_store_to_fd_test_() ->
       ?_assertEqual(ok, khepri:export(?FUNCTION_NAME, Module, Fd)),
       ?_assertEqual(
          {ok, [#put{path = [foo],
-                    extra = #{keep_while => #{[foo] => Cond}}},
+                    options = #{keep_while => #{[foo] => Cond}}},
                #put{path = [foo, bar],
                     payload = khepri_payload:data(bar_value)},
                #put{path = [foo, bar, baz],

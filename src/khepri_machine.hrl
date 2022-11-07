@@ -45,9 +45,7 @@
 
 -record(put, {path :: khepri_path:native_pattern(),
               payload = ?NO_PAYLOAD :: khepri_payload:payload(),
-              extra = #{} :: #{keep_while =>
-                               khepri_condition:native_keep_while()},
-              options = #{} :: khepri:tree_options()}).
+              options = #{} :: khepri:tree_options() | khepri:put_options()}).
 
 -record(delete, {path :: khepri_path:native_pattern(),
                  options  = #{} :: khepri:tree_options()}).

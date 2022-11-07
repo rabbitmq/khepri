@@ -200,8 +200,10 @@ put_many(PathPattern, Data, Options) ->
     ensure_updates_are_allowed(),
     PathPattern1 = path_from_string(PathPattern),
     Payload1 = khepri_payload:wrap(Data),
-    {_CommandOptions, TreeOptions, Extra} =
+    {_CommandOptions, TreeAndPutOptions} =
     khepri_machine:split_command_options(Options),
+    {TreeOptions, Extra} =
+    khepri_machine:split_put_options(TreeAndPutOptions),
     %% TODO: Ensure `CommandOptions' is unset.
     Fun = fun(State) ->
                   khepri_machine:insert_or_update_node(
@@ -403,9 +405,10 @@ delete_many(PathPattern) ->
 delete_many(PathPattern, Options) ->
     ensure_updates_are_allowed(),
     PathPattern1 = path_from_string(PathPattern),
-    {_CommandOptions, TreeOptions, _Extra} =
+    {_CommandOptions, TreeOptions} =
     khepri_machine:split_command_options(Options),
-    %% TODO: Ensure `CommandOptions' and `Extra' are unset.
+    %% TODO: Ensure `CommandOptions' is empty and `TreeOptions' doesn't
+    %% contains put options.
     Fun = fun(State) ->
                   khepri_machine:delete_matching_nodes(
                     State, PathPattern1, TreeOptions)

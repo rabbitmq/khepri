@@ -66,7 +66,7 @@ insert_when_keep_while_true_test() ->
     KeepWhile = #{[foo] => #if_node_exists{exists = true}},
     Command = #put{path = [baz],
                    payload = khepri_payload:data(baz_value),
-                   extra = #{keep_while => KeepWhile}},
+                   options = #{keep_while => KeepWhile}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
     KeepWhileConds = khepri_machine:get_keep_while_conds(S1),
@@ -105,7 +105,7 @@ insert_when_keep_while_false_test() ->
     KeepWhile1 = #{[foo, bar] => #if_node_exists{exists = true}},
     Command1 = #put{path = [baz],
                     payload = khepri_payload:data(baz_value),
-                    extra = #{keep_while => KeepWhile1}},
+                    options = #{keep_while => KeepWhile1}},
     {S1, Ret1, SE1} = khepri_machine:apply(?META, Command1, S0),
 
     ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
@@ -124,8 +124,7 @@ insert_when_keep_while_false_test() ->
     KeepWhile2 = #{[foo] => #if_child_list_length{count = 10}},
     Command2 = #put{path = [baz],
                     payload = khepri_payload:data(baz_value),
-                    extra =
-                    #{keep_while => KeepWhile2}},
+                    options = #{keep_while => KeepWhile2}},
     {S2, Ret2, SE2} = khepri_machine:apply(?META, Command2, S0),
 
     ?assertEqual(S0#khepri_machine.root, S2#khepri_machine.root),
@@ -145,7 +144,7 @@ insert_when_keep_while_true_on_self_test() ->
     KeepWhile = #{[?THIS_KHEPRI_NODE] => #if_child_list_length{count = 0}},
     Command = #put{path = [foo],
                    payload = khepri_payload:data(foo_value),
-                   extra = #{keep_while => KeepWhile}},
+                   options = #{keep_while => KeepWhile}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -168,7 +167,7 @@ insert_when_keep_while_false_on_self_test() ->
     KeepWhile = #{[?THIS_KHEPRI_NODE] => #if_child_list_length{count = 1}},
     Command = #put{path = [foo],
                    payload = khepri_payload:data(foo_value),
-                   extra = #{keep_while => KeepWhile}},
+                   options = #{keep_while => KeepWhile}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -192,7 +191,7 @@ keep_while_still_true_after_command_test() ->
                      payload = khepri_payload:data(foo_value)},
                 #put{path = [baz],
                      payload = khepri_payload:data(baz_value),
-                     extra = #{keep_while => KeepWhile}}],
+                     options = #{keep_while => KeepWhile}}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
     Command = #put{path = [foo],
@@ -232,7 +231,7 @@ keep_while_now_false_after_command_test() ->
                      payload = khepri_payload:data(foo_value)},
                 #put{path = [baz],
                      payload = khepri_payload:data(baz_value),
-                     extra = #{keep_while => KeepWhile}}],
+                     options = #{keep_while => KeepWhile}}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
     Command = #put{path = [foo, bar],
@@ -264,10 +263,10 @@ recursive_automatic_cleanup_test() ->
                   #if_child_list_length{count = {gt, 0}}},
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(foo_value),
-                     extra = #{keep_while => KeepWhile}},
+                     options = #{keep_while => KeepWhile}},
                 #put{path = [foo, bar],
                      payload = khepri_payload:data(bar_value),
-                     extra = #{keep_while => KeepWhile}},
+                     options = #{keep_while => KeepWhile}},
                 #put{path = [foo, bar, baz],
                      payload = khepri_payload:data(baz_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
@@ -299,7 +298,7 @@ keep_while_now_false_after_delete_command_test() ->
                      payload = khepri_payload:data(foo_value)},
                 #put{path = [baz],
                      payload = khepri_payload:data(baz_value),
-                     extra = #{keep_while => KeepWhile}}],
+                     options = #{keep_while => KeepWhile}}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
     Command = #delete{path = [foo],
