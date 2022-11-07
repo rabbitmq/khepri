@@ -97,6 +97,7 @@
 
          fold/3, fold/4, fold/5,
          foreach/2, foreach/3, foreach/4,
+         map/2, map/3, map/4,
 
          run_sproc/2, run_sproc/3, run_sproc/4,
 
@@ -352,6 +353,13 @@
                             khepri:node_props()) -> any()).
 %% Function passed to {@link khepri:foreach/4}.
 
+-type map_fun() :: fun((khepri_path:native_path(),
+                        khepri:node_props()) -> khepri:map_fun_ret()).
+%% Function passed to {@link khepri:map/4}.
+
+-type map_fun_ret() :: any().
+%% Value returned by {@link khepri:map_fun/0}.
+
 -type ok(Type) :: {ok, Type}.
 %% The result of a function after a successful call, wrapped in an "ok" tuple.
 
@@ -419,6 +427,8 @@
               fold_fun/0,
               fold_acc/0,
               foreach_fun/0,
+              map_fun/0,
+              map_fun_ret/0,
 
               minimal_ret/0,
               payload_ret/0, payload_ret/1,
@@ -1541,6 +1551,115 @@ foreach(StoreId, PathPattern, Fun, Options) when is_function(Fun, 2) ->
         {ok, ok}                 -> ok;
         {error, _Reason} = Error -> Error
     end.
+
+%% -------------------------------------------------------------------
+%% map().
+%% -------------------------------------------------------------------
+
+-spec map(PathPattern, Fun) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Fun :: khepri:map_fun(),
+      Ret :: khepri:ok(Map) | khepri:error(),
+      Map :: #{khepri_path:native_path() => khepri:map_fun_ret()}.
+%% @doc Produces a new map by calling `Fun' for each tree node matching the
+%% given path pattern.
+%%
+%% Calling this function is the same as calling `map(StoreId, PathPattern,
+%% Fun)' with the default store ID (see {@link
+%% khepri_cluster:get_default_store_id/0}).
+%%
+%% @see map/3.
+%% @see map/4.
+
+map(PathPattern, Fun) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    map(StoreId, PathPattern, Fun).
+
+-spec map
+(StoreId, PathPattern, Fun) -> Ret when
+      StoreId :: khepri:store_id(),
+      PathPattern :: khepri_path:pattern(),
+      Fun :: khepri:map_fun(),
+      Ret :: khepri:ok(Map) | khepri:error(),
+      Map :: #{khepri_path:native_path() => khepri:map_fun_ret()};
+(PathPattern, Fun, Options) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Fun :: khepri:map_fun(),
+      Options :: khepri:query_options() | khepri:tree_options(),
+      Ret :: khepri:ok(Map) | khepri:error(),
+      Map :: #{khepri_path:native_path() => khepri:map_fun_ret()}.
+%% @doc Produces a new map by calling `Fun' for each tree node matching the
+%% given path pattern.
+%%
+%% This function accepts the following two forms:
+%% <ul>
+%% <li>`map(StoreId, PathPattern, Fun)'. Calling it is the same as
+%% calling `map(StoreId, PathPattern, Fun, #{})'.</li>
+%% <li>`map(PathPattern, Fun, Options)'. Calling it is the same as
+%% calling `map(StoreId, PathPattern, Fun, Options)' with the default
+%% store ID (see {@link khepri_cluster:get_default_store_id/0}).</li>
+%% </ul>
+%%
+%% @see map/4.
+
+map(StoreId, PathPattern, Fun) when ?IS_STORE_ID(StoreId) ->
+    map(StoreId, PathPattern, Fun, #{});
+map(PathPattern, Fun, Options) when is_map(Options) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    map(StoreId, PathPattern, Fun, Options).
+
+-spec map(StoreId, PathPattern, Fun, Options) -> Ret when
+      StoreId :: khepri:store_id(),
+      PathPattern :: khepri_path:pattern(),
+      Fun :: khepri:map_fun(),
+      Options :: khepri:query_options() | khepri:tree_options(),
+      Ret :: khepri:ok(Map) | khepri:error(),
+      Map :: #{khepri_path:native_path() => khepri:map_fun_ret()}.
+%% @doc Produces a new map by calling `Fun' for each tree node matching the
+%% given path pattern.
+%%
+%% The produced map uses the tree node path as the key, like {@link get_many/3}
+%% and the return value of `Fun' as the value.
+%%
+%% The `PathPattern' can be provided as a native path pattern (a list of tree
+%% node names and conditions) or as a string. See {@link
+%% khepri_path:from_string/1}.
+%%
+%% Like the function passed to {@link maps:map/2}, `Fun' must accept the
+%% following arguments:
+%% <ol>
+%% <li>the native path of the tree node being handled</li>
+%% <li>the tree node properties map</li>
+%% </ol>
+%%
+%% Example: create a map of the form "native path => string path"
+%% ```
+%% %% The tree is:
+%% %% <root>
+%% %% `-- foo
+%% %%     `-- bar = value
+%% {ok, #{[foo] => "/:foo",
+%%        [foo, bar] => "/:foo/:bar"}} = khepri:map(
+%%                                         StoreId,
+%%                                         [?KHEPRI_WILDCARD_STAR_STAR],
+%%                                         fun(Path, _NodeProps) ->
+%%                                             khepri_path:to_string(Path)
+%%                                         end).
+%% '''
+%%
+%% @param StoreId the name of the Khepri store.
+%% @param PathPattern the path (or path pattern) to the tree nodes to get.
+%% @param Fun the function to call for each matching tree node.
+%% @param Options query options.
+%%
+%% @returns `{ok, Map}' or an `{error, Reason}' tuple.
+
+map(StoreId, PathPattern, Fun, Options) when is_function(Fun, 2) ->
+    FoldFun = fun(Path, NodeProps, Acc) ->
+                      Ret = Fun(Path, NodeProps),
+                      Acc#{Path => Ret}
+              end,
+    fold(StoreId, PathPattern, FoldFun, #{}, Options).
 
 %% -------------------------------------------------------------------
 %% run_sproc().

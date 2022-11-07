@@ -471,3 +471,57 @@ foreach_node_cb(StoreId, Path, #{data := foreach_value1}) ->
 foreach_node_cb(StoreId, Path, _NodeProps) ->
     ok = khepri:put(
            StoreId, Path, foreach_value1, #{async => true}).
+
+map_non_existing_node_test_() ->
+    Fun = fun map_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, #{}},
+         khepri:map(?FUNCTION_NAME, [foo], Fun)),
+      ?_assertEqual(
+         {ok, #{}},
+         khepri:map(
+           ?FUNCTION_NAME, [foo], Fun, #{expect_specific_node => true}))]}.
+
+map_existing_node_test_() ->
+    Fun = fun map_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertEqual(
+         {ok, #{[foo] => {data, foo_value}}},
+         khepri:map(?FUNCTION_NAME, [foo], Fun))]}.
+
+map_many_nodes_test_() ->
+    Fun = fun map_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
+      ?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [baz], baz_value)),
+
+      ?_assertEqual(
+         {ok, #{[foo] => nodata,
+                [baz] => {data, baz_value}}},
+         khepri:map(
+           ?FUNCTION_NAME, [?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR], Fun)),
+      ?_assertEqual(
+         {ok, #{[foo] => nodata,
+                [foo, bar] => {data, bar_value},
+                [baz] => {data, baz_value}}},
+         khepri:map(
+           ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR_STAR], Fun))]}.
+
+map_node_cb(_Path, #{data := Data}) ->
+    {data, Data};
+map_node_cb(_Path, _NodeProps) ->
+    nodata.

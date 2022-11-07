@@ -67,6 +67,7 @@
          count/1, count/2,
          fold/3, fold/4,
          foreach/2, foreach/3,
+         map/2, map/3,
 
          put/2, put/3,
          put_many/2, put_many/3,
@@ -515,6 +516,47 @@ foreach(PathPattern, Fun, Options) when is_function(Fun, 2) ->
         {ok, ok}                 -> ok;
         {error, _Reason} = Error -> Error
     end.
+
+%% -------------------------------------------------------------------
+%% map().
+%% -------------------------------------------------------------------
+
+-spec map(PathPattern, Fun) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Fun :: khepri:map_fun(),
+      Ret :: khepri:ok(Map) | khepri:error(),
+      Map :: #{khepri_path:native_path() => khepri:map_fun_ret()}.
+%% @doc Produces a new map by calling `Fun' for each tree node matching the
+%% given path pattern.
+%%
+%% This is the same as {@link khepri:map/3} but inside the context of a
+%% transaction function.
+%%
+%% @see khepri:map/3.
+
+map(PathPattern, Fun) ->
+    map(PathPattern, Fun, #{}).
+
+-spec map(PathPattern, Fun, Options) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Fun :: khepri:map_fun(),
+      Options :: khepri:tree_options(),
+      Ret :: khepri:ok(Map) | khepri:error(),
+      Map :: #{khepri_path:native_path() => khepri:map_fun_ret()}.
+%% @doc Produces a new map by calling `Fun' for each tree node matching the
+%% given path pattern.
+%%
+%% This is the same as {@link khepri:map/4} but inside the context of a
+%% transaction function.
+%%
+%% @see khepri:map/4.
+
+map(PathPattern, Fun, Options) when is_function(Fun, 2) ->
+    FoldFun = fun(Path, NodeProps, Acc) ->
+                      Ret = Fun(Path, NodeProps),
+                      Acc#{Path => Ret}
+              end,
+    fold(PathPattern, FoldFun, #{}, Options).
 
 %% -------------------------------------------------------------------
 %% put().

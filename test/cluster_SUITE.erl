@@ -955,6 +955,13 @@ can_use_default_store_on_single_node(_Config) ->
        khepri:foreach([foo], fun(_P, _NP) -> ok end, #{})),
 
     ?assertEqual(
+       {ok, #{[foo] => ok}},
+       khepri:map([foo], fun(_P, _NP) -> ok end)),
+    ?assertEqual(
+       {ok, #{[foo] => ok}},
+       khepri:map([foo], fun(_P, _NP) -> ok end, #{})),
+
+    ?assertEqual(
        {ok, #{data => value4,
               payload_version => 7}},
        khepri_adv:get([foo])),
