@@ -362,7 +362,7 @@ delete_many_test_() ->
       ?_assertError(noproc, khepri:'delete_many!'([foo]))
      ]}.
 
-delete_payload_test_() ->
+clear_payload_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -371,17 +371,17 @@ delete_payload_test_() ->
          khepri:create(?FUNCTION_NAME, [foo], value1)),
       ?_assertEqual(
          ok,
-         khepri:'delete_payload!'(?FUNCTION_NAME, [foo])),
+         khepri:'clear_payload!'(?FUNCTION_NAME, [foo])),
       ?_assertEqual(
          ok,
-         khepri:'delete_payload!'(?FUNCTION_NAME, [foo], #{})),
+         khepri:'clear_payload!'(?FUNCTION_NAME, [foo], #{})),
       ?_assertEqual(
          ok,
-         khepri:'delete_payload!'(?FUNCTION_NAME, [foo], #{async => true})),
-      ?_assertError(noproc, khepri:'delete_payload!'([foo]))
+         khepri:'clear_payload!'(?FUNCTION_NAME, [foo], #{async => true})),
+      ?_assertError(noproc, khepri:'clear_payload!'([foo]))
      ]}.
 
-delete_many_payloads_test_() ->
+clear_many_payloads_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -390,12 +390,12 @@ delete_many_payloads_test_() ->
          khepri:create(?FUNCTION_NAME, [foo], value1)),
       ?_assertEqual(
          ok,
-         khepri:'delete_many_payloads!'(?FUNCTION_NAME, [foo])),
+         khepri:'clear_many_payloads!'(?FUNCTION_NAME, [foo])),
       ?_assertEqual(
          ok,
-         khepri:'delete_many_payloads!'(?FUNCTION_NAME, [foo], #{})),
+         khepri:'clear_many_payloads!'(?FUNCTION_NAME, [foo], #{})),
       ?_assertEqual(
          ok,
-         khepri:'delete_many_payloads!'(?FUNCTION_NAME, [foo], #{async => true})),
-      ?_assertError(noproc, khepri:'delete_many_payloads!'([foo]))
+         khepri:'clear_many_payloads!'(?FUNCTION_NAME, [foo], #{async => true})),
+      ?_assertError(noproc, khepri:'clear_many_payloads!'([foo]))
      ]}.

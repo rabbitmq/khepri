@@ -150,7 +150,7 @@ delete_many_on_existing_node_with_condition_false_test_() ->
                 payload_version => 1}},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
-delete_payload_from_non_existing_node_test_() ->
+clear_payload_from_non_existing_node_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -158,7 +158,7 @@ delete_payload_from_non_existing_node_test_() ->
          {ok, {ok, #{}}},
          begin
              Fun = fun() ->
-                           khepri_tx_adv:delete_payload([foo])
+                           khepri_tx_adv:clear_payload([foo])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
@@ -168,7 +168,7 @@ delete_payload_from_non_existing_node_test_() ->
                                                  node_is_target => true})},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
-delete_payload_from_existing_node_test_() ->
+clear_payload_from_existing_node_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -179,7 +179,7 @@ delete_payload_from_existing_node_test_() ->
          ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
              Fun = fun() ->
-                           khepri_tx_adv:delete_payload([foo])
+                           khepri_tx_adv:clear_payload([foo])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
@@ -189,7 +189,7 @@ delete_payload_from_existing_node_test_() ->
                  payload_version => 2}}},
          begin
              Fun = fun() ->
-                           khepri_tx_adv:delete_payload([foo])
+                           khepri_tx_adv:clear_payload([foo])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
@@ -197,7 +197,7 @@ delete_payload_from_existing_node_test_() ->
          {ok, #{payload_version => 2}},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
-delete_payload_with_keep_while_test_() ->
+clear_payload_with_keep_while_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -210,7 +210,7 @@ delete_payload_with_keep_while_test_() ->
                  payload_version => 2}}},
          begin
              Fun = fun() ->
-                           khepri_tx_adv:delete_payload(
+                           khepri_tx_adv:clear_payload(
                              [foo], #{keep_while => #{}})
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
@@ -219,7 +219,7 @@ delete_payload_with_keep_while_test_() ->
          {ok, #{payload_version => 2}},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
-delete_payload_with_options_test_() ->
+clear_payload_with_options_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -232,7 +232,7 @@ delete_payload_with_options_test_() ->
                  payload_version => 2}}},
          begin
              Fun = fun() ->
-                           khepri_tx_adv:delete_payload(
+                           khepri_tx_adv:clear_payload(
                              [foo], #{})
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
@@ -241,7 +241,7 @@ delete_payload_with_options_test_() ->
          {ok, #{payload_version => 2}},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
-delete_many_payloads_from_non_existing_node_test_() ->
+clear_many_payloads_from_non_existing_node_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -249,7 +249,7 @@ delete_many_payloads_from_non_existing_node_test_() ->
          {ok, {ok, #{}}},
          begin
              Fun = fun() ->
-                           khepri_tx_adv:delete_many_payloads(
+                           khepri_tx_adv:clear_many_payloads(
                              [#if_name_matches{regex = "foo"}])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
@@ -259,7 +259,7 @@ delete_many_payloads_from_non_existing_node_test_() ->
          khepri_adv:get_many(
            ?FUNCTION_NAME, [#if_name_matches{regex = "foo"}]))]}.
 
-delete_many_payloads_from_existing_node_test_() ->
+clear_many_payloads_from_existing_node_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -273,7 +273,7 @@ delete_many_payloads_from_existing_node_test_() ->
          ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
              Fun = fun() ->
-                           khepri_tx_adv:delete_many_payloads(
+                           khepri_tx_adv:clear_many_payloads(
                              [#if_name_matches{regex = "foo"}])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
@@ -285,7 +285,7 @@ delete_many_payloads_from_existing_node_test_() ->
                  [foo2] => #{payload_version => 1}}}},
          begin
              Fun = fun() ->
-                           khepri_tx_adv:delete_many_payloads(
+                           khepri_tx_adv:clear_many_payloads(
                              [#if_name_matches{regex = "foo"}])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
@@ -303,7 +303,7 @@ delete_many_payloads_from_existing_node_test_() ->
                  [foo2] => #{payload_version => 1}}}},
          begin
              Fun = fun() ->
-                           khepri_tx_adv:delete_many_payloads(
+                           khepri_tx_adv:clear_many_payloads(
                              [#if_name_matches{regex = "foo"}], #{})
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
@@ -314,7 +314,7 @@ delete_many_payloads_from_existing_node_test_() ->
                  [foo2] => #{payload_version => 1}}}},
          begin
              Fun = fun() ->
-                           khepri_tx_adv:delete_many_payloads(
+                           khepri_tx_adv:clear_many_payloads(
                              [#if_name_matches{regex = "foo"}],
                              #{keep_while => #{}})
                    end,

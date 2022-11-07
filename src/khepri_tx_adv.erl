@@ -39,8 +39,8 @@
 
          delete/1, delete/2,
          delete_many/1, delete_many/2,
-         delete_payload/1, delete_payload/2,
-         delete_many_payloads/1, delete_many_payloads/2]).
+         clear_payload/1, clear_payload/2,
+         clear_many_payloads/1, clear_many_payloads/2]).
 
 %% For internal user only.
 -export([to_standalone_fun/2,
@@ -413,36 +413,36 @@ delete_many(PathPattern, Options) ->
     handle_state_for_call(Fun).
 
 %% -------------------------------------------------------------------
-%% delete_payload().
+%% clear_payload().
 %% -------------------------------------------------------------------
 
--spec delete_payload(PathPattern) -> Ret when
+-spec clear_payload(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Ret :: khepri_adv:single_result().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
-%% This is the same as {@link khepri_adv:delete_payload/2} but inside the
+%% This is the same as {@link khepri_adv:clear_payload/2} but inside the
 %% context of a transaction function.
 %%
-%% @see khepri_adv:delete_payload/2.
+%% @see khepri_adv:clear_payload/2.
 
-delete_payload(PathPattern) ->
-    delete_payload(PathPattern, #{}).
+clear_payload(PathPattern) ->
+    clear_payload(PathPattern, #{}).
 
--spec delete_payload(PathPattern, Options) -> Ret when
+-spec clear_payload(PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:tree_options() | khepri:put_options(),
       Ret :: khepri_adv:single_result().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
-%% This is the same as {@link khepri_adv:delete_payload/3} but inside the
+%% This is the same as {@link khepri_adv:clear_payload/3} but inside the
 %% context of a transaction function.
 %%
-%% @see khepri_adv:delete_payload/3.
+%% @see khepri_adv:clear_payload/3.
 
-delete_payload(PathPattern, Options) ->
+clear_payload(PathPattern, Options) ->
     Ret = update(PathPattern, khepri_payload:none(), Options),
     case Ret of
         {error, ?khepri_error(node_not_found, _)} -> {ok, #{}};
@@ -450,34 +450,34 @@ delete_payload(PathPattern, Options) ->
     end.
 
 %% -------------------------------------------------------------------
-%% delete_many_payloads().
+%% clear_many_payloads().
 %% -------------------------------------------------------------------
 
--spec delete_many_payloads(PathPattern) -> Ret when
+-spec clear_many_payloads(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Ret :: khepri_adv:many_results().
 %% @doc Deletes the payload of all tree nodes matching the given path pattern.
 %%
-%% This is the same as {@link khepri_adv:delete_many_payloads/2} but inside the
+%% This is the same as {@link khepri_adv:clear_many_payloads/2} but inside the
 %% context of a transaction function.
 %%
-%% @see khepri_adv:delete_many_payloads/2.
+%% @see khepri_adv:clear_many_payloads/2.
 
-delete_many_payloads(PathPattern) ->
-    delete_many_payloads(PathPattern, #{}).
+clear_many_payloads(PathPattern) ->
+    clear_many_payloads(PathPattern, #{}).
 
--spec delete_many_payloads(PathPattern, Options) -> Ret when
+-spec clear_many_payloads(PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:tree_options() | khepri:put_options(),
       Ret :: khepri_adv:many_results().
 %% @doc Deletes the payload of all tree nodes matching the given path pattern.
 %%
-%% This is the same as {@link khepri_adv:delete_many_payloads/3} but inside the
+%% This is the same as {@link khepri_adv:clear_many_payloads/3} but inside the
 %% context of a transaction function.
 %%
-%% @see khepri_adv:delete_many_payloads/3.
+%% @see khepri_adv:clear_many_payloads/3.
 
-delete_many_payloads(PathPattern, Options) ->
+clear_many_payloads(PathPattern, Options) ->
     put_many(PathPattern, khepri_payload:none(), Options).
 
 %% -------------------------------------------------------------------
@@ -719,8 +719,8 @@ is_remote_call_valid(khepri_tx, update, _) -> true;
 is_remote_call_valid(khepri_tx, compare_and_swap, _) -> true;
 is_remote_call_valid(khepri_tx, delete, _) -> true;
 is_remote_call_valid(khepri_tx, delete_many, _) -> true;
-is_remote_call_valid(khepri_tx, delete_payload, _) -> true;
-is_remote_call_valid(khepri_tx, delete_many_payloads, _) -> true;
+is_remote_call_valid(khepri_tx, clear_payload, _) -> true;
+is_remote_call_valid(khepri_tx, clear_many_payloads, _) -> true;
 is_remote_call_valid(khepri_tx, abort, _) -> true;
 is_remote_call_valid(khepri_tx, is_transaction, _) -> true;
 
@@ -733,8 +733,8 @@ is_remote_call_valid(khepri_tx_adv, update, _) -> true;
 is_remote_call_valid(khepri_tx_adv, compare_and_swap, _) -> true;
 is_remote_call_valid(khepri_tx_adv, delete, _) -> true;
 is_remote_call_valid(khepri_tx_adv, delete_many, _) -> true;
-is_remote_call_valid(khepri_tx_adv, delete_payload, _) -> true;
-is_remote_call_valid(khepri_tx_adv, delete_many_payloads, _) -> true;
+is_remote_call_valid(khepri_tx_adv, clear_payload, _) -> true;
+is_remote_call_valid(khepri_tx_adv, clear_many_payloads, _) -> true;
 
 is_remote_call_valid(_, module_info, _) -> false;
 
@@ -897,12 +897,12 @@ is_standalone_fun_still_needed(#{calls := Calls}, auto) ->
                     #{{khepri_tx, delete, 2} := _}                   -> rw;
                     #{{khepri_tx, delete_many, 1} := _}              -> rw;
                     #{{khepri_tx, delete_many, 2} := _}              -> rw;
-                    #{{khepri_tx, delete_payload, 1} := _}           -> rw;
-                    #{{khepri_tx, delete_payload, 2} := _}           -> rw;
-                    #{{khepri_tx, delete_payload, 3} := _}           -> rw;
-                    #{{khepri_tx, delete_many_payloads, 1} := _}     -> rw;
-                    #{{khepri_tx, delete_many_payloads, 2} := _}     -> rw;
-                    #{{khepri_tx, delete_many_payloads, 3} := _}     -> rw;
+                    #{{khepri_tx, clear_payload, 1} := _}           -> rw;
+                    #{{khepri_tx, clear_payload, 2} := _}           -> rw;
+                    #{{khepri_tx, clear_payload, 3} := _}           -> rw;
+                    #{{khepri_tx, clear_many_payloads, 1} := _}     -> rw;
+                    #{{khepri_tx, clear_many_payloads, 2} := _}     -> rw;
+                    #{{khepri_tx, clear_many_payloads, 3} := _}     -> rw;
 
                     #{{khepri_tx_adv, put, 2} := _}                  -> rw;
                     #{{khepri_tx_adv, put, 3} := _}                  -> rw;
@@ -923,12 +923,12 @@ is_standalone_fun_still_needed(#{calls := Calls}, auto) ->
                     #{{khepri_tx_adv, delete, 2} := _}               -> rw;
                     #{{khepri_tx_adv, delete_many, 1} := _}          -> rw;
                     #{{khepri_tx_adv, delete_many, 2} := _}          -> rw;
-                    #{{khepri_tx_adv, delete_payload, 1} := _}       -> rw;
-                    #{{khepri_tx_adv, delete_payload, 2} := _}       -> rw;
-                    #{{khepri_tx_adv, delete_payload, 3} := _}       -> rw;
-                    #{{khepri_tx_adv, delete_many_payloads, 1} := _} -> rw;
-                    #{{khepri_tx_adv, delete_many_payloads, 2} := _} -> rw;
-                    #{{khepri_tx_adv, delete_many_payloads, 3} := _} -> rw;
+                    #{{khepri_tx_adv, clear_payload, 1} := _}       -> rw;
+                    #{{khepri_tx_adv, clear_payload, 2} := _}       -> rw;
+                    #{{khepri_tx_adv, clear_payload, 3} := _}       -> rw;
+                    #{{khepri_tx_adv, clear_many_payloads, 1} := _} -> rw;
+                    #{{khepri_tx_adv, clear_many_payloads, 2} := _} -> rw;
+                    #{{khepri_tx_adv, clear_many_payloads, 3} := _} -> rw;
                     _                                                -> ro
                 end,
     ReadWrite =:= rw.
