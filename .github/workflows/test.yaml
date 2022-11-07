@@ -22,7 +22,7 @@ jobs:
       RUN_DIALYZER_ON_OTP_RELEASE: 25
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: erlef/setup-beam@v1
         id: install-erlang
         with:
@@ -30,7 +30,7 @@ jobs:
           rebar3-version: '3.18.0'
 
       - name: Restore Dialyzer PLT files from cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         if: ${{ matrix.otp_version == env.RUN_DIALYZER_ON_OTP_RELEASE && matrix.os == 'ubuntu-latest' }}
         with:
           path: _build/*/rebar3_*_plt
