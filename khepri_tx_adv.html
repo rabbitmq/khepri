@@ -45,12 +45,12 @@ matches the given pattern.</td></tr>
 <tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Deletes the tree node pointed to by the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#delete_many-1">delete_many/1</a></td><td>Deletes all tree nodes matching the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#delete_many-2">delete_many/2</a></td><td>Deletes all tree nodes matching the given path pattern.</td></tr>
-<tr><td valign="top"><a href="#delete_payload-1">delete_payload/1</a></td><td>Deletes the payload of the tree node pointed to by the given path  
+<tr><td valign="top"><a href="#clear_payload-1">clear_payload/1</a></td><td>Deletes the payload of the tree node pointed to by the given path  
 pattern.</td></tr>
-<tr><td valign="top"><a href="#delete_payload-2">delete_payload/2</a></td><td>Deletes the payload of the tree node pointed to by the given path  
+<tr><td valign="top"><a href="#clear_payload-2">clear_payload/2</a></td><td>Deletes the payload of the tree node pointed to by the given path  
 pattern.</td></tr>
-<tr><td valign="top"><a href="#delete_many_payloads-1">delete_many_payloads/1</a></td><td>Deletes the payload of all tree nodes matching the given path pattern.</td></tr>
-<tr><td valign="top"><a href="#delete_many_payloads-2">delete_many_payloads/2</a></td><td>Deletes the payload of all tree nodes matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#clear_many_payloads-1">clear_many_payloads/1</a></td><td>Deletes the payload of all tree nodes matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#clear_many_payloads-2">clear_many_payloads/2</a></td><td>Deletes the payload of all tree nodes matching the given path pattern.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -279,55 +279,55 @@ matches the given pattern.</p>
  </p>
 <p><b>See also:</b> <a href="khepri_adv.html#delete_many-3">khepri_adv:delete_many/3</a>.</p>
 
-<h3 class="function"><a name="delete_payload-1">delete_payload/1</a></h3>
+<h3 class="function"><a name="clear_payload-1">clear_payload/1</a></h3>
 <div class="spec">
-<p><code>delete_payload(PathPattern) -&gt; Ret</code>
+<p><code>clear_payload(PathPattern) -&gt; Ret</code>
 <ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Deletes the payload of the tree node pointed to by the given path  
 pattern.</p>
  
-  This is the same as <a docgen-rel="seemfa" docgen-href="khepri_adv#delete_payload/2" href="khepri_adv.html#delete_payload-2"><code>khepri_adv:delete_payload/2</code></a> but inside the
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri_adv#clear_payload/2" href="khepri_adv.html#clear_payload-2"><code>khepri_adv:clear_payload/2</code></a> but inside the
   context of a transaction function.
  </p>
-<p><b>See also:</b> <a href="khepri_adv.html#delete_payload-2">khepri_adv:delete_payload/2</a>.</p>
+<p><b>See also:</b> <a href="khepri_adv.html#clear_payload-2">khepri_adv:clear_payload/2</a>.</p>
 
-<h3 class="function"><a name="delete_payload-2">delete_payload/2</a></h3>
+<h3 class="function"><a name="clear_payload-2">clear_payload/2</a></h3>
 <div class="spec">
-<p><code>delete_payload(PathPattern, Options) -&gt; Ret</code>
+<p><code>clear_payload(PathPattern, Options) -&gt; Ret</code>
 <ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Deletes the payload of the tree node pointed to by the given path  
 pattern.</p>
  
-  This is the same as <a docgen-rel="seemfa" docgen-href="khepri_adv#delete_payload/3" href="khepri_adv.html#delete_payload-3"><code>khepri_adv:delete_payload/3</code></a> but inside the
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri_adv#clear_payload/3" href="khepri_adv.html#clear_payload-3"><code>khepri_adv:clear_payload/3</code></a> but inside the
   context of a transaction function.
  </p>
-<p><b>See also:</b> <a href="khepri_adv.html#delete_payload-3">khepri_adv:delete_payload/3</a>.</p>
+<p><b>See also:</b> <a href="khepri_adv.html#clear_payload-3">khepri_adv:clear_payload/3</a>.</p>
 
-<h3 class="function"><a name="delete_many_payloads-1">delete_many_payloads/1</a></h3>
+<h3 class="function"><a name="clear_many_payloads-1">clear_many_payloads/1</a></h3>
 <div class="spec">
-<p><code>delete_many_payloads(PathPattern) -&gt; Ret</code>
+<p><code>clear_many_payloads(PathPattern) -&gt; Ret</code>
 <ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Deletes the payload of all tree nodes matching the given path pattern.</p>
  
-  This is the same as <a docgen-rel="seemfa" docgen-href="khepri_adv#delete_many_payloads/2" href="khepri_adv.html#delete_many_payloads-2"><code>khepri_adv:delete_many_payloads/2</code></a> but inside the
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri_adv#clear_many_payloads/2" href="khepri_adv.html#clear_many_payloads-2"><code>khepri_adv:clear_many_payloads/2</code></a> but inside the
   context of a transaction function.
  </p>
-<p><b>See also:</b> <a href="khepri_adv.html#delete_many_payloads-2">khepri_adv:delete_many_payloads/2</a>.</p>
+<p><b>See also:</b> <a href="khepri_adv.html#clear_many_payloads-2">khepri_adv:clear_many_payloads/2</a>.</p>
 
-<h3 class="function"><a name="delete_many_payloads-2">delete_many_payloads/2</a></h3>
+<h3 class="function"><a name="clear_many_payloads-2">clear_many_payloads/2</a></h3>
 <div class="spec">
-<p><code>delete_many_payloads(PathPattern, Options) -&gt; Ret</code>
+<p><code>clear_many_payloads(PathPattern, Options) -&gt; Ret</code>
 <ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Deletes the payload of all tree nodes matching the given path pattern.</p>
  
-  This is the same as <a docgen-rel="seemfa" docgen-href="khepri_adv#delete_many_payloads/3" href="khepri_adv.html#delete_many_payloads-3"><code>khepri_adv:delete_many_payloads/3</code></a> but inside the
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri_adv#clear_many_payloads/3" href="khepri_adv.html#clear_many_payloads-3"><code>khepri_adv:clear_many_payloads/3</code></a> but inside the
   context of a transaction function.
  </p>
-<p><b>See also:</b> <a href="khepri_adv.html#delete_many_payloads-3">khepri_adv:delete_many_payloads/3</a>.</p>
+<p><b>See also:</b> <a href="khepri_adv.html#clear_many_payloads-3">khepri_adv:clear_many_payloads/3</a>.</p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>

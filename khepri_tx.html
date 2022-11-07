@@ -110,12 +110,12 @@ matches the given pattern.</td></tr>
 <tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Deletes the tree node pointed to by the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#delete_many-1">delete_many/1</a></td><td>Deletes all tree nodes matching the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#delete_many-2">delete_many/2</a></td><td>Deletes all tree nodes matching the given path pattern.</td></tr>
-<tr><td valign="top"><a href="#delete_payload-1">delete_payload/1</a></td><td>Deletes the payload of the tree node pointed to by the given path  
+<tr><td valign="top"><a href="#clear_payload-1">clear_payload/1</a></td><td>Deletes the payload of the tree node pointed to by the given path  
 pattern.</td></tr>
-<tr><td valign="top"><a href="#delete_payload-2">delete_payload/2</a></td><td>Deletes the payload of the tree node pointed to by the given path  
+<tr><td valign="top"><a href="#clear_payload-2">clear_payload/2</a></td><td>Deletes the payload of the tree node pointed to by the given path  
 pattern.</td></tr>
-<tr><td valign="top"><a href="#delete_many_payloads-1">delete_many_payloads/1</a></td><td>Deletes the payload of all tree nodes matching the given path pattern.</td></tr>
-<tr><td valign="top"><a href="#delete_many_payloads-2">delete_many_payloads/2</a></td><td>Deletes the payload of all tree nodes matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#clear_many_payloads-1">clear_many_payloads/1</a></td><td>Deletes the payload of all tree nodes matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#clear_many_payloads-2">clear_many_payloads/2</a></td><td>Deletes the payload of all tree nodes matching the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#abort-1">abort/1</a></td><td>Aborts the transaction.</td></tr>
 <tr><td valign="top"><a href="#is_transaction-0">is_transaction/0</a></td><td>Indicates if the calling function runs in the context of a transaction
   function.</td></tr>
@@ -499,55 +499,55 @@ matches the given pattern.</p>
  </p>
 <p><b>See also:</b> <a href="khepri.html#delete_many-3">khepri:delete_many/3</a>.</p>
 
-<h3 class="function"><a name="delete_payload-1">delete_payload/1</a></h3>
+<h3 class="function"><a name="clear_payload-1">clear_payload/1</a></h3>
 <div class="spec">
-<p><code>delete_payload(PathPattern) -&gt; Ret</code>
+<p><code>clear_payload(PathPattern) -&gt; Ret</code>
 <ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Deletes the payload of the tree node pointed to by the given path  
 pattern.</p>
  
-  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#delete_payload/2" href="khepri.html#delete_payload-2"><code>khepri:delete_payload/2</code></a> but inside the context
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#clear_payload/2" href="khepri.html#clear_payload-2"><code>khepri:clear_payload/2</code></a> but inside the context
   of a transaction function.
  </p>
-<p><b>See also:</b> <a href="khepri.html#delete_payload-2">khepri:delete_payload/2</a>.</p>
+<p><b>See also:</b> <a href="khepri.html#clear_payload-2">khepri:clear_payload/2</a>.</p>
 
-<h3 class="function"><a name="delete_payload-2">delete_payload/2</a></h3>
+<h3 class="function"><a name="clear_payload-2">clear_payload/2</a></h3>
 <div class="spec">
-<p><code>delete_payload(PathPattern, Options) -&gt; Ret</code>
+<p><code>clear_payload(PathPattern, Options) -&gt; Ret</code>
 <ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Deletes the payload of the tree node pointed to by the given path  
 pattern.</p>
  
-  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#delete_payload/3" href="khepri.html#delete_payload-3"><code>khepri:delete_payload/3</code></a> but inside the context
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#clear_payload/3" href="khepri.html#clear_payload-3"><code>khepri:clear_payload/3</code></a> but inside the context
   of a transaction function.
  </p>
-<p><b>See also:</b> <a href="khepri.html#delete_payload-3">khepri:delete_payload/3</a>.</p>
+<p><b>See also:</b> <a href="khepri.html#clear_payload-3">khepri:clear_payload/3</a>.</p>
 
-<h3 class="function"><a name="delete_many_payloads-1">delete_many_payloads/1</a></h3>
+<h3 class="function"><a name="clear_many_payloads-1">clear_many_payloads/1</a></h3>
 <div class="spec">
-<p><code>delete_many_payloads(PathPattern) -&gt; Ret</code>
+<p><code>clear_many_payloads(PathPattern) -&gt; Ret</code>
 <ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Deletes the payload of all tree nodes matching the given path pattern.</p>
  
-  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#delete_many_payloads/2" href="khepri.html#delete_many_payloads-2"><code>khepri:delete_many_payloads/2</code></a> but inside the
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#clear_many_payloads/2" href="khepri.html#clear_many_payloads-2"><code>khepri:clear_many_payloads/2</code></a> but inside the
   context of a transaction function.
  </p>
-<p><b>See also:</b> <a href="khepri.html#delete_many_payloads-2">khepri:delete_many_payloads/2</a>.</p>
+<p><b>See also:</b> <a href="khepri.html#clear_many_payloads-2">khepri:clear_many_payloads/2</a>.</p>
 
-<h3 class="function"><a name="delete_many_payloads-2">delete_many_payloads/2</a></h3>
+<h3 class="function"><a name="clear_many_payloads-2">clear_many_payloads/2</a></h3>
 <div class="spec">
-<p><code>delete_many_payloads(PathPattern, Options) -&gt; Ret</code>
+<p><code>clear_many_payloads(PathPattern, Options) -&gt; Ret</code>
 <ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Deletes the payload of all tree nodes matching the given path pattern.</p>
  
-  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#delete_many_payloads/3" href="khepri.html#delete_many_payloads-3"><code>khepri:delete_many_payloads/3</code></a> but inside the
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#clear_many_payloads/3" href="khepri.html#clear_many_payloads-3"><code>khepri:clear_many_payloads/3</code></a> but inside the
   context of a transaction function.
  </p>
-<p><b>See also:</b> <a href="khepri.html#delete_many_payloads-3">khepri:delete_many_payloads/3</a>.</p>
+<p><b>See also:</b> <a href="khepri.html#clear_many_payloads-3">khepri:clear_many_payloads/3</a>.</p>
 
 <h3 class="function"><a name="abort-1">abort/1</a></h3>
 <div class="spec">
