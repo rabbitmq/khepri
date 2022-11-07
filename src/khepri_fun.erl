@@ -2073,14 +2073,17 @@ fix_integer(Other)  -> Other.
 %% registers" (`tr') to allow the JIT to do some optimizations. See:
 %% https://www.erlang.org/blog/type-based-optimizations-in-the-jit/
 %%
-%% `beam_disasm' decodes the typed registers but leaves them in their encoded
-%% form inside the beam file. We need to recover the proper typed register
-%% form.
+%% OTP25's `beam_disasm' decoded the typed registers but left them in their
+%% encoded form inside the beam file. We need to recover the proper typed
+%% register form.
+%%
+%% This function mirrors `beam_disasm:resolve_arg/1'.
+%% We could attempt to use the Min/Max to narrow down the type but there
+%% doesn't seem to be any advantage to doing so.
+%% See: https://github.com/erlang/otp/blob/be2a9c06aee359b77568ad1f9fb4313500f2f9ed/lib/compiler/src/beam_disasm.erl#L1293
 
-fix_type_tagged_beam_register({tr, Reg, {TypeUnion, _Min, _Max}}) ->
-    %% TODO: We could use `Min' and `Max' to improve the decoded typed
-    %% register, but 1), they are badly decoded by `beam_disasm' (unsigned
-    %% instead of signed) and 2)is there any benefit at this point?
+fix_type_tagged_beam_register({tr, Reg, {TypeUnion, _Min, _Max}})
+  when is_tuple(TypeUnion) ->
     {tr, Reg, TypeUnion};
 fix_type_tagged_beam_register(Other) ->
     Other.
