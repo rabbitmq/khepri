@@ -34,13 +34,9 @@
         case (__Ret) of
             {ok, __NodePropsMap} ->
                 __PayloadsMap = maps:map(
-                                  fun
-                                      (_, #{data := __Data}) ->
-                                          __Data;
-                                      (_, #{sproc := __StandaloneFun}) ->
-                                          __StandaloneFun;
-                                      (_, _) ->
-                                          (__Default)
+                                  fun(_, __NodeProps) ->
+                                          khepri_utils:node_props_to_payload(
+                                            __NodeProps, (__Default))
                                   end, __NodePropsMap),
                 {ok, __PayloadsMap};
             {error, ?khepri_exception(_, _) = __Exception} ->

@@ -68,6 +68,7 @@
          fold/3, fold/4,
          foreach/2, foreach/3,
          map/2, map/3,
+         filter/2, filter/3,
 
          put/2, put/3,
          put_many/2, put_many/3,
@@ -555,6 +556,51 @@ map(PathPattern, Fun, Options) when is_function(Fun, 2) ->
     FoldFun = fun(Path, NodeProps, Acc) ->
                       Ret = Fun(Path, NodeProps),
                       Acc#{Path => Ret}
+              end,
+    fold(PathPattern, FoldFun, #{}, Options).
+
+%% -------------------------------------------------------------------
+%% filter().
+%% -------------------------------------------------------------------
+
+-spec filter(PathPattern, Pred) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Pred :: khepri:filter_fun(),
+      Ret :: khepri:many_payloads_ret().
+%% @doc Returns a map for which predicate `Pred' holds true in tree nodes
+%% matching the given path pattern.
+%%
+%% This is the same as {@link khepri:filter/3} but inside the context of a
+%% transaction function.
+%%
+%% @see khepri:filter/3.
+
+filter(PathPattern, Pred) ->
+    filter(PathPattern, Pred, #{}).
+
+-spec filter(PathPattern, Pred, Options) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Pred :: khepri:filter_fun(),
+      Options :: khepri:tree_options(),
+      Ret :: khepri:many_payloads_ret().
+%% @doc Returns a map for which predicate `Pred' holds true in tree nodes
+%% matching the given path pattern.
+%%
+%% This is the same as {@link khepri:filter/4} but inside the context of a
+%% transaction function.
+%%
+%% @see khepri:filter/4.
+
+filter(PathPattern, Pred, Options) when is_function(Pred, 2) ->
+    FoldFun = fun(Path, NodeProps, Acc) ->
+                      case Pred(Path, NodeProps) of
+                          true ->
+                              Payload = khepri_utils:node_props_to_payload(
+                                          NodeProps, undefined),
+                              Acc#{Path => Payload};
+                          false ->
+                              Acc
+                      end
               end,
     fold(PathPattern, FoldFun, #{}, Options).
 

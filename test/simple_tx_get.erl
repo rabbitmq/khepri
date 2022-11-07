@@ -864,3 +864,79 @@ map_node_cb(_Path, #{data := Data}) ->
     {data, Data};
 map_node_cb(_Path, _NodeProps) ->
     nodata.
+
+filter_non_existing_node_test_() ->
+    Pred = fun filter_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, {ok, #{}}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:filter([foo], Pred)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual(
+         {ok, {ok, #{}}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:filter(
+                            [foo], Pred, #{expect_specific_node => true})
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
+filter_existing_node_test_() ->
+    Pred = fun filter_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertEqual(
+         {ok, {ok, #{}}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:filter([foo], Pred)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
+filter_many_nodes_test_() ->
+    Pred = fun filter_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
+      ?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [baz], baz_value)),
+
+      ?_assertEqual(
+         {ok, {ok, #{[baz] => baz_value}}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:filter(
+                            [?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR], Pred)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual(
+         {ok, {ok, #{[baz] => baz_value}}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:filter(
+                            [?KHEPRI_WILDCARD_STAR_STAR], Pred)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
+filter_node_cb([_ | _] = Path, _NodeProps) ->
+    lists:last(Path) =:= baz;
+filter_node_cb(_Path, _NodeProps) ->
+    false.
