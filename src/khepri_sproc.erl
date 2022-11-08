@@ -18,7 +18,7 @@
 -include("src/khepri_fun.hrl").
 -include("src/khepri_tx.hrl").
 
-%% For internal user only.
+%% For internal use only.
 -export([to_standalone_fun/1,
          run/2]).
 

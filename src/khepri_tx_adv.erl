@@ -42,7 +42,7 @@
          clear_payload/1, clear_payload/2,
          clear_many_payloads/1, clear_many_payloads/2]).
 
-%% For internal user only.
+%% For internal use only.
 -export([to_standalone_fun/2,
          run/4,
          get_tx_state/0,
