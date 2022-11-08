@@ -427,7 +427,7 @@ ok = khepri:register_trigger(
        StoreId,
        TriggerId,
        EventFilter,
-       StoredProcPath))}.
+       StoredProcPath).
 '''
 
 In this example, the {@link khepri_evf:tree_event_filter()} structure only
