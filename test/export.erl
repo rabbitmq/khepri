@@ -37,7 +37,7 @@ export_full_store_test_() ->
          khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
       ?_assertEqual(
          {ok, [#put{path = [foo],
-                    extra = #{keep_while => #{[foo] => Cond}}},
+                    options = #{keep_while => #{[foo] => Cond}}},
                #put{path = [foo, bar],
                     payload = khepri_payload:data(bar_value)}]},
          khepri:export(?FUNCTION_NAME, Module, ModulePriv))]}.
@@ -116,10 +116,10 @@ export_keep_while_conds_test_() ->
            #{keep_while => KeepWhile})),
       ?_assertEqual(
          {ok, [#put{path = [foo],
-                    extra = #{keep_while => #{[foo] => Cond1}}},
+                    options = #{keep_while => #{[foo] => Cond1}}},
                #put{path = [foo, bar],
                     payload = ?NO_PAYLOAD,
-                    extra = #{keep_while => #{[foo, bar] => Cond2}}}]},
+                    options = #{keep_while => #{[foo, bar] => Cond2}}}]},
          khepri:export(?FUNCTION_NAME, Module, ModulePriv))]}.
 
 error_to_export_during_open_write_test_() ->

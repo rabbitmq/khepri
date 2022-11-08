@@ -288,7 +288,7 @@ write(
         true ->
             Command = #put{path = Path,
                            payload = Payload,
-                           extra = Extra},
+                           options = Extra},
             ?LOG_DEBUG(
                "Khepri export: calling ~s:write/2:~n"
                "  opaque data: ~p~n"

@@ -52,6 +52,7 @@
          ack_triggers_execution/2,
          split_query_options/1,
          split_command_options/1,
+         split_put_options/1,
          find_matching_nodes/3,
          count_matching_nodes/3,
          insert_or_update_node/5,
@@ -243,11 +244,10 @@ put(StoreId, PathPattern, Payload, Options)
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     Payload1 = khepri_payload:prepare(Payload),
-    {CommandOptions, TreeOptions, Extra} = split_command_options(Options),
+    {CommandOptions, TreeAndPutOptions} = split_command_options(Options),
     Command = #put{path = PathPattern1,
                    payload = Payload1,
-                   extra = Extra,
-                   options = TreeOptions},
+                   options = TreeAndPutOptions},
     process_command(StoreId, Command, CommandOptions);
 put(_StoreId, PathPattern, Payload, _Options) ->
     ?khepri_misuse(invalid_payload, #{path => PathPattern,
@@ -272,7 +272,7 @@ put(_StoreId, PathPattern, Payload, _Options) ->
 delete(StoreId, PathPattern, Options) when ?IS_STORE_ID(StoreId) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
-    {CommandOptions, TreeOptions, _Extra} = split_command_options(Options),
+    {CommandOptions, TreeOptions} = split_command_options(Options),
     %% TODO: Ensure `Extra' is unset.
     Command = #delete{path = PathPattern1,
                       options = TreeOptions},
@@ -606,36 +606,54 @@ split_query_options(Options) ->
       end, {#{}, #{}}, Options1).
 
 -spec split_command_options(Options) ->
-    {CommandOptions, TreeOptions, Extra} when
-      Options :: CommandOptions | TreeOptions | Extra,
+    {CommandOptions, TreeAndPutOptions} when
+      Options :: CommandOptions | TreeAndPutOptions,
       CommandOptions :: khepri:command_options(),
-      TreeOptions :: khepri:tree_options(),
-      Extra :: khepri:put_options().
+      TreeAndPutOptions :: khepri:tree_options() | khepri:put_options().
 %% @private
 
 split_command_options(Options) ->
     Options1 = set_default_options(Options),
     maps:fold(
       fun
-          (keep_while, KeepWhile, {C, T, E}) ->
-              KeepWhile1 = khepri_condition:ensure_native_keep_while(
-                             KeepWhile),
-              E1 = E#{keep_while => KeepWhile1},
-              {C, T, E1};
-          (Option, Value, {C, T, E}) when
+          (Option, Value, {C, TP}) when
                 Option =:= timeout orelse
                 Option =:= async ->
               C1 = C#{Option => Value},
-              {C1, T, E};
+              {C1, TP};
           (props_to_return, [], Acc) ->
               Acc;
-          (Option, Value, {C, T, E}) when
+          (Option, Value, {C, TP}) when
                 Option =:= expect_specific_node orelse
                 Option =:= props_to_return orelse
                 Option =:= include_root_props ->
+              TP1 = TP#{Option => Value},
+              {C, TP1};
+          (keep_while, KeepWhile, {C, TP}) ->
+              %% `keep_while' is kept in `TreeAndPutOptions' here. The state
+              %% machine will extract it in `apply()'.
+              KeepWhile1 = khepri_condition:ensure_native_keep_while(
+                             KeepWhile),
+              TP1 = TP#{keep_while => KeepWhile1},
+              {C, TP1}
+      end, {#{}, #{}}, Options1).
+
+-spec split_put_options(TreeAndPutOptions) -> {TreeOptions, PutOptions} when
+      TreeAndPutOptions :: TreeOptions | PutOptions,
+      TreeOptions :: khepri:tree_options(),
+      PutOptions :: khepri:put_options().
+%% @private
+
+split_put_options(TreeAndPutOptions) ->
+    maps:fold(
+      fun
+          (keep_while, KeepWhile, {T, P}) ->
+              P1 = P#{keep_while => KeepWhile},
+              {T, P1};
+          (Option, Value, {T, P}) ->
               T1 = T#{Option => Value},
-              {C, T1, E}
-      end, {#{}, #{}, #{}}, Options1).
+              {T1, P}
+      end, {#{}, #{}}, TreeAndPutOptions).
 
 -define(DEFAULT_PROPS_TO_RETURN, [payload,
                                   payload_version]).
@@ -1043,9 +1061,9 @@ init(#{store_id := StoreId,
 %% TODO: Handle unknown/invalid commands.
 apply(
   Meta,
-  #put{path = PathPattern, payload = Payload, extra = Extra,
-       options = TreeOptions},
+  #put{path = PathPattern, payload = Payload, options = TreeAndPutOptions},
   State) ->
+    {TreeOptions, Extra} = split_put_options(TreeAndPutOptions),
     Ret = insert_or_update_node(
             State, PathPattern, Payload, Extra, TreeOptions),
     bump_applied_command_count(Ret, Meta);
