@@ -558,6 +558,8 @@ ensure_instruction_is_permitted({bs_init_bits, _, _, _, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted(bs_init_writable) ->
     ok;
+ensure_instruction_is_permitted({bs_match, _, _, _}) ->
+    ok;
 ensure_instruction_is_permitted({bs_private_append, _, _, _, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted({BsPutSomething, _, _, _, _, _})
