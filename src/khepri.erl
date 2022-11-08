@@ -2789,6 +2789,7 @@ info(StoreId) ->
 %% @doc Lists the content of specified store on <em>stdout</em>.
 %%
 %% @param StoreId the name of the Khepri store.
+%% @param Options query options.
 
 info(StoreId, Options) ->
     io:format("~n\033[1;32m== CLUSTER MEMBERS ==\033[0m~n~n", []),
