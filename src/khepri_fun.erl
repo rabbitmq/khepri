@@ -1170,10 +1170,7 @@ pass1_process_instructions(
     Instruction = {call_fun2, {atom, SafeOrNot}, Arity, {tr, FunReg, Type}},
     pass1_process_instructions([Instruction | Rest], State, Result);
 pass1_process_instructions(
-  [{call_fun2,
-    {u, LambdaIndex},
-    Arity,
-    {tr, FunReg, {{t_fun, _Arity, _Domain, _Range}, _, _}}} | Rest],
+  [{call_fun2, {u, LambdaIndex}, Arity, Func} | Rest],
   #state{lambdas_in_progress = Lambdas,
          mfa_in_progress = {Module, _, _}} = State,
   Result) ->
@@ -1198,6 +1195,7 @@ pass1_process_instructions(
     %% it has in the generated module.
     FunName1 = gen_function_name(Module, FunName, Arity, State),
     TypeField = {t_fun, Arity, {FunName1, FullArity}, any},
+    FunReg = get_reg_from_type_tagged_beam_register(Func),
     Instruction = {call_fun2, {f, Label}, Arity, {tr, FunReg, TypeField}},
     pass1_process_instructions([Instruction | Rest], State, Result);
 pass1_process_instructions(
