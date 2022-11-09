@@ -13,6 +13,7 @@
 
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
+-include("src/khepri_machine.hrl").
 
 -export([all/0,
          groups/0,
@@ -39,7 +40,8 @@
          can_use_default_store_on_single_node/1,
          can_start_store_in_specified_data_dir_on_single_node/1,
          handle_leader_down_on_three_node_cluster_command/1,
-         handle_leader_down_on_three_node_cluster_response/1]).
+         handle_leader_down_on_three_node_cluster_response/1,
+         can_set_snapshot_interval/1]).
 
 all() ->
     [can_start_a_single_node,
@@ -56,7 +58,8 @@ all() ->
      can_use_default_store_on_single_node,
      can_start_store_in_specified_data_dir_on_single_node,
      handle_leader_down_on_three_node_cluster_command,
-     handle_leader_down_on_three_node_cluster_response].
+     handle_leader_down_on_three_node_cluster_response,
+     can_set_snapshot_interval].
 
 groups() ->
     [].
@@ -80,7 +83,8 @@ init_per_testcase(Testcase, Config)
        Testcase =:= can_restart_a_single_node_with_ra_server_config orelse
        Testcase =:= fail_to_start_with_bad_ra_server_config orelse
        Testcase =:= initial_members_are_ignored orelse
-       Testcase =:= fail_to_join_non_existing_node ->
+       Testcase =:= fail_to_join_non_existing_node orelse
+       Testcase =:= can_set_snapshot_interval ->
     setup_node(),
     {ok, _} = application:ensure_all_started(khepri),
     Props = helpers:start_ra_system(Testcase),
@@ -1090,6 +1094,66 @@ can_start_store_in_specified_data_dir_on_single_node(_Config) ->
 
     helpers:remove_store_dir(DataDir),
     ?assertNot(filelib:is_dir(DataDir)).
+
+can_set_snapshot_interval(Config) ->
+    Node = node(),
+    #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
+    StoreId = RaSystem,
+
+    ct:pal("Start database"),
+    RaServerConfig = #{cluster_name => StoreId,
+                       machine_config => #{snapshot_interval => 3}},
+    ?assertEqual(
+       {ok, StoreId},
+       khepri:start(RaSystem, RaServerConfig)),
+
+    ct:pal("Verify applied command count is 0"),
+    ?assertEqual(
+       #{},
+       khepri_machine:process_query(
+         StoreId,
+         fun(#khepri_machine{metrics = Metrics}) -> Metrics end,
+         #{})),
+
+    ct:pal("Use database after starting it"),
+    ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
+
+    ct:pal("Verify applied command count is 1"),
+    ?assertEqual(
+       #{applied_command_count => 1},
+       khepri_machine:process_query(
+         StoreId,
+         fun(#khepri_machine{metrics = Metrics}) -> Metrics end,
+         #{})),
+
+    ct:pal("Use database after starting it"),
+    ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
+
+    ct:pal("Verify applied command count is 2"),
+    ?assertEqual(
+       #{applied_command_count => 2},
+       khepri_machine:process_query(
+         StoreId,
+         fun(#khepri_machine{metrics = Metrics}) -> Metrics end,
+         #{})),
+
+    ct:pal("Use database after starting it"),
+    ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
+
+    ct:pal("Verify applied command count is 0"),
+    ?assertEqual(
+       #{},
+       khepri_machine:process_query(
+         StoreId,
+         fun(#khepri_machine{metrics = Metrics}) -> Metrics end,
+         #{})),
+
+    ct:pal("Stop database"),
+    ?assertEqual(
+       ok,
+       khepri:stop(StoreId)),
+
+    ok.
 
 %% -------------------------------------------------------------------
 %% Internal functions
