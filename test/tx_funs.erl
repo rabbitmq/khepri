@@ -618,6 +618,39 @@ allowed_list_pattern_matching_test() ->
     ?assertMatch(#standalone_fun{}, ReverseHead),
     ?assertEqual(c, khepri_fun:exec(ReverseHead, [])).
 
+match_bitstring_flags(
+  {little_signed, <<N:4/little-signed-integer-unit:8>>}) ->
+    N;
+match_bitstring_flags(
+  {big_signed, <<N:4/big-signed-integer-unit:8>>}) ->
+    N;
+match_bitstring_flags(
+  {little_unsigned, <<N:4/little-unsigned-integer-unit:8>>}) ->
+    N;
+match_bitstring_flags(
+  {big_unsigned, <<N:4/big-unsigned-integer-unit:8>>}) ->
+    N.
+
+allowed_bitstring_flags_test() ->
+    LittleSignedBin = mask(<<-42:4/little-signed-integer-unit:8>>),
+    LittleUnsignedBin = mask(<<42:4/little-unsigned-integer-unit:8>>),
+    BigSignedBin = mask(<<-42:4/big-signed-integer-unit:8>>),
+    BigUnsignedBin = mask(<<42:4/big-unsigned-integer-unit:8>>),
+    Decode = ?make_standalone_fun(
+               begin
+                   {match_bitstring_flags(
+                      {little_signed, LittleSignedBin}),
+                    match_bitstring_flags(
+                      {little_unsigned, LittleUnsignedBin}),
+                    match_bitstring_flags(
+                      {big_signed, BigSignedBin}),
+                    match_bitstring_flags(
+                      {big_unsigned, BigUnsignedBin})}
+               end),
+    ?assertMatch(#standalone_fun{}, Decode),
+    ?assertEqual({-42, 42, -42, 42}, khepri_fun:exec(Decode, [])),
+    ok.
+
 denied_receive_block_test() ->
     ?assertToFunError(
        ?khepri_exception(
