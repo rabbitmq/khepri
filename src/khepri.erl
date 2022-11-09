@@ -2936,6 +2936,20 @@ info(StoreId, Options) ->
             ok
     end,
 
+    case khepri_machine:get_projections_state(StoreId, Options) of
+        {ok, ProjectionMapping} when ProjectionMapping =/= #{} ->
+            io:format("~n\033[1;32m== PROJECTIONS ==\033[0m~n", []),
+            maps:foreach(
+              fun(Projection, PathPattern) ->
+                      Name = khepri_projection:name(Projection),
+                      io:format(
+                        "~n~p:~n"
+                        "    ~p~n", [Name, PathPattern])
+              end, ProjectionMapping);
+        _ ->
+            ok
+    end,
+
     case khepri_adv:get_many(StoreId, [?KHEPRI_WILDCARD_STAR_STAR], Options) of
         {ok, Result} ->
             io:format("~n\033[1;32m== TREE ==\033[0m~n~n●~n", []),

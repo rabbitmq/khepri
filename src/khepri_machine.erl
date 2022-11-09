@@ -41,7 +41,8 @@
          run_sproc/4,
          register_trigger/5,
          register_projection/4]).
--export([get_keep_while_conds_state/2]).
+-export([get_keep_while_conds_state/2,
+         get_projections_state/2]).
 
 %% ra_machine callbacks.
 -export([init/1,
@@ -627,6 +628,27 @@ get_keep_while_conds_state(StoreId, Options)
   when ?IS_STORE_ID(StoreId) ->
     Query = fun(#?MODULE{keep_while_conds = KeepWhileConds}) ->
                     {ok, KeepWhileConds}
+            end,
+    Options1 = Options#{favor => consistency},
+    process_query(StoreId, Query, Options1).
+
+-spec get_projections_state(StoreId, Options) -> Ret when
+      StoreId :: khepri:store_id(),
+      Options :: khepri:query_options(),
+      Ret :: khepri:ok(projections_map()) | khepri:error().
+%% @doc Returns the `projections' internal state.
+%%
+%% The returned state consists of the mapping between path pattern and
+%% {@link khepri_projection:projection()} records.
+%%
+%% @see khepri_projection.
+%%
+%% @private
+
+get_projections_state(StoreId, Options)
+  when ?IS_STORE_ID(StoreId) ->
+    Query = fun(#?MODULE{projections = Projections}) ->
+                    {ok, Projections}
             end,
     Options1 = Options#{favor => consistency},
     process_query(StoreId, Query, Options1).
