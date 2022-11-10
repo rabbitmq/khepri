@@ -31,6 +31,7 @@
 -include("src/khepri_machine.hrl").
 -include("src/khepri_ret.hrl").
 -include("src/khepri_tx.hrl").
+-include("src/khepri_projection.hrl").
 
 -export([get/3,
          count/3,
@@ -38,11 +39,15 @@
          delete/3,
          transaction/5,
          run_sproc/4,
-         register_trigger/5]).
--export([get_keep_while_conds_state/2]).
+         register_trigger/5,
+         register_projection/4]).
+-export([get_keep_while_conds_state/2,
+         get_projections_state/2]).
 
 %% ra_machine callbacks.
 -export([init/1,
+         init_aux/1,
+         handle_aux/6,
          apply/3,
          state_enter/2,
          overview/1]).
@@ -85,7 +90,8 @@
                    #delete{} |
                    #tx{} |
                    #register_trigger{} |
-                   #ack_triggered{}.
+                   #ack_triggered{} |
+                   #register_projection{}.
 %% Commands specific to this Ra machine.
 
 -type machine_init_args() :: #{store_id := khepri:store_id(),
@@ -114,8 +120,16 @@
 %% This is used when the tree is walked back up to determine the list of tree
 %% nodes to remove after some keep_while condition evaluates to false.
 
+-type projections_map() :: #{khepri_projection:projection() =>
+                             khepri_path:native_pattern()}.
+%% Internal mapping between {@link khepri_projection:projection()} records and
+%% the native path patterns which trigger updates to each projection.
+
 -type state() :: #?MODULE{}.
 %% State of this Ra state machine.
+
+-type aux_state() :: #khepri_machine_aux{}.
+%% Auxiliary state of this Ra state machine.
 
 -type query_fun() :: fun((state()) -> any()).
 %% Function representing a query and used {@link process_query/3}.
@@ -158,9 +172,16 @@
               props/0,
               triggered/0,
               keep_while_conds_map/0,
-              keep_while_conds_revidx/0]).
+              keep_while_conds_revidx/0,
+              projections_map/0]).
 
 -define(HAS_TIME_LEFT(Timeout), (Timeout =:= infinity orelse Timeout > 0)).
+
+-define(PROJECTION_PROPS_TO_RETURN, [payload_version,
+                                     child_list_version,
+                                     child_list_length,
+                                     child_names,
+                                     payload]).
 
 %% -------------------------------------------------------------------
 %% Machine protocol.
@@ -540,6 +561,37 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options)
                                 event_filter = EventFilter1},
     process_command(StoreId, Command, Options).
 
+-spec register_projection(StoreId, PathPattern, Projection, Options) ->
+    Ret when
+      StoreId :: khepri:store_id(),
+      PathPattern :: khepri_path:pattern(),
+      Projection :: khepri_projection:projection(),
+      Options :: khepri:command_options(),
+      Ret :: ok | khepri:error().
+%% @doc Registers a projection.
+%%
+%% @param StoreId the name of the Ra cluster.
+%% @param PathPattern the pattern of tree nodes which should be projected.
+%% @param Projection the projection record created with {@link
+%%        khepri_projection:new/3}.
+%% @param Options command options such as the command type.
+%%
+%% @returns `ok' if the projection was registered, an `{error, Reason}' tuple
+%% otherwise.
+
+register_projection(
+  StoreId, PathPattern0,
+  #khepri_projection{name = Name,
+                     projection_fun = #standalone_fun{},
+                     ets_options = EtsOptions} = Projection,
+  Options0) when is_atom(Name) andalso is_list(EtsOptions) ->
+    Options = Options0#{reply_from => local},
+    PathPattern = khepri_path:from_string(PathPattern0),
+    khepri_path:ensure_is_valid(PathPattern),
+    Command = #register_projection{pattern = PathPattern,
+                                   projection = Projection},
+    process_command(StoreId, Command, Options).
+
 -spec ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
     Ret when
       StoreId :: khepri:store_id(),
@@ -576,6 +628,27 @@ get_keep_while_conds_state(StoreId, Options)
   when ?IS_STORE_ID(StoreId) ->
     Query = fun(#?MODULE{keep_while_conds = KeepWhileConds}) ->
                     {ok, KeepWhileConds}
+            end,
+    Options1 = Options#{favor => consistency},
+    process_query(StoreId, Query, Options1).
+
+-spec get_projections_state(StoreId, Options) -> Ret when
+      StoreId :: khepri:store_id(),
+      Options :: khepri:query_options(),
+      Ret :: khepri:ok(projections_map()) | khepri:error().
+%% @doc Returns the `projections' internal state.
+%%
+%% The returned state consists of the mapping between path pattern and
+%% {@link khepri_projection:projection()} records.
+%%
+%% @see khepri_projection.
+%%
+%% @private
+
+get_projections_state(StoreId, Options)
+  when ?IS_STORE_ID(StoreId) ->
+    Query = fun(#?MODULE{projections = Projections}) ->
+                    {ok, Projections}
             end,
     Options1 = Options#{favor => consistency},
     process_query(StoreId, Query, Options1).
@@ -617,6 +690,7 @@ split_command_options(Options) ->
     maps:fold(
       fun
           (Option, Value, {C, TP}) when
+                Option =:= reply_from orelse
                 Option =:= timeout orelse
                 Option =:= async ->
               C1 = C#{Option => Value},
@@ -700,10 +774,12 @@ process_command(StoreId, Command, Options) ->
 
 process_sync_command(StoreId, Command, Options) ->
     Timeout = get_timeout(Options),
+    ReplyFrom = maps:get(reply_from, Options, leader),
+    CommandOptions = #{timeout => Timeout, reply_from => ReplyFrom},
     T0 = khepri_utils:start_timeout_window(Timeout),
     LeaderId = khepri_cluster:get_cached_leader(StoreId),
     RaServer = use_leader_or_local_ra_server(StoreId, LeaderId),
-    case ra:process_command(RaServer, Command, Timeout) of
+    case ra:process_command(RaServer, Command, CommandOptions) of
         {ok, Ret, NewLeaderId} ->
             khepri_cluster:cache_leader_if_changed(
               StoreId, LeaderId, NewLeaderId),
@@ -1050,6 +1126,57 @@ init(#{store_id := StoreId,
                end, State, Commands),
     reset_applied_command_count(State3).
 
+-spec init_aux(StoreId :: khepri:store_id()) -> aux_state().
+%% @private
+
+init_aux(StoreId) ->
+    #khepri_machine_aux{store_id = StoreId}.
+
+-spec handle_aux(RaState, Type, Command, AuxState, LogState, MachineState) ->
+    {no_reply, AuxState, LogState} when
+      RaState :: ra_server:ra_state(),
+      Type :: {call, ra:from()} | cast,
+      Command :: term(),
+      AuxState :: aux_state(),
+      LogState :: ra_log:state(),
+      MachineState :: state().
+%% @private
+
+handle_aux(
+  _RaState, cast,
+  #trigger_projection{path = Path,
+                      old_props = OldProps,
+                      new_props = NewProps,
+                      projection = Projection},
+  AuxState, LogState, _MachineState) ->
+    khepri_projection:trigger(Projection, Path, OldProps, NewProps),
+    {no_reply, AuxState, LogState};
+handle_aux(_RaState, cast, restore_projections, AuxState, LogState,
+  #?MODULE{projections = Projections, root = Root}) ->
+    maps:foreach(fun(Projection, PathPattern) ->
+                         restore_projection(
+                           Projection, Root, PathPattern)
+                 end, Projections),
+    {no_reply, AuxState, LogState};
+handle_aux(_RaState, _Type, _Command, AuxState, LogState, _MachineState) ->
+    {no_reply, AuxState, LogState}.
+
+restore_projection(Projection, Root, PathPattern) ->
+    TreeOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
+                    include_root_props => true},
+    case find_matching_nodes(Root, PathPattern, TreeOptions) of
+        {ok, MatchingNodes} ->
+            maps:foreach(fun(Path, Props) ->
+                                 khepri_projection:trigger(
+                                   Projection, Path, #{}, Props)
+                         end, MatchingNodes);
+        Error ->
+            ?LOG_DEBUG(
+               "Failed to recover projection ~s due to an error: ~p",
+               khepri_projection:name(Projection), Error),
+            ok
+    end.
+
 -spec apply(Meta, Command, State) -> {State, Ret, SideEffects} when
       Meta :: ra_machine:command_meta_data(),
       Command :: command(),
@@ -1109,6 +1236,21 @@ apply(
     EmittedTriggers1 = EmittedTriggers -- ProcessedTriggers,
     State1 = State#?MODULE{emitted_triggers = EmittedTriggers1},
     Ret = {State1, ok},
+    bump_applied_command_count(Ret, Meta);
+apply(
+  Meta,
+  #register_projection{pattern = PathPattern, projection = Projection},
+  #?MODULE{projections = Projections, root = Root} = State) ->
+    Reply = khepri_projection:init(Projection),
+    State1 = case Reply of
+                 ok ->
+                     restore_projection(Projection, Root, PathPattern),
+                     Projections1 = Projections#{Projection => PathPattern},
+                     State#?MODULE{projections = Projections1};
+                 _  ->
+                     State
+             end,
+    Ret = {State1, Reply},
     bump_applied_command_count(Ret, Meta).
 
 -spec bump_applied_command_count(ApplyRet, Meta) ->
@@ -1153,26 +1295,26 @@ reset_applied_command_count(#?MODULE{metrics = Metrics} = State) ->
 
 %% @private
 
-state_enter(StateName, State) ->
-    SideEffects1 = emitted_triggers_to_side_effects(StateName, State),
-    SideEffects1.
+state_enter(leader, State) ->
+    SideEffects1 = emitted_triggers_to_side_effects(State),
+    SideEffects1;
+state_enter(recovered, _State) ->
+    SideEffect = {aux, restore_projections},
+    [SideEffect];
+state_enter(_StateName, _State) ->
+    [].
 
 %% @private
 
 emitted_triggers_to_side_effects(
-  leader,
-  #?MODULE{emitted_triggers = []}) ->
-    [];
-emitted_triggers_to_side_effects(
-  leader,
   #?MODULE{config = #config{store_id = StoreId},
-           emitted_triggers = EmittedTriggers}) ->
+           emitted_triggers = [_ | _] = EmittedTriggers}) ->
     SideEffect = {mod_call,
                   khepri_event_handler,
                   handle_triggered_sprocs,
                   [StoreId, EmittedTriggers]},
     [SideEffect];
-emitted_triggers_to_side_effects(_StateName, _State) ->
+emitted_triggers_to_side_effects(_State) ->
     [].
 
 %% @private
@@ -1766,11 +1908,81 @@ delete_matching_nodes_cb(_, {interrupted, _, _}, _Options, Result) ->
     {ok, keep, Result}.
 
 create_tree_change_side_effects(
-  #?MODULE{triggers = Triggers} = _InitialState,
-  NewState, _Ret, _AppliedChanges)
+  InitialState, NewState, Ret, KeepWhileAftermath) ->
+    %% We make a map where for each affected tree node, we indicate the type
+    %% of change.
+    Changes0 = maps:merge(Ret, KeepWhileAftermath),
+    Changes = maps:map(
+                fun
+                    (_, NodeProps) when NodeProps =:= #{} -> create;
+                    (_, #{} = _NodeProps)                 -> update;
+                    (_, delete)                           -> delete
+                end, Changes0),
+    ProjectionEffects = create_projection_side_effects(
+                          InitialState, NewState, Changes),
+    {NewState1, TriggerEffects} = create_trigger_side_effects(
+                                    InitialState, NewState, Changes),
+    {NewState1, ProjectionEffects ++ TriggerEffects}.
+
+create_projection_side_effects(
+  #?MODULE{root = InitialRoot} = _InitialState,
+  #?MODULE{projections = Projections, root = NewRoot} = _NewState,
+  Changes) ->
+    %% Note: the order in which updates are applied to projections should not
+    %% be relied on.
+    Effects =
+    maps:fold(
+      fun(Path, Change, Effects) ->
+              maps:fold(
+                fun(Projection, Pattern, Effects1) ->
+                        evaluate_projection(
+                          InitialRoot, NewRoot,
+                          Path, Change, Pattern, Projection, Effects1)
+                end, Effects, Projections)
+      end, [], Changes),
+    lists:reverse(Effects).
+
+evaluate_projection(
+  InitialRoot, NewRoot, Path, Change, Pattern, Projection, Effects) ->
+    PathMatchingRoot = case Change of
+                           Put when Put =:= create orelse Put =:= update ->
+                               NewRoot;
+                           delete ->
+                               InitialRoot
+                       end,
+    case does_path_match(Path, Pattern, [], PathMatchingRoot) of
+        true ->
+            FindOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
+                            expect_specific_node => true},
+            InitialRet = find_matching_nodes(InitialRoot, Path, FindOptions),
+            InitialProps = case InitialRet of
+                               {ok, #{Path := InitialProps0}} ->
+                                   InitialProps0;
+                               _ ->
+                                   #{}
+                           end,
+            NewRet = find_matching_nodes(NewRoot, Path, FindOptions),
+            NewProps = case NewRet of
+                             {ok, #{Path := NewProps0}} ->
+                                 NewProps0;
+                             _ ->
+                                 #{}
+                         end,
+            Trigger = #trigger_projection{path = Path,
+                                          old_props = InitialProps,
+                                          new_props = NewProps,
+                                          projection = Projection},
+            Effect = {aux, Trigger},
+            [Effect | Effects];
+        false ->
+            Effects
+    end.
+
+create_trigger_side_effects(
+  #?MODULE{triggers = Triggers} = _InitialState, NewState, _Changes)
   when Triggers =:= #{} ->
     {NewState, []};
-create_tree_change_side_effects(
+create_trigger_side_effects(
   %% We want to consider the new state (with the updated tree), but we want
   %% to use triggers from the initial state, in case they were updated too.
   %% In other words, we want to evaluate triggers in the state they were at
@@ -1779,17 +1991,8 @@ create_tree_change_side_effects(
            emitted_triggers = EmittedTriggers} = _InitialState,
   #?MODULE{config = #config{store_id = StoreId},
            root = Root} = NewState,
-  Ret, AppliedChanges) ->
-    %% We make a map where for each affected tree node, we indicate the type
-    %% of change.
-    Changes0 = maps:merge(Ret, AppliedChanges),
-    Changes1 = maps:map(
-                 fun
-                     (_, NodeProps) when NodeProps =:= #{} -> create;
-                     (_, #{} = _NodeProps)                 -> update;
-                     (_, delete)                           -> delete
-                 end, Changes0),
-    TriggeredStoredProcs = list_triggered_sprocs(Root, Changes1, Triggers),
+  Changes) ->
+    TriggeredStoredProcs = list_triggered_sprocs(Root, Changes, Triggers),
 
     %% We record the list of triggered stored procedures in the state
     %% machine's state. This is used to guaranty at-least-once execution of
@@ -1869,8 +2072,7 @@ evaluate_trigger(
                                    id = TriggerId,
                                    event_filter = EventFilter,
                                    sproc = StoredProc,
-                                   props = EventProps
-                                  },
+                                   props = EventProps},
                     [Triggered | TriggeredStoredProcs]
             end;
         false ->

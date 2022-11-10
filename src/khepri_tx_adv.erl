@@ -45,6 +45,9 @@
 %% For internal use only.
 -export([to_standalone_fun/2,
          run/4,
+         ensure_instruction_is_permitted/1,
+         should_process_function/4,
+         is_standalone_fun_still_needed/2,
          get_tx_state/0,
          path_from_string/1]).
 

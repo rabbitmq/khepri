@@ -39,7 +39,11 @@
              #{sproc := khepri_path:native_path(),
                event_filter := khepri_evf:event_filter()}},
          emitted_triggers = [] :: [khepri_machine:triggered()],
+         projections = #{} :: khepri_machine:projections_map(),
          metrics = #{} :: #{applied_command_count => non_neg_integer()}}).
+
+-record(khepri_machine_aux,
+        {store_id :: khepri:store_id()}).
 
 %% State machine commands.
 
@@ -65,3 +69,11 @@
                     event_filter :: khepri_evf:event_filter(),
                     sproc :: khepri_fun:standalone_fun(),
                     props = #{} :: map()}).
+
+-record(register_projection, {pattern :: khepri_path:native_pattern(),
+                              projection :: khepri_projection:projection()}).
+
+-record(trigger_projection, {path :: khepri_path:native_path(),
+                             old_props :: khepri:node_props(),
+                             new_props :: khepri:node_props(),
+                             projection :: khepri_projection:projection()}).
