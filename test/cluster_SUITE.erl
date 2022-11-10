@@ -941,6 +941,34 @@ can_use_default_store_on_single_node(_Config) ->
        khepri:get_many_or([foo], default, #{})),
 
     ?assertEqual(
+       {ok, #{[foo] => ok}},
+       khepri:fold([foo], fun(P, _NP, Acc) -> Acc#{P => ok} end, #{})),
+    ?assertEqual(
+       {ok, #{[foo] => ok}},
+       khepri:fold([foo], fun(P, _NP, Acc) -> Acc#{P => ok} end, #{}, #{})),
+
+    ?assertEqual(
+       ok,
+       khepri:foreach([foo], fun(_P, _NP) -> ok end)),
+    ?assertEqual(
+       ok,
+       khepri:foreach([foo], fun(_P, _NP) -> ok end, #{})),
+
+    ?assertEqual(
+       {ok, #{[foo] => ok}},
+       khepri:map([foo], fun(_P, _NP) -> ok end)),
+    ?assertEqual(
+       {ok, #{[foo] => ok}},
+       khepri:map([foo], fun(_P, _NP) -> ok end, #{})),
+
+    ?assertEqual(
+       {ok, #{[foo] => value4}},
+       khepri:filter([foo], fun(_P, _NP) -> true end)),
+    ?assertEqual(
+       {ok, #{[foo] => value4}},
+       khepri:filter([foo], fun(_P, _NP) -> true end, #{})),
+
+    ?assertEqual(
        {ok, #{data => value4,
               payload_version => 7}},
        khepri_adv:get([foo])),

@@ -14,6 +14,9 @@
 -include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
+-dialyzer([{no_return,
+            [crash_during_fold_test_/0]}]).
+
 get_non_existing_node_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
@@ -554,16 +557,386 @@ count_many_nodes_test_() ->
                            khepri_tx:count([?KHEPRI_WILDCARD_STAR_STAR])
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
-         end),
-      ?_assertError(
-         ?khepri_exception(
-            possibly_matching_many_nodes_denied,
-            #{path := [?KHEPRI_WILDCARD_STAR]}),
-         begin
-             Fun = fun() ->
-                           khepri_tx:count(
-                             [?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR],
-                             #{expect_specific_node => true})
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
+
+fold_non_existing_node_test_() ->
+    Fun = fun list_nodes_cb/3,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, {ok, []}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:fold([foo], Fun, [])
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual(
+         {ok, {ok, []}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:fold(
+                            [foo], Fun, [], #{expect_specific_node => true})
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
+fold_existing_node_test_() ->
+    Fun = fun list_nodes_cb/3,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertEqual(
+         {ok, {ok, [[foo]]}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:fold([foo], Fun, [])
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, ro)
+         end),
+      ?_assertEqual(
+         {ok, {ok, [[foo]]}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:fold([foo], Fun, [])
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
+fold_many_nodes_test_() ->
+    Fun = fun list_nodes_cb/3,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
+      ?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [baz], baz_value)),
+
+      ?_assertEqual(
+         {ok, {ok, [[baz], [foo]]}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:fold(
+                            [?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR],
+                            Fun, [])
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual(
+         {ok, {ok, [[baz], [foo], [foo, bar]]}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:fold([?KHEPRI_WILDCARD_STAR_STAR], Fun, [])
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
+abort_during_fold_test_() ->
+    Fun = fun(_Path, _NodeProps, _Acc) -> throw(bug) end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertThrow(
+         bug,
+         begin
+             Tx = fun() ->
+                          khepri_tx:fold([foo], Fun, [])
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
+crash_during_fold_test_() ->
+    Fun = fun(_Path, _NodeProps, _Acc) -> khepri_tx:abort(abort_tx) end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertEqual(
+         {error, abort_tx},
+         begin
+             Tx = fun() ->
+                          khepri_tx:fold([foo], Fun, [])
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
+list_nodes_cb(Path, _NodeProps, List) ->
+    lists:sort([Path | List]).
+
+foreach_non_existing_node_test_() ->
+    Fun = fun foreach_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, ok},
+         begin
+             Tx = fun() ->
+                          khepri_tx:foreach([foo], Fun)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual({ok, #{}}, khepri_adv:get_many(?FUNCTION_NAME, "**")),
+      ?_assertEqual(
+         {ok, ok},
+         begin
+             Tx = fun() ->
+                          khepri_tx:foreach(
+                            [foo], Fun, #{expect_specific_node => true})
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual({ok, #{}}, khepri_adv:get_many(?FUNCTION_NAME, "**"))]}.
+
+foreach_existing_node_test_() ->
+    Fun = fun foreach_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(denied_update_in_readonly_tx, #{}),
+         begin
+             Tx = fun() ->
+                          khepri_tx:foreach([foo], Fun)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, ro)
+         end),
+      ?_assertEqual(
+         {ok, #{[foo] => #{data => foo_value,
+                           payload_version => 1}}},
+         khepri_adv:get_many(?FUNCTION_NAME, "**")),
+      ?_assertEqual(
+         {ok, ok},
+         begin
+             Tx = fun() ->
+                          khepri_tx:foreach([foo], Fun)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual(
+         {ok, #{[foo] => #{data => foreach_value1,
+                           payload_version => 2}}},
+         khepri_adv:get_many(?FUNCTION_NAME, "**"))]}.
+
+foreach_many_nodes_test_() ->
+    Fun = fun foreach_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
+      ?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [baz], baz_value)),
+
+      ?_assertEqual(
+         {ok, ok},
+         begin
+             Tx = fun() ->
+                          khepri_tx:foreach(
+                            [?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR], Fun)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual(
+         {ok, #{[foo] => #{data => foreach_value1,
+                           payload_version => 2},
+                [foo, bar] => #{data => bar_value,
+                                payload_version => 1},
+                [baz] => #{data => foreach_value1,
+                           payload_version => 2}}},
+         khepri_adv:get_many(?FUNCTION_NAME, "**")),
+      ?_assertEqual(
+         {ok, ok},
+         begin
+             Tx = fun() ->
+                          khepri_tx:foreach([?KHEPRI_WILDCARD_STAR_STAR], Fun)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual(
+         {ok, #{[foo] => #{data => foreach_value2,
+                           payload_version => 3},
+                [foo, bar] => #{data => foreach_value1,
+                                payload_version => 2},
+                [baz] => #{data => foreach_value2,
+                           payload_version => 3}}},
+         khepri_adv:get_many(?FUNCTION_NAME, "**"))]}.
+
+foreach_node_cb(Path, #{data := foreach_value1}) ->
+    ok = khepri_tx:put(Path, foreach_value2);
+foreach_node_cb(Path, _NodeProps) ->
+    ok = khepri_tx:put(Path, foreach_value1).
+
+map_non_existing_node_test_() ->
+    Fun = fun map_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, {ok, #{}}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:map([foo], Fun)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual(
+         {ok, {ok, #{}}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:map(
+                            [foo], Fun, #{expect_specific_node => true})
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
+map_existing_node_test_() ->
+    Fun = fun map_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertEqual(
+         {ok, {ok, #{[foo] => {data, foo_value}}}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:map([foo], Fun)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
+map_many_nodes_test_() ->
+    Fun = fun map_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
+      ?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [baz], baz_value)),
+
+      ?_assertEqual(
+         {ok,
+          {ok, #{[foo] => nodata,
+                 [baz] => {data, baz_value}}}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:map(
+                            [?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR], Fun)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual(
+         {ok,
+          {ok, #{[foo] => nodata,
+                 [foo, bar] => {data, bar_value},
+                 [baz] => {data, baz_value}}}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:map(
+                            [?KHEPRI_WILDCARD_STAR_STAR], Fun)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
+map_node_cb(_Path, #{data := Data}) ->
+    {data, Data};
+map_node_cb(_Path, _NodeProps) ->
+    nodata.
+
+filter_non_existing_node_test_() ->
+    Pred = fun filter_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, {ok, #{}}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:filter([foo], Pred)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual(
+         {ok, {ok, #{}}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:filter(
+                            [foo], Pred, #{expect_specific_node => true})
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
+filter_existing_node_test_() ->
+    Pred = fun filter_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertEqual(
+         {ok, {ok, #{}}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:filter([foo], Pred)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
+filter_many_nodes_test_() ->
+    Pred = fun filter_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo, bar], bar_value)),
+      ?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [baz], baz_value)),
+
+      ?_assertEqual(
+         {ok, {ok, #{[baz] => baz_value}}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:filter(
+                            [?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR], Pred)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end),
+      ?_assertEqual(
+         {ok, {ok, #{[baz] => baz_value}}},
+         begin
+             Tx = fun() ->
+                          khepri_tx:filter(
+                            [?KHEPRI_WILDCARD_STAR_STAR], Pred)
+                  end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
+filter_node_cb([_ | _] = Path, _NodeProps) ->
+    lists:last(Path) =:= baz;
+filter_node_cb(_Path, _NodeProps) ->
+    false.

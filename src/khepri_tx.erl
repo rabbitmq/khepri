@@ -65,6 +65,10 @@
          has_data/1, has_data/2,
          is_sproc/1, is_sproc/2,
          count/1, count/2,
+         fold/3, fold/4,
+         foreach/2, foreach/3,
+         map/2, map/3,
+         filter/2, filter/3,
 
          put/2, put/3,
          put_many/2, put_many/3,
@@ -247,8 +251,13 @@ get_many_or(PathPattern, Default) ->
 %% @see khepri:get_many_or/4.
 
 get_many_or(PathPattern, Default, Options) ->
-    Ret = khepri_tx_adv:get_many(PathPattern, Options),
-    ?many_results_ret_to_payloads_ret(Ret, Default).
+    Fun = fun(Path, NodeProps, Acc) ->
+                  Payload = khepri_utils:node_props_to_payload(
+                              NodeProps, Default),
+                  Acc#{Path => Payload}
+          end,
+    Acc = #{},
+    khepri_tx_adv:do_get_many(PathPattern, Fun, Acc, Options).
 
 %% -------------------------------------------------------------------
 %% exists().
@@ -411,12 +420,194 @@ count(PathPattern, Options) ->
     PathPattern1 = khepri_tx_adv:path_from_string(PathPattern),
     {#khepri_machine{root = Root},
      _SideEffects} = khepri_tx_adv:get_tx_state(),
-    case khepri_machine:count_matching_nodes(Root, PathPattern1, Options) of
+    Fun = fun khepri_machine:count_node_cb/3,
+    {_QueryOptions, TreeOptions} = khepri_machine:split_query_options(Options),
+    TreeOptions1 = TreeOptions#{expect_specific_node => false},
+    Ret = khepri_machine:find_matching_nodes(
+            Root, PathPattern1, Fun, 0, TreeOptions1),
+    case Ret of
         {error, ?khepri_exception(_, _) = Exception} ->
             ?khepri_misuse(Exception);
-        Ret ->
+        _ ->
             Ret
     end.
+
+%% -------------------------------------------------------------------
+%% fold().
+%% -------------------------------------------------------------------
+
+-spec fold(PathPattern, Fun, Acc) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Fun :: khepri:fold_fun(),
+      Acc :: khepri:fold_acc(),
+      Ret :: khepri:ok(NewAcc) | khepri:error(),
+      NewAcc :: Acc.
+%% @doc Calls `Fun' on successive tree nodes matching the given path pattern,
+%% starting with `Acc'.
+%%
+%% This is the same as {@link khepri:fold/4} but inside the context of a
+%% transaction function.
+%%
+%% @see khepri:fold/4.
+
+fold(PathPattern, Fun, Acc) ->
+    fold(PathPattern, Fun, Acc, #{}).
+
+-spec fold(PathPattern, Fun, Acc, Options) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Fun :: khepri:fold_fun(),
+      Acc :: khepri:fold_acc(),
+      Options :: khepri:tree_options(),
+      Ret :: khepri:ok(NewAcc) | khepri:error(),
+      NewAcc :: Acc.
+%% @doc Calls `Fun' on successive tree nodes matching the given path pattern,
+%% starting with `Acc'.
+%%
+%% This is the same as {@link khepri:fold/5} but inside the context of a
+%% transaction function.
+%%
+%% @see khepri:fold/5.
+
+fold(PathPattern, Fun, Acc, Options) ->
+    PathPattern1 = khepri_tx_adv:path_from_string(PathPattern),
+    {#khepri_machine{root = Root},
+     _SideEffects} = khepri_tx_adv:get_tx_state(),
+    {_QueryOptions, TreeOptions} = khepri_machine:split_query_options(Options),
+    TreeOptions1 = TreeOptions#{expect_specific_node => false},
+    Ret = khepri_machine:find_matching_nodes(
+            Root, PathPattern1, Fun, Acc, TreeOptions1),
+    case Ret of
+        {error, ?khepri_exception(_, _) = Exception} ->
+            ?khepri_misuse(Exception);
+        _ ->
+            Ret
+    end.
+
+%% -------------------------------------------------------------------
+%% foreach().
+%% -------------------------------------------------------------------
+
+-spec foreach(PathPattern, Fun) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Fun :: khepri:foreach_fun(),
+      Ret :: ok | khepri:error().
+%% @doc Calls `Fun' for each tree node matching the given path pattern.
+%%
+%% This is the same as {@link khepri:foreach/3} but inside the context of a
+%% transaction function.
+%%
+%% @see khepri:foreach/3.
+
+foreach(PathPattern, Fun) ->
+    foreach(PathPattern, Fun, #{}).
+
+-spec foreach(PathPattern, Fun, Options) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Fun :: khepri:foreach_fun(),
+      Options :: khepri:tree_options(),
+      Ret :: ok | khepri:error().
+%% @doc Calls `Fun' for each tree node matching the given path pattern.
+%%
+%% This is the same as {@link khepri:foreach/4} but inside the context of a
+%% transaction function.
+%%
+%% @see khepri:foreach/4.
+
+foreach(PathPattern, Fun, Options) when is_function(Fun, 2) ->
+    FoldFun = fun(Path, NodeProps, Acc) ->
+                      _ = Fun(Path, NodeProps),
+                      Acc
+              end,
+    case fold(PathPattern, FoldFun, ok, Options) of
+        {ok, ok}                 -> ok;
+        {error, _Reason} = Error -> Error
+    end.
+
+%% -------------------------------------------------------------------
+%% map().
+%% -------------------------------------------------------------------
+
+-spec map(PathPattern, Fun) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Fun :: khepri:map_fun(),
+      Ret :: khepri:ok(Map) | khepri:error(),
+      Map :: #{khepri_path:native_path() => khepri:map_fun_ret()}.
+%% @doc Produces a new map by calling `Fun' for each tree node matching the
+%% given path pattern.
+%%
+%% This is the same as {@link khepri:map/3} but inside the context of a
+%% transaction function.
+%%
+%% @see khepri:map/3.
+
+map(PathPattern, Fun) ->
+    map(PathPattern, Fun, #{}).
+
+-spec map(PathPattern, Fun, Options) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Fun :: khepri:map_fun(),
+      Options :: khepri:tree_options(),
+      Ret :: khepri:ok(Map) | khepri:error(),
+      Map :: #{khepri_path:native_path() => khepri:map_fun_ret()}.
+%% @doc Produces a new map by calling `Fun' for each tree node matching the
+%% given path pattern.
+%%
+%% This is the same as {@link khepri:map/4} but inside the context of a
+%% transaction function.
+%%
+%% @see khepri:map/4.
+
+map(PathPattern, Fun, Options) when is_function(Fun, 2) ->
+    FoldFun = fun(Path, NodeProps, Acc) ->
+                      Ret = Fun(Path, NodeProps),
+                      Acc#{Path => Ret}
+              end,
+    fold(PathPattern, FoldFun, #{}, Options).
+
+%% -------------------------------------------------------------------
+%% filter().
+%% -------------------------------------------------------------------
+
+-spec filter(PathPattern, Pred) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Pred :: khepri:filter_fun(),
+      Ret :: khepri:many_payloads_ret().
+%% @doc Returns a map for which predicate `Pred' holds true in tree nodes
+%% matching the given path pattern.
+%%
+%% This is the same as {@link khepri:filter/3} but inside the context of a
+%% transaction function.
+%%
+%% @see khepri:filter/3.
+
+filter(PathPattern, Pred) ->
+    filter(PathPattern, Pred, #{}).
+
+-spec filter(PathPattern, Pred, Options) -> Ret when
+      PathPattern :: khepri_path:pattern(),
+      Pred :: khepri:filter_fun(),
+      Options :: khepri:tree_options(),
+      Ret :: khepri:many_payloads_ret().
+%% @doc Returns a map for which predicate `Pred' holds true in tree nodes
+%% matching the given path pattern.
+%%
+%% This is the same as {@link khepri:filter/4} but inside the context of a
+%% transaction function.
+%%
+%% @see khepri:filter/4.
+
+filter(PathPattern, Pred, Options) when is_function(Pred, 2) ->
+    FoldFun = fun(Path, NodeProps, Acc) ->
+                      case Pred(Path, NodeProps) of
+                          true ->
+                              Payload = khepri_utils:node_props_to_payload(
+                                          NodeProps, undefined),
+                              Acc#{Path => Payload};
+                          false ->
+                              Acc
+                      end
+              end,
+    fold(PathPattern, FoldFun, #{}, Options).
 
 %% -------------------------------------------------------------------
 %% put().
