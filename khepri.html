@@ -148,6 +148,22 @@ returned data and low latency of queries.</p>
   out is very small.</li>
   </ul></p>
 
+<h3 class="typedecl"><a name="type-filter_fun">filter_fun()</a></h3>
+<p><code>filter_fun() = fun((<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a>, <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-node_props">khepri:node_props()</a>) -&gt; boolean())</code></p>
+<p>  Function passed to <a docgen-rel="seemfa" docgen-href="khepri#filter/4" href="khepri.html#filter-4"><code>khepri:filter/4</code></a>.</p>
+
+<h3 class="typedecl"><a name="type-fold_acc">fold_acc()</a></h3>
+<p><code>fold_acc() = any()</code></p>
+<p>  Term passed to and returned by a <a docgen-rel="seemfa" docgen-href="#fold_fun/0" href="#fold_fun-0"><code>fold_fun/0</code></a>.</p>
+
+<h3 class="typedecl"><a name="type-fold_fun">fold_fun()</a></h3>
+<p><code>fold_fun() = fun((<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a>, <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-node_props">khepri:node_props()</a>, <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-fold_acc">khepri:fold_acc()</a>) -&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-fold_acc">khepri:fold_acc()</a>)</code></p>
+<p>  Function passed to <a docgen-rel="seemfa" docgen-href="khepri#fold/5" href="khepri.html#fold-5"><code>khepri:fold/5</code></a>.</p>
+
+<h3 class="typedecl"><a name="type-foreach_fun">foreach_fun()</a></h3>
+<p><code>foreach_fun() = fun((<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a>, <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-node_props">khepri:node_props()</a>) -&gt; any())</code></p>
+<p>  Function passed to <a docgen-rel="seemfa" docgen-href="khepri#foreach/4" href="khepri.html#foreach-4"><code>khepri:foreach/4</code></a>.</p>
+
 <h3 class="typedecl"><a name="type-many_payloads_ret">many_payloads_ret()</a></h3>
 <p><code>many_payloads_ret() = <a href="#type-many_payloads_ret">many_payloads_ret</a>(undefined)</code></p>
 <p><p>  The return value of query functions in the <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> module that work  
@@ -162,6 +178,14 @@ on many nodes.</p>
  
   <code>Default</code> is the value to return if a tree node has no payload attached to
   it.</p>
+
+<h3 class="typedecl"><a name="type-map_fun">map_fun()</a></h3>
+<p><code>map_fun() = fun((<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a>, <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-node_props">khepri:node_props()</a>) -&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-map_fun_ret">khepri:map_fun_ret()</a>)</code></p>
+<p>  Function passed to <a docgen-rel="seemfa" docgen-href="khepri#map/4" href="khepri.html#map-4"><code>khepri:map/4</code></a>.</p>
+
+<h3 class="typedecl"><a name="type-map_fun_ret">map_fun_ret()</a></h3>
+<p><code>map_fun_ret() = any()</code></p>
+<p>  Value returned by <a docgen-rel="seemfa" docgen-href="khepri#map_fun/0" href="khepri.html#map_fun-0"><code>khepri:map_fun/0</code></a>.</p>
 
 <h3 class="typedecl"><a name="type-minimal_ret">minimal_ret()</a></h3>
 <p><code>minimal_ret() = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></p>
@@ -348,6 +372,27 @@ procedure or not.</td></tr>
 <tr><td valign="top"><a href="#count-1">count/1</a></td><td>Counts all tree nodes matching the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#count-2">count/2</a></td><td>Counts all tree nodes matching the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#count-3">count/3</a></td><td>Counts all tree nodes matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#fold-3">fold/3</a></td><td>Calls <code>Fun</code> on successive tree nodes matching the given path pattern,
+  starting with <code>Acc</code>.</td></tr>
+<tr><td valign="top"><a href="#fold-4">fold/4</a></td><td>Calls <code>Fun</code> on successive tree nodes matching the given path pattern,
+  starting with <code>Acc</code>.</td></tr>
+<tr><td valign="top"><a href="#fold-5">fold/5</a></td><td>Calls <code>Fun</code> on successive tree nodes matching the given path pattern,
+  starting with <code>Acc</code>.</td></tr>
+<tr><td valign="top"><a href="#foreach-2">foreach/2</a></td><td>Calls <code>Fun</code> for each tree node matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#foreach-3">foreach/3</a></td><td>Calls <code>Fun</code> for each tree node matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#foreach-4">foreach/4</a></td><td>Calls <code>Fun</code> for each tree node matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#map-2">map/2</a></td><td>Produces a new map by calling <code>Fun</code> for each tree node matching the  
+given path pattern.</td></tr>
+<tr><td valign="top"><a href="#map-3">map/3</a></td><td>Produces a new map by calling <code>Fun</code> for each tree node matching the  
+given path pattern.</td></tr>
+<tr><td valign="top"><a href="#map-4">map/4</a></td><td>Produces a new map by calling <code>Fun</code> for each tree node matching the  
+given path pattern.</td></tr>
+<tr><td valign="top"><a href="#filter-2">filter/2</a></td><td>Returns a map for which predicate <code>Pred</code> holds true in tree nodes  
+matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#filter-3">filter/3</a></td><td>Returns a map for which predicate <code>Pred</code> holds true in tree nodes  
+matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#filter-4">filter/4</a></td><td>Returns a map for which predicate <code>Pred</code> holds true in tree nodes  
+matching the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#run_sproc-2">run_sproc/2</a></td><td>Runs the stored procedure pointed to by the given path and returns the  
 result.</td></tr>
 <tr><td valign="top"><a href="#run_sproc-3">run_sproc/3</a></td><td>Runs the stored procedure pointed to by the given path and returns the  
@@ -1083,6 +1128,303 @@ procedure or not.</p>
   Example:
   <pre><code>%% Query the tree node at `/:foo/:bar'.
 {ok, 3} = khepri:count(StoreId, [foo, ?KHEPRI_WILDCARD_STAR]).</code></pre>
+ </p>
+
+<h3 class="function"><a name="fold-3">fold/3</a></h3>
+<div class="spec">
+<p><code>fold(PathPattern, Fun, Acc) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-fold_fun">khepri:fold_fun()</a></code></li><li><code>Acc = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-fold_acc">khepri:fold_acc()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(NewAcc) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>NewAcc = Acc</code></li></ul></p>
+<p></p>
+</div><p><p>Calls <code>Fun</code> on successive tree nodes matching the given path pattern,
+  starting with <code>Acc</code>.</p>
+ 
+  Calling this function is the same as calling <code>fold(StoreId, PathPattern,
+  Fun, Acc)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
+ </p>
+<p><b>See also:</b> <a href="#fold-4">fold/4</a>, <a href="#fold-5">fold/5</a>.</p>
+
+<h3 class="function"><a name="fold-4">fold/4</a></h3>
+<div class="spec">
+<p><code>fold(StoreId, PathPattern, Fun, Acc) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-fold_fun">khepri:fold_fun()</a></code></li><li><code>Acc = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-fold_acc">khepri:fold_acc()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(NewAcc) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>NewAcc = Acc</code></li></ul></p><p><code>fold(PathPattern, Fun, Acc, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-fold_fun">khepri:fold_fun()</a></code></li><li><code>Acc = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-fold_acc">khepri:fold_acc()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(NewAcc) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>NewAcc = Acc</code></li></ul></p>
+<p></p>
+<p></p>
+</div><p><p>Calls <code>Fun</code> on successive tree nodes matching the given path pattern,
+  starting with <code>Acc</code>.</p>
+ 
+  This function accepts the following two forms:
+  <ul>
+  <li><code>fold(StoreId, PathPattern, Fun, Acc)</code>. Calling it is the same as
+  calling <code>fold(StoreId, PathPattern, Fun, Acc, #{})</code>.</li>
+  <li><code>fold(PathPattern, Fun, Acc, Options)</code>. Calling it is the same as
+  calling <code>fold(StoreId, PathPattern, Fun, Acc, Options)</code> with the default
+  store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).</li>
+  </ul>
+ </p>
+<p><b>See also:</b> <a href="#fold-5">fold/5</a>.</p>
+
+<h3 class="function"><a name="fold-5">fold/5</a></h3>
+<div class="spec">
+<p><code>fold(StoreId, PathPattern, Fun, Acc, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-fold_fun">khepri:fold_fun()</a></code></li><li><code>Acc = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-fold_acc">khepri:fold_acc()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(NewAcc) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>NewAcc = Acc</code></li></ul></p>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
+<code>PathPattern</code>: the path (or path pattern) to the tree nodes to get.<br>
+<code>Fun</code>: the function to call for each matching tree node.<br>
+<code>Acc</code>: the Erlang term to pass to the first call to <code>Fun</code>.<br>
+<code>Options</code>: query options.
+ <br>
+</p>
+<p>returns: an <code>{ok, NewAcc}</code> tuple or an <code>{error, Reason}</code> tuple.</p>
+</div><p><p>Calls <code>Fun</code> on successive tree nodes matching the given path pattern,
+  starting with <code>Acc</code>.</p>
+ 
+  <p>The <code>PathPattern</code> can be provided as a native path pattern (a list of tree
+  node names and conditions) or as a string. See <a docgen-rel="seemfa" docgen-href="khepri_path#from_string/1" href="khepri_path.html#from_string-1"><code>khepri_path:from_string/1</code></a>.</p>
+ 
+  Like the function passed to <a docgen-rel="seemfa" docgen-href="maps#fold/3" href="maps.html#fold-3"><code>maps:fold/3</code></a>, <code>Fun</code> must accept the
+  following arguments:
+  <ol>
+  <li>the native path of the tree node being handled</li>
+  <li>the tree node properties map</li>
+  <li>an Erlang term which is either <code>Acc</code> for the first matched tree node, or
+  the return value of the previous call to <code>Fun</code></li>
+  </ol>
+ 
+  <p>The returned <code>{ok, NewAcc}</code> tuple contains the return value of the last call
+  to <code>Fun</code>, or <code>Acc</code> if no tree nodes matched the given path pattern.</p>
+ 
+  Example: list all nodes in the tree
+  <pre><code>%% List all tree node paths in the tree. The tree is:
+%% &lt;root&gt;
+%% `-- foo
+%%     `-- bar = value
+{ok, [[foo], [foo, bar]]} = khepri:fold(
+                              StoreId,
+                              [?KHEPRI_WILDCARD_STAR_STAR],
+                              fun(Path, _NodeProps, Acc) -&gt;
+                                  [Path | Acc]
+                              end, []).</code></pre>
+ </p>
+
+<h3 class="function"><a name="foreach-2">foreach/2</a></h3>
+<div class="spec">
+<p><code>foreach(PathPattern, Fun) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-foreach_fun">khepri:foreach_fun()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Calls <code>Fun</code> for each tree node matching the given path pattern.</p>
+ 
+  Calling this function is the same as calling <code>foreach(StoreId, PathPattern,
+  Fun)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
+ </p>
+<p><b>See also:</b> <a href="#foreach-3">foreach/3</a>, <a href="#foreach-4">foreach/4</a>.</p>
+
+<h3 class="function"><a name="foreach-3">foreach/3</a></h3>
+<div class="spec">
+<p><code>foreach(StoreId, PathPattern, Fun) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-foreach_fun">khepri:foreach_fun()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p><p><code>foreach(PathPattern, Fun, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-foreach_fun">khepri:foreach_fun()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p></p>
+<p></p>
+</div><p><p>Calls <code>Fun</code> for each tree node matching the given path pattern.</p>
+ 
+  This function accepts the following two forms:
+  <ul>
+  <li><code>foreach(StoreId, PathPattern, Fun)</code>. Calling it is the same as
+  calling <code>foreach(StoreId, PathPattern, Fun, #{})</code>.</li>
+  <li><code>foreach(PathPattern, Fun, Options)</code>. Calling it is the same as
+  calling <code>foreach(StoreId, PathPattern, Fun, Options)</code> with the default
+  store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).</li>
+  </ul>
+ </p>
+<p><b>See also:</b> <a href="#foreach-4">foreach/4</a>.</p>
+
+<h3 class="function"><a name="foreach-4">foreach/4</a></h3>
+<div class="spec">
+<p><code>foreach(StoreId, PathPattern, Fun, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-foreach_fun">khepri:foreach_fun()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
+<code>PathPattern</code>: the path (or path pattern) to the tree nodes to get.<br>
+<code>Fun</code>: the function to call for each matching tree node.<br>
+<code>Options</code>: query options.
+ <br>
+</p>
+<p>returns: <code>ok</code> or an <code>{error, Reason}</code> tuple.</p>
+</div><p><p>Calls <code>Fun</code> for each tree node matching the given path pattern.</p>
+ 
+  <p>The <code>PathPattern</code> can be provided as a native path pattern (a list of tree
+  node names and conditions) or as a string. See <a docgen-rel="seemfa" docgen-href="khepri_path#from_string/1" href="khepri_path.html#from_string-1"><code>khepri_path:from_string/1</code></a>.</p>
+ 
+  Like the function passed to <a docgen-rel="seemfa" docgen-href="maps#foreach/2" href="maps.html#foreach-2"><code>maps:foreach/2</code></a>, <code>Fun</code> must accept the
+  following arguments:
+  <ol>
+  <li>the native path of the tree node being handled</li>
+  <li>the tree node properties map</li>
+  </ol>
+ 
+  Example: print all nodes in the tree
+  <pre><code>%% Print all tree node paths in the tree. The tree is:
+%% &lt;root&gt;
+%% `-- foo
+%%     `-- bar = value
+ok = khepri:foreach(
+          StoreId,
+          [?KHEPRI_WILDCARD_STAR_STAR],
+          fun(Path, _NodeProps) -&gt;
+              io:format("Path ~0p~n", [Path])
+          end).</code></pre>
+ </p>
+
+<h3 class="function"><a name="map-2">map/2</a></h3>
+<div class="spec">
+<p><code>map(PathPattern, Fun) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-map_fun">khepri:map_fun()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Map) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Map = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-map_fun_ret">khepri:map_fun_ret()</a>}</code></li></ul></p>
+<p></p>
+</div><p><p>Produces a new map by calling <code>Fun</code> for each tree node matching the  
+given path pattern.</p>
+ 
+  Calling this function is the same as calling <code>map(StoreId, PathPattern,
+  Fun)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
+ </p>
+<p><b>See also:</b> <a href="#map-3">map/3</a>, <a href="#map-4">map/4</a>.</p>
+
+<h3 class="function"><a name="map-3">map/3</a></h3>
+<div class="spec">
+<p><code>map(StoreId, PathPattern, Fun) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-map_fun">khepri:map_fun()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Map) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Map = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-map_fun_ret">khepri:map_fun_ret()</a>}</code></li></ul></p><p><code>map(PathPattern, Fun, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-map_fun">khepri:map_fun()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Map) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Map = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-map_fun_ret">khepri:map_fun_ret()</a>}</code></li></ul></p>
+<p></p>
+<p></p>
+</div><p><p>Produces a new map by calling <code>Fun</code> for each tree node matching the  
+given path pattern.</p>
+ 
+  This function accepts the following two forms:
+  <ul>
+  <li><code>map(StoreId, PathPattern, Fun)</code>. Calling it is the same as
+  calling <code>map(StoreId, PathPattern, Fun, #{})</code>.</li>
+  <li><code>map(PathPattern, Fun, Options)</code>. Calling it is the same as
+  calling <code>map(StoreId, PathPattern, Fun, Options)</code> with the default
+  store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).</li>
+  </ul>
+ </p>
+<p><b>See also:</b> <a href="#map-4">map/4</a>.</p>
+
+<h3 class="function"><a name="map-4">map/4</a></h3>
+<div class="spec">
+<p><code>map(StoreId, PathPattern, Fun, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-map_fun">khepri:map_fun()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Map) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Map = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-map_fun_ret">khepri:map_fun_ret()</a>}</code></li></ul></p>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
+<code>PathPattern</code>: the path (or path pattern) to the tree nodes to get.<br>
+<code>Fun</code>: the function to call for each matching tree node.<br>
+<code>Options</code>: query options.
+ <br>
+</p>
+<p>returns: <code>{ok, Map}</code> or an <code>{error, Reason}</code> tuple.</p>
+</div><p><p>Produces a new map by calling <code>Fun</code> for each tree node matching the  
+given path pattern.</p>
+ 
+  <p>The produced map uses the tree node path as the key, like <a docgen-rel="seemfa" docgen-href="#get_many/3" href="#get_many-3"><code>get_many/3</code></a>
+  and the return value of <code>Fun</code> as the value.</p>
+ 
+  <p>The <code>PathPattern</code> can be provided as a native path pattern (a list of tree
+  node names and conditions) or as a string. See <a docgen-rel="seemfa" docgen-href="khepri_path#from_string/1" href="khepri_path.html#from_string-1"><code>khepri_path:from_string/1</code></a>.</p>
+ 
+  Like the function passed to <a docgen-rel="seemfa" docgen-href="maps#map/2" href="maps.html#map-2"><code>maps:map/2</code></a>, <code>Fun</code> must accept the
+  following arguments:
+  <ol>
+  <li>the native path of the tree node being handled</li>
+  <li>the tree node properties map</li>
+  </ol>
+ 
+  Example: create a map of the form "native path =&gt; string path"
+  <pre><code>%% The tree is:
+%% &lt;root&gt;
+%% `-- foo
+%%     `-- bar = value
+{ok, #{[foo] =&gt; "/:foo",
+       [foo, bar] =&gt; "/:foo/:bar"}} = khepri:map(
+                                        StoreId,
+                                        [?KHEPRI_WILDCARD_STAR_STAR],
+                                        fun(Path, _NodeProps) -&gt;
+                                            khepri_path:to_string(Path)
+                                        end).</code></pre>
+ </p>
+
+<h3 class="function"><a name="filter-2">filter/2</a></h3>
+<div class="spec">
+<p><code>filter(PathPattern, Pred) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Pred = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-filter_fun">khepri:filter_fun()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-many_payloads_ret">khepri:many_payloads_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Returns a map for which predicate <code>Pred</code> holds true in tree nodes  
+matching the given path pattern.</p>
+ 
+  Calling this function is the same as calling <code>filter(StoreId, PathPattern,
+  Pred)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
+ </p>
+<p><b>See also:</b> <a href="#filter-3">filter/3</a>, <a href="#filter-4">filter/4</a>.</p>
+
+<h3 class="function"><a name="filter-3">filter/3</a></h3>
+<div class="spec">
+<p><code>filter(StoreId, PathPattern, Pred) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Pred = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-filter_fun">khepri:filter_fun()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-many_payloads_ret">khepri:many_payloads_ret()</a></code></li></ul></p><p><code>filter(PathPattern, Pred, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Pred = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-filter_fun">khepri:filter_fun()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-many_payloads_ret">khepri:many_payloads_ret()</a></code></li></ul></p>
+<p></p>
+<p></p>
+</div><p><p>Returns a map for which predicate <code>Pred</code> holds true in tree nodes  
+matching the given path pattern.</p>
+ 
+  This function accepts the following two forms:
+  <ul>
+  <li><code>filter(StoreId, PathPattern, Pred)</code>. Calling it is the same as
+  calling <code>filter(StoreId, PathPattern, Pred, #{})</code>.</li>
+  <li><code>filter(PathPattern, Pred, Options)</code>. Calling it is the same as
+  calling <code>filter(StoreId, PathPattern, Pred, Options)</code> with the default
+  store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).</li>
+  </ul>
+ </p>
+<p><b>See also:</b> <a href="#filter-4">filter/4</a>.</p>
+
+<h3 class="function"><a name="filter-4">filter/4</a></h3>
+<div class="spec">
+<p><code>filter(StoreId, PathPattern, Pred, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Pred = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-filter_fun">khepri:filter_fun()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-many_payloads_ret">khepri:many_payloads_ret()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
+<code>PathPattern</code>: the path (or path pattern) to the tree nodes to get.<br>
+<code>Pred</code>: the function to call for each matching tree node.<br>
+<code>Options</code>: query options.
+ <br>
+</p>
+<p>returns: <code>{ok, Map}</code> or an <code>{error, Reason}</code> tuple.</p>
+</div><p><p>Returns a map for which predicate <code>Pred</code> holds true in tree nodes  
+matching the given path pattern.</p>
+ 
+  <p>The produced map only contains tree nodes for which <code>Pred</code> returned true.
+  The map has the same form as the one returned by <a docgen-rel="seemfa" docgen-href="#get_many/3" href="#get_many-3"><code>get_many/3</code></a>  
+otherwise.</p>
+ 
+  <p>The <code>PathPattern</code> can be provided as a native path pattern (a list of tree
+  node names and conditions) or as a string. See <a docgen-rel="seemfa" docgen-href="khepri_path#from_string/1" href="khepri_path.html#from_string-1"><code>khepri_path:from_string/1</code></a>.</p>
+ 
+  Like the function passed to <a docgen-rel="seemfa" docgen-href="maps#filter/2" href="maps.html#filter-2"><code>maps:filter/2</code></a>, <code>Pred</code> must accept the
+  following arguments:
+  <ol>
+  <li>the native path of the tree node being handled</li>
+  <li>the tree node properties filter</li>
+  </ol>
+ 
+  Example: only keep tree nodes under <code>/:foo</code>
+  <pre><code>%% The tree is:
+%% &lt;root&gt;
+%% `-- foo
+%%     `-- bar = value
+{ok, #{[foo] =&gt; undefined,
+       [foo, bar] =&gt; value}} = khepri:filter(
+                                 StoreId,
+                                 [?KHEPRI_WILDCARD_STAR_STAR],
+                                 fun
+                                   ([foo | _], _NodeProps) -&gt; true;
+                                   (_Path, _NodeProps)     -&gt; false
+                                 end).</code></pre>
  </p>
 
 <h3 class="function"><a name="run_sproc-2">run_sproc/2</a></h3>

@@ -92,6 +92,20 @@ procedure or not.</td></tr>
 procedure or not.</td></tr>
 <tr><td valign="top"><a href="#count-1">count/1</a></td><td>Counts all tree nodes matching the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#count-2">count/2</a></td><td>Counts all tree nodes matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#fold-3">fold/3</a></td><td>Calls <code>Fun</code> on successive tree nodes matching the given path pattern,
+  starting with <code>Acc</code>.</td></tr>
+<tr><td valign="top"><a href="#fold-4">fold/4</a></td><td>Calls <code>Fun</code> on successive tree nodes matching the given path pattern,
+  starting with <code>Acc</code>.</td></tr>
+<tr><td valign="top"><a href="#foreach-2">foreach/2</a></td><td>Calls <code>Fun</code> for each tree node matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#foreach-3">foreach/3</a></td><td>Calls <code>Fun</code> for each tree node matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#map-2">map/2</a></td><td>Produces a new map by calling <code>Fun</code> for each tree node matching the  
+given path pattern.</td></tr>
+<tr><td valign="top"><a href="#map-3">map/3</a></td><td>Produces a new map by calling <code>Fun</code> for each tree node matching the  
+given path pattern.</td></tr>
+<tr><td valign="top"><a href="#filter-2">filter/2</a></td><td>Returns a map for which predicate <code>Pred</code> holds true in tree nodes  
+matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#filter-3">filter/3</a></td><td>Returns a map for which predicate <code>Pred</code> holds true in tree nodes  
+matching the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#put-2">put/2</a></td><td>Runs the stored procedure pointed to by the given path and returns the  
 result.</td></tr>
 <tr><td valign="top"><a href="#put-3">put/3</a></td><td>Runs the stored procedure pointed to by the given path and returns the  
@@ -326,6 +340,108 @@ procedure or not.</p>
   transaction function.
  </p>
 <p><b>See also:</b> <a href="khepri.html#count-3">khepri:count/3</a>.</p>
+
+<h3 class="function"><a name="fold-3">fold/3</a></h3>
+<div class="spec">
+<p><code>fold(PathPattern, Fun, Acc) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-fold_fun">khepri:fold_fun()</a></code></li><li><code>Acc = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-fold_acc">khepri:fold_acc()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(NewAcc) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>NewAcc = Acc</code></li></ul></p>
+<p></p>
+</div><p><p>Calls <code>Fun</code> on successive tree nodes matching the given path pattern,
+  starting with <code>Acc</code>.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#fold/4" href="khepri.html#fold-4"><code>khepri:fold/4</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#fold-4">khepri:fold/4</a>.</p>
+
+<h3 class="function"><a name="fold-4">fold/4</a></h3>
+<div class="spec">
+<p><code>fold(PathPattern, Fun, Acc, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-fold_fun">khepri:fold_fun()</a></code></li><li><code>Acc = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-fold_acc">khepri:fold_acc()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(NewAcc) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>NewAcc = Acc</code></li></ul></p>
+<p></p>
+</div><p><p>Calls <code>Fun</code> on successive tree nodes matching the given path pattern,
+  starting with <code>Acc</code>.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#fold/5" href="khepri.html#fold-5"><code>khepri:fold/5</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#fold-5">khepri:fold/5</a>.</p>
+
+<h3 class="function"><a name="foreach-2">foreach/2</a></h3>
+<div class="spec">
+<p><code>foreach(PathPattern, Fun) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-foreach_fun">khepri:foreach_fun()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Calls <code>Fun</code> for each tree node matching the given path pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#foreach/3" href="khepri.html#foreach-3"><code>khepri:foreach/3</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#foreach-3">khepri:foreach/3</a>.</p>
+
+<h3 class="function"><a name="foreach-3">foreach/3</a></h3>
+<div class="spec">
+<p><code>foreach(PathPattern, Fun, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-foreach_fun">khepri:foreach_fun()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Calls <code>Fun</code> for each tree node matching the given path pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#foreach/4" href="khepri.html#foreach-4"><code>khepri:foreach/4</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#foreach-4">khepri:foreach/4</a>.</p>
+
+<h3 class="function"><a name="map-2">map/2</a></h3>
+<div class="spec">
+<p><code>map(PathPattern, Fun) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-map_fun">khepri:map_fun()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Map) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Map = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-map_fun_ret">khepri:map_fun_ret()</a>}</code></li></ul></p>
+<p></p>
+</div><p><p>Produces a new map by calling <code>Fun</code> for each tree node matching the  
+given path pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#map/3" href="khepri.html#map-3"><code>khepri:map/3</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#map-3">khepri:map/3</a>.</p>
+
+<h3 class="function"><a name="map-3">map/3</a></h3>
+<div class="spec">
+<p><code>map(PathPattern, Fun, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-map_fun">khepri:map_fun()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Map) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Map = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-map_fun_ret">khepri:map_fun_ret()</a>}</code></li></ul></p>
+<p></p>
+</div><p><p>Produces a new map by calling <code>Fun</code> for each tree node matching the  
+given path pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#map/4" href="khepri.html#map-4"><code>khepri:map/4</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#map-4">khepri:map/4</a>.</p>
+
+<h3 class="function"><a name="filter-2">filter/2</a></h3>
+<div class="spec">
+<p><code>filter(PathPattern, Pred) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Pred = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-filter_fun">khepri:filter_fun()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-many_payloads_ret">khepri:many_payloads_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Returns a map for which predicate <code>Pred</code> holds true in tree nodes  
+matching the given path pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#filter/3" href="khepri.html#filter-3"><code>khepri:filter/3</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#filter-3">khepri:filter/3</a>.</p>
+
+<h3 class="function"><a name="filter-3">filter/3</a></h3>
+<div class="spec">
+<p><code>filter(PathPattern, Pred, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Pred = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-filter_fun">khepri:filter_fun()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-many_payloads_ret">khepri:many_payloads_ret()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Returns a map for which predicate <code>Pred</code> holds true in tree nodes  
+matching the given path pattern.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#filter/4" href="khepri.html#filter-4"><code>khepri:filter/4</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#filter-4">khepri:filter/4</a>.</p>
 
 <h3 class="function"><a name="put-2">put/2</a></h3>
 <div class="spec">
