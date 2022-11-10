@@ -479,8 +479,51 @@ with the database directly</strong>. In other words, they must go through the
 regular Khepri API like any caller. Triggers do not have any privileges or
 blanket approvals to tamper with the data.</p>
 
-So even though Khepri uses the same naming than many RDBMS, triggers in Khepri
-can't have unexpected consequences.
+<p>So even though Khepri uses the same naming than many RDBMS, triggers in Khepri
+can't have unexpected consequences.</p>
+
+<h3><a name="Projections">Projections</a></h3>
+
+<p>Projections are a system within Khepri for maintaining replicated ETS caches
+for tree nodes matching a given path pattern.</p>
+
+<p>Projection resources are created with the <a docgen-rel="seemfa" docgen-href="khepri_projection#new/3" href="khepri_projection.html#new-3"><code>khepri_projection:new/3</code></a>
+function and are registered in a store with <a docgen-rel="seemfa" docgen-href="khepri#register_projection/4" href="khepri.html#register_projection-4"><code>khepri:register_projection/4</code></a>:</p>
+
+<pre><code>ProjectionName = wood_stocks,
+ProjectionFun = fun([stock, wood, Kind], Stock) -&gt; {Kind, Stock} end,
+Options = #{type =&gt; set, read_concurrency =&gt; true},
+Projection = khepri_projection:new(ProjectionName, ProjectionFun, Options).
+
+StoreId = stock,
+PathPattern = "/:stock/:wood/*",
+khepri:register_projection(StoreId, PathPattern, Projection).</code></pre>
+
+<p>When a path within the store which matches <code>PathPattern</code> changes, the changed
+path and data are passed to the given <code>ProjectionFun</code> to create ETS objects
+which are then stored in the projection's ETS table.</p>
+
+<p>Projection tables may be queried directly with functions from the <a docgen-rel="seeerl" docgen-href="ets" href="ets.html"><code>ets</code></a>
+module.</p>
+
+<pre><code>khepri:put(StoreId, "/:stock/:wood/oak", 100),
+ets:lookup(ProjectionName, &lt;&lt;"oak"&gt;&gt;, 2).
+%%=&gt; [{&lt;&lt;"oak"&gt;&gt;,100}]
+
+khepri:put(StoreId, "/:stock/:wood/oak", 80),
+ets:lookup(ProjectionName, &lt;&lt;"oak"&gt;&gt;, 2).
+%%=&gt; [{&lt;&lt;"oak"&gt;&gt;,80}]
+
+khepri:delete(StoreId, "/:stock/:wood/oak"),
+ets:member(ProjectionName, &lt;&lt;"oak"&gt;&gt;).
+%%=&gt; false</code></pre>
+
+<p>Use projections to maximize query throughput and/or minimize query latency.</p>
+
+Projections have some costs though. Expect some increased memory consumption
+since information in the projection tables is duplicated between the Khepri
+store and ETS. Khepri may also take longer to accomplish writes since
+projections are updated by Khepri synchronously when writing to the store.
 
 <hr>
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>

@@ -51,12 +51,17 @@ module.</p>
 <p><code>machine_config() = #config{store_id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a>, member = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a>, snapshot_interval = non_neg_integer()}</code></p>
 <p>  Configuration record, holding read-only or rarely changing fields.</p>
 
+<h3 class="typedecl"><a name="type-projections_map">projections_map()</a></h3>
+<p><code>projections_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection">khepri_projection:projection()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_pattern">khepri_path:native_pattern()</a>}</code></p>
+<p>  Internal mapping between <a docgen-rel="seetype" docgen-href="khepri_projection#projection/0" href="khepri_projection.html#type-projection"><code>khepri_projection:projection()</code></a> records and
+  the native path patterns which trigger updates to each projection.</p>
+
 <h3 class="typedecl"><a name="type-props">props()</a></h3>
 <p><code>props() = #{payload_version := <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_version">khepri:payload_version()</a>, child_list_version := <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_version">khepri:child_list_version()</a>}</code></p>
 <p>  Properties attached to each node in the tree structure.</p>
 
 <h3 class="typedecl"><a name="type-state">state()</a></h3>
-<p><code>state() = #khepri_machine{config = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-machine_config">khepri_machine:machine_config()</a>, root = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tree_node">khepri_machine:tree_node()</a>, keep_while_conds = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_while_conds_map">khepri_machine:keep_while_conds_map()</a>, keep_while_conds_revidx = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_while_conds_revidx">khepri_machine:keep_while_conds_revidx()</a>, triggers = #{<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id">khepri:trigger_id()</a> =&gt; #{sproc := <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a>, event_filter := <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a>}}, emitted_triggers = [<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-triggered">khepri_machine:triggered()</a>], metrics = #{applied_command_count =&gt; non_neg_integer()}}</code></p>
+<p><code>state() = #khepri_machine{config = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-machine_config">khepri_machine:machine_config()</a>, root = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tree_node">khepri_machine:tree_node()</a>, keep_while_conds = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_while_conds_map">khepri_machine:keep_while_conds_map()</a>, keep_while_conds_revidx = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-keep_while_conds_revidx">khepri_machine:keep_while_conds_revidx()</a>, triggers = #{<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id">khepri:trigger_id()</a> =&gt; #{sproc := <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a>, event_filter := <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a>}}, emitted_triggers = [<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-triggered">khepri_machine:triggered()</a>], projections = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-projections_map">khepri_machine:projections_map()</a>, metrics = #{applied_command_count =&gt; non_neg_integer()}}</code></p>
 <p>  State of this Ra state machine.</p>
 
 <h3 class="typedecl"><a name="type-tree_node">tree_node()</a></h3>
@@ -79,6 +84,7 @@ module.</p>
 <tr><td valign="top"><a href="#handle_tx_exception-1">handle_tx_exception/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#run_sproc-4">run_sproc/4</a></td><td>Executes a stored procedure.</td></tr>
 <tr><td valign="top"><a href="#register_trigger-5">register_trigger/5</a></td><td>Registers a trigger.</td></tr>
+<tr><td valign="top"><a href="#register_projection-4">register_projection/4</a></td><td>Registers a projection.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -188,6 +194,21 @@ module.</p>
 <p>returns: <code>ok</code> if the trigger was registered, an <code>{error, Reason}</code> tuple
   otherwise.</p>
 </div><p>Registers a trigger.
+ </p>
+
+<h3 class="function"><a name="register_projection-4">register_projection/4</a></h3>
+<div class="spec">
+<p><code>register_projection(StoreId, PathPattern, Projection, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Projection = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection">khepri_projection:projection()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<code>PathPattern</code>: the pattern of tree nodes which should be projected.<br>
+<code>Projection</code>: the projection record created with <a docgen-rel="seemfa" docgen-href="khepri_projection#new/3" href="khepri_projection.html#new-3"><code>khepri_projection:new/3</code></a>.<br>
+<code>Options</code>: command options such as the command type.
+ <br>
+</p>
+<p>returns: <code>ok</code> if the projection was registered, an <code>{error, Reason}</code> tuple
+  otherwise.</p>
+</div><p>Registers a projection.
  </p>
 <hr>
 

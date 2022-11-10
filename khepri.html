@@ -100,7 +100,7 @@ nodes added or removed).</p>
   existing nodes are not reflected in this version.</p>
 
 <h3 class="typedecl"><a name="type-command_options">command_options()</a></h3>
-<p><code>command_options() = #{timeout =&gt; timeout(), async =&gt; <a href="#type-async_option">async_option()</a>}</code></p>
+<p><code>command_options() = #{timeout =&gt; timeout(), async =&gt; <a href="#type-async_option">async_option()</a>, reply_from =&gt; <a href="#type-reply_from_option">reply_from_option()</a>}</code></p>
 <p><p>  Options used in commands.</p>
  
   <p>Commands are <a docgen-rel="seemfa" docgen-href="#put/5" href="#put-5"><code>put/5</code></a>, <a docgen-rel="seemfa" docgen-href="#delete/3" href="#delete-3"><code>delete/3</code></a> and read-write <a docgen-rel="seemfa" docgen-href="#transaction/4" href="#transaction-4"><code>transaction/4</code></a>.</p>
@@ -109,6 +109,8 @@ nodes added or removed).</p>
   <li><code>timeout</code> is passed to Ra command processing function.</li>
   <li><code>async</code> indicates the synchronous or asynchronous nature of the
   command; see <a docgen-rel="seetype" docgen-href="#async_option/0" href="#type-async_option"><code>async_option()</code></a>.</li>
+  <li><code>reply_from</code> indicates which cluster member should reply to the
+  command request; see <a docgen-rel="seetype" docgen-href="#reply_from_option/0" href="#type-reply_from_option"><code>reply_from_option()</code></a>.</li>
   </ul></p>
 
 <h3 class="typedecl"><a name="type-data">data()</a></h3>
@@ -222,6 +224,29 @@ on a single tree node.</p>
   <li><code>favor</code> indicates where to put the cursor between freshness of the
   returned data and low latency of queries; see <a docgen-rel="seetype" docgen-href="#favor_option/0" href="#type-favor_option"><code>favor_option()</code></a>.</li>
   </ul></p>
+
+<h3 class="typedecl"><a name="type-reply_from_option">reply_from_option()</a></h3>
+<p><code>reply_from_option() = leader | local | {member, <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a>}</code></p>
+<p><p>  Options to indicate which member of the cluster should reply to a command  
+request.</p>
+ 
+  <p>Note that commands are always handled by the leader. This option only  
+controls which member of the cluster carries out the reply.</p>
+ 
+  <ul>
+  <li><code>leader</code>: the cluster leader will reply. This is the default value.</li>
+  <li><code>{member, Member}</code>: the given cluster member will reply.</li>
+  <li><code>local</code>: a member of the cluster on the same Erlang node as the caller
+  will perform the reply.</li>
+  </ul>
+ 
+  When <code>reply_from</code> is <code>{member, Member}</code> and the given member is not part of
+  the cluster or when <code>reply_from</code> is <code>local</code> and there is no member local to
+  the caller, the leader member will perform the reply. This mechanism uses
+  the cluster membership information to decide which member should reply: if
+  the given <code>Member</code> or local member is a member of the cluster but is offline
+  or unreachable, no reply may be sent even though the leader may have
+  successfully handled the command.</p>
 
 <h3 class="typedecl"><a name="type-store_id">store_id()</a></h3>
 <p><code>store_id() = atom()</code></p>
@@ -368,6 +393,9 @@ pattern.</td></tr>
 <tr><td valign="top"><a href="#register_trigger-3">register_trigger/3</a></td><td>Registers a trigger.</td></tr>
 <tr><td valign="top"><a href="#register_trigger-4">register_trigger/4</a></td><td>Registers a trigger.</td></tr>
 <tr><td valign="top"><a href="#register_trigger-5">register_trigger/5</a></td><td>Registers a trigger.</td></tr>
+<tr><td valign="top"><a href="#register_projection-2">register_projection/2</a></td><td>Registers a projection.</td></tr>
+<tr><td valign="top"><a href="#register_projection-3">register_projection/3</a></td><td>Registers a projection.</td></tr>
+<tr><td valign="top"><a href="#register_projection-4">register_projection/4</a></td><td>Registers a projection.</td></tr>
 <tr><td valign="top"><a href="#transaction-1">transaction/1</a></td><td>Runs a transaction and returns its result.</td></tr>
 <tr><td valign="top"><a href="#transaction-2">transaction/2</a></td><td>Runs a transaction and returns its result.</td></tr>
 <tr><td valign="top"><a href="#transaction-3">transaction/3</a></td><td>Runs a transaction and returns its result.</td></tr>
@@ -1734,6 +1762,68 @@ is a map containing the event properties. Here is an example:</p>
   It is guaranteed to run at least once. It could be executed multiple times
   if the Ra leader changes, therefore the stored procedure must be
   idempotent.
+ </p>
+
+<h3 class="function"><a name="register_projection-2">register_projection/2</a></h3>
+<div class="spec">
+<p><code>register_projection(PathPattern, Projection) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Projection = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection">khepri_projection:projection()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Registers a projection.</p>
+ 
+  Calling this function is the same as calling
+  <code>register_projection(StoreId, PathPattern, Projection)</code> with the default
+  store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
+ </p>
+<p><b>See also:</b> <a href="#register_projection-3">register_projection/3</a>.</p>
+
+<h3 class="function"><a name="register_projection-3">register_projection/3</a></h3>
+<div class="spec">
+<p><code>register_projection(StoreId, PathPattern, Projection) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Projection = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection">khepri_projection:projection()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p><p><code>register_projection(PathPattern, Projection, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Projection = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection">khepri_projection:projection()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p></p>
+<p></p>
+</div><p><p>Registers a projection.</p>
+ 
+  This function accepts the following two forms:
+  <ul>
+  <li><code>register_projection(StoreId, PathPattern, Projection)</code>. Calling it is
+  the same as calling <code>register_projection(StoreId, PathPattern, Projection,
+  #{})</code>.</li>
+  <li><code>register_projection(PathPattern, Projection, Options)</code>. Calling it is
+  the same as calling <code>register_projection(StoreId, PathPattern, Projection,
+  Options)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).</li>
+  </ul>
+ </p>
+<p><b>See also:</b> <a href="#register_projection-4">register_projection/4</a>.</p>
+
+<h3 class="function"><a name="register_projection-4">register_projection/4</a></h3>
+<div class="spec">
+<p><code>register_projection(StoreId, PathPattern, Projection, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Projection = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection">khepri_projection:projection()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
+<code>PathPattern</code>: the pattern of tree nodes which the projection should
+         watch.<br>
+<code>Projection</code>: the projection resource, created with
+         <code>khepri_projection:new/3</code>.<br>
+<code>Options</code>: command options for registering the projection.<br>
+</p>
+<p>returns: <code>ok</code> if the projection was registered, an <code>{error, Reason}</code> tuple
+  otherwise.</p>
+</div><p><p>Registers a projection.</p>
+ 
+  <p>A projection is a replicated ETS cache which is kept up to date by
+  Khepri. See the <a docgen-rel="seeerl" docgen-href="khepri_projection" href="khepri_projection.html"><code>khepri_projection</code></a> module-docs for more information  
+about projections.</p>
+ 
+  <p>This function associates a projection created with <a docgen-rel="seemfa" docgen-href="khepri_projection#new/3" href="khepri_projection.html#new-3"><code>khepri_projection:new/3</code></a> with a pattern. Any changes to tree nodes matching
+  the provided pattern will be turned into records using the projection's
+  <a docgen-rel="seetype" docgen-href="khepri_projection#projection_fun/0" href="khepri_projection.html#type-projection_fun"><code>khepri_projection:projection_fun()</code></a> and then applied to the  
+projection's ETS table.</p>
+ 
+  Registering a projection fills the projection's ETS table with records from
+  any tree nodes which match the <code>PathPattern</code> and are already in the store.
  </p>
 
 <h3 class="function"><a name="transaction-1">transaction/1</a></h3>
