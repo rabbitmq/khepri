@@ -1205,7 +1205,8 @@ pass1_process_instructions(
   State,
   Result)
   when (BsGetSomething =:= bs_get_integer2 orelse
-        BsGetSomething =:= bs_get_binary2) andalso
+        BsGetSomething =:= bs_get_binary2 orelse
+        BsGetSomething =:= bs_get_float2) andalso
        is_integer(FF) ->
     %% `beam_disasm' did not decode this instruction correctly. We need to
     %% patch it to move `Live' before the list. We also need to decode field

@@ -450,6 +450,15 @@ allowed_bs_match_accepts_match_context_test() ->
            <<"5">> = trim_leading_dash3([], "-5")
        end).
 
+match_float(<<Float/float>>) -> Float.
+
+allowed_bs_get_float_test() ->
+    FloatBin = mask(<<3.14/float>>),
+    ?assertStandaloneFun(
+      begin
+          3.14 = match_float(FloatBin)
+      end).
+
 make_tuple([A]) ->
     {a, A};
 make_tuple([A, B]) ->
