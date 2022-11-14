@@ -702,7 +702,7 @@ denied_module_info_1_test() ->
            _ = lists:module_info(compile)
        end).
 
--record(record, {field}).
+-record(record, {field, other_field}).
 
 allowed_erlang_module_api_test() ->
     %% The compiler optimization will replace many of the following calls
@@ -807,6 +807,16 @@ allowed_erlang_module_api_test() ->
 allowed_record_test() ->
     Record = persistent_term:get(record, undefined),
     ?assertStandaloneFun(Record#record.field).
+
+update_record_field(#record{field = foo} = Record) ->
+    Record#record{field = bar}.
+
+allowed_record_update_test() ->
+    %% Note: `other_field' must be masked or else the compiler will optimize
+    %% this into a `move/2' instruction. Here we are trying to provoke an
+    %% OTP26+ `update_record/5' instruction.
+    Record = #record{field = foo, other_field = mask(bar)},
+    ?assertStandaloneFun(update_record_field(Record)).
 
 denied_builtin_make_ref_0_test() ->
     ?assertToFunError(
