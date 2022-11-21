@@ -347,6 +347,43 @@ case khepri:put(StoredId, PathPattern, Term1) of
 end.
 '''
 
+== Import and export ==
+
+To backup and restore a Khepri store, you can use {@link khepri:export/4} and
+{@link khepri:import/3}.
+
+They both rely on a backend module which follows the <a
+href="https://www.erlang.org/doc/apps/mnesia/mnesia_app_a">Mnesia Backup &amp;
+Restore API</a>. Khepri comes with one backend module called {@link
+khepri_export_erlang}. It uses plaintext files containing opaque Erlang terms
+formatted as text. It is possible to provide your own backend module obviously.
+
+To export the content of a running store:
+
+```
+ok = khepri:export(StoreId, khepri_export_erlang, "export.erl").
+'''
+
+This will export the entire store. It is possible to export a part of it by
+passing a path patterns to select the tree nodes you want to export.
+
+Later, to import to a running store:
+
+```
+ok = khepri:import(StoreId, khepri_export_erlang, "export.erl").
+'''
+
+Importing a backup does not touch unrelated tree nodes. In other words, the
+content of the exported store is imported but whatever exists in the target
+store remains (except if the import overwrites some tree nodes of course). In
+particular, the target store is not reset.
+
+You can learn more about this import/export feature in the {@link
+khepri_import_export} module documentation.
+
+You can lean more about the provide backend module by reading the documentation
+of {@link khepri_export_erlang}.
+
 == Stored procedures and triggers ==
 
 === Triggering a function after some event ===
