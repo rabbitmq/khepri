@@ -41,6 +41,7 @@ handle_triggered_sprocs(StoreId, TriggeredStoredProcs) ->
     gen_server:cast(?SERVER, {?FUNCTION_NAME, StoreId, TriggeredStoredProcs}).
 
 init(_) ->
+    erlang:process_flag(trap_exit, true),
     State = #?MODULE{},
     {ok, State}.
 
