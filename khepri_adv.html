@@ -23,7 +23,7 @@ examples of what can be achieved with this module:</p>
   <ul>
   <li>Distinguish a tree node with the <code>undefined</code> atom as its payload, from
   a tree node with no payload, from a non-existing tree node.</li>
-  <li>Know the payload version after a call to the functions based on <a docgen-rel="seemfa" docgen-href="#put/5" href="#put-5"><code>put/5</code></a> which can be useful to perform transactional operations without
+  <li>Know the payload version after a call to the functions based on <a docgen-rel="seemfa" docgen-href="#put/4" href="#put-4"><code>put/4</code></a> which can be useful to perform transactional operations without
   using <a docgen-rel="seemfa" docgen-href="khepri#transaction/4" href="khepri.html#transaction-4"><code>khepri:transaction/4</code></a>.</li>
   </ul>
  
@@ -333,7 +333,7 @@ an empty map.</p>
  
   <p>The <code>Options</code> map may specify command-level options; see <a docgen-rel="seetype" docgen-href="khepri#command_options/0" href="khepri.html#type-command_options"><code>khepri:command_options()</code></a>, <a docgen-rel="seetype" docgen-href="khepri#tree_options/0" href="khepri.html#type-tree_options"><code>khepri:tree_options()</code></a> and <a docgen-rel="seetype" docgen-href="khepri#put_options/0" href="khepri.html#type-put_options"><code>khepri:put_options()</code></a>.</p>
  
-  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="#wait_for_async_ret/1" href="#wait_for_async_ret-1"><code>wait_for_async_ret/1</code></a>  
+  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="khepri#wait_for_async_ret/1" href="khepri.html#wait_for_async_ret-1"><code>khepri:wait_for_async_ret/1</code></a>  
 function can be used to receive the message from Ra.</p>
  
   <p>The returned <code>{ok, NodeProps}</code> tuple contains a map with the properties and  
@@ -425,7 +425,7 @@ properties like the payload version correspond to the updated node.</p>
  
   <p>The <code>Options</code> map may specify command-level options; see <a docgen-rel="seetype" docgen-href="khepri#command_options/0" href="khepri.html#type-command_options"><code>khepri:command_options()</code></a>, <a docgen-rel="seetype" docgen-href="khepri#tree_options/0" href="khepri.html#type-tree_options"><code>khepri:tree_options()</code></a> and <a docgen-rel="seetype" docgen-href="khepri#put_options/0" href="khepri.html#type-put_options"><code>khepri:put_options()</code></a>.</p>
  
-  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="#wait_for_async_ret/1" href="#wait_for_async_ret-1"><code>wait_for_async_ret/1</code></a>  
+  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="khepri#wait_for_async_ret/1" href="khepri.html#wait_for_async_ret-1"><code>khepri:wait_for_async_ret/1</code></a>  
 function can be used to receive the message from Ra.</p>
  
   Example:
@@ -656,7 +656,7 @@ is returned.</p>
   payload (if any) of the targeted tree node as they were before the delete.
   If the targeted tree node didn't exist, <code>NodeProps</code> will be an empty map.</p>
  
-  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="#wait_for_async_ret/1" href="#wait_for_async_ret-1"><code>wait_for_async_ret/1</code></a>  
+  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="khepri#wait_for_async_ret/1" href="khepri.html#wait_for_async_ret-1"><code>khepri:wait_for_async_ret/1</code></a>  
 function can be used to receive the message from Ra.</p>
  
   Example:
@@ -722,7 +722,7 @@ correspond to the path to a deleted tree node. Each key then points to a
 map containing the properties and payload (if any) of that deleted tree  
 node as they were before the delete.</p>
  
-  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="#wait_for_async_ret/1" href="#wait_for_async_ret-1"><code>wait_for_async_ret/1</code></a>  
+  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="khepri#wait_for_async_ret/1" href="khepri.html#wait_for_async_ret-1"><code>khepri:wait_for_async_ret/1</code></a>  
 function can be used to receive the message from Ra.</p>
  
   Example:
