@@ -40,10 +40,22 @@
                event_filter := khepri_evf:event_filter()}},
          emitted_triggers = [] :: [khepri_machine:triggered()],
          projections = #{} :: khepri_machine:projections_map(),
+         locks = #{} :: khepri_machine:lock_map(),
+         lock_monitors = #{} :: khepri_machine:lock_monitor_map(),
          metrics = #{} :: #{applied_command_count => non_neg_integer()}}).
 
 -record(khepri_machine_aux,
         {store_id :: khepri:store_id()}).
+
+-record(lock_hold,
+        {holder :: pid(),
+         acquired_at :: calendar:datetime1970(),
+         release_on_disconnect :: boolean()}).
+
+-record(lock_entry,
+        {group :: khepri_lock:group(),
+         recursive :: boolean(),
+         holds = [] :: [#lock_hold{}]}).
 
 %% State machine commands.
 
@@ -77,3 +89,11 @@
                              old_props :: khepri:node_props(),
                              new_props :: khepri:node_props(),
                              projection :: khepri_projection:projection()}).
+
+-record(attempt_lock, {lock :: khepri_lock:lock(),
+                       acquirer :: pid()}).
+
+-record(release_lock, {lock :: khepri_lock:lock(),
+                       releaser :: pid()}).
+
+-record(force_release_lock, {lock_id :: khepri_lock:lock_id()}).

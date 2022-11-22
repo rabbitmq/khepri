@@ -32,13 +32,18 @@
 -include("src/khepri_ret.hrl").
 -include("src/khepri_tx.hrl").
 -include("src/khepri_projection.hrl").
+-include("src/khepri_lock.hrl").
 
 -export([fold/5,
          put/4,
          delete/3,
          transaction/5,
          register_trigger/5,
-         register_projection/4]).
+         register_projection/4,
+         attempt_lock/1,
+         release_lock/1,
+         force_release_lock/2,
+         get_lock_info/3]).
 -export([get_keep_while_conds_state/2,
          get_projections_state/2]).
 
@@ -91,7 +96,10 @@
                    #tx{} |
                    #register_trigger{} |
                    #ack_triggered{} |
-                   #register_projection{}.
+                   #register_projection{} |
+                   #attempt_lock{} |
+                   #release_lock{} |
+                   #force_release_lock{}.
 %% Commands specific to this Ra machine.
 
 -type machine_init_args() :: #{store_id := khepri:store_id(),
@@ -124,6 +132,15 @@
                              khepri_path:native_pattern()}.
 %% Internal mapping between {@link khepri_projection:projection()} records and
 %% the native path patterns which trigger updates to each projection.
+
+-type lock_map() :: #{khepri_lock:lock_id() => #lock_entry{}}.
+%% A mapping between the lock IDs and entries for a lock.
+%%
+%% Lock entries are a collection of holds on a lock for a group.
+
+-type lock_monitor_map():: #{pid() => [khepri_lock:lock_id()]}.
+%% A mapping between processes which have acquired locks and the locks they
+%% have acquired which release on the exit of that process.
 
 -type state() :: #?MODULE{}.
 %% State of this Ra state machine.
@@ -173,7 +190,9 @@
               triggered/0,
               keep_while_conds_map/0,
               keep_while_conds_revidx/0,
-              projections_map/0]).
+              projections_map/0,
+              lock_map/0,
+              lock_monitor_map/0]).
 
 -define(HAS_TIME_LEFT(Timeout), (Timeout =:= infinity orelse Timeout > 0)).
 
@@ -534,6 +553,100 @@ register_projection(
     Command = #register_projection{pattern = PathPattern,
                                    projection = Projection},
     process_command(StoreId, Command, Options).
+
+-spec attempt_lock(Lock) -> Ret when
+      Lock :: khepri_lock:lock(),
+      Ret :: boolean() | khepri:error().
+%% @doc Acquires a lock.
+%%
+%% @param Lock the lock resource to acquire.
+%%
+%% @returns `true' if the lock was acquired successfully, `false' if the lock
+%% is held by another process or group, or `{error, Reason}' otherwise.
+%%
+%% @private
+
+attempt_lock(#khepri_lock{store_id = StoreId} = Lock) ->
+    Command = #attempt_lock{lock = Lock, acquirer = self()},
+    process_command(StoreId, Command, #{}).
+
+-spec release_lock(Lock) -> Ret when
+      Lock :: khepri_lock:lock(),
+      Ret :: boolean() | khepri:error().
+%% @doc Releases a lock.
+%%
+%% @param Lock the lock resource to release.
+%%
+%% @returns `true' if the lock was released successfully, `false' if the lock
+%% did was not acquired in the store, or an `{error, Reason}' tuple otherwise.
+%%
+%% @private
+
+release_lock(#khepri_lock{store_id = StoreId} = Lock) ->
+    Command = #release_lock{lock = Lock, releaser = self()},
+    process_command(StoreId, Command, #{}).
+
+-spec force_release_lock(StoreId, LockId) -> Ret when
+      StoreId :: khepri:store_id(),
+      LockId :: khepri_lock:lock_id(),
+      Ret :: {ok, Count} | khepri:error(),
+      Count :: non_neg_integer().
+
+%% @doc Forcefully deletes the `LockId' from the `StoreId'.
+%%
+%% If the store does not contain the given `LockId', this function returns
+%% `{ok, 0}'.
+%%
+%% @param StoreId the name of the Ra cluster.
+%% @param LockId the lock ID within the store which should be deleted.
+%%
+%% @returns `{ok, Count}' where `Count' is the number of holds deleted if
+%% successful, or an `{error, Reason}' tuple if the command fails.
+%%
+%% @private
+
+force_release_lock(StoreId, LockId) ->
+    Command = #force_release_lock{lock_id = LockId},
+    process_command(StoreId, Command, #{}).
+
+-spec get_lock_info(StoreId, LockId, Options) -> Ret when
+      StoreId :: khepri:store_id(),
+      LockId :: khepri_lock:lock_id(),
+      Options :: khepri:query_options(),
+      Ret :: khepri:ok(LockInfo) | khepri:error(),
+      LockInfo :: khepri_lock:lock_info() | undefined.
+%% @doc Returns information about the lock within the store.
+%%
+%% @param StoreId the name of the Ra cluster.
+%% @param LockId the term representing the lock.
+%% @param Options options for executing the query.
+%%
+%% @returns `{ok, LockInfo}' where `LockInfo' is `undefined' if the lock does
+%% not exist or a map with properties about the lock if the lock does exist,
+%% or an `{error, Reason}' tuple if the query fails.
+%%
+%% @private
+get_lock_info(StoreId, LockId, Options) ->
+    QueryFun = fun (#?MODULE{locks = #{LockId := LockEntry}}) ->
+                       #lock_entry{group = Group,
+                                   recursive = Recursive,
+                                   holds = Holds0} = LockEntry,
+                       Holds =
+                       [#{holder => Holder,
+                          acquired_at => AcquiredAt,
+                          release_on_disconnect => ReleaseOnDisconnect} ||
+                        #lock_hold{holder = Holder,
+                                   acquired_at = AcquiredAt,
+                                   release_on_disconnect =
+                                   ReleaseOnDisconnect} <- Holds0],
+                       Info = #{group => Group,
+                                recursive => Recursive,
+                                holds => Holds},
+                       {ok, Info};
+                   (_State) ->
+                       {ok, undefined}
+               end,
+    process_query(StoreId, QueryFun, Options).
 
 -spec ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
     Ret when
@@ -1194,7 +1307,148 @@ apply(
                      State
              end,
     Ret = {State1, Reply},
-    bump_applied_command_count(Ret, Meta).
+    bump_applied_command_count(Ret, Meta);
+apply(
+  Meta,
+  #attempt_lock{lock = #khepri_lock{lock_id = LockId,
+                                    group = Group,
+                                    recursive = Recursive,
+                                    release_on_disconnect =
+                                    ReleaseOnDisconnect},
+                acquirer = Acquirer},
+  #?MODULE{locks = Locks, lock_monitors = Monitors} = State) ->
+    DefaultLockEntry = #lock_entry{group = Group, recursive = Recursive},
+    Ret =
+    case maps:get(LockId, Locks, DefaultLockEntry) of
+        #lock_entry{group = Group,
+                    recursive = Recursive,
+                    holds = Holds} = LockEntry ->
+            %% Prevent non-recursive locks from being inserted multiple times
+            %% by the same process.
+            CanInsertLock = Recursive orelse
+                              not lists:keymember(
+                                    Acquirer, #lock_hold.holder, Holds),
+            case CanInsertLock of
+                true ->
+                    %% Insert the lock.
+                    Hold = create_lock_hold(Acquirer, ReleaseOnDisconnect),
+                    LockEntry1 = LockEntry#lock_entry{holds = [Hold | Holds]},
+                    Locks1 = maps:put(LockId, LockEntry1, Locks),
+                    %% Monitor the acquirer if the lock releases on exit and
+                    %% the acquirer is not already monitored.
+                    {Monitors1, Effects} = lock_monitor_effects(
+                                             monitor,
+                                             Monitors,
+                                             LockId,
+                                             Acquirer),
+                    State1 = State#?MODULE{locks = Locks1,
+                                           lock_monitors = Monitors1},
+                    {State1, true, Effects};
+                false ->
+                    {State, false}
+            end;
+        #lock_entry{group = Group, recursive = Recursive1} ->
+            Error = ?khepri_error(
+                      mismatching_recursive_option,
+                      #{expected => Recursive1,
+                        got => Recursive,
+                        lock_id => LockId}),
+            {State, {error, Error}};
+        _LockAcquiredByOtherGroup ->
+            {State, false}
+    end,
+    bump_applied_command_count(Ret, Meta);
+apply(
+  Meta,
+  #release_lock{lock = #khepri_lock{lock_id = LockId,
+                                    group = Group},
+                releaser = Releaser},
+  #?MODULE{locks = Locks, lock_monitors = Monitors} = State) ->
+    Ret =
+    case maps:find(LockId, Locks) of
+        {ok, #lock_entry{group = Group, holds = Holds} = LockEntry} ->
+            case lists:keytake(Releaser, #lock_hold.holder, Holds) of
+                {value, Hold, Holds1} ->
+                    %% Remove the lock if there are no more holds.
+                    Locks1 = case Holds1 of
+                                 [_ | _] ->
+                                     LockEntry1 =
+                                     LockEntry#lock_entry{holds = Holds1},
+                                     maps:put(LockId, LockEntry1, Locks);
+                                 [] ->
+                                     maps:remove(LockId, Locks)
+                             end,
+                    %% Demonitor the lock holder process if the lock releases
+                    %% on exit and the holder doesn't hold any other locks.
+                    {Monitors1, Effects} = lock_monitor_effects(
+                                             demonitor,
+                                             Monitors,
+                                             LockId,
+                                             Hold#lock_hold.holder),
+                    State1 = State#?MODULE{locks = Locks1,
+                                           lock_monitors = Monitors1},
+                    {State1, true, Effects};
+                false ->
+                    {State, false}
+            end;
+        _ ->
+            {State, false}
+    end,
+    bump_applied_command_count(Ret, Meta);
+apply(
+  Meta,
+  #force_release_lock{lock_id = LockId},
+  #?MODULE{locks = Locks, lock_monitors = Monitors} = State) ->
+    Ret = case maps:take(LockId, Locks) of
+              {#lock_entry{holds = Holds}, Locks1} ->
+                  %% Demonitor any processes that are monitored because of
+                  %% this lock.
+                  {Monitors1, Effects} =
+                  lists:foldl(
+                    fun (Hold, {MonitorAcc, EffectAcc}) ->
+                            {MonitorAcc1, Effects} = lock_monitor_effects(
+                                                       demonitor,
+                                                       MonitorAcc,
+                                                       LockId,
+                                                       Hold#lock_hold.holder),
+                            {MonitorAcc1, Effects ++ EffectAcc}
+                    end, {Monitors, []}, Holds),
+                  State1 = State#?MODULE{locks = Locks1,
+                                         lock_monitors = Monitors1},
+                  Reply = {ok, length(Holds)},
+                  {State1, Reply, Effects};
+              error ->
+                  {State, {ok, 0}}
+          end,
+    bump_applied_command_count(Ret, Meta);
+apply(
+  _Meta,
+  {down, Pid, Reason},
+  #?MODULE{locks = Locks, lock_monitors = Monitors} = State) ->
+    ReasonIsDisconnect = Reason =:= noconnection,
+    LockIds = maps:get(Pid, Monitors, []),
+    Locks1 =
+    lists:foldl(
+      fun(LockId, Acc) ->
+              LockEntry = maps:get(LockId, Acc),
+              Holds = lists:filter(
+                        fun(#lock_hold{holder = Holder,
+                                       release_on_disconnect =
+                                       ReleaseOnDisconnect}) ->
+                                Holder =/= Pid orelse
+                                  (ReleaseOnDisconnect =:= false andalso
+                                     ReasonIsDisconnect)
+                        end, LockEntry#lock_entry.holds),
+              case Holds of
+                  [_ | _] ->
+                      LockEntry1 = LockEntry#lock_entry{holds = Holds},
+                      maps:put(LockId, LockEntry1, Acc);
+                  [] ->
+                      maps:remove(LockId, Acc)
+              end
+      end, Locks, LockIds),
+    State1 = State#?MODULE{locks = Locks1},
+    {State1, ok, []}.
 
 -spec bump_applied_command_count(ApplyRet, Meta) ->
     {State, Ret, SideEffects} when
@@ -2927,3 +3181,46 @@ get_keep_while_conds_revidx(
   #?MODULE{keep_while_conds_revidx = KeepWhileCondsRevIdx}) ->
     KeepWhileCondsRevIdx.
 -endif.
+
+create_lock_hold(Holder, ReleaseOnDisconnect) ->
+    Now = os:timestamp(),
+    DateTime = calendar:now_to_universal_time(Now),
+    #lock_hold{holder = Holder,
+               acquired_at = DateTime,
+               release_on_disconnect = ReleaseOnDisconnect}.
+
+-spec lock_monitor_effects(MonitorOrDemonitor, Monitors, LockId, Holder) -> Ret
+    when
+      MonitorOrDemonitor :: monitor | demonitor,
+      LockId :: khepri_lock:lock_id(),
+      Holder :: pid(),
+      Ret :: {Monitors, Effects},
+      Monitors :: lock_monitor_map(),
+      Effects :: ra_machine:effects().
+
+lock_monitor_effects(MonitorOrDemonitor, Monitors, LockId, Holder) ->
+    LockIds = maps:get(Holder, Monitors, []),
+    case MonitorOrDemonitor of
+        monitor ->
+            case lists:member(LockId, LockIds) of
+                true ->
+                    {Monitors, []};
+                false ->
+                    LockIds1 = [LockId | LockIds],
+                    Monitors1 = maps:put(Holder, LockIds1, Monitors),
+                    Effects = [{monitor, process, Holder}],
+                    {Monitors1, Effects}
+            end;
+        demonitor ->
+            DemonitorEffect = {demonitor, process, Holder},
+            case lists:delete(LockId, LockIds) of
+                LockIds ->
+                    {Monitors, []};
+                [] ->
+                    Monitors1 = maps:remove(Holder, Monitors),
+                    {Monitors1, [DemonitorEffect]};
+                LockIds1 ->
+                    Monitors1 = maps:put(Holder, LockIds1, Monitors),
+                    {Monitors1, [DemonitorEffect]}
+            end
+    end.
