@@ -126,6 +126,7 @@ ok = khepri_cluster:reset().</code></pre>
 <tr><td valign="top"><a href="#nodes-1">nodes/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#locally_known_nodes-1">locally_known_nodes/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get_store_ids-0">get_store_ids/0</a></td><td>Returns the list of running stores.</td></tr>
+<tr><td valign="top"><a href="#is_store_running-1">is_store_running/1</a></td><td>Indicates if <code>StoreId</code> is running or not.</td></tr>
 <tr><td valign="top"><a href="#get_cached_leader-1">get_cached_leader/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#cache_leader-2">cache_leader/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#cache_leader_if_changed-3">cache_leader_if_changed/3</a></td><td></td></tr>
@@ -375,6 +376,13 @@ Erlang node name.</p>
 <ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li></ul></p>
 <p></p>
 </div><p>Returns the list of running stores.</p>
+
+<h3 class="function"><a name="is_store_running-1">is_store_running/1</a></h3>
+<div class="spec">
+<p><code>is_store_running(StoreId) -&gt; IsRunning</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>IsRunning = boolean()</code></li></ul></p>
+<p></p>
+</div><p>Indicates if <code>StoreId</code> is running or not.</p>
 
 <h3 class="function"><a name="get_cached_leader-1">get_cached_leader/1</a></h3>
 <div class="spec">
