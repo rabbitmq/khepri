@@ -25,6 +25,19 @@ get_store_ids_with_running_store_test_() ->
          [?FUNCTION_NAME],
          khepri:get_store_ids())]}.
 
+is_store_running_with_no_running_stores_test_() ->
+    [?_assertEqual(
+        false,
+        khepri_cluster:is_store_running(?FUNCTION_NAME))].
+
+is_store_running_with_running_store_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         true,
+         khepri_cluster:is_store_running(?FUNCTION_NAME))]}.
+
 %% FIXME: There is no way yet to stop a store. Therefore this testcase is
 %% polluted by other testcases.
 %get_global_info_with_no_running_stores_test_() ->

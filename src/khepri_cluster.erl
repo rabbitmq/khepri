@@ -112,7 +112,8 @@
          locally_known_nodes/1,
          get_default_ra_system_or_data_dir/0,
          get_default_store_id/0,
-         get_store_ids/0]).
+         get_store_ids/0,
+         is_store_running/1]).
 
 %% Internal.
 -export([node_to_member/2,
@@ -1189,6 +1190,24 @@ forget_store(StoreId) ->
 
 get_store_ids() ->
     maps:keys(persistent_term:get(?PT_STORE_IDS, #{})).
+
+-spec is_store_running(StoreId) -> IsRunning when
+      StoreId :: khepri:store_id(),
+      IsRunning :: boolean().
+%% @doc Indicates if `StoreId' is running or not.
+
+is_store_running(StoreId) ->
+    ThisNode = node(),
+    RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
+    Runs = case ra:ping(RaServer, khepri_app:get_default_timeout()) of
+               {pong, _}  -> true;
+               {error, _} -> false;
+               timeout    -> false
+           end,
+    StoreIds = persistent_term:get(?PT_STORE_IDS, #{}),
+    Known = maps:is_key(StoreId, StoreIds),
+    ?assertEqual(Known, Runs),
+    Runs.
 
 %% Cache the Ra leader ID to avoid command/query redirections from a follower
 %% to the leader. The leader ID is returned after each command or query. If we
