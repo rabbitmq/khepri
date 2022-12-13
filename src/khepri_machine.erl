@@ -1060,7 +1060,7 @@ init(#{store_id := StoreId,
     %% Create initial "schema" if provided.
     Commands = maps:get(commands, Params, []),
     State3 = lists:foldl(
-               fun (Command, State1) ->
+               fun(Command, State1) ->
                        Meta = #{index => 0,
                                 term => 0,
                                 system_time => 0},
@@ -1273,7 +1273,8 @@ overview(#?MODULE{config = #config{store_id = StoreId},
                     include_root_props => true},
     {ok, NodePropsMap} = find_matching_nodes(
                            Root, [?KHEPRI_WILDCARD_STAR_STAR], TreeOptions),
-    MapFun = fun (#{sproc := Sproc} = Props) ->
+    MapFun = fun
+                 (#{sproc := Sproc} = Props) ->
                      Props#{sproc => khepri_fun:to_fun(Sproc)};
                  (Props) ->
                      Props
