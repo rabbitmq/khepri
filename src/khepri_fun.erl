@@ -1247,13 +1247,32 @@ pass1_process_instructions(
 %% Second group.
 
 pass1_process_instructions(
-  [{Call, Arity, {Module, Name, Arity}} = Instruction | Rest],
+  [{Call, Arity, {Module, Name, Arity} = MFA} = Instruction | Rest],
   State,
   Result)
   when Call =:= call orelse Call =:= call_only ->
     State1 = ensure_instruction_is_permitted(Instruction, State),
     State2 = pass1_process_call(Module, Name, Arity, State1),
-    pass1_process_instructions(Rest, State2, [Instruction | Result]);
+    %% If the processed function calls another function in the same module but
+    %% we don't extract it, we need to transform this instruction into an
+    %% external call.
+    #state{mfa_in_progress = {FromModule, _, _},
+           calls = Calls,
+           all_calls = AllCalls} = State,
+    ?assertEqual(Module, FromModule),
+    ShouldProcess = maps:is_key(MFA, AllCalls) andalso maps:is_key(MFA, Calls),
+    Instruction1 = case ShouldProcess of
+                       true ->
+                           Instruction;
+                       false ->
+                           InstructionName = case Call of
+                                                 call      -> call_ext;
+                                                 call_only -> call_ext_only
+                                             end,
+                           ExtFunc = {extfunc, Module, Name, Arity},
+                           {InstructionName, Arity, ExtFunc}
+                   end,
+    pass1_process_instructions(Rest, State2, [Instruction1 | Result]);
 pass1_process_instructions(
   [{Call, Arity, {extfunc, Module, Name, Arity}} = Instruction | Rest],
   State,
