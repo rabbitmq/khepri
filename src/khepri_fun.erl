@@ -1238,7 +1238,7 @@ pass1_process_instructions(
   [{raise, Fail, Args, Dst} | Rest],
   State,
   Result) ->
-    %% `beam_disasm` did not decode this instruction correctly. `raise'
+    %% `beam_disasm' did not decode this instruction correctly. `raise'
     %% should be translated into a `bif'.
     Instruction = {bif, raise, Fail, Args, Dst},
     pass1_process_instructions([Instruction | Rest], State, Result);
