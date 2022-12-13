@@ -72,7 +72,8 @@
          override_object_code/2,
          get_object_code/1,
          decode_line_chunk/2,
-         compile/1]).
+         compile/1,
+         to_actual_arg/1]).
 -endif.
 
 %% FIXME: compile:forms/2 is incorrectly specified and doesn't accept
@@ -1246,13 +1247,32 @@ pass1_process_instructions(
 %% Second group.
 
 pass1_process_instructions(
-  [{Call, Arity, {Module, Name, Arity}} = Instruction | Rest],
+  [{Call, Arity, {Module, Name, Arity} = MFA} = Instruction | Rest],
   State,
   Result)
   when Call =:= call orelse Call =:= call_only ->
     State1 = ensure_instruction_is_permitted(Instruction, State),
     State2 = pass1_process_call(Module, Name, Arity, State1),
-    pass1_process_instructions(Rest, State2, [Instruction | Result]);
+    %% If the processed function calls another function in the same module but
+    %% we don't extract it, we need to transform this instruction into an
+    %% external call.
+    #state{mfa_in_progress = {FromModule, _, _},
+           calls = Calls,
+           all_calls = AllCalls} = State,
+    ?assertEqual(Module, FromModule),
+    ShouldProcess = maps:is_key(MFA, AllCalls) andalso maps:is_key(MFA, Calls),
+    Instruction1 = case ShouldProcess of
+                       true ->
+                           Instruction;
+                       false ->
+                           InstructionName = case Call of
+                                                 call      -> call_ext;
+                                                 call_only -> call_ext_only
+                                             end,
+                           ExtFunc = {extfunc, Module, Name, Arity},
+                           {InstructionName, Arity, ExtFunc}
+                   end,
+    pass1_process_instructions(Rest, State2, [Instruction1 | Result]);
 pass1_process_instructions(
   [{Call, Arity, {extfunc, Module, Name, Arity}} = Instruction | Rest],
   State,
@@ -1706,9 +1726,25 @@ disassemble_module1(Module, Checksum) when is_binary(Checksum) ->
                                        Module, Checksum, Beam),
                     {BeamFileRecord, Checksum};
                 _ ->
-                    throw(
-                      {mismatching_module_checksum,
-                       Module, Checksum, ActualChecksum})
+                    CompileInfoFromFun = Module:module_info(compile),
+                    CompileInfoOnDisk = get_and_decode_compile_chunk(
+                                          Module, Beam),
+                    IsAcceptable = is_recompiled_module_acceptable(
+                                     CompileInfoFromFun, CompileInfoOnDisk),
+                    case IsAcceptable of
+                        true ->
+                            BeamFileRecord = do_disassemble_and_cache(
+                                               Module, Checksum, Beam),
+                            {BeamFileRecord, Checksum};
+                        false ->
+                            throw(
+                              {mismatching_module_checksum,
+                               #{module => Module,
+                                 checksum_from_fun => Checksum,
+                                 checksum_on_disk => ActualChecksum,
+                                 compile_info_from_fun => CompileInfoFromFun,
+                                 compile_info_on_disk => CompileInfoOnDisk}})
+                    end
             end
     end;
 disassemble_module1(Module, undefined) ->
@@ -1924,6 +1960,57 @@ decode_lambda_chunk_entries(
     decode_lambda_chunk_entries(Rest, Count - 1, AtomsTable, Entries1);
 decode_lambda_chunk_entries(<<>>, 0, _AtomsTable, Entries) ->
     lists:reverse(Entries).
+
+is_recompiled_module_acceptable(CompileInfoFromFun, CompileInfoOnDisk) ->
+    %% Rebar 3 recompiles application modules on-the-fly to use the
+    %% `cth_readable_transform' parse_transform helper. This is used to provide
+    %% a better output from common_test testsuites in the terminal.
+    %%
+    %% This changes the checksum of the module loaded in memory compared to the
+    %% file on disk. To determine if we can still use the code on disk for
+    %% function extraction, we compare the source file name and the compiler
+    %% options.
+    %%
+    %% If both copies were compiled for tests (`-DTEST') and the only
+    %% difference is the fact that `cth_readable_transform' is used, we
+    %% consider that the actual code didn't change and we can extract the
+    %% function.
+    RelevantOptionsFromFun = filter_relevant_compile_options(
+                               CompileInfoFromFun),
+    RelevantOptionsOnDisk = filter_relevant_compile_options(
+                              CompileInfoOnDisk),
+    RelevantOptionsDiff1 = RelevantOptionsFromFun -- RelevantOptionsOnDisk,
+    RelevantOptionsDiff2 = RelevantOptionsOnDisk -- RelevantOptionsFromFun,
+    TestDefinedFromFun = lists:member({d, 'TEST'}, RelevantOptionsFromFun),
+    TestDefinedOnDisk = lists:member({d, 'TEST'}, RelevantOptionsOnDisk),
+    SourceFromFun = proplists:get_value(source, CompileInfoFromFun),
+    SourceOnDisk = proplists:get_value(source, CompileInfoOnDisk),
+
+    CthReadablePT = {parse_transform, cth_readable_transform},
+
+    TestDefinedFromFun andalso TestDefinedOnDisk andalso
+    is_list(SourceFromFun) andalso SourceFromFun =:= SourceOnDisk andalso
+    (RelevantOptionsDiff1 =:= [] orelse
+     RelevantOptionsDiff1 =:= [CthReadablePT]) andalso
+    (RelevantOptionsDiff2 =:= [] orelse
+     RelevantOptionsDiff2 =:= [CthReadablePT]).
+
+filter_relevant_compile_options(CompileInfo) ->
+    Options = proplists:get_value(options, CompileInfo, []),
+    lists:sort([Option ||
+                Option <- Options,
+                is_tuple(Option),
+                element(1, Option) =:= d orelse
+                element(1, Option) =:= i orelse
+                element(1, Option) =:= parse_transform]).
+
+get_and_decode_compile_chunk(Module, Beam) ->
+    case beam_lib:chunks(Beam, [compile_info]) of
+        {ok, {Module, [{compile_info, CompileInfo}]}} ->
+            CompileInfo;
+        _ ->
+            undefined
+    end.
 
 %% See: erts/emulator/beam/beam_file.c, beamreader_read_tagged().
 
