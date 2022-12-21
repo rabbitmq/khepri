@@ -1493,8 +1493,9 @@ reset_applied_command_count(#?MODULE{metrics = Metrics} = State) ->
 %% @private
 
 state_enter(leader, State) ->
-    SideEffects1 = emitted_triggers_to_side_effects(State),
-    SideEffects1;
+    TriggerSideEffects = emitted_triggers_to_side_effects(State),
+    LockMonitorSideEffects = monitor_lock_side_effects(State),
+    TriggerSideEffects ++ LockMonitorSideEffects;
 state_enter(recovered, _State) ->
     SideEffect = {aux, restore_projections},
     [SideEffect];
@@ -1513,6 +1514,16 @@ emitted_triggers_to_side_effects(
     [SideEffect];
 emitted_triggers_to_side_effects(_State) ->
     [].
+
+%% @doc Re-issues monitor effects for any processes which hold locks.
+%%
+%% Ra monitors are invalidated when the leader changes and must be re-issued
+%% when a member becomes the leader.
+%%
+%% @private
+
+monitor_lock_side_effects(#?MODULE{lock_monitors = Monitors}) ->
+    [{monitor, process, Holder} || Holder <- maps:keys(Monitors)].
 
 %% @private
 

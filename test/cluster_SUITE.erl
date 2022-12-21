@@ -42,7 +42,8 @@
          handle_leader_down_on_three_node_cluster_command/1,
          handle_leader_down_on_three_node_cluster_response/1,
          can_set_snapshot_interval/1,
-         projections_are_consistent_on_three_node_cluster/1]).
+         projections_are_consistent_on_three_node_cluster/1,
+         cluster_locks_release_on_exit/1]).
 
 all() ->
     [can_start_a_single_node,
@@ -61,7 +62,8 @@ all() ->
      handle_leader_down_on_three_node_cluster_command,
      handle_leader_down_on_three_node_cluster_response,
      can_set_snapshot_interval,
-     projections_are_consistent_on_three_node_cluster].
+     projections_are_consistent_on_three_node_cluster,
+     cluster_locks_release_on_exit].
 
 groups() ->
     [].
@@ -100,7 +102,8 @@ init_per_testcase(Testcase, Config)
        Testcase =:= fail_to_join_non_existing_store orelse
        Testcase =:= handle_leader_down_on_three_node_cluster_command orelse
        Testcase =:= handle_leader_down_on_three_node_cluster_response orelse
-       Testcase =:= projections_are_consistent_on_three_node_cluster ->
+       Testcase =:= projections_are_consistent_on_three_node_cluster orelse
+       Testcase =:= cluster_locks_release_on_exit->
     Nodes = start_n_nodes(Testcase, 3),
     PropsPerNode0 = [begin
                          {ok, _} = rpc:call(
@@ -1274,17 +1277,105 @@ projections_are_consistent_on_three_node_cluster(Config) ->
 
     ok.
 
-wait_for_projection_on_nodes([], _ProjectionName) ->
-   ok;
-wait_for_projection_on_nodes([Node | Rest] = Nodes, ProjectionName) ->
-   case rpc:call(Node, ets, info, [ProjectionName]) of
-      undefined ->
-         timer:sleep(10),
-         wait_for_projection_on_nodes(Nodes, ProjectionName);
-      _Info ->
-         ct:pal("- projection ~s exists on node ~s", [ProjectionName, Node]),
-         wait_for_projection_on_nodes(Rest, ProjectionName)
-   end.
+cluster_locks_release_on_exit(Config) ->
+    ct:timetrap({seconds, 15}),
+    LockId = ?FUNCTION_NAME,
+    TestProc = self(),
+    Options = #{retries => 3},
+    PropsPerNode = ?config(ra_system_props, Config),
+    PeerPerNode = ?config(peer_nodes, Config),
+    [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
+
+    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    StoreId = RaSystem,
+
+    ct:pal("Start database + cluster nodes"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
+      end, Nodes),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:join() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+      end, [Node1, Node2]),
+
+    {Holder, MonitorRef} =
+    spawn_monitor(Node1,
+      fun() ->
+            ct:pal(
+              "Acquiring lock from ~p on node ~s",
+              [self(), node()]),
+            DidAcquire = case khepri_lock:acquire(StoreId, LockId, Options) of
+                            {true, _Lock} ->
+                               ct:pal(
+                                 "- lock has been acquired by ~p on node ~s",
+                                 [self(), node()]),
+                               true;
+                            false ->
+                               ct:pal(
+                                 "- lock could not be acquired by ~p "
+                                 "on node ~s because it was not available",
+                                 [self(), node()]),
+                               false;
+                            {error, Reason} ->
+                               ct:pal(
+                                 "- lock could not be acquired by ~p "
+                                 "on node ~s: ~p",
+                                 [self(), node(), Reason]),
+                               false
+                         end,
+            TestProc ! {acquired, DidAcquire},
+
+            receive terminate -> ok end,
+            ct:pal("- ~p exiting on node ~s", [self(), node()])
+      end),
+
+    ?assertEqual(
+      true,
+      receive {acquired, Acquired} -> Acquired after 3000 -> false end),
+    ?assertMatch(
+      {ok, #{holds := [#{holder := Holder}]}},
+      rpc:call(
+        Node1,
+        khepri_lock, info, [StoreId, LockId, #{favor => consistency}])),
+
+    %% Stop the current leader.
+    LeaderId = get_leader_in_store(StoreId, Nodes),
+    {StoreId, StoppedLeaderNode} = LeaderId,
+    RunningNodes = Nodes -- [StoppedLeaderNode],
+    Peer = proplists:get_value(StoppedLeaderNode, PeerPerNode),
+
+    ct:pal(
+      "Stop database on leader node ~s (quorum is maintained)",
+      [StoppedLeaderNode]),
+    ?assertEqual(ok, stop_erlang_node(StoppedLeaderNode, Peer)),
+
+    Holder ! terminate,
+    receive {'DOWN', MonitorRef, process, _, _} -> ok end,
+
+    ct:pal("Lock has been released and can be acquired by another process"),
+    spawn(
+      hd(RunningNodes),
+      fun() ->
+            DidAcquire = case khepri_lock:acquire(StoreId, LockId, Options) of
+                            {true, Lock} ->
+                               true = khepri_lock:release(Lock),
+                               true;
+                            Other ->
+                               Other
+                         end,
+            TestProc ! {acquired, DidAcquire}
+      end),
+
+    ?assertEqual(true, receive {acquired, Acquired} -> Acquired end),
+
+    ok.
 
 %% -------------------------------------------------------------------
 %% Internal functions
@@ -1401,3 +1492,15 @@ get_leader_in_store(StoreId, [Node | _] = _RunningNodes) ->
       string:join([" - ~0p -> ~0p" || _ <- Pids], "\n"),
       [LeaderId] ++ lists:flatten(Pids)),
     LeaderId.
+
+wait_for_projection_on_nodes([], _ProjectionName) ->
+   ok;
+wait_for_projection_on_nodes([Node | Rest] = Nodes, ProjectionName) ->
+   case rpc:call(Node, ets, info, [ProjectionName]) of
+      undefined ->
+         timer:sleep(10),
+         wait_for_projection_on_nodes(Nodes, ProjectionName);
+      _Info ->
+         ct:pal("- projection ~s exists on node ~s", [ProjectionName, Node]),
+         wait_for_projection_on_nodes(Rest, ProjectionName)
+   end.
