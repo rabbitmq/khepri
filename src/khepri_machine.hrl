@@ -5,21 +5,10 @@
 %% Copyright © 2021-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--include("src/khepri_payload.hrl").
-
-%% Structure representing each node in the tree, including the root node.
-
--define(INIT_DATA_VERSION, 1).
--define(INIT_CHILD_LIST_VERSION, 1).
--define(INIT_NODE_PROPS, #{payload_version => ?INIT_DATA_VERSION,
-                           child_list_version => ?INIT_CHILD_LIST_VERSION}).
+-include("src/khepri_tree.hrl").
 
 %% TODO: Query this value from Ra itself.
 -define(SNAPSHOT_INTERVAL, 4096).
-
--record(node, {props = ?INIT_NODE_PROPS :: khepri_machine:props(),
-               payload = ?NO_PAYLOAD :: khepri_payload:payload(),
-               child_nodes = #{} :: #{khepri_path:component() := #node{}}}).
 
 %% Record representing the state machine configuration.
 -record(config,
@@ -30,10 +19,7 @@
 %% State machine's internal state record.
 -record(khepri_machine,
         {config = #config{} :: khepri_machine:machine_config(),
-         root = #node{} :: khepri_machine:tree_node(),
-         keep_while_conds = #{} :: khepri_machine:keep_while_conds_map(),
-         keep_while_conds_revidx = #{}
-           :: khepri_machine:keep_while_conds_revidx(),
+         tree = #tree{} :: khepri_machine:tree(),
          triggers = #{} ::
            #{khepri:trigger_id() =>
              #{sproc := khepri_path:native_path(),

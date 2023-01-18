@@ -129,7 +129,8 @@ get_many(PathPattern, Options) ->
 do_get_many(PathPattern, Fun, Acc, Options) ->
     PathPattern1 = path_from_string(PathPattern),
     {_QueryOptions, TreeOptions} = khepri_machine:split_query_options(Options),
-    {#khepri_machine{root = Root}, _SideEffects} = get_tx_state(),
+    {#khepri_machine{tree = #tree{root = Root}},
+     _SideEffects} = get_tx_state(),
     Ret = khepri_machine:find_matching_nodes(
             Root, PathPattern1, Fun, Acc, TreeOptions),
     case Ret of

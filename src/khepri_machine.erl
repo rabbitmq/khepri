@@ -80,6 +80,8 @@
 -type tree_node() :: #node{}.
 %% A node in the tree structure.
 
+-type tree() :: #tree{}.
+
 -type props() :: #{payload_version := khepri:payload_version(),
                    child_list_version := khepri:child_list_version()}.
 %% Properties attached to each node in the tree structure.
@@ -213,7 +215,7 @@ fold(StoreId, PathPattern, Fun, Acc, Options)
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     {QueryOptions, TreeOptions} = split_query_options(Options),
-    Query = fun(#?MODULE{root = Root}) ->
+    Query = fun(#?MODULE{tree = #tree{root = Root}}) ->
                     try
                         find_matching_nodes(
                           Root, PathPattern1, Fun, Acc, TreeOptions)
@@ -569,7 +571,7 @@ ack_triggers_execution(StoreId, TriggeredStoredProcs)
 
 get_keep_while_conds_state(StoreId, Options)
   when ?IS_STORE_ID(StoreId) ->
-    Query = fun(#?MODULE{keep_while_conds = KeepWhileConds}) ->
+    Query = fun(#?MODULE{tree = #tree{keep_while_conds = KeepWhileConds}}) ->
                     {ok, KeepWhileConds}
             end,
     Options1 = Options#{favor => consistency},
@@ -1095,7 +1097,7 @@ handle_aux(
     khepri_projection:trigger(Projection, Path, OldProps, NewProps),
     {no_reply, AuxState, LogState};
 handle_aux(_RaState, cast, restore_projections, AuxState, LogState,
-  #?MODULE{projections = Projections, root = Root}) ->
+  #?MODULE{tree = #tree{root = Root}, projections = Projections}) ->
     maps:foreach(fun(Projection, PathPattern) ->
                          restore_projection(
                            Projection, Root, PathPattern)
@@ -1184,7 +1186,7 @@ apply(
 apply(
   Meta,
   #register_projection{pattern = PathPattern, projection = Projection},
-  #?MODULE{projections = Projections, root = Root} = State) ->
+  #?MODULE{tree = #tree{root = Root}, projections = Projections} = State) ->
     Reply = khepri_projection:init(Projection),
     State1 = case Reply of
                  ok ->
@@ -1264,9 +1266,9 @@ emitted_triggers_to_side_effects(_State) ->
 %% @private
 
 overview(#?MODULE{config = #config{store_id = StoreId},
-                  root = Root,
-                  triggers = Triggers,
-                  keep_while_conds = KeepWhileConds}) ->
+                  tree = #tree{root = Root,
+                               keep_while_conds = KeepWhileConds},
+                  triggers = Triggers}) ->
     TreeOptions = #{props_to_return => [payload,
                                         payload_version,
                                         child_list_version,
@@ -1522,7 +1524,8 @@ update_keep_while_conds_revidx(
       end, KeepWhileCondsRevIdx1, KeepWhile).
 
 locate_sproc_and_execute_tx(
-  #?MODULE{root = Root} = State, PathPattern, Args, AllowUpdates) ->
+  #?MODULE{tree = #tree{root = Root}} = State,
+  PathPattern, Args, AllowUpdates) ->
     TreeOptions = #{expect_specific_node => true,
                     props_to_return => [raw_payload]},
     {StandaloneFun, Args1} =
@@ -1655,9 +1658,10 @@ find_matching_nodes_cb(_, {interrupted, _, _}, _, Acc, _) ->
 %% @private
 
 insert_or_update_node(
-  #?MODULE{root = Root,
-           keep_while_conds = KeepWhileConds,
-           keep_while_conds_revidx = KeepWhileCondsRevIdx} = State,
+  #?MODULE{tree =
+           #tree{root = Root,
+                 keep_while_conds = KeepWhileConds,
+                 keep_while_conds_revidx = KeepWhileCondsRevIdx}} = State,
   PathPattern, Payload,
   #{keep_while := KeepWhile},
   TreeOptions) ->
@@ -1708,9 +1712,10 @@ insert_or_update_node(
               keep_while_conds_revidx := KeepWhileCondsRevIdx1} =
             update_keep_while_conds_extra(Extra, ResolvedPath, KeepWhile),
             State1 = State#?MODULE{
-                              root = Root1,
-                              keep_while_conds = KeepWhileConds1,
-                              keep_while_conds_revidx = KeepWhileCondsRevIdx1},
+                              tree = #tree{root = Root1,
+                                           keep_while_conds = KeepWhileConds1,
+                                           keep_while_conds_revidx =
+                                           KeepWhileCondsRevIdx1}},
             {State2, SideEffects} = create_tree_change_side_effects(
                                       State, State1, Ret2, AppliedChanges),
             {State2, {ok, Ret2}, SideEffects};
@@ -1719,9 +1724,10 @@ insert_or_update_node(
             {State, Error}
     end;
 insert_or_update_node(
-  #?MODULE{root = Root,
-           keep_while_conds = KeepWhileConds,
-           keep_while_conds_revidx = KeepWhileCondsRevIdx} = State,
+  #?MODULE{tree =
+           #tree{root = Root,
+                 keep_while_conds = KeepWhileConds,
+                 keep_while_conds_revidx = KeepWhileCondsRevIdx}} = State,
   PathPattern, Payload,
   _Extra, TreeOptions) ->
     Fun = fun(Path, Node, Result) ->
@@ -1739,10 +1745,11 @@ insert_or_update_node(
                       keep_while_conds_revidx := KeepWhileCondsRevIdx1,
                       applied_changes := AppliedChanges},
          Ret2} ->
-            State1 = State#?MODULE{root = Root1,
-                                   keep_while_conds = KeepWhileConds1,
-                                   keep_while_conds_revidx =
-                                   KeepWhileCondsRevIdx1},
+            State1 = State#?MODULE{tree =
+                                   #tree{root = Root1,
+                                         keep_while_conds = KeepWhileConds1,
+                                         keep_while_conds_revidx =
+                                         KeepWhileCondsRevIdx1}},
             {State2, SideEffects} = create_tree_change_side_effects(
                                       State, State1, Ret2, AppliedChanges),
             {State2, {ok, Ret2}, SideEffects};
@@ -1813,9 +1820,10 @@ can_continue_update_after_node_not_found1(_) ->
 %% @private
 
 delete_matching_nodes(
-  #?MODULE{root = Root,
-           keep_while_conds = KeepWhileConds,
-           keep_while_conds_revidx = KeepWhileCondsRevIdx} = State,
+  #?MODULE{tree =
+           #tree{root = Root,
+                 keep_while_conds = KeepWhileConds,
+                 keep_while_conds_revidx = KeepWhileCondsRevIdx}} = State,
   PathPattern,
   TreeOptions) ->
     Ret1 = do_delete_matching_nodes(
@@ -1830,9 +1838,11 @@ delete_matching_nodes(
                       applied_changes := AppliedChanges},
          Ret2} ->
             State1 = State#?MODULE{
-                              root = Root1,
-                              keep_while_conds = KeepWhileConds1,
-                              keep_while_conds_revidx = KeepWhileCondsRevIdx1},
+                              tree =
+                              #tree{root = Root1,
+                                    keep_while_conds = KeepWhileConds1,
+                                    keep_while_conds_revidx =
+                                    KeepWhileCondsRevIdx1}},
             {State2, SideEffects} = create_tree_change_side_effects(
                                       State, State1, Ret2, AppliedChanges),
             {State2, {ok, Ret2}, SideEffects};
@@ -1875,8 +1885,9 @@ create_tree_change_side_effects(
     {NewState1, ProjectionEffects ++ TriggerEffects}.
 
 create_projection_side_effects(
-  #?MODULE{root = InitialRoot} = _InitialState,
-  #?MODULE{projections = Projections, root = NewRoot} = _NewState,
+  #?MODULE{tree = #tree{root = InitialRoot}} = _InitialState,
+  #?MODULE{tree = #tree{root = NewRoot},
+           projections = Projections} = _NewState,
   Changes) ->
     %% Note: the order in which updates are applied to projections should not
     %% be relied on.
@@ -2000,7 +2011,7 @@ create_trigger_side_effects(
   #?MODULE{triggers = Triggers,
            emitted_triggers = EmittedTriggers} = _InitialState,
   #?MODULE{config = #config{store_id = StoreId},
-           root = Root} = NewState,
+           tree = #tree{root = Root}} = NewState,
   Changes) ->
     TriggeredStoredProcs = list_triggered_sprocs(Root, Changes, Triggers),
 
@@ -2977,14 +2988,14 @@ remove_expired_nodes([PathToDelete | Rest], Root, Extra, FunAcc) ->
     end.
 
 -ifdef(TEST).
-get_root(#?MODULE{root = Root}) ->
+get_root(#?MODULE{tree = #tree{root = Root}}) ->
     Root.
 
 get_keep_while_conds(
-  #?MODULE{keep_while_conds = KeepWhileConds}) ->
+  #?MODULE{tree = #tree{keep_while_conds = KeepWhileConds}}) ->
     KeepWhileConds.
 
 get_keep_while_conds_revidx(
-  #?MODULE{keep_while_conds_revidx = KeepWhileCondsRevIdx}) ->
+  #?MODULE{tree = #tree{keep_while_conds_revidx = KeepWhileCondsRevIdx}}) ->
     KeepWhileCondsRevIdx.
 -endif.

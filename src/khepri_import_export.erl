@@ -209,7 +209,7 @@ export(StoreId, PathPattern, Module, ModulePriv)
 %% @private
 
 do_export(
-  #khepri_machine{root = Root} = State,
+  #khepri_machine{tree = #tree{root = Root}} = State,
   PathPattern, Module, ModulePriv) ->
     %% Initialize export using the callback module.
     case open_write(Module, ModulePriv) of
@@ -275,7 +275,7 @@ open_write(Module, ModulePriv) ->
 %% @private
 
 write(
-  #khepri_machine{keep_while_conds = KeepWhileConds},
+  #khepri_machine{tree = #tree{keep_while_conds = KeepWhileConds}},
   Path, #node{payload = Payload},
   Module, ModulePriv) ->
     Extra = case KeepWhileConds of
