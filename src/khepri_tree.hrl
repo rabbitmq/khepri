@@ -18,7 +18,7 @@
                payload = ?NO_PAYLOAD :: khepri_payload:payload(),
                child_nodes = #{} :: #{khepri_path:component() := #node{}}}).
 
--record(tree, {root :: khepri_machine:tree_node(),
+-record(tree, {root = #node{} :: khepri_machine:tree_node(),
                keep_while_conds = #{} :: khepri_machine:keep_while_conds_map(),
                keep_while_conds_revidx = #{} ::
                khepri_machine:keep_while_conds_revidx()}).
