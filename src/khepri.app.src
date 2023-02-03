@@ -1,9 +1,7 @@
 %% vim:ft=erlang:sw=2:et:
 {application, khepri,
  [{description, "Tree-like replicated on-disk database library"},
-  %% In addition to below, the version needs to be updated in:
-  %%   * README.md
-  %%   * doc/overview.edoc
+  %% In addition to below, the version needs to be updated in the README.md
   %% Pay attention to links in particular.
   {vsn, "0.6.0"},
   {registered, [khepri_sup,
@@ -23,5 +21,5 @@
   {licenses, ["Apache-2.0", "MPL-2.0"]},
   {links, [{"GitHub", "https://github.com/rabbitmq/khepri"}]},
   {build_tools, ["rebar3", "mix"]},
-  {doc, "doc"}
+  {doc, "docs"}
  ]}.

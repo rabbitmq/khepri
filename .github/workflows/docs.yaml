@@ -17,11 +17,8 @@ jobs:
           otp-version: 25
           rebar3-version: '3.18.0'
 
-      - name: Change doc version to "Development branch"
-        run: sed -E -i -e 's/^@version.*/@version Development branch/' doc/overview.edoc
-
       - name: Generate
-        run: rebar3 edoc
+        run: rebar3 ex_doc
 
       - name: Publish
         uses: peaceiris/actions-gh-pages@v3
