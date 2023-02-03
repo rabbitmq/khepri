@@ -36,34 +36,34 @@
 %%
 %% <ol>
 %% <li>
-%% <p>`Module:open_write(Args)'</p>
+%% <p>`c:open_write/1'</p>
 %% <p>This function is called at the beginning of an export. It is responsible
 %% for any initialization and must return an `{ok, ModulePriv}' tuple.
 %% `ModulePriv' is a private state passed to the following functions.</p>
 %% </li>
 %% <li>
-%% <p>`Module:write(ModulePriv, BackupItems)'</p>
+%% <p>`c:write/2'</p>
 %% <p>This function is called for each subset of the items to export.</p>
 %% <p>`BackupItems' is a list of opaque Erlang terms. The callback module
 %% can't depend on the structure of these Erlang terms. Only the fact that it
 %% is a list is guarantied.</p>
 %% <p>An empty list of `BackupItems' means this is the last call to
-%% `Module:write/2'. Otherwise, the way all items to export are split into
-%% several subsets and thus several calls to `Module:write/2' is
+%% `c:write/2'. Otherwise, the way all items to export are split into
+%% several subsets and thus several calls to `c:write/2' is
 %% undefined.</p>
 %% <p>At the end of each call, the function must return `{ok, NewModulePriv}'.
 %% This new private state is passed to the subsequent calls.</p>
 %% </li>
 %% <li>
-%% <p>`Module:commit_write(ModulePriv)'</p>
-%% <p>This function is called after successful calls to `Module:write/2'. It
+%% <p>`c:commit_write/1'</p>
+%% <p>This function is called after successful calls to `c:write/2'. It
 %% is responsible for doing any cleanup.</p>
 %% <p>This function can return `ok' or `{ok, Ret}' if it wants to return some
 %% Erlang terms to the caller.</p>
 %% </li>
 %% <li>
-%% <p>`Module:abort_write(ModulePriv)'</p>
-%% <p>This function is called after failed call to `Module:write/2', or if
+%% <p>`c:abort_write/1'</p>
+%% <p>This function is called after failed call to `c:write/2', or if
 %% reading from the Khepri store fails. It is responsible for doing any
 %% cleanup.</p>
 %% <p>This function can return `ok' or `{ok, Ret}' if it wants to return some
@@ -75,13 +75,13 @@
 %%
 %% <ol>
 %% <li>
-%% <p>`Module:open_read(Args)'</p>
+%% <p>`c:open_read/1'</p>
 %% <p>This function is called at the beginning of an import. It is responsible
 %% for any initialization and must return an `{ok, ModulePriv}' tuple.
 %% `ModulePriv' is a private state passed to the following functions.</p>
 %% </li>
 %% <li>
-%% <p>`Module:read(ModulePriv)'</p>
+%% <p>`c:read/1'</p>
 %% <p>This function is one or more times until there is nothing left to
 %% import.</p>
 %% <p>The function must return `{ok, BackupItems, NewModulePriv}'. This new
@@ -91,12 +91,12 @@
 %% be returned exactly as they were at the time of the export and in the same
 %% order.</p>
 %% <p>An empty list of `BackupItems' means this is the last batch.
-%% `Module:read/1' won't be called anymore. `Module:close_read/1' will be
+%% `c:read/1' won't be called anymore. `c:close_read/1' will be
 %% called next instead.</p>
 %% </li>
 %% <li>
-%% <p>`Module:close_read(ModulePriv)'</p>
-%% <p>This function is called after the last call to `Module:read/1',
+%% <p>`c:close_read(ModulePriv)'</p>
+%% <p>This function is called after the last call to `c:read/1',
 %% successful or not, or if the actual import into the Khepri store fails. It
 %% is responsible for doing any cleanup.</p>
 %% <p>This function can return `ok' or `{ok, Ret}' if it wants to return some
@@ -122,7 +122,7 @@
          import/3]).
 
 -type module_priv() :: any().
-%% Private data passed to `Module:open_write/1' or `Module:open_read/1'
+%% Private data passed to `c:open_write/1' or `c:open_read/1'
 %% initially.
 %%
 %% The actual term is specific to the callback module implementation. The
@@ -130,8 +130,8 @@
 %% callback functions and passed to the next one.
 
 -type backup_item() :: term().
-%% An opaque term passed in a list to `Module:write/2' and returned by
-%% `Module:read/1'.
+%% An opaque term passed in a list to `c:write/2' and returned by
+%% `c:read/1'.
 %%
 %% The callback module must not depend on the content of this term.
 

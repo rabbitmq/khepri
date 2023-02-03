@@ -348,7 +348,7 @@
 %% Function passed to {@link khepri:fold/5}.
 
 -type fold_acc() :: any().
-%% Term passed to and returned by a {@link fold_fun/0}.
+%% Term passed to and returned by a {@link fold_fun()}.
 
 -type foreach_fun() :: fun((khepri_path:native_path(),
                             khepri:node_props()) -> any()).
@@ -359,7 +359,7 @@
 %% Function passed to {@link khepri:map/4}.
 
 -type map_fun_ret() :: any().
-%% Value returned by {@link khepri:map_fun/0}.
+%% Value returned by {@link khepri:map_fun()}.
 
 -type filter_fun() :: fun((khepri_path:native_path(),
                            khepri:node_props()) -> boolean()).
@@ -3279,7 +3279,7 @@ export(PathPattern, Module, ModulePriv)
 %% must conform to the Mnesia Backup &amp; Restore API. See {@link
 %% khepri_import_export} for more details.
 %%
-%% `ModulePriv' is the term passed to `Module:open_write/1'.
+%% `ModulePriv' is the term passed to `c:khepri_import_export:open_write/1'.
 %%
 %% Example: export the full Khepri store using {@link khepri_export_erlang} as
 %% the callback module
@@ -3340,7 +3340,7 @@ import(Module, ModulePriv) when is_atom(Module) ->
 %% must conform to the Mnesia Backup &amp; Restore API. See {@link
 %% khepri_import_export} for more details.
 %%
-%% `ModulePriv' is the term passed to `Module:open_read/1'.
+%% `ModulePriv' is the term passed to `c:khepri_import_export:open_read/1'.
 %%
 %% Importing something doesn't delete existing tree nodes. The caller is
 %% responsible for deleting the existing content of a store if he needs to.

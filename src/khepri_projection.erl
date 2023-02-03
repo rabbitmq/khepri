@@ -129,11 +129,11 @@ new(Name, ProjectionFun) ->
 %% @doc Creates a new projection data structure.
 %%
 %% This function throws an error in the shape of `{unexpected_option, Key,
-%% Value}' when an unknown or invalid {@link option()} is passed. For example,
-%% if the passed `ProjectionFun' is a {@link simple_projection_fun()} and the
-%% `Options' map sets the `type' to `bag', this function throws
-%% `{unexpected_option, type, bag}' since `bag' is not valid for simple
-%% projection funs.
+%% Value}' when an unknown or invalid option is passed (see {@link options()}).
+%% For example, if the passed `ProjectionFun' is a {@link
+%% simple_projection_fun()} and the `Options' map sets the `type' to `bag',
+%% this function throws `{unexpected_option, type, bag}' since `bag' is not
+%% valid for simple projection funs.
 %%
 %% @param Name the name of the projection. This corresponds to the name of
 %%        the ETS table which is created when the projection is registered.

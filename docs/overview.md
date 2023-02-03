@@ -95,7 +95,7 @@ Properties are:
   (`t:khepri:payload_version()`).
 * The version of the list of child nodes, tracking the number of times child
   nodes were added or removed (`t:khepri:child_list_version()`).
-* The number of child nodes (`t:khepri:child_list_count()`).
+* The number of child nodes (`t:khepri:child_list_length()`).
 
 ## Addressing a tree node
 
@@ -180,8 +180,8 @@ database instances running on the same Erlang node or cluster by starting
 multiple Ra clusters. Note that it is called a "cluster" but it can have a
 single member.
 
-You can start a Khepri store using `start/0` up to `start/3`. See those
-functions to learn more about the configuration settings.
+You can start a Khepri store using `khepri:start/0` up to `khepri:start/3`.
+See those functions to learn more about the configuration settings.
 
 To expand or shrink a cluster, `khepri_cluster:join/1` and
 `khepri_cluster:reset/0` allow a Khepri store node to join or leave a cluster.
