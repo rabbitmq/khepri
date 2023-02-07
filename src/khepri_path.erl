@@ -46,7 +46,7 @@
 -include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
--include("khepri_error.hrl").
+-include("src/khepri_error.hrl").
 
 -export([compile/1,
          from_string/1,

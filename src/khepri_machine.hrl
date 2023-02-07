@@ -5,7 +5,7 @@
 %% Copyright © 2021-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--include("khepri_payload.hrl").
+-include("src/khepri_payload.hrl").
 
 %% Structure representing each node in the tree, including the root node.
 

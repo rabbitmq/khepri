@@ -21,9 +21,9 @@
 
 -module(khepri_payload).
 
--include("khepri_error.hrl").
--include("khepri_fun.hrl").
--include("khepri_payload.hrl").
+-include("src/khepri_error.hrl").
+-include("src/khepri_fun.hrl").
+-include("src/khepri_payload.hrl").
 
 -export([none/0,
          data/1,

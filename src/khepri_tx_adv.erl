@@ -16,11 +16,11 @@
 -include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
--include("khepri_error.hrl").
--include("khepri_fun.hrl").
--include("khepri_machine.hrl").
--include("khepri_ret.hrl").
--include("khepri_tx.hrl").
+-include("src/khepri_error.hrl").
+-include("src/khepri_fun.hrl").
+-include("src/khepri_machine.hrl").
+-include("src/khepri_ret.hrl").
+-include("src/khepri_tx.hrl").
 
 %% IMPORTANT: When adding a new khepri_tx_adv function to be used inside a
 %% transaction function:

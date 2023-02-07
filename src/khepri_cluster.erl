@@ -99,8 +99,8 @@
 -include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
--include("khepri_cluster.hrl").
--include("khepri_error.hrl").
+-include("src/khepri_cluster.hrl").
+-include("src/khepri_error.hrl").
 
 -export([start/0, start/1, start/2, start/3,
          join/1, join/2,
