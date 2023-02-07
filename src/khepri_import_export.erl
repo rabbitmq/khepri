@@ -115,8 +115,8 @@
 -include_lib("kernel/include/logger.hrl").
 -include_lib("stdlib/include/assert.hrl").
 
--include("src/khepri_cluster.hrl").
--include("src/khepri_machine.hrl").
+-include("khepri_cluster.hrl").
+-include("khepri_machine.hrl").
 
 -export([export/4,
          import/3]).

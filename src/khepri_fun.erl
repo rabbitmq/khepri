@@ -60,7 +60,7 @@
 -include_lib("kernel/include/logger.hrl").
 -include_lib("stdlib/include/assert.hrl").
 
--include("src/khepri_fun.hrl").
+-include("khepri_fun.hrl").
 
 -export([to_standalone_fun/1,
          to_standalone_fun/2,

@@ -32,7 +32,7 @@
 -module(khepri_condition).
 
 -include("include/khepri.hrl").
--include("src/khepri_machine.hrl").
+-include("khepri_machine.hrl").
 
 -type comparison_op(Type) :: {eq, Type} |
                              {ne, Type} |

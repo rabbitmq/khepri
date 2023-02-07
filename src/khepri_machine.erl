@@ -24,14 +24,14 @@
 -include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
--include("src/khepri_cluster.hrl").
--include("src/khepri_error.hrl").
--include("src/khepri_evf.hrl").
--include("src/khepri_fun.hrl").
--include("src/khepri_machine.hrl").
--include("src/khepri_ret.hrl").
--include("src/khepri_tx.hrl").
--include("src/khepri_projection.hrl").
+-include("khepri_cluster.hrl").
+-include("khepri_error.hrl").
+-include("khepri_evf.hrl").
+-include("khepri_fun.hrl").
+-include("khepri_machine.hrl").
+-include("khepri_ret.hrl").
+-include("khepri_tx.hrl").
+-include("khepri_projection.hrl").
 
 -export([fold/5,
          put/4,

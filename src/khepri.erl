@@ -70,10 +70,10 @@
 -include_lib("kernel/include/logger.hrl").
 
 -include("include/khepri.hrl").
--include("src/khepri_cluster.hrl").
--include("src/khepri_error.hrl").
--include("src/khepri_fun.hrl").
--include("src/khepri_ret.hrl").
+-include("khepri_cluster.hrl").
+-include("khepri_error.hrl").
+-include("khepri_fun.hrl").
+-include("khepri_ret.hrl").
 
 -export([
          %% Functions to start & stop a Khepri store; for more

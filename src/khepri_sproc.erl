@@ -14,9 +14,9 @@
 -include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
--include("src/khepri_error.hrl").
--include("src/khepri_fun.hrl").
--include("src/khepri_tx.hrl").
+-include("khepri_error.hrl").
+-include("khepri_fun.hrl").
+-include("khepri_tx.hrl").
 
 %% For internal use only.
 -export([to_standalone_fun/1,

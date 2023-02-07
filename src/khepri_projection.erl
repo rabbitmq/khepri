@@ -31,9 +31,9 @@
 
 -include_lib("kernel/include/logger.hrl").
 
--include("src/khepri_projection.hrl").
--include("src/khepri_machine.hrl").
--include("src/khepri_fun.hrl").
+-include("khepri_projection.hrl").
+-include("khepri_machine.hrl").
+-include("khepri_fun.hrl").
 
 -export([new/2, new/3, name/1]).
 
