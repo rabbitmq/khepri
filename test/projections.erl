@@ -352,3 +352,54 @@ projection_which_errors_does_not_cause_machine_to_exit_test_() ->
          {"The store contains the triggered change",
           ?_assertEqual({ok, Data}, khepri:get(?FUNCTION_NAME, PathPattern))}]
       }]}.
+
+delete_removes_entries_recursively_test_() ->
+    ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
+    PathPattern = [stock,
+                   ?KHEPRI_WILDCARD_STAR,
+                   <<"maple">>,
+                   ?KHEPRI_WILDCARD_STAR],
+    Path1 = [stock, wood, <<"maple">>, <<"log">>],
+    Path2 = [stock, food, <<"maple">>, <<"syrup">>],
+    Path3 = [stock, food, <<"maple">>, <<"bacon">>],
+    Data = 100,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Register the projection",
+          ?_test(
+            begin
+                Projection = khepri_projection:new(?MODULE, ProjectFun),
+                ?assertEqual(
+                  ok,
+                  khepri:register_projection(
+                    ?FUNCTION_NAME, PathPattern, Projection))
+            end)},
+         {"Trigger the projection (path 1)",
+          ?_assertEqual(
+            ok,
+            khepri:put(?FUNCTION_NAME, Path1, Data))},
+         {"Trigger the projection (path 2)",
+          ?_assertEqual(
+            ok,
+            khepri:put(?FUNCTION_NAME, Path2, Data))},
+         {"Trigger the projection (path 3)",
+          ?_assertEqual(
+            ok,
+            khepri:put(?FUNCTION_NAME, Path3, Data))},
+         {"List the projection",
+          ?_assertEqual(
+            lists:sort(
+              [{Path1, Data}, {Path2, Data}, {Path3, Data}]),
+            lists:sort(ets:tab2list(?MODULE)))},
+         {"Delete a branch of the tree",
+          %% All tree nodes in the branch are removed from the tree and all
+          %% projection records are removed from the projection table.
+          ?_assertEqual(
+            ok,
+            khepri:delete(?FUNCTION_NAME, [stock, food]))},
+         {"List the projection",
+          ?_assertEqual(
+            [{Path1, Data}],
+            ets:tab2list(?MODULE))}]}]}.

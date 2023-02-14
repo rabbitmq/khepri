@@ -1891,15 +1891,23 @@ create_projection_side_effects(
       end, [], Changes),
     lists:reverse(Effects).
 
+-spec evaluate_projection(
+        InitialRoot, NewRoot, Path, Change, Pattern, Projection, Effects) ->
+    Ret when
+      InitialRoot :: khepri_machine:tree_node(),
+      NewRoot :: khepri_machine:tree_node(),
+      Path :: khepri_path:native_path(),
+      Change :: create | update | delete,
+      Pattern :: khepri_path:native_pattern(),
+      Projection :: khepri_projection:projection(),
+      Effects :: ra_machine:effects(),
+      Ret :: ra_machine:effects().
+%% @private
+
 evaluate_projection(
-  InitialRoot, NewRoot, Path, Change, Pattern, Projection, Effects) ->
-    PathMatchingRoot = case Change of
-                           Put when Put =:= create orelse Put =:= update ->
-                               NewRoot;
-                           delete ->
-                               InitialRoot
-                       end,
-    case does_path_match(Path, Pattern, [], PathMatchingRoot) of
+  InitialRoot, NewRoot, Path, Change, Pattern, Projection, Effects)
+  when Change =:= create orelse Change =:= update ->
+    case does_path_match(Path, Pattern, [], NewRoot) of
         true ->
             FindOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
                             expect_specific_node => true},
@@ -1925,7 +1933,59 @@ evaluate_projection(
             [Effect | Effects];
         false ->
             Effects
-    end.
+    end;
+evaluate_projection(
+  InitialRoot, _NewRoot, Path, delete, Pattern, Projection, Effects) ->
+    Effects1 =
+    case does_path_match(Path, Pattern, [], InitialRoot) of
+        true ->
+            FindOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
+                            expect_specific_node => true},
+            InitialRet = find_matching_nodes(InitialRoot, Path, FindOptions),
+            InitialProps = case InitialRet of
+                               {ok, #{Path := InitialProps0}} ->
+                                   InitialProps0;
+                               _ ->
+                                   #{}
+                           end,
+            Trigger = #trigger_projection{path = Path,
+                                          old_props = InitialProps,
+                                          new_props = #{},
+                                          projection = Projection},
+            Effect = {aux, Trigger},
+            [Effect | Effects];
+        false ->
+            Effects
+    end,
+    %% Deletions may recursively delete the subtree under `Path'. Find any
+    %% descendants of the deleted tree-node and trigger any projections
+    %% which match the child tree-node's path.
+    ChildrenFindOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
+                            expect_specific_node => false},
+    ChildrenPattern = Path ++ [?KHEPRI_WILDCARD_STAR_STAR],
+    ChildrenRet = find_matching_nodes(
+                    InitialRoot, ChildrenPattern, ChildrenFindOptions),
+    ChildrenProps = case ChildrenRet of
+                        {ok, Props} ->
+                            Props;
+                        _ ->
+                            #{}
+                    end,
+    maps:fold(
+      fun(ChildPath, ChildProps, EffectAcc) ->
+              case does_path_match(ChildPath, Pattern, [], InitialRoot) of
+                  true ->
+                      ChildTrigger = #trigger_projection{
+                                       path = ChildPath,
+                                       old_props = ChildProps,
+                                       new_props = #{},
+                                       projection = Projection},
+                      ChildEffect = {aux, ChildTrigger},
+                      [ChildEffect | EffectAcc];
+                  false ->
+                      EffectAcc
+              end
+      end, Effects1, ChildrenProps).
 
 create_trigger_side_effects(
   #?MODULE{triggers = Triggers} = _InitialState, NewState, _Changes)
