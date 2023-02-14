@@ -129,9 +129,9 @@ get_many(PathPattern, Options) ->
 do_get_many(PathPattern, Fun, Acc, Options) ->
     PathPattern1 = path_from_string(PathPattern),
     {_QueryOptions, TreeOptions} = khepri_machine:split_query_options(Options),
-    {#khepri_machine{root = Root}, _SideEffects} = get_tx_state(),
+    {#khepri_machine{tree = Tree}, _SideEffects} = get_tx_state(),
     Ret = khepri_machine:find_matching_nodes(
-            Root, PathPattern1, Fun, Acc, TreeOptions),
+            Tree, PathPattern1, Fun, Acc, TreeOptions),
     case Ret of
         {error, ?khepri_exception(_, _) = Exception} ->
             ?khepri_misuse(Exception);
@@ -212,12 +212,12 @@ put_many(PathPattern, Data, Options) ->
     Payload1 = khepri_payload:wrap(Data),
     {_CommandOptions, TreeAndPutOptions} =
     khepri_machine:split_command_options(Options),
-    {TreeOptions, Extra} =
+    {TreeOptions, PutOptions} =
     khepri_machine:split_put_options(TreeAndPutOptions),
     %% TODO: Ensure `CommandOptions' is unset.
     Fun = fun(State) ->
                   khepri_machine:insert_or_update_node(
-                    State, PathPattern1, Payload1, Extra, TreeOptions)
+                    State, PathPattern1, Payload1, PutOptions, TreeOptions)
           end,
     handle_state_for_call(Fun).
 

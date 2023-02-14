@@ -26,9 +26,9 @@ complex_flat_struct_to_tree_test() ->
                 #put{path = [baz, pouet],
                      payload = khepri_payload:data(pouet_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Root = khepri_machine:get_root(S0),
+    Tree = khepri_machine:get_tree(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
-                         Root,
+                         Tree,
                          [#if_path_matches{regex = any}],
                          #{props_to_return => [payload,
                                                payload_version,
@@ -422,14 +422,14 @@ display_simple_tree_test() ->
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(foo_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Root = khepri_machine:get_root(S0),
+    Tree = khepri_machine:get_tree(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
-                         Root,
+                         Tree,
                          [#if_path_matches{regex = any}],
                          #{props_to_return => [payload, payload_version]}),
-    Tree = khepri_utils:flat_struct_to_tree(FlatStruct),
+    NodeTree = khepri_utils:flat_struct_to_tree(FlatStruct),
 
-    ?assertEqual(ok, khepri_utils:display_tree(Tree)),
+    ?assertEqual(ok, khepri_utils:display_tree(NodeTree)),
     ?assertEqual(
        "╰── foo\n"
        "      \033[38;5;246mData: foo_value\033[0m\n"
@@ -460,14 +460,14 @@ display_large_tree_test() ->
                                   qui, officia, deserunt, mollit, anim, id,
                                   est, laborum])}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Root = khepri_machine:get_root(S0),
+    Tree = khepri_machine:get_tree(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
-                         Root,
+                         Tree,
                          [#if_path_matches{regex = any}],
                          #{props_to_return => [payload, payload_version]}),
-    Tree = khepri_utils:flat_struct_to_tree(FlatStruct),
+    NodeTree = khepri_utils:flat_struct_to_tree(FlatStruct),
 
-    ?assertEqual(ok, khepri_utils:display_tree(Tree)),
+    ?assertEqual(ok, khepri_utils:display_tree(NodeTree)),
     ?assertEqual(
        "├── baz\n"
        "│   │ \033[38;5;246mData: baz_value\033[0m\n"
@@ -516,14 +516,14 @@ display_tree_with_plaintext_lines_test() ->
                                   qui, officia, deserunt, mollit, anim, id,
                                   est, laborum])}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Root = khepri_machine:get_root(S0),
+    Tree = khepri_machine:get_tree(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
-                         Root,
+                         Tree,
                          [#if_path_matches{regex = any}],
                          #{props_to_return => [payload, payload_version]}),
-    Tree = khepri_utils:flat_struct_to_tree(FlatStruct),
+    NodeTree = khepri_utils:flat_struct_to_tree(FlatStruct),
 
-    ?assertEqual(ok, khepri_utils:display_tree(Tree, #{lines => false})),
+    ?assertEqual(ok, khepri_utils:display_tree(NodeTree, #{lines => false})),
     ?assertEqual(
        "+-- baz\n"
        "|   | \033[38;5;246mData: baz_value\033[0m\n"
@@ -572,14 +572,14 @@ display_tree_without_colors_test() ->
                                   qui, officia, deserunt, mollit, anim, id,
                                   est, laborum])}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Root = khepri_machine:get_root(S0),
+    Tree = khepri_machine:get_tree(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
-                         Root,
+                         Tree,
                          [#if_path_matches{regex = any}],
                          #{props_to_return => [payload, payload_version]}),
-    Tree = khepri_utils:flat_struct_to_tree(FlatStruct),
+    NodeTree = khepri_utils:flat_struct_to_tree(FlatStruct),
 
-    ?assertEqual(ok, khepri_utils:display_tree(Tree, #{colors => false})),
+    ?assertEqual(ok, khepri_utils:display_tree(NodeTree, #{colors => false})),
     ?assertEqual(
        "├── baz\n"
        "│   │ Data: baz_value\n"
@@ -628,15 +628,15 @@ display_tree_with_plaintext_lines_and_without_colors_test() ->
                                   qui, officia, deserunt, mollit, anim, id,
                                   est, laborum])}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Root = khepri_machine:get_root(S0),
+    Tree = khepri_machine:get_tree(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
-                         Root,
+                         Tree,
                          [#if_path_matches{regex = any}],
                          #{props_to_return => [payload, payload_version]}),
-    Tree = khepri_utils:flat_struct_to_tree(FlatStruct),
+    NodeTree = khepri_utils:flat_struct_to_tree(FlatStruct),
 
-    ?assertEqual(ok, khepri_utils:display_tree(Tree, #{lines => false,
-                                                       colors => false})),
+    ?assertEqual(ok, khepri_utils:display_tree(NodeTree, #{lines => false,
+                                                           colors => false})),
     ?assertEqual(
        "+-- baz\n"
        "|   | Data: baz_value\n"
@@ -668,14 +668,14 @@ display_tree_with_binary_key_test() ->
                 #put{path = [bar],
                      payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Root = khepri_machine:get_root(S0),
+    Tree = khepri_machine:get_tree(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
-                         Root,
+                         Tree,
                          [#if_path_matches{regex = any}],
                          #{props_to_return => [payload, payload_version]}),
-    Tree = khepri_utils:flat_struct_to_tree(FlatStruct),
+    NodeTree = khepri_utils:flat_struct_to_tree(FlatStruct),
 
-    ?assertEqual(ok, khepri_utils:display_tree(Tree)),
+    ?assertEqual(ok, khepri_utils:display_tree(NodeTree)),
     ?assertEqual(
        "├── bar\n"
        "│     \033[38;5;246mData: bar_value\033[0m\n"
@@ -692,14 +692,14 @@ display_tree_with_similar_atom_and_binary_keys_test() ->
                 #put{path = [foo],
                      payload = khepri_payload:data(foo_atom)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Root = khepri_machine:get_root(S0),
+    Tree = khepri_machine:get_tree(S0),
     {ok, FlatStruct} = khepri_machine:find_matching_nodes(
-                         Root,
+                         Tree,
                          [#if_path_matches{regex = any}],
                          #{props_to_return => [payload, payload_version]}),
-    Tree = khepri_utils:flat_struct_to_tree(FlatStruct),
+    NodeTree = khepri_utils:flat_struct_to_tree(FlatStruct),
 
-    ?assertEqual(ok, khepri_utils:display_tree(Tree)),
+    ?assertEqual(ok, khepri_utils:display_tree(NodeTree)),
     ?assertEqual(
        "├── foo\n"
        "│     \033[38;5;246mData: foo_atom\033[0m\n"

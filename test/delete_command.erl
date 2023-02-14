@@ -21,7 +21,9 @@ delete_non_existing_node_test() ->
     Command = #delete{path = [foo]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
 
-    ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
+    ?assertEqual(
+      S0#khepri_machine.tree#tree.root,
+      S1#khepri_machine.tree#tree.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({ok, #{}}, Ret),
     ?assertEqual([], SE).
@@ -31,7 +33,9 @@ delete_non_existing_node_under_non_existing_parent_test() ->
     Command = #delete{path = [foo, bar, baz]},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
 
-    ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
+    ?assertEqual(
+      S0#khepri_machine.tree#tree.root,
+      S1#khepri_machine.tree#tree.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({ok, #{}}, Ret),
     ?assertEqual([], SE).

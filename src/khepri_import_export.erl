@@ -209,7 +209,7 @@ export(StoreId, PathPattern, Module, ModulePriv)
 %% @private
 
 do_export(
-  #khepri_machine{root = Root} = State,
+  #khepri_machine{tree = Tree} = State,
   PathPattern, Module, ModulePriv) ->
     %% Initialize export using the callback module.
     case open_write(Module, ModulePriv) of
@@ -236,10 +236,10 @@ do_export(
             TreeOptions = #{expect_specific_node => false,
                             include_root_props => true},
             Ret1 = khepri_machine:walk_down_the_tree(
-                     Root, PathPattern, TreeOptions, #{}, Fun, ModulePriv1),
+                     Tree, PathPattern, TreeOptions, Fun, ModulePriv1),
             case Ret1 of
-                {ok, NewRoot, _, FinalModulePriv} ->
-                    ?assertEqual(Root, NewRoot),
+                {ok, Tree1, _AppliedChanges, FinalModulePriv} ->
+                    ?assertEqual(Tree, Tree1),
                     commit_write(Module, FinalModulePriv);
                 {error, _} = Error ->
                     Error
@@ -275,20 +275,20 @@ open_write(Module, ModulePriv) ->
 %% @private
 
 write(
-  #khepri_machine{keep_while_conds = KeepWhileConds},
+  #khepri_machine{tree = #tree{keep_while_conds = KeepWhileConds}},
   Path, #node{payload = Payload},
   Module, ModulePriv) ->
-    Extra = case KeepWhileConds of
-                #{Path := KeepWhile} -> #{keep_while => KeepWhile};
-                _                    -> #{}
-            end,
+    PutOptions = case KeepWhileConds of
+                     #{Path := KeepWhile} -> #{keep_while => KeepWhile};
+                     _                    -> #{}
+                 end,
     HasPayload = Payload =/= ?NO_PAYLOAD,
-    HasExtra = Extra =/= #{},
-    case HasPayload orelse HasExtra of
+    HasPutOptions = PutOptions =/= #{},
+    case HasPayload orelse HasPutOptions of
         true ->
             Command = #put{path = Path,
                            payload = Payload,
-                           options = Extra},
+                           options = PutOptions},
             ?LOG_DEBUG(
                "Khepri export: calling ~s:write/2:~n"
                "  opaque data: ~p~n"

@@ -25,34 +25,34 @@ are_keep_while_conditions_met_test() ->
     Commands = [#put{path = [foo, bar],
                      payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Root = khepri_machine:get_root(S0),
+    Tree = khepri_machine:get_tree(S0),
 
     %% TODO: Add more testcases.
     ?assert(
        khepri_machine:are_keep_while_conditions_met(
-         Root,
+         Tree,
          #{})),
     ?assert(
        khepri_machine:are_keep_while_conditions_met(
-         Root,
+         Tree,
          #{[foo] => #if_node_exists{exists = true}})),
     ?assertEqual(
        {false, {pattern_matches_no_nodes, [baz]}},
        khepri_machine:are_keep_while_conditions_met(
-         Root,
+         Tree,
          #{[baz] => #if_node_exists{exists = true}})),
     ?assert(
        khepri_machine:are_keep_while_conditions_met(
-         Root,
+         Tree,
          #{[foo, bar] => #if_node_exists{exists = true}})),
     ?assert(
        khepri_machine:are_keep_while_conditions_met(
-         Root,
+         Tree,
          #{[foo, bar] => #if_child_list_length{count = 0}})),
     ?assertEqual(
        {false, #if_child_list_length{count = 1}},
        khepri_machine:are_keep_while_conditions_met(
-         Root,
+         Tree,
          #{[foo, bar] => #if_child_list_length{count = 1}})).
 
 %% TODO: Add checks for the internal structures, `keep_while_conds` and
@@ -108,7 +108,9 @@ insert_when_keep_while_false_test() ->
                     options = #{keep_while => KeepWhile1}},
     {S1, Ret1, SE1} = khepri_machine:apply(?META, Command1, S0),
 
-    ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
+    ?assertEqual(
+      S0#khepri_machine.tree#tree.root,
+      S1#khepri_machine.tree#tree.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({error,
                   ?khepri_error(
@@ -127,7 +129,9 @@ insert_when_keep_while_false_test() ->
                     options = #{keep_while => KeepWhile2}},
     {S2, Ret2, SE2} = khepri_machine:apply(?META, Command2, S0),
 
-    ?assertEqual(S0#khepri_machine.root, S2#khepri_machine.root),
+    ?assertEqual(
+      S0#khepri_machine.tree#tree.root,
+      S1#khepri_machine.tree#tree.root),
     ?assertEqual(#{applied_command_count => 1}, S2#khepri_machine.metrics),
     ?assertEqual({error,
                   ?khepri_error(

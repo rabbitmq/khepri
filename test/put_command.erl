@@ -243,7 +243,9 @@ insert_a_node_with_condition_false_on_self_test() ->
                                                    payload_version]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
 
-    ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
+    ?assertEqual(
+      S0#khepri_machine.tree#tree.root,
+      S1#khepri_machine.tree#tree.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({error,
                   ?khepri_error(
@@ -306,7 +308,9 @@ insert_a_node_with_condition_false_on_self_using_dot_test() ->
                                                    payload_version]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
 
-    ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
+    ?assertEqual(
+      S0#khepri_machine.tree#tree.root,
+      S1#khepri_machine.tree#tree.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({error,
                   ?khepri_error(
@@ -369,7 +373,9 @@ insert_a_node_with_condition_false_on_parent_test() ->
                                                    payload_version]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
 
-    ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
+    ?assertEqual(
+      S0#khepri_machine.tree#tree.root,
+      S1#khepri_machine.tree#tree.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({error,
                   ?khepri_error(
@@ -432,7 +438,9 @@ insert_a_node_with_if_node_exists_true_on_self_test() ->
                                                     payload_version]}},
     {S2, Ret2, SE2} = khepri_machine:apply(?META, Command2, S0),
 
-    ?assertEqual(S0#khepri_machine.root, S2#khepri_machine.root),
+    ?assertEqual(
+      S0#khepri_machine.tree#tree.root,
+      S2#khepri_machine.tree#tree.root),
     ?assertEqual(#{applied_command_count => 1}, S2#khepri_machine.metrics),
     ?assertEqual({error,
                   ?khepri_error(
@@ -457,7 +465,9 @@ insert_a_node_with_if_node_exists_false_on_self_test() ->
                                                     payload_version]}},
     {S1, Ret1, SE1} = khepri_machine:apply(?META, Command1, S0),
 
-    ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
+    ?assertEqual(
+      S0#khepri_machine.tree#tree.root,
+      S1#khepri_machine.tree#tree.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({error,
                   ?khepri_error(
@@ -545,7 +555,9 @@ insert_a_node_with_if_node_exists_true_on_parent_test() ->
                                                     payload_version]}},
     {S2, Ret2, SE2} = khepri_machine:apply(?META, Command2, S0),
 
-    ?assertEqual(S0#khepri_machine.root, S2#khepri_machine.root),
+    ?assertEqual(
+      S0#khepri_machine.tree#tree.root,
+      S2#khepri_machine.tree#tree.root),
     ?assertEqual(#{applied_command_count => 1}, S2#khepri_machine.metrics),
     ?assertEqual({error,
                   ?khepri_error(
@@ -571,7 +583,9 @@ insert_a_node_with_if_node_exists_false_on_parent_test() ->
                                                     payload_version]}},
     {S1, Ret1, SE1} = khepri_machine:apply(?META, Command1, S0),
 
-    ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
+    ?assertEqual(
+      S0#khepri_machine.tree#tree.root,
+      S1#khepri_machine.tree#tree.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual({error,
                   ?khepri_error(
@@ -631,7 +645,9 @@ insert_with_a_path_matching_many_nodes_test() ->
                                                    payload_version]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
 
-    ?assertEqual(S0#khepri_machine.root, S1#khepri_machine.root),
+    ?assertEqual(
+      S0#khepri_machine.tree#tree.root,
+      S1#khepri_machine.tree#tree.root),
     ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
     ?assertEqual(
        {error,
