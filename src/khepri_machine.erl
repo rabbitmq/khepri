@@ -1105,6 +1105,7 @@ handle_aux(_RaState, _Type, _Command, AuxState, LogState, _MachineState) ->
     {no_reply, AuxState, LogState}.
 
 restore_projection(Projection, Root, PathPattern) ->
+    _ = khepri_projection:init(Projection),
     TreeOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
                     include_root_props => true},
     case find_matching_nodes(Root, PathPattern, TreeOptions) of
