@@ -148,7 +148,6 @@
 
 -type ok(Type1, Type2) :: {ok, Type1, Type2}.
 -type ok(Type1, Type2, Type3) :: {ok, Type1, Type2, Type3}.
--type ok(Type1, Type2, Type3, Type4) :: {ok, Type1, Type2, Type3, Type4}.
 
 -type common_ret() :: khepri:ok(khepri_adv:node_props_map()) |
                       khepri:error().
@@ -2129,6 +2128,19 @@ sort_triggered_sprocs(TriggeredStoredProcs) ->
 
 %% -------
 
+-record(walk,
+        {tree :: #tree{},
+         node :: #node{} | delete,
+         path_pattern :: khepri_path:native_pattern(),
+         tree_options :: khepri:tree_options(),
+         %% Used to remember the path of the node the walk is currently on.
+         reversed_path = [] :: khepri_path:native_path(),
+         %% Used to update parents up in the tree in a tail-recursive function.
+         reversed_parent_tree = [] :: [#node{} | {#node{}, child_created}],
+         'fun' :: walk_down_the_tree_fun(),
+         fun_acc :: any(),
+         applied_changes :: applied_changes()}).
+
 -spec walk_down_the_tree(
         Tree, PathPattern, TreeOptions, Fun, FunAcc) -> Ret when
       Tree :: tree(),
@@ -2164,109 +2176,88 @@ walk_down_the_tree(
                        _ ->
                            TreeOptions#{expect_specific_node => false}
                    end,
-    Root = Tree#tree.root,
-    Ret = walk_down_the_tree1(
-            Tree, Root, CompiledPathPattern, TreeOptions1,
-            [], %% Used to remember the path of the node currently on.
-            [], %% Used to update parents up in the tree in a tail-recursive
-                %% function.
-            AppliedChanges, Fun, FunAcc),
-    case Ret of
-        {ok, Tree1, Root1, AppliedChanges1, FunAcc1} ->
+    Walk = #walk{tree = Tree,
+                 node = Tree#tree.root,
+                 path_pattern = CompiledPathPattern,
+                 tree_options = TreeOptions1,
+                 'fun' = Fun,
+                 fun_acc = FunAcc,
+                 applied_changes = AppliedChanges},
+    case walk_down_the_tree1(Walk) of
+        {ok, #walk{tree = Tree1,
+                   node = Root1,
+                   applied_changes = AppliedChanges1,
+                   fun_acc = FunAcc1}} ->
             Tree2 = Tree1#tree{root = Root1},
             {ok, Tree2, AppliedChanges1, FunAcc1};
         Error ->
             Error
     end.
 
--spec walk_down_the_tree1(
-        Tree, Node, CompiledPathPattern, TreeOptions,
-        ReversedPath, ReversedParentTree,
-        AppliedChanges, Fun, FunAcc) -> Ret when
-      Tree :: tree(),
-      Node :: tree_node(),
-      CompiledPathPattern :: khepri_path:native_pattern(),
-      TreeOptions :: khepri:tree_options(),
-      ReversedPath :: khepri_path:native_pattern(),
-      ReversedParentTree :: [Node | {Node, child_created}],
-      Fun :: walk_down_the_tree_fun(),
-      FunAcc :: any(),
-      Node :: tree_node(),
-      Ret :: ok(Tree, Node, AppliedChanges, FunAcc) | khepri:error().
+-spec walk_down_the_tree1(Walk) -> Ret when
+      Walk :: #walk{},
+      Ret :: khepri:ok(Walk) | khepri:error().
 %% @private
 
 walk_down_the_tree1(
-  Tree, CurrentNode,
-  [?KHEPRI_ROOT_NODE | PathPattern],
-  TreeOptions, ReversedPath, ReversedParentTree,
-  AppliedChanges, Fun, FunAcc) ->
+  #walk{path_pattern = [?KHEPRI_ROOT_NODE | PathPattern],
+        reversed_path = ReversedPath,
+        reversed_parent_tree = ReversedParentTree} = Walk) ->
     ?assertEqual([], ReversedPath),
     ?assertEqual([], ReversedParentTree),
-    walk_down_the_tree1(
-      Tree, CurrentNode, PathPattern, TreeOptions,
-      ReversedPath,
-      ReversedParentTree,
-      AppliedChanges, Fun, FunAcc);
+    Walk1 = Walk#walk{path_pattern = PathPattern},
+    walk_down_the_tree1(Walk1);
 walk_down_the_tree1(
-  Tree, CurrentNode,
-  [?THIS_KHEPRI_NODE | PathPattern],
-  TreeOptions, ReversedPath, ReversedParentTree,
-  AppliedChanges, Fun, FunAcc) ->
-    walk_down_the_tree1(
-      Tree, CurrentNode, PathPattern, TreeOptions,
-      ReversedPath, ReversedParentTree, AppliedChanges, Fun, FunAcc);
+  #walk{path_pattern = [?THIS_KHEPRI_NODE | PathPattern]} = Walk) ->
+    Walk1 = Walk#walk{path_pattern = PathPattern},
+    walk_down_the_tree1(Walk1);
 walk_down_the_tree1(
-  Tree, _CurrentNode,
-  [?PARENT_KHEPRI_NODE | PathPattern],
-  TreeOptions,
-  [_CurrentName | ReversedPath], [ParentNode0 | ReversedParentTree],
-  AppliedChanges, Fun, FunAcc) ->
+  #walk{path_pattern = [?PARENT_KHEPRI_NODE | PathPattern],
+        reversed_path = [_CurrentName | ReversedPath],
+        reversed_parent_tree = [ParentNode0 | ReversedParentTree]} = Walk) ->
     ParentNode = case ParentNode0 of
                      {PN, child_created} -> PN;
                      _                   -> ParentNode0
                  end,
-    walk_down_the_tree1(
-      Tree, ParentNode, PathPattern, TreeOptions,
-      ReversedPath, ReversedParentTree, AppliedChanges, Fun, FunAcc);
+    Walk1 = Walk#walk{node = ParentNode,
+                      path_pattern = PathPattern,
+                      reversed_path = ReversedPath,
+                      reversed_parent_tree = ReversedParentTree},
+    walk_down_the_tree1(Walk1);
 walk_down_the_tree1(
-  Tree, CurrentNode,
-  [?PARENT_KHEPRI_NODE | PathPattern],
-  TreeOptions,
-  [] = ReversedPath, [] = ReversedParentTree,
-  AppliedChanges, Fun, FunAcc) ->
+  #walk{path_pattern = [?PARENT_KHEPRI_NODE | PathPattern],
+        reversed_path = [],
+        reversed_parent_tree = []} = Walk) ->
     %% The path tries to go above the root node, like "cd /..". In this case,
     %% we stay on the root node.
-    walk_down_the_tree1(
-      Tree, CurrentNode, PathPattern, TreeOptions,
-      ReversedPath, ReversedParentTree, AppliedChanges, Fun, FunAcc);
+    Walk1 = Walk#walk{path_pattern = PathPattern},
+    walk_down_the_tree1(Walk1);
 walk_down_the_tree1(
-  Tree,
-  #node{child_nodes = Children} = CurrentNode,
-  [ChildName | PathPattern],
-  TreeOptions, ReversedPath, ReversedParentTree, AppliedChanges, Fun, FunAcc)
+  #walk{node = #node{child_nodes = Children} = CurrentNode,
+        path_pattern = [ChildName | PathPattern],
+        reversed_path = ReversedPath,
+        reversed_parent_tree = ReversedParentTree} = Walk)
   when ?IS_KHEPRI_NODE_ID(ChildName) ->
+    Walk1 = Walk#walk{path_pattern = PathPattern,
+                      reversed_path = [ChildName | ReversedPath],
+                      reversed_parent_tree =
+                      [CurrentNode | ReversedParentTree]},
     case Children of
         #{ChildName := Child} ->
-            walk_down_the_tree1(
-              Tree, Child, PathPattern, TreeOptions,
-              [ChildName | ReversedPath],
-              [CurrentNode | ReversedParentTree],
-              AppliedChanges, Fun, FunAcc);
+            Walk2 = Walk1#walk{node = Child},
+            walk_down_the_tree1(Walk2);
         _ ->
             interrupted_walk_down(
-              node_not_found,
+              Walk1, node_not_found,
               #{node_name => ChildName,
-                node_path => lists:reverse([ChildName | ReversedPath])},
-              Tree, PathPattern, TreeOptions,
-              [ChildName | ReversedPath],
-              [CurrentNode | ReversedParentTree],
-              AppliedChanges, Fun, FunAcc)
+                node_path => lists:reverse([ChildName | ReversedPath])})
     end;
 walk_down_the_tree1(
-  Tree,
-  #node{child_nodes = Children} = CurrentNode,
-  [Condition | PathPattern], #{expect_specific_node := true} = TreeOptions,
-  ReversedPath, ReversedParentTree, AppliedChanges, Fun, FunAcc)
+  #walk{node = #node{child_nodes = Children} = CurrentNode,
+        path_pattern = [Condition | PathPattern],
+        tree_options = #{expect_specific_node := true},
+        reversed_path = ReversedPath,
+        reversed_parent_tree = ReversedParentTree} = Walk)
   when ?IS_KHEPRI_CONDITION(Condition) ->
     %% We distinguish the case where the condition must be verified against the
     %% current node (i.e. the node name is ?KHEPRI_ROOT_NODE or
@@ -2282,56 +2273,46 @@ walk_down_the_tree1(
                         Condition, CurrentName, CurrentNode),
             case CondMet of
                 true ->
-                    walk_down_the_tree1(
-                      Tree, CurrentNode, PathPattern, TreeOptions,
-                      ReversedPath, ReversedParentTree,
-                      AppliedChanges, Fun, FunAcc);
+                    Walk1 = Walk#walk{path_pattern = PathPattern},
+                    walk_down_the_tree1(Walk1);
                 {false, Cond} ->
+                    Walk1 = Walk#walk{path_pattern = PathPattern},
                     interrupted_walk_down(
-                      mismatching_node,
+                      Walk1, mismatching_node,
                       #{node_name => CurrentName,
                         node_path => lists:reverse(ReversedPath),
                         node_props => gather_node_props_for_error(CurrentNode),
-                        condition => Cond},
-                      Tree, PathPattern, TreeOptions, ReversedPath,
-                      ReversedParentTree, AppliedChanges, Fun, FunAcc)
+                        condition => Cond})
             end;
         {true, ChildName} when ChildName =/= ?PARENT_KHEPRI_NODE ->
+            Walk1 = Walk#walk{path_pattern = PathPattern,
+                              reversed_path = [ChildName | ReversedPath],
+                              reversed_parent_tree =
+                              [CurrentNode | ReversedParentTree]},
             case Children of
                 #{ChildName := Child} ->
+                    Walk2 = Walk1#walk{node = Child},
                     CondMet = khepri_condition:is_met(
                                 Condition, ChildName, Child),
                     case CondMet of
                         true ->
-                            walk_down_the_tree1(
-                              Tree, Child, PathPattern, TreeOptions,
-                              [ChildName | ReversedPath],
-                              [CurrentNode | ReversedParentTree],
-                              AppliedChanges, Fun, FunAcc);
+                            walk_down_the_tree1(Walk2);
                         {false, Cond} ->
                             interrupted_walk_down(
-                              mismatching_node,
+                              Walk2, mismatching_node,
                               #{node_name => ChildName,
                                 node_path => lists:reverse(
                                                [ChildName | ReversedPath]),
                                 node_props => gather_node_props_for_error(
                                                 Child),
-                                condition => Cond},
-                              Tree, PathPattern, TreeOptions,
-                              [ChildName | ReversedPath],
-                              [CurrentNode | ReversedParentTree],
-                              AppliedChanges, Fun, FunAcc)
+                                condition => Cond})
                     end;
                 _ ->
                     interrupted_walk_down(
-                      node_not_found,
+                      Walk1, node_not_found,
                       #{node_name => ChildName,
                         node_path => lists:reverse([ChildName | ReversedPath]),
-                        condition => Condition},
-                      Tree, PathPattern, TreeOptions,
-                      [ChildName | ReversedPath],
-                      [CurrentNode | ReversedParentTree],
-                      AppliedChanges, Fun, FunAcc)
+                        condition => Condition})
             end;
         {true, ?PARENT_KHEPRI_NODE} ->
             %% TODO: Support calling Fun() with parent node based on
@@ -2355,11 +2336,12 @@ walk_down_the_tree1(
             {error, Exception}
     end;
 walk_down_the_tree1(
-  Tree,
-  #node{child_nodes = Children} = CurrentNode,
-  [Condition | PathPattern] = WholePathPattern,
-  #{expect_specific_node := false} = TreeOptions,
-  ReversedPath, ReversedParentTree, AppliedChanges, Fun, FunAcc)
+  #walk{node = #node{child_nodes = Children} = CurrentNode,
+        path_pattern = [Condition | PathPattern] = WholePathPattern,
+        tree_options = #{expect_specific_node := false} = TreeOptions,
+        reversed_path = ReversedPath,
+        reversed_parent_tree = ReversedParentTree,
+        applied_changes = AppliedChanges} = Walk)
   when ?IS_KHEPRI_CONDITION(Condition) ->
     %% Like with "expect_specific_node =:= true" function clause above, We
     %% distinguish the case where the condition must be verified against the
@@ -2376,14 +2358,13 @@ walk_down_the_tree1(
                         Condition, CurrentName, CurrentNode),
             case CondMet of
                 true ->
-                    walk_down_the_tree1(
-                      Tree, CurrentNode, PathPattern, TreeOptions,
-                      ReversedPath, ReversedParentTree,
-                      AppliedChanges, Fun, FunAcc);
+                    Walk1 = Walk#walk{path_pattern = PathPattern},
+                    walk_down_the_tree1(Walk1);
                 {false, _} ->
                     StartingNode = starting_node_in_rev_parent_tree(
                                      ReversedParentTree, CurrentNode),
-                    {ok, Tree, StartingNode, AppliedChanges, FunAcc}
+                    Walk1 = Walk#walk{node = StartingNode},
+                    {ok, Walk1}
             end;
         {true, ?PARENT_KHEPRI_NODE} ->
             %% TODO: Support calling Fun() with parent node based on
@@ -2406,12 +2387,12 @@ walk_down_the_tree1(
                                  include_root_props, TreeOptions, false),
             Ret0 = case IsRoot andalso IncludeRootProps of
                        true ->
-                           walk_down_the_tree1(
-                             Tree, CurrentNode, [], TreeOptions,
-                             [], [],
-                             AppliedChanges, Fun, FunAcc);
+                           Walk1 = Walk#walk{path_pattern = [],
+                                             reversed_path = [],
+                                             reversed_parent_tree = []},
+                           walk_down_the_tree1(Walk1);
                        _ ->
-                           {ok, Tree, CurrentNode, AppliedChanges, FunAcc}
+                           {ok, Walk}
                    end,
 
             %% The result of the first part (the special case for the root
@@ -2420,23 +2401,25 @@ walk_down_the_tree1(
             Ret1 = maps:fold(
                      fun
                          (ChildName, Child,
-                          {ok, Tree1, CurNode, AppliedChanges1, FunAcc1}) ->
-                             handle_branch(
-                               Tree1, CurNode, ChildName, Child,
-                               WholePathPattern, TreeOptions,
-                               ReversedPath,
-                               AppliedChanges1, Fun, FunAcc1);
+                          {ok, Walk1}) ->
+                             Walk2 = Walk1#walk{path_pattern =
+                                                WholePathPattern,
+                                                reversed_path = ReversedPath},
+                             handle_branch(Walk2, ChildName, Child);
                          (_, _, Error) ->
                              Error
                      end, Ret0, Children),
             case Ret1 of
-                {ok, Tree1, CurrentNode, AppliedChanges, FunAcc2} ->
+                {ok,
+                 #walk{node = CurrentNode,
+                       applied_changes = AppliedChanges} = Walk2} ->
                     %% The current node didn't change, no need to update the
                     %% tree and evaluate keep_while conditions.
                     StartingNode = starting_node_in_rev_parent_tree(
                                      ReversedParentTree, CurrentNode),
-                    {ok, Tree1, StartingNode, AppliedChanges, FunAcc2};
-                {ok, Tree1, CurrentNode1, AppliedChanges2, FunAcc2} ->
+                    Walk3 = Walk2#walk{node = StartingNode},
+                    {ok, Walk3};
+                {ok, #walk{node = CurrentNode1} = Walk2} ->
                     CurrentNode2 = case CurrentNode1 of
                                        CurrentNode ->
                                            CurrentNode;
@@ -2452,30 +2435,35 @@ walk_down_the_tree1(
                                            squash_version_bumps(
                                              CurrentNode, CurrentNode1)
                                    end,
-                    walk_back_up_the_tree(
-                      Tree1, CurrentNode2, ReversedPath, ReversedParentTree,
-                      AppliedChanges2, FunAcc2);
+                    Walk3 = Walk2#walk{node = CurrentNode2,
+                                       reversed_path = ReversedPath,
+                                       reversed_parent_tree =
+                                       ReversedParentTree},
+                    walk_back_up_the_tree(Walk3);
                 Error ->
                     Error
             end
     end;
 walk_down_the_tree1(
-  Tree, #node{} = CurrentNode, [], _,
-  ReversedPath, ReversedParentTree, AppliedChanges, Fun, FunAcc) ->
+  #walk{node = #node{} = CurrentNode,
+        path_pattern = [],
+        'fun' = Fun,
+        fun_acc = FunAcc,
+        reversed_path = ReversedPath,
+        reversed_parent_tree = ReversedParentTree} = Walk) ->
     CurrentPath = lists:reverse(ReversedPath),
     case Fun(CurrentPath, CurrentNode, FunAcc) of
         {ok, keep, FunAcc1} ->
             StartingNode = starting_node_in_rev_parent_tree(
                              ReversedParentTree, CurrentNode),
-            {ok, Tree, StartingNode, AppliedChanges, FunAcc1};
+            Walk1 = Walk#walk{node = StartingNode, fun_acc = FunAcc1},
+            {ok, Walk1};
         {ok, delete, FunAcc1} ->
-            walk_back_up_the_tree(
-              Tree, delete, ReversedPath, ReversedParentTree,
-              AppliedChanges, FunAcc1);
+            Walk1 = Walk#walk{node = delete, fun_acc = FunAcc1},
+            walk_back_up_the_tree(Walk1);
         {ok, #node{} = CurrentNode1, FunAcc1} ->
-            walk_back_up_the_tree(
-              Tree, CurrentNode1, ReversedPath, ReversedParentTree,
-              AppliedChanges, FunAcc1);
+            Walk1 = Walk#walk{node = CurrentNode1, fun_acc = FunAcc1},
+            walk_back_up_the_tree(Walk1);
         Error ->
             Error
     end.
@@ -2511,51 +2499,45 @@ starting_node_in_rev_parent_tree([], CurrentNode) ->
 starting_node_in_rev_parent_tree(ReversedParentTree, _) ->
     starting_node_in_rev_parent_tree(ReversedParentTree).
 
--spec handle_branch(
-        Tree, Node, ChildName, Child, WholePathPattern, TreeOptions,
-        ReversedPath, AppliedChanges, Fun, FunAcc) -> Ret when
-      Tree :: tree(),
-      Node :: tree_node(),
+-spec handle_branch(Walk, ChildName, Child) -> Ret when
+      Walk :: #walk{},
       ChildName :: khepri_path:component(),
       Child :: tree_node(),
-      WholePathPattern :: khepri_path:native_pattern(),
-      TreeOptions :: khepri:tree_options(),
-      ReversedPath :: [Node | {Node, child_created}],
-      AppliedChanges :: applied_changes(),
-      Fun :: walk_down_the_tree_fun(),
-      FunAcc :: any(),
-      Ret :: ok(Tree, Node, AppliedChanges, FunAcc) | khepri:error().
+      Ret :: khepri:ok(Walk) | khepri:error().
 %% @private
 
 handle_branch(
-  Tree, CurrentNode, ChildName, Child,
-  [Condition | PathPattern] = WholePathPattern,
-  TreeOptions, ReversedPath, AppliedChanges, Fun, FunAcc) ->
+  #walk{node = CurrentNode,
+        path_pattern = [Condition | PathPattern] = WholePathPattern,
+        reversed_path = ReversedPath} = Walk,
+  ChildName, Child) ->
     CondMet = khepri_condition:is_met(Condition, ChildName, Child),
     Ret = case CondMet of
               true ->
-                  walk_down_the_tree1(
-                    Tree, Child, PathPattern, TreeOptions,
-                    [ChildName | ReversedPath],
-                    [CurrentNode],
-                    AppliedChanges, Fun, FunAcc);
+                  Walk1 = Walk#walk{node = Child,
+                                    path_pattern = PathPattern,
+                                    reversed_path = [ChildName | ReversedPath],
+                                    reversed_parent_tree = [CurrentNode]},
+                  walk_down_the_tree1(Walk1);
               {false, _} ->
-                  {ok, Tree, CurrentNode, AppliedChanges, FunAcc}
+                  {ok, Walk}
           end,
     case Ret of
-        {ok, Tree1, #node{child_nodes = Children} = CurrentNode1,
-         AppliedChanges1, FunAcc1} when is_map_key(ChildName, Children) ->
+        {ok,
+         #walk{node = #node{child_nodes = Children} = CurrentNode1} = Walk2}
+         when is_map_key(ChildName, Children) ->
             case khepri_condition:applies_to_grandchildren(Condition) of
                 false ->
                     Ret;
                 true ->
-                    walk_down_the_tree1(
-                      Tree1, Child, WholePathPattern, TreeOptions,
-                      [ChildName | ReversedPath],
-                      [CurrentNode1],
-                      AppliedChanges1, Fun, FunAcc1)
+                    Walk3 = Walk2#walk{node = Child,
+                                       path_pattern = WholePathPattern,
+                                       reversed_path =
+                                       [ChildName | ReversedPath],
+                                       reversed_parent_tree = [CurrentNode1]},
+                    walk_down_the_tree1(Walk3)
             end;
-        {ok, _Tree, _CurrentNode1, _AppliedChanges1, _FunAcc1} ->
+        {ok, _Walk} ->
             %% The child node is gone, no need to test if the condition
             %% applies to it or recurse.
             Ret;
@@ -2563,29 +2545,21 @@ handle_branch(
             Error
     end.
 
--spec interrupted_walk_down(
-        Reason, Info, Tree, PathPattern, TreeOptions,
-        ReversedPath, ReversedParentTree,
-        AppliedChanges, Fun, FunAcc) -> Ret when
+-spec interrupted_walk_down(Walk, Reason, Info) -> Ret when
+      Walk :: #walk{},
       Reason :: mismatching_node | node_not_found,
       Info :: map(),
-      Tree :: tree(),
-      PathPattern :: khepri_path:native_pattern(),
-      TreeOptions :: khepri:tree_options(),
-      ReversedPath :: khepri_path:native_path(),
-      Node :: tree_node(),
-      ReversedParentTree :: [Node | {Node, child_created}],
-      AppliedChanges :: applied_changes(),
-      Fun :: walk_down_the_tree_fun(),
-      FunAcc :: any(),
-      Ret :: ok(Tree, Node, AppliedChanges, FunAcc) | khepri:error().
+      Ret :: khepri:ok(Walk) | khepri:error().
 %% @private
 
 interrupted_walk_down(
-  Reason, Info,
-  Tree, PathPattern, TreeOptions,
-  ReversedPath, ReversedParentTree,
-  AppliedChanges, Fun, FunAcc) ->
+  #walk{tree = Tree,
+        path_pattern = PathPattern,
+        reversed_path = ReversedPath,
+        reversed_parent_tree = ReversedParentTree,
+        'fun' = Fun,
+        fun_acc = FunAcc} = Walk,
+  Reason, Info) ->
     NodePath = lists:reverse(ReversedPath),
     IsTarget = khepri_path:realpath(PathPattern) =:= [],
     Info1 = Info#{node_is_target => IsTarget},
@@ -2596,7 +2570,9 @@ interrupted_walk_down(
             ?assertNotEqual([], ReversedParentTree),
             StartingNode = starting_node_in_rev_parent_tree(
                              ReversedParentTree),
-            {ok, Tree, StartingNode, AppliedChanges, FunAcc1};
+            Walk1 = Walk#walk{node = StartingNode,
+                              fun_acc = FunAcc1},
+            {ok, Walk1};
         {ok, #node{} = NewNode, FunAcc1} ->
             ReversedParentTree1 =
             case Reason of
@@ -2614,9 +2590,11 @@ interrupted_walk_down(
                     %% We reached the target node. We could call
                     %% walk_down_the_tree1() again, but it would call Fun() a
                     %% second time.
-                    walk_back_up_the_tree(
-                      Tree, NewNode, ReversedPath, ReversedParentTree1,
-                      AppliedChanges, FunAcc1);
+                    Walk1 = Walk#walk{node = NewNode,
+                                      reversed_parent_tree =
+                                      ReversedParentTree1,
+                                      fun_acc = FunAcc1},
+                    walk_back_up_the_tree(Walk1);
                 _ ->
                     %% We created a tree node automatically on our way to the
                     %% target. We want to add a `keep_while' condition for it
@@ -2628,10 +2606,12 @@ interrupted_walk_down(
                     KeepWhile = #{NodePath => Cond},
                     Tree1 = update_keep_while_conds(Tree, NodePath, KeepWhile),
 
-                    walk_down_the_tree1(
-                      Tree1, NewNode, PathPattern, TreeOptions,
-                      ReversedPath, ReversedParentTree1,
-                      AppliedChanges, Fun, FunAcc1)
+                    Walk1 = Walk#walk{tree = Tree1,
+                                      node = NewNode,
+                                      reversed_parent_tree =
+                                      ReversedParentTree1,
+                                      fun_acc = FunAcc1},
+                    walk_down_the_tree1(Walk1)
             end;
         Error ->
             Error
@@ -2675,47 +2655,25 @@ squash_version_bumps(
                   child_list_version => CVersion},
     CurrentNode#node{props = Stat1}.
 
--spec walk_back_up_the_tree(
-  Tree, Child,
-  ReversedPath, ReversedParentTree,
-  AppliedChanges, FunAcc) -> Ret when
-      Tree :: tree(),
-      Node :: tree_node(),
-      Child :: Node | delete,
-      ReversedPath :: khepri_path:native_path(),
-      ReversedParentTree :: [Node | {Node, child_created}],
-      AppliedChanges :: applied_changes(),
-      FunAcc :: any(),
-      Ret :: ok(Tree, Node, AppliedChanges, FunAcc).
+-spec walk_back_up_the_tree(Walk) -> Ret when
+      Walk :: #walk{},
+      Ret :: khepri:ok(Walk).
 %% @private
 
-walk_back_up_the_tree(
-  Tree, Child, ReversedPath, ReversedParentTree, AppliedChanges, FunAcc) ->
-    walk_back_up_the_tree(
-      Tree, Child, ReversedPath, ReversedParentTree,
-      AppliedChanges, #{}, FunAcc).
+walk_back_up_the_tree(Walk) ->
+    walk_back_up_the_tree(Walk, #{}).
 
--spec walk_back_up_the_tree(
-  Tree, Child,
-  ReversedPath, ReversedParentTree,
-  AppliedChanges, AppliedChangesAcc, FunAcc) -> Ret when
-      Tree :: tree(),
-      Node :: tree_node(),
-      Child :: Node | delete,
-      ReversedPath :: khepri_path:native_path(),
-      ReversedParentTree :: [Node | {Node, child_created}],
-      AppliedChanges :: applied_changes(),
+-spec walk_back_up_the_tree(Walk, AppliedChangesAcc) -> Ret when
+      Walk :: #walk{},
       AppliedChangesAcc :: applied_changes(),
-      FunAcc :: any(),
-      Ret :: ok(Tree, Node, AppliedChanges, FunAcc).
+      Ret :: khepri:ok(Walk).
 %% @private
 
 walk_back_up_the_tree(
-  Tree,
-  delete,
-  [ChildName | ReversedPath] = WholeReversedPath,
-  [ParentNode | ReversedParentTree],
-  AppliedChanges, AppliedChangesAcc, FunAcc) ->
+  #walk{node = delete,
+        reversed_path = [ChildName | ReversedPath] = WholeReversedPath,
+        reversed_parent_tree = [ParentNode | ReversedParentTree]} = Walk,
+  AppliedChangesAcc) ->
     %% Evaluate keep_while of nodes which depended on ChildName (it is
     %% removed) at the end of walk_back_up_the_tree().
     Path = lists:reverse(WholeReversedPath),
@@ -2724,14 +2682,16 @@ walk_back_up_the_tree(
     %% Evaluate keep_while of parent node on itself right now (its child_count
     %% has changed).
     ParentNode1 = remove_node_child(ParentNode, ChildName),
-    handle_keep_while_for_parent_update(
-      Tree, ParentNode1, ReversedPath, ReversedParentTree,
-      AppliedChanges, AppliedChangesAcc1, FunAcc);
+    Walk1 = Walk#walk{node = ParentNode1,
+                      reversed_path = ReversedPath,
+                      reversed_parent_tree = ReversedParentTree},
+    handle_keep_while_for_parent_update(Walk1, AppliedChangesAcc1);
 walk_back_up_the_tree(
-  Tree, Child,
-  [ChildName | ReversedPath],
-  [{ParentNode, child_created} | ReversedParentTree],
-  AppliedChanges, AppliedChangesAcc, FunAcc) ->
+  #walk{node = Child,
+        reversed_path = [ChildName | ReversedPath],
+        reversed_parent_tree =
+        [{ParentNode, child_created} | ReversedParentTree]} = Walk,
+  AppliedChangesAcc) ->
     %% No keep_while to evaluate, the child is new and no nodes depend on it
     %% at this stage.
     %% FIXME: Perhaps there is a condition in a if_any{}?
@@ -2740,14 +2700,15 @@ walk_back_up_the_tree(
     %% Evaluate keep_while of parent node on itself right now (its child_count
     %% has changed).
     ParentNode1 = add_node_child(ParentNode, ChildName, Child1),
-    handle_keep_while_for_parent_update(
-      Tree, ParentNode1, ReversedPath, ReversedParentTree,
-      AppliedChanges, AppliedChangesAcc, FunAcc);
+    Walk1 = Walk#walk{node = ParentNode1,
+                      reversed_path = ReversedPath,
+                      reversed_parent_tree = ReversedParentTree},
+    handle_keep_while_for_parent_update(Walk1, AppliedChangesAcc);
 walk_back_up_the_tree(
-  Tree, Child,
-  [ChildName | ReversedPath] = WholeReversedPath,
-  [ParentNode | ReversedParentTree],
-  AppliedChanges, AppliedChangesAcc, FunAcc) ->
+  #walk{node = Child,
+        reversed_path = [ChildName | ReversedPath] = WholeReversedPath,
+        reversed_parent_tree = [ParentNode | ReversedParentTree]} = Walk,
+  AppliedChangesAcc) ->
     %% Evaluate keep_while of nodes which depend on ChildName (it is
     %% modified) at the end of walk_back_up_the_tree().
     Path = lists:reverse(WholeReversedPath),
@@ -2761,55 +2722,51 @@ walk_back_up_the_tree(
     %% No need to evaluate keep_while of ParentNode, its child_count is
     %% unchanged.
     ParentNode1 = update_node_child(ParentNode, ChildName, Child),
-    walk_back_up_the_tree(
-      Tree, ParentNode1, ReversedPath, ReversedParentTree,
-      AppliedChanges, AppliedChangesAcc1, FunAcc);
+    Walk1 = Walk#walk{node = ParentNode1,
+                      reversed_path = ReversedPath,
+                      reversed_parent_tree = ReversedParentTree},
+    walk_back_up_the_tree(Walk1, AppliedChangesAcc1);
 walk_back_up_the_tree(
-  Tree, StartingNode,
-  [], %% <-- We reached the root (i.e. not in a branch, see handle_branch())
-  [], AppliedChanges, AppliedChangesAcc, FunAcc) ->
+  #walk{reversed_path = [], %% <-- We reached the root (i.e. not a branch,
+                            %% see handle_branch())
+        reversed_parent_tree = [],
+        applied_changes = AppliedChanges} = Walk,
+  AppliedChangesAcc) ->
     AppliedChanges1 = merge_applied_changes(AppliedChanges, AppliedChangesAcc),
-    handle_applied_changes(Tree, StartingNode, AppliedChanges1, FunAcc);
+    Walk1 = Walk#walk{applied_changes = AppliedChanges1},
+    handle_applied_changes(Walk1);
 walk_back_up_the_tree(
-  Tree, StartingNode,
-  _ReversedPath,
-  [], AppliedChanges, AppliedChangesAcc, FunAcc) ->
+  #walk{reversed_parent_tree = [],
+        applied_changes = AppliedChanges} = Walk,
+  AppliedChangesAcc) ->
     AppliedChanges1 = merge_applied_changes(AppliedChanges, AppliedChangesAcc),
-    {ok, Tree, StartingNode, AppliedChanges1, FunAcc}.
+    Walk1 = Walk#walk{applied_changes = AppliedChanges1},
+    {ok, Walk1}.
 
 handle_keep_while_for_parent_update(
-  Tree,
-  ParentNode,
-  ReversedPath,
-  [{_GrandParentNode, child_created} | _] = ReversedParentTree,
-  AppliedChanges, AppliedChangesAcc, FunAcc) ->
+  #walk{reversed_parent_tree = [{_GrandParentNode, child_created} | _]} = Walk,
+  AppliedChangesAcc) ->
     %% This is a freshly created node, we don't want to get rid of it right
     %% away.
-    walk_back_up_the_tree(
-      Tree, ParentNode, ReversedPath, ReversedParentTree,
-      AppliedChanges, AppliedChangesAcc, FunAcc);
+    walk_back_up_the_tree(Walk, AppliedChangesAcc);
 handle_keep_while_for_parent_update(
-  Tree,
-  ParentNode,
-  ReversedPath,
-  ReversedParentTree,
-  AppliedChanges, AppliedChangesAcc, FunAcc) ->
+  #walk{tree = Tree,
+        node = ParentNode,
+        reversed_path = ReversedPath} = Walk,
+  AppliedChangesAcc) ->
     ParentPath = lists:reverse(ReversedPath),
     IsMet = is_keep_while_condition_met_on_self(
               Tree, ParentPath, ParentNode),
     case IsMet of
         true ->
             %% We continue with the update.
-            walk_back_up_the_tree(
-              Tree, ParentNode, ReversedPath, ReversedParentTree,
-              AppliedChanges, AppliedChangesAcc, FunAcc);
+            walk_back_up_the_tree(Walk, AppliedChangesAcc);
         {false, _Reason} ->
             %% This parent node must be removed because it doesn't meet its
             %% own keep_while condition. keep_while conditions for nodes
             %% depending on this one will be evaluated with the recursion.
-            walk_back_up_the_tree(
-              Tree, delete, ReversedPath, ReversedParentTree,
-              AppliedChanges, AppliedChangesAcc, FunAcc)
+            Walk1 = Walk#walk{node = delete},
+            walk_back_up_the_tree(Walk1, AppliedChangesAcc)
     end.
 
 merge_applied_changes(AppliedChanges1, AppliedChanges2) ->
@@ -2825,9 +2782,13 @@ merge_applied_changes(AppliedChanges1, AppliedChanges2) ->
       end, AppliedChanges1, AppliedChanges2).
 
 handle_applied_changes(
-  Tree, Root, AppliedChanges, FunAcc) when AppliedChanges =:= #{} ->
-    {ok, Tree, Root, AppliedChanges, FunAcc};
-handle_applied_changes(Tree, Root, AppliedChanges, FunAcc) ->
+  #walk{applied_changes = AppliedChanges} = Walk)
+  when AppliedChanges =:= #{} ->
+    {ok, Walk};
+handle_applied_changes(
+  #walk{tree = Tree,
+        node = Root,
+        applied_changes = AppliedChanges} = Walk) ->
     Tree1 = Tree#tree{root = Root},
     ToDelete = eval_keep_while_conditions(Tree1, AppliedChanges),
 
@@ -2843,7 +2804,8 @@ handle_applied_changes(Tree, Root, AppliedChanges, FunAcc) ->
               end, Tree1, AppliedChanges),
 
     ToDelete1 = filter_and_sort_paths_to_delete(ToDelete, AppliedChanges),
-    remove_expired_nodes(ToDelete1, Tree2, AppliedChanges, FunAcc).
+    Walk1 = Walk#walk{tree = Tree2},
+    remove_expired_nodes(ToDelete1, Walk1).
 
 eval_keep_while_conditions(
   #tree{keep_while_conds_revidx = KeepWhileCondsRevIdx} = Tree,
@@ -2950,15 +2912,19 @@ is_parent_being_removed1([_ | Parent], Map) ->
 is_parent_being_removed1([], _) ->
     false.
 
-remove_expired_nodes([], Tree, AppliedChanges, FunAcc) ->
-    {ok, Tree, Tree#tree.root, AppliedChanges, FunAcc};
+remove_expired_nodes([], Walk) ->
+    {ok, Walk};
 remove_expired_nodes(
-  [PathToDelete | Rest], Tree, AppliedChanges, FunAcc) ->
+  [PathToDelete | Rest],
+  #walk{tree = Tree, applied_changes = AppliedChanges} = Walk) ->
     case do_delete_matching_nodes(Tree, PathToDelete, AppliedChanges, #{}) of
         {ok, Tree1, AppliedChanges1, _Acc} ->
             AppliedChanges2 = merge_applied_changes(
                                 AppliedChanges, AppliedChanges1),
-            remove_expired_nodes(Rest, Tree1, AppliedChanges2, FunAcc)
+            Walk1 = Walk#walk{tree = Tree1,
+                              node = Tree1#tree.root,
+                              applied_changes = AppliedChanges2},
+            remove_expired_nodes(Rest, Walk1)
     end.
 
 -ifdef(TEST).
