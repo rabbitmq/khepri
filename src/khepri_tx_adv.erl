@@ -558,6 +558,8 @@ ensure_instruction_is_permitted({bs_init_bits, _, _, _, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted(bs_init_writable) ->
     ok;
+ensure_instruction_is_permitted({bs_match, _, _, _}) ->
+    ok;
 ensure_instruction_is_permitted({bs_private_append, _, _, _, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted({BsPutSomething, _, _, _, _, _})
@@ -674,6 +676,8 @@ ensure_instruction_is_permitted({'try', _, _}) ->
 ensure_instruction_is_permitted({try_end, _}) ->
     ok;
 ensure_instruction_is_permitted({try_case, _}) ->
+    ok;
+ensure_instruction_is_permitted({update_record, _, _, _, _, _}) ->
     ok;
 ensure_instruction_is_permitted(Unknown) ->
     throw({unknown_instruction, Unknown}).
