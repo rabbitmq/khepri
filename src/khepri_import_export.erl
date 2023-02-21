@@ -235,7 +235,7 @@ do_export(
             end,
             TreeOptions = #{expect_specific_node => false,
                             include_root_props => true},
-            Ret1 = khepri_machine:walk_down_the_tree(
+            Ret1 = khepri_tree:walk_down_the_tree(
                      Tree, PathPattern, TreeOptions, Fun, ModulePriv1),
             case Ret1 of
                 {ok, Tree1, _AppliedChanges, FinalModulePriv} ->
@@ -268,7 +268,7 @@ open_write(Module, ModulePriv) ->
 -spec write(MachineState, Path, Node, Module, ModulePriv) -> Ret when
       MachineState :: khepri_machine:state(),
       Path :: khepri_path:native_path(),
-      Node :: khepri_machine:tree_node(),
+      Node :: khepri_tree:tree_node(),
       Module :: module(),
       ModulePriv :: khepri_import_export:module_priv(),
       Ret :: {ok, ModulePriv} | {error, any()}.

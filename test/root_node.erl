@@ -20,7 +20,7 @@
 query_root_node_implicitly_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_machine:find_matching_nodes(
+    Ret = khepri_tree:find_matching_nodes(
             Tree, [],
             #{props_to_return => [payload,
                                   payload_version,
@@ -36,7 +36,7 @@ query_root_node_implicitly_test() ->
 query_root_node_explicitly_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_machine:find_matching_nodes(
+    Ret = khepri_tree:find_matching_nodes(
             Tree, [?KHEPRI_ROOT_NODE],
             #{props_to_return => [payload,
                                   payload_version,
@@ -52,7 +52,7 @@ query_root_node_explicitly_test() ->
 query_root_node_using_dot_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_machine:find_matching_nodes(
+    Ret = khepri_tree:find_matching_nodes(
             Tree, [?THIS_KHEPRI_NODE],
             #{props_to_return => [payload,
                                   payload_version,
@@ -71,7 +71,7 @@ query_above_root_node_using_dot_dot_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
 
-    Ret = khepri_machine:find_matching_nodes(
+    Ret = khepri_tree:find_matching_nodes(
             Tree, [?PARENT_KHEPRI_NODE, ?PARENT_KHEPRI_NODE],
             #{props_to_return => [payload,
                                   payload_version,
@@ -83,7 +83,7 @@ query_above_root_node_using_dot_dot_test() ->
                       child_list_length => 1}}},
        Ret),
 
-    Ret = khepri_machine:find_matching_nodes(
+    Ret = khepri_tree:find_matching_nodes(
             Tree, [?THIS_KHEPRI_NODE, ?PARENT_KHEPRI_NODE],
             #{props_to_return => [payload,
                                   payload_version,
@@ -95,7 +95,7 @@ query_above_root_node_using_dot_dot_test() ->
                       child_list_length => 1}}},
        Ret),
 
-    Ret = khepri_machine:find_matching_nodes(
+    Ret = khepri_tree:find_matching_nodes(
             Tree, [foo, ?PARENT_KHEPRI_NODE],
             #{props_to_return => [payload,
                                   payload_version,
@@ -110,7 +110,7 @@ query_above_root_node_using_dot_dot_test() ->
 query_root_node_with_conditions_true_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_machine:find_matching_nodes(
+    Ret = khepri_tree:find_matching_nodes(
             Tree,
             [#if_all{conditions = [?KHEPRI_ROOT_NODE,
                                    #if_child_list_length{count = 0}]}],
@@ -128,7 +128,7 @@ query_root_node_with_conditions_true_test() ->
 query_root_node_with_conditions_false_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_machine:find_matching_nodes(
+    Ret = khepri_tree:find_matching_nodes(
             Tree,
             [#if_all{conditions = [?KHEPRI_ROOT_NODE,
                                    #if_child_list_length{count = 1}]}],

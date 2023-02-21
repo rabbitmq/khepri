@@ -19,7 +19,7 @@
 %% State machine's internal state record.
 -record(khepri_machine,
         {config = #config{} :: khepri_machine:machine_config(),
-         tree = #tree{} :: khepri_machine:tree(),
+         tree = #tree{} :: khepri_tree:tree(),
          triggers = #{} ::
            #{khepri:trigger_id() =>
              #{sproc := khepri_path:native_path(),

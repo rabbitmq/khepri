@@ -464,7 +464,7 @@ applies_to_grandchildren(_) ->
 -spec is_met(Condition, PathOrChildName, Child) -> IsMet when
       Condition :: khepri_path:pattern_component(),
       PathOrChildName :: khepri_path:native_path() | khepri_path:component(),
-      Child :: khepri_machine:tree_node() | khepri:node_props(),
+      Child :: khepri_tree:tree_node() | khepri:node_props(),
       IsMet :: true | IsNotMet1 | IsNotMet2,
       IsNotMet1 :: {false, khepri_path:pattern_component()},
       IsNotMet2 :: {false, {condition(), any()}}.

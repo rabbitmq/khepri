@@ -18,7 +18,6 @@
 %% for:
 %%   - `khepri_machine:get_keep_while_conds/1'
 %%   - `khepri_machine:get_keep_while_conds_revidx/1'
-%%   - `khepri_machine:are_keep_while_conditions_met/2'
 -dialyzer(no_missing_calls).
 
 are_keep_while_conditions_met_test() ->
@@ -29,29 +28,29 @@ are_keep_while_conditions_met_test() ->
 
     %% TODO: Add more testcases.
     ?assert(
-       khepri_machine:are_keep_while_conditions_met(
+       khepri_tree:are_keep_while_conditions_met(
          Tree,
          #{})),
     ?assert(
-       khepri_machine:are_keep_while_conditions_met(
+       khepri_tree:are_keep_while_conditions_met(
          Tree,
          #{[foo] => #if_node_exists{exists = true}})),
     ?assertEqual(
        {false, {pattern_matches_no_nodes, [baz]}},
-       khepri_machine:are_keep_while_conditions_met(
+       khepri_tree:are_keep_while_conditions_met(
          Tree,
          #{[baz] => #if_node_exists{exists = true}})),
     ?assert(
-       khepri_machine:are_keep_while_conditions_met(
+       khepri_tree:are_keep_while_conditions_met(
          Tree,
          #{[foo, bar] => #if_node_exists{exists = true}})),
     ?assert(
-       khepri_machine:are_keep_while_conditions_met(
+       khepri_tree:are_keep_while_conditions_met(
          Tree,
          #{[foo, bar] => #if_child_list_length{count = 0}})),
     ?assertEqual(
        {false, #if_child_list_length{count = 1}},
-       khepri_machine:are_keep_while_conditions_met(
+       khepri_tree:are_keep_while_conditions_met(
          Tree,
          #{[foo, bar] => #if_child_list_length{count = 1}})).
 
