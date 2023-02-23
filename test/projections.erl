@@ -74,6 +74,40 @@ trigger_simple_projection_on_pattern_test_() ->
           end}]
       }]}.
 
+trigger_simple_projection_on_compiled_pattern_test_() ->
+    ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
+    Path = [stock, wood, <<"oak">>],
+    Data = 100,
+    %% This pattern must be compiled in order to to match the data value
+    %% correctly. If this test fails, the pattern is not being compiled before
+    %% being used to check paths.
+    PathPattern = [stock, wood,
+                   #if_data_matches{pattern = '$1',
+                                    conditions = [{is_integer, '$1'}]}],
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Register the projection",
+          ?_test(
+              begin
+                  Projection = khepri_projection:new(?MODULE, ProjectFun),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)},
+
+         {"Trigger the projection",
+          ?_assertEqual(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, Path, Data))},
+
+         {"The projection contains the triggered change",
+          ?_assertEqual(Data, ets:lookup_element(?MODULE, Path, 2))}]
+      }]}.
+
 projections_skip_sprocs_test_() ->
     ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
     PathPattern = [stock, wood, <<"oak">>],

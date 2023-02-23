@@ -452,7 +452,8 @@ delete_matching_nodes_cb(_, {interrupted, _, _}, _Options, Result) ->
 %% -------------------------------------------------------------------
 
 does_path_match(Path, PathPattern, Tree) ->
-    does_path_match(Path, PathPattern, [], Tree).
+    PathPattern1 = khepri_path:compile(PathPattern),
+    does_path_match(Path, PathPattern1, [], Tree).
 
 does_path_match(PathRest, PathRest, _ReversedPath, _Tree) ->
     true;
