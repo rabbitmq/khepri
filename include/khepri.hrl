@@ -61,7 +61,7 @@
         {has_sproc = true :: boolean()}).
 
 -record(if_data_matches,
-        {pattern = '_' :: ets:match_pattern(),
+        {pattern = '_' :: ets:match_pattern() | term(),
          conditions = [] :: [any()],
          compiled = undefined :: ets:comp_match_spec() | undefined}).
 
