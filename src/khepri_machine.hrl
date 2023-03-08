@@ -25,7 +25,9 @@
              #{sproc := khepri_path:native_path(),
                event_filter := khepri_evf:event_filter()}},
          emitted_triggers = [] :: [khepri_machine:triggered()],
-         projections = #{} :: khepri_machine:projections_map(),
+         projections = khepri_pattern_tree:empty() ::
+                       khepri_pattern_tree:tree(
+                         khepri_projection:projection()),
          metrics = #{} :: #{applied_command_count => non_neg_integer()}}).
 
 -record(khepri_machine_aux,
