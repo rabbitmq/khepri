@@ -114,6 +114,10 @@
 
 -type async_ret() :: ok.
 
+-type projection_tree() :: khepri_pattern_tree:tree(
+                             khepri_projection:projection()).
+%% A pattern tree that holds all registered projections in the machine's state.
+
 -export_type([common_ret/0,
               tx_ret/0,
               async_ret/0,
@@ -121,7 +125,8 @@
               state/0,
               machine_config/0,
               props/0,
-              triggered/0]).
+              triggered/0,
+              projection_tree/0]).
 
 -define(HAS_TIME_LEFT(Timeout), (Timeout =:= infinity orelse Timeout > 0)).
 
@@ -1149,6 +1154,7 @@ apply(
                                              (Projections) ->
                                                  [Projection | Projections]
                                          end),
+                     erase(compiled_projection_tree),
                      State#?MODULE{projections = ProjectionTree1};
                  _  ->
                      State
@@ -1360,7 +1366,7 @@ create_projection_side_effects(
   #?MODULE{tree = InitialTree} = _InitialState,
   #?MODULE{tree = NewTree, projections = ProjectionTree0} = _NewState,
   Changes) ->
-    ProjectionTree = khepri_pattern_tree:compile(ProjectionTree0),
+    ProjectionTree = get_compiled_projection_tree(ProjectionTree0),
     maps:fold(
       fun(Path, Change, Effects) ->
               create_projection_side_effects1(
@@ -1593,6 +1599,33 @@ sort_triggered_sprocs(TriggeredStoredProcs) ->
               end
       end,
       TriggeredStoredProcs).
+
+-spec get_compiled_projection_tree(ProjectionTree) -> CompiledProjectionTree
+    when
+      ProjectionTree :: khepri_machine:projection_tree(),
+      CompiledProjectionTree :: khepri_machine:projection_tree().
+%% @doc Gets the compiled version of the projection pattern tree.
+%%
+%% The pattern tree for projections must be compiled before it can be queried
+%% into for changes to the store via {@link khepri_pattern_tree:fold/5}.
+%%
+%% This compiled pattern tree is cached in the process dictionary for the Ra
+%% server process. If the cached value does not exist, `SourceProjectionTree'
+%% is compiled with {@link khepri_pattern_tree:compile/1} and stored for
+%% future lookups.
+%%
+%% @private
+
+get_compiled_projection_tree(SourceProjectionTree) ->
+    case get(compiled_projection_tree) of
+        undefined ->
+            CompiledProjectionTree = khepri_pattern_tree:compile(
+                                       SourceProjectionTree),
+            put(compiled_projection_tree, CompiledProjectionTree),
+            CompiledProjectionTree;
+        CompiledProjectionTree ->
+            CompiledProjectionTree
+    end.
 
 -ifdef(TEST).
 get_tree(#?MODULE{tree = Tree}) ->
