@@ -18,19 +18,7 @@
 -include("src/khepri_error.hrl").
 -include("src/khepri_tree.hrl").
 
--export([create_node_record/1,
-         set_node_payload/2,
-         remove_node_payload/1,
-         add_node_child/3,
-         update_node_child/3,
-         remove_node_child/2,
-         remove_node_child_nodes/1,
-         gather_node_props/2,
-
-         to_absolute_keep_while/2,
-         are_keep_while_conditions_met/2,
-         update_keep_while_conds/3,
-         is_keep_while_condition_met_on_self/3,
+-export([are_keep_while_conditions_met/2,
 
          collect_node_props_cb/3,
          count_node_cb/3,
@@ -38,6 +26,7 @@
          find_matching_nodes/3,
          find_matching_nodes/5,
          delete_matching_nodes/4,
+         insert_or_update_node/5,
          does_path_match/3,
          walk_down_the_tree/5]).
 
@@ -446,6 +435,141 @@ delete_matching_nodes_cb(Path, #node{} = Node, TreeOptions, Result) ->
     {ok, delete, Result#{Path => NodeProps}};
 delete_matching_nodes_cb(_, {interrupted, _, _}, _Options, Result) ->
     {ok, keep, Result}.
+
+%% -------------------------------------------------------------------
+%% Insert or update a tree node.
+%% -------------------------------------------------------------------
+
+-spec insert_or_update_node(
+    Tree, PathPattern, Payload, PutOptions, TreeOptions) -> Ret when
+      Tree :: khepri_tree:tree(),
+      PathPattern :: khepri_path:native_pattern(),
+      Payload :: khepri_payload:payload(),
+      PutOptions :: khepri:put_options(),
+      TreeOptions :: khepri:tree_options(),
+      NodeProps :: khepri_adv:node_props_map(),
+      AppliedChanges :: applied_changes(),
+      Ret :: ok(Tree, AppliedChanges, NodeProps) | khepri:error().
+
+insert_or_update_node(
+  Tree, PathPattern, Payload, #{keep_while := KeepWhile}, TreeOptions) ->
+    Fun = fun(Path, Node, {_, _, Result}) ->
+                  Ret = insert_or_update_node_cb(
+                          Path, Node, Payload, TreeOptions, Result),
+                  case Ret of
+                      {ok, Node1, Result1} when Result1 =/= #{} ->
+                          AbsKeepWhile = to_absolute_keep_while(
+                                           Path, KeepWhile),
+                          KeepWhileOnOthers = maps:remove(Path, AbsKeepWhile),
+                          KWMet = are_keep_while_conditions_met(
+                                    Tree, KeepWhileOnOthers),
+                          case KWMet of
+                              true ->
+                                  {ok, Node1, {updated, Path, Result1}};
+                              {false, Reason} ->
+                                  %% The keep_while condition is not met. We
+                                  %% can't insert the node and return an
+                                  %% error instead.
+                                  NodeName = case Path of
+                                                 [] -> ?KHEPRI_ROOT_NODE;
+                                                 _  -> lists:last(Path)
+                                             end,
+                                  Reason1 = ?khepri_error(
+                                               keep_while_conditions_not_met,
+                                               #{node_name => NodeName,
+                                                 node_path => Path,
+                                                 keep_while_reason => Reason}),
+                                  {error, Reason1}
+                          end;
+                      {ok, Node1, Result1} ->
+                          {ok, Node1, {updated, Path, Result1}};
+                      Error ->
+                          Error
+                  end
+          end,
+    Ret1 = walk_down_the_tree(
+             Tree, PathPattern, TreeOptions, Fun, {undefined, [], #{}}),
+    case Ret1 of
+        {ok, Tree1, AppliedChanges, {updated, ResolvedPath, Ret2}} ->
+            Tree2 = update_keep_while_conds(
+                      Tree1, ResolvedPath, KeepWhile),
+            {ok, Tree2, AppliedChanges, Ret2};
+        Error ->
+            ?assertMatch({error, _}, Error),
+            Error
+    end;
+insert_or_update_node(
+  Tree, PathPattern, Payload, _PutOptions, TreeOptions) ->
+    Fun = fun(Path, Node, Result) ->
+                  insert_or_update_node_cb(
+                    Path, Node, Payload, TreeOptions, Result)
+          end,
+    walk_down_the_tree(Tree, PathPattern, TreeOptions, Fun, #{}).
+
+insert_or_update_node_cb(
+  Path, #node{} = Node, Payload, TreeOptions, Result) ->
+    case maps:is_key(Path, Result) of
+        false ->
+            %% After a node is modified, we collect properties from the updated
+            %% `#node{}', except the payload which is from the old one.
+            Node1 = set_node_payload(Node, Payload),
+            NodeProps = gather_node_props_from_old_and_new_nodes(
+                          Node, Node1, TreeOptions),
+            {ok, Node1, Result#{Path => NodeProps}};
+        true ->
+            {ok, Node, Result}
+    end;
+insert_or_update_node_cb(
+  Path, {interrupted, node_not_found = Reason, Info}, Payload, TreeOptions,
+  Result) ->
+    %% We store the payload when we reached the target node only, not in the
+    %% parent nodes we have to create in between.
+    IsTarget = maps:get(node_is_target, Info),
+    case can_continue_update_after_node_not_found(Info) of
+        true when IsTarget ->
+            Node = create_node_record(Payload),
+            NodeProps = gather_node_props_from_old_and_new_nodes(
+                          undefined, Node, TreeOptions),
+            {ok, Node, Result#{Path => NodeProps}};
+        true ->
+            Node = create_node_record(khepri_payload:none()),
+            {ok, Node, Result};
+        false ->
+            Reason1 = ?khepri_error(Reason, Info),
+            {error, Reason1}
+    end;
+insert_or_update_node_cb(_, {interrupted, Reason, Info}, _, _, _) ->
+    Reason1 = ?khepri_error(Reason, Info),
+    {error, Reason1}.
+
+gather_node_props_from_old_and_new_nodes(OldNode, NewNode, TreeOptions) ->
+    OldNodeProps = case OldNode of
+                       undefined ->
+                           #{};
+                       _ ->
+                           gather_node_props(OldNode, TreeOptions)
+                   end,
+    NewNodeProps0 = gather_node_props(NewNode, TreeOptions),
+    NewNodeProps1 = maps:remove(data, NewNodeProps0),
+    NewNodeProps2 = maps:remove(sproc, NewNodeProps1),
+    maps:merge(OldNodeProps, NewNodeProps2).
+
+can_continue_update_after_node_not_found(#{condition := Condition}) ->
+    can_continue_update_after_node_not_found1(Condition);
+can_continue_update_after_node_not_found(#{node_name := NodeName}) ->
+    can_continue_update_after_node_not_found1(NodeName).
+
+can_continue_update_after_node_not_found1(ChildName)
+  when ?IS_KHEPRI_PATH_COMPONENT(ChildName) ->
+    true;
+can_continue_update_after_node_not_found1(#if_node_exists{exists = false}) ->
+    true;
+can_continue_update_after_node_not_found1(#if_all{conditions = Conds}) ->
+    lists:all(fun can_continue_update_after_node_not_found1/1, Conds);
+can_continue_update_after_node_not_found1(#if_any{conditions = Conds}) ->
+    lists:any(fun can_continue_update_after_node_not_found1/1, Conds);
+can_continue_update_after_node_not_found1(_) ->
+    false.
 
 %% -------------------------------------------------------------------
 %% Does path match.
