@@ -285,7 +285,7 @@ Erlang modules, the state of Erlang processes, files on disk or network
 connections, and so on.</li>
 </ol>
 
-To achieve that, {@link khepri_fun} and {@link khepri_tx} extract the assembly
+To achieve that, Horus and {@link khepri_tx} extract the assembly
 code of the anonymous function and create a standalone Erlang module based on
 it. This module can be stored in Ra's log and executed anywhere without the
 presence of the initial anonymous function's module.

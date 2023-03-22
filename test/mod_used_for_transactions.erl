@@ -9,8 +9,6 @@
 
 -include_lib("stdlib/include/assert.hrl").
 
--include("src/khepri_fun.hrl").
-
 -export([exported/0,
          get_lambda/0,
          %% We export this one just to try to prevent inlining.

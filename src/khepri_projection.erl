@@ -31,9 +31,10 @@
 
 -include_lib("kernel/include/logger.hrl").
 
+-include_lib("horus/include/horus.hrl").
+
 -include("src/khepri_projection.hrl").
 -include("src/khepri_machine.hrl").
--include("src/khepri_fun.hrl").
 
 -export([new/2, new/3, name/1]).
 
@@ -174,7 +175,7 @@ new(Name, ProjectionFun, Options)
                    fun khepri_tx_adv:ensure_instruction_is_permitted/1,
                    should_process_function => ShouldProcessFunction,
                    is_standalone_fun_still_needed => fun(_Params) -> true end},
-    StandaloneFun = khepri_fun:to_standalone_fun(ProjectionFun, FunOptions),
+    StandaloneFun = horus:to_standalone_fun(ProjectionFun, FunOptions),
     #khepri_projection{name = Name,
                        projection_fun = StandaloneFun,
                        ets_options = EtsOptions}.
@@ -243,7 +244,7 @@ trigger(
   #khepri_projection{name = Name, projection_fun = ProjectionFun},
   Path, OldProps, NewProps) ->
     Table = ets:whereis(Name),
-    case ProjectionFun#standalone_fun.arity of
+    case ?HORUS_STANDALONE_FUN_ARITY(ProjectionFun) of
         2 ->
             trigger_simple_projection(
               Table, Name, ProjectionFun, Path, OldProps, NewProps);
@@ -257,7 +258,7 @@ trigger(
     Ret when
       Table :: ets:tid(),
       Name :: atom(),
-      StandaloneFun :: khepri_fun:standalone_fun(),
+      StandaloneFun :: horus:horus_fun(),
       Path :: khepri_path:native_path(),
       OldProps :: khepri:node_props(),
       NewProps :: khepri:node_props(),
@@ -268,7 +269,7 @@ trigger_extended_projection(
   Table, Name, StandaloneFun, Path, OldProps, NewProps) ->
     Args = [Table, Path, OldProps, NewProps],
     try
-        khepri_fun:exec(StandaloneFun, Args)
+        horus:exec(StandaloneFun, Args)
     catch
         Class:Reason:Stacktrace ->
             Msg = io_lib:format("Failed to trigger extended projection~n"
@@ -294,7 +295,7 @@ trigger_extended_projection(
     Ret when
       Table :: ets:tid(),
       Name :: atom(),
-      StandaloneFun :: khepri_fun:standalone_fun(),
+      StandaloneFun :: horus:horus_fun(),
       Path :: khepri_path:native_path(),
       OldProps :: khepri:node_props(),
       NewProps :: khepri:node_props(),
@@ -306,11 +307,11 @@ trigger_simple_projection(
     TryExec =
     fun(Args) ->
         try
-            {ok, khepri_fun:exec(StandaloneFun, Args)}
+            {ok, horus:exec(StandaloneFun, Args)}
         catch
             Class:Reason:Stacktrace ->
                 %% Funs have better formatting:
-                Fun = khepri_fun:to_fun(StandaloneFun),
+                Fun = horus:to_fun(StandaloneFun),
                 Exception = khepri_utils:format_exception(
                               Class, Reason, Stacktrace, #{column => 4}),
                 Msg = io_lib:format("Failed to execute simple projection "

@@ -41,7 +41,7 @@
 -record(delete, {path :: khepri_path:native_pattern(),
                  options  = #{} :: khepri:tree_options()}).
 
--record(tx, {'fun' :: khepri_fun:standalone_fun() | khepri_path:pattern(),
+-record(tx, {'fun' :: horus:horus_fun() | khepri_path:pattern(),
              args = [] :: list()}).
 
 -record(register_trigger, {id :: khepri:trigger_id(),
@@ -54,7 +54,7 @@
                     %% TODO: Do we need a ref to distinguish multiple
                     %% instances of the same trigger?
                     event_filter :: khepri_evf:event_filter(),
-                    sproc :: khepri_fun:standalone_fun(),
+                    sproc :: horus:horus_fun(),
                     props = #{} :: map()}).
 
 -record(register_projection, {pattern :: khepri_path:native_pattern(),

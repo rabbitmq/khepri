@@ -12,7 +12,8 @@
    [kernel,
     stdlib,
     compiler,
-    ra
+    ra,
+    horus
    ]},
   {env,[]},
   {mod, {khepri_app, []}},

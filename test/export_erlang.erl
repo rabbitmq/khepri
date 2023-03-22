@@ -9,8 +9,9 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+-include_lib("horus/include/horus.hrl").
+
 -include("include/khepri.hrl").
--include("src/khepri_fun.hrl").
 -include("src/khepri_machine.hrl").
 
 -define(
@@ -195,7 +196,8 @@ export_import_standalone_function_test_() ->
      end,
      [?_assertEqual(ok, khepri:create(?FUNCTION_NAME, [sproc], Fun)),
       ?_assertMatch(
-         {ok, #{[sproc] := #standalone_fun{}}},
+         {ok, #{[sproc] := StoredFun}}
+           when ?IS_HORUS_STANDALONE_FUN(StoredFun),
          khepri:get_many(?FUNCTION_NAME, "**")),
       ?_assertEqual(ok, khepri:export(?FUNCTION_NAME, Module, Filename)),
       ?_assertEqual(
@@ -209,7 +211,8 @@ export_import_standalone_function_test_() ->
 
       ?_assertEqual(ok, khepri:import(?FUNCTION_NAME, Module, Filename)),
       ?_assertMatch(
-         {ok, #{[sproc] := #standalone_fun{}}},
+         {ok, #{[sproc] := StoredFun}}
+           when ?IS_HORUS_STANDALONE_FUN(StoredFun),
          khepri:get_many(?FUNCTION_NAME, "**")),
       ?_assertEqual(Fun(), khepri:run_sproc(?FUNCTION_NAME, [sproc], []))]}.
 

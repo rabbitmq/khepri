@@ -9,8 +9,8 @@
         {%% The name of the projection. This atom should be unique to an Erlang
          %% node as it will become the name of the ETS table.
          name :: atom(),
-         %% A function compiled by `khepri_fun' which "projects" entries from
+         %% A function compiled by Horus which "projects" entries from
          %% a Khepri store into records stored in a "projected" ETS table.
-         projection_fun :: khepri_fun:standalone_fun(),
+         projection_fun :: horus:horus_fun(),
          %% Options passed to `ets:new/2'
          ets_options :: [atom() | tuple()]}).

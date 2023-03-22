@@ -9,8 +9,9 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+-include_lib("horus/include/horus.hrl").
+
 -include("include/khepri.hrl").
--include("src/khepri_fun.hrl").
 -include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
@@ -43,7 +44,7 @@ get_existing_node_with_sproc_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [foo], fun() -> ok end)),
       ?_assertMatch(
-         {ok, #standalone_fun{}},
+         {ok, StandaloneFun} when ?IS_HORUS_STANDALONE_FUN(StandaloneFun),
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
 get_existing_node_with_no_payload_test_() ->

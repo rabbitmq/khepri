@@ -72,7 +72,6 @@
 -include("include/khepri.hrl").
 -include("src/khepri_cluster.hrl").
 -include("src/khepri_error.hrl").
--include("src/khepri_fun.hrl").
 -include("src/khepri_ret.hrl").
 
 -export([
@@ -200,7 +199,7 @@
 -type node_props() ::
     #{data => khepri:data(),
       has_data => boolean(),
-      sproc => khepri_fun:standalone_fun(),
+      sproc => horus:horus_fun(),
       is_sproc => boolean(),
       payload_version => khepri:payload_version(),
       child_list_version => khepri:child_list_version(),
@@ -378,7 +377,7 @@
 %% The return value of update functions in the {@link khepri} module.
 
 -type payload_ret(Default) :: khepri:ok(khepri:data() |
-                                        khepri_fun:standalone_fun() |
+                                        horus:horus_fun() |
                                         Default) |
                               khepri:error().
 %% The return value of query functions in the {@link khepri} module that work
@@ -395,7 +394,7 @@
 
 -type many_payloads_ret(Default) :: khepri:ok(#{khepri_path:path() =>
                                                 khepri:data() |
-                                                khepri_fun:standalone_fun() |
+                                                horus:horus_fun() |
                                                 Default}) |
                                     khepri:error().
 %% The return value of query functions in the {@link khepri} module that work

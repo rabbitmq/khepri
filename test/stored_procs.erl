@@ -9,8 +9,9 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+-include_lib("horus/include/horus.hrl").
+
 -include("include/khepri.hrl").
--include("src/khepri_fun.hrl").
 -include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
@@ -29,7 +30,7 @@ store_and_get_sproc_test_() ->
 
         {"Get the stored procedure",
          ?_assertMatch(
-            {ok, #standalone_fun{}},
+            {ok, StandaloneFun} when ?IS_HORUS_STANDALONE_FUN(StandaloneFun),
             khepri:get(
               ?FUNCTION_NAME, StoredProcPath))}]
       }]}.
@@ -115,8 +116,9 @@ execute_sproc_with_wrong_arity_test_() ->
               fun() -> return_value end))},
 
         {"Execute the stored procedure",
-         ?_assertExit(
-            {badarity, {#standalone_fun{arity = 0}, Args}},
+         ?_assertError(
+            {badarity, {StandaloneFun, Args}}
+              when ?IS_HORUS_STANDALONE_FUN(StandaloneFun, 0),
             khepri:run_sproc(
               ?FUNCTION_NAME, StoredProcPath, Args))}]
       }]}.
@@ -162,7 +164,9 @@ crashing_sproc_stacktrace_test_() ->
          ?_assertMatch(
             {throw,
              "Expected crash",
-             [{_GeneratedModuleName, run,0, [{file, File1}, {line, _}]},
+             [{mod_used_for_transactions, crashing_fun, 0,
+               [{file, File1}, {line, _}]},
+              {horus, exec, 2, _},
               {khepri_sproc, _, _, [{file, File2}, {line, _}]},
               {stored_procs, _, _, [{file, File3}, {line, _}]}
               | _]},
