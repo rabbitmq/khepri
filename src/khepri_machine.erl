@@ -169,7 +169,7 @@ fold(StoreId, PathPattern, Fun, Acc, Options)
     {QueryOptions, TreeOptions} = split_query_options(Options),
     Query = fun(#?MODULE{tree = Tree}) ->
                     try
-                        khepri_tree:find_matching_nodes(
+                        khepri_tree:fold(
                           Tree, PathPattern1, Fun, Acc, TreeOptions)
                     catch
                         Class:Reason:Stacktrace ->

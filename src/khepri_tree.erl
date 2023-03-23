@@ -24,7 +24,7 @@
          count_node_cb/3,
 
          find_matching_nodes/3,
-         find_matching_nodes/5,
+         fold/5,
          delete_matching_nodes/4,
          insert_or_update_node/5,
          does_path_match/3,
@@ -343,7 +343,7 @@ update_keep_while_conds_revidx(
 %% @private
 
 find_matching_nodes(Tree, PathPattern, TreeOptions) ->
-    find_matching_nodes(
+    fold(
       Tree, PathPattern,
       fun collect_node_props_cb/3, #{},
       TreeOptions).
@@ -370,7 +370,7 @@ collect_node_props_cb(Path, NodeProps, Map) when is_map(Map) ->
 count_node_cb(_Path, _NodeProps, Count) when is_integer(Count) ->
     Count + 1.
 
--spec find_matching_nodes(Tree, PathPattern, Fun, Acc, TreeOptions) ->
+-spec fold(Tree, PathPattern, Fun, Acc, TreeOptions) ->
     Ret when
       Tree :: tree(),
       PathPattern :: khepri_path:native_pattern(),
@@ -378,9 +378,12 @@ count_node_cb(_Path, _NodeProps, Count) when is_integer(Count) ->
       Acc :: khepri:fold_acc(),
       TreeOptions :: khepri:tree_options(),
       Ret :: khepri:ok(Acc) | khepri:error().
+%% @doc Folds the given `Fun' over each tree node which matches the path
+%% pattern.
+%%
 %% @private
 
-find_matching_nodes(Tree, PathPattern, Fun, Acc, TreeOptions) ->
+fold(Tree, PathPattern, Fun, Acc, TreeOptions) ->
     WalkFun = fun(Path, Node, Acc1) ->
                       find_matching_nodes_cb(
                         Path, Node, Fun, Acc1, TreeOptions)
