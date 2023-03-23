@@ -23,3 +23,46 @@
 %% the same type in any call.
 -define(assertSubString(SubString, String),
         ?assertNotMatch(nomatch, string:find(String, SubString))).
+
+%% Asserts that a message matching the pattern `Pattern' <em>is</em> received
+%% by the current process in the time window `Timeout'.
+-define(assertReceive(Pattern, Timeout),
+        receive
+            Pattern ->
+                ok
+        after
+            Timeout ->
+                error(
+                  "Did not receive a message matching the given pattern "
+                  "within the timeout")
+        end).
+
+%% Asserts that a message matching the pattern `Pattern' <em>is</em> in the
+%% mailbox of the current process.
+-define(assertReceived(Pattern), ?assertReceive(Pattern, 0)).
+
+%% Asserts that a message matching the pattern `Pattern' is <em>not</em>
+%% received by the current process in the time window `Timeout'.
+-define(assertNotReceive(Pattern, Timeout),
+        receive
+            Pattern = Msg ->
+                error(
+                  lists:flatten(
+                    io_lib:format(
+                      "Expected no messages matching the given pattern but "
+                      "received ~p", [Msg])))
+        after
+            Timeout ->
+                ok
+        end).
+
+%% Asserts that a message matching the pattern `Pattern' is <em>not</em> in the
+%% mailbox of the current process.
+-define(assertNotReceived(Pattern), ?assertNotReceive(Pattern, 0)).
+
+%% Asserts that the `Expected' list is equal to the `Actual' list when sorted.
+-define(assertListsEqual(Expected, Actual),
+        fun() ->
+                ExpectedSorted = lists:sort(Expected),
+                ?assertEqual(ExpectedSorted, lists:sort(Actual))
+        end()).

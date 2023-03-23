@@ -96,11 +96,6 @@
 -type machine_config() :: #config{}.
 %% Configuration record, holding read-only or rarely changing fields.
 
--type projections_map() :: #{khepri_projection:projection() =>
-                             khepri_path:native_pattern()}.
-%% Internal mapping between {@link khepri_projection:projection()} records and
-%% the native path patterns which trigger updates to each projection.
-
 -type state() :: #?MODULE{}.
 %% State of this Ra state machine.
 
@@ -126,8 +121,7 @@
               state/0,
               machine_config/0,
               props/0,
-              triggered/0,
-              projections_map/0]).
+              triggered/0]).
 
 -define(HAS_TIME_LEFT(Timeout), (Timeout =:= infinity orelse Timeout > 0)).
 
@@ -532,12 +526,16 @@ get_keep_while_conds_state(StoreId, Options)
 -spec get_projections_state(StoreId, Options) -> Ret when
       StoreId :: khepri:store_id(),
       Options :: khepri:query_options(),
-      Ret :: khepri:ok(projections_map()) | khepri:error().
+      Ret :: khepri:ok(ProjectionState) | khepri:error(),
+      ProjectionState :: khepri_pattern_tree:tree(Projection),
+      Projection :: khepri_projection:projection().
 %% @doc Returns the `projections' internal state.
 %%
-%% The returned state consists of the mapping between path pattern and
-%% {@link khepri_projection:projection()} records.
+%% The returned state is a pattern tree containing the projections registered
+%% in the store. (See {@link khepri_pattern_tree:tree()} and {@link
+%% khepri_projection:projection()}.)
 %%
+%% @see khepri_pattern_tree.
 %% @see khepri_projection.
 %%
 %% @private
@@ -1047,11 +1045,13 @@ handle_aux(
     {no_reply, AuxState, LogState};
 handle_aux(
   _RaState, cast, restore_projections, AuxState, LogState,
-  #?MODULE{tree = Tree, projections = Projections}) ->
-    maps:foreach(fun(Projection, PathPattern) ->
-                         restore_projection(
-                           Projection, Tree, PathPattern)
-                 end, Projections),
+  #?MODULE{tree = Tree, projections = ProjectionTree}) ->
+    khepri_pattern_tree:foreach(
+      ProjectionTree,
+      fun(PathPattern, Projections) ->
+              [restore_projection(Projection, Tree, PathPattern) ||
+               Projection <- Projections]
+      end),
     {no_reply, AuxState, LogState};
 handle_aux(_RaState, _Type, _Command, AuxState, LogState, _MachineState) ->
     {no_reply, AuxState, LogState}.
@@ -1136,13 +1136,20 @@ apply(
 apply(
   Meta,
   #register_projection{pattern = PathPattern, projection = Projection},
-  #?MODULE{tree = Tree, projections = Projections} = State) ->
+  #?MODULE{tree = Tree, projections = ProjectionTree} = State) ->
     Reply = khepri_projection:init(Projection),
     State1 = case Reply of
                  ok ->
                      restore_projection(Projection, Tree, PathPattern),
-                     Projections1 = Projections#{Projection => PathPattern},
-                     State#?MODULE{projections = Projections1};
+                     ProjectionTree1 = khepri_pattern_tree:update(
+                                         ProjectionTree,
+                                         PathPattern,
+                                         fun (?NO_PAYLOAD) ->
+                                                 [Projection];
+                                             (Projections) ->
+                                                 [Projection | Projections]
+                                         end),
+                     State#?MODULE{projections = ProjectionTree1};
                  _  ->
                      State
              end,
@@ -1351,122 +1358,98 @@ create_tree_change_side_effects(
 
 create_projection_side_effects(
   #?MODULE{tree = InitialTree} = _InitialState,
-  #?MODULE{tree = NewTree, projections = Projections} = _NewState,
+  #?MODULE{tree = NewTree, projections = ProjectionTree0} = _NewState,
   Changes) ->
-    %% Note: the order in which updates are applied to projections should not
-    %% be relied on.
-    Effects =
+    ProjectionTree = khepri_pattern_tree:compile(ProjectionTree0),
     maps:fold(
       fun(Path, Change, Effects) ->
-              maps:fold(
-                fun(Projection, Pattern, Effects1) ->
-                        evaluate_projection(
-                          InitialTree, NewTree,
-                          Path, Change, Pattern, Projection, Effects1)
-                end, Effects, Projections)
-      end, [], Changes),
-    lists:reverse(Effects).
+              create_projection_side_effects1(
+                InitialTree, NewTree, ProjectionTree, Path, Change, Effects)
+      end, [], Changes).
 
--spec evaluate_projection(
-        InitialTree, NewTree, Path, Change, Pattern, Projection, Effects) ->
+create_projection_side_effects1(
+  InitialTree, NewTree, ProjectionTree, Path, delete, Effects) ->
+    %% Deletion changes recursively delete the subtree below the deleted tree
+    %% node. Find any children in the tree that were also deleted by this
+    %% change and trigger any necessary projections for those children.
+    ChildrenFindOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
+                            expect_specific_node => false},
+    ChildrenPattern = Path ++ [?KHEPRI_WILDCARD_STAR_STAR],
+    EffectsForChildrenFun =
+    fun(ChildPath, _NodeProps, EffectAcc) ->
+            create_projection_side_effects2(
+              InitialTree, NewTree, ProjectionTree,
+              ChildPath, delete, EffectAcc)
+    end,
+    {ok, Effects1} = khepri_tree:find_matching_nodes(
+                       InitialTree, ChildrenPattern,
+                       EffectsForChildrenFun, Effects,
+                       ChildrenFindOptions),
+    Effects1;
+create_projection_side_effects1(
+  InitialTree, NewTree, ProjectionTree, Path, Change, Effects) ->
+    create_projection_side_effects2(
+      InitialTree, NewTree, ProjectionTree, Path, Change, Effects).
+
+create_projection_side_effects2(
+  InitialTree, NewTree, ProjectionTree, Path, Change, Effects) ->
+    PatternMatchingTree = case Change of
+                              create ->
+                                  NewTree;
+                              update ->
+                                  NewTree;
+                              delete ->
+                                  InitialTree
+                          end,
+    khepri_pattern_tree:fold(
+      ProjectionTree,
+      PatternMatchingTree,
+      Path,
+      fun(_PathPattern, Projections, Effects1) ->
+              lists:foldl(
+                fun(Projection, Effects2) ->
+                        evaluate_projection(
+                          InitialTree, NewTree, Path, Projection, Effects2)
+                end, Effects1, Projections)
+      end,
+      Effects).
+
+-spec evaluate_projection(InitialTree, NewTree, Path, Projection, Effects) ->
     Ret when
       InitialTree :: khepri_tree:tree(),
       NewTree :: khepri_tree:tree(),
       Path :: khepri_path:native_path(),
-      Change :: create | update | delete,
-      Pattern :: khepri_path:native_pattern(),
       Projection :: khepri_projection:projection(),
       Effects :: ra_machine:effects(),
       Ret :: ra_machine:effects().
 %% @private
 
 evaluate_projection(
-  InitialTree, NewTree, Path, Change, Pattern, Projection, Effects)
-  when Change =:= create orelse Change =:= update ->
-    case khepri_tree:does_path_match(Path, Pattern, NewTree) of
-        true ->
-            FindOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
-                            expect_specific_node => true},
-            InitialRet = khepri_tree:find_matching_nodes(
-                           InitialTree, Path, FindOptions),
-            InitialProps = case InitialRet of
-                               {ok, #{Path := InitialProps0}} ->
-                                   InitialProps0;
-                               _ ->
-                                   #{}
-                           end,
-            NewRet = khepri_tree:find_matching_nodes(
-                       NewTree, Path, FindOptions),
-            NewProps = case NewRet of
-                             {ok, #{Path := NewProps0}} ->
-                                 NewProps0;
-                             _ ->
-                                 #{}
-                         end,
-            Trigger = #trigger_projection{path = Path,
-                                          old_props = InitialProps,
-                                          new_props = NewProps,
-                                          projection = Projection},
-            Effect = {aux, Trigger},
-            [Effect | Effects];
-        false ->
-            Effects
-    end;
-evaluate_projection(
-  InitialTree, _NewTree, Path, delete, Pattern, Projection, Effects) ->
-    Effects1 =
-    case khepri_tree:does_path_match(Path, Pattern, InitialTree) of
-        true ->
-            FindOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
-                            expect_specific_node => true},
-            InitialRet = khepri_tree:find_matching_nodes(
-                           InitialTree, Path, FindOptions),
-            InitialProps = case InitialRet of
-                               {ok, #{Path := InitialProps0}} ->
-                                   InitialProps0;
-                               _ ->
-                                   #{}
-                           end,
-            Trigger = #trigger_projection{path = Path,
-                                          old_props = InitialProps,
-                                          new_props = #{},
-                                          projection = Projection},
-            Effect = {aux, Trigger},
-            [Effect | Effects];
-        false ->
-            Effects
-    end,
-    %% Deletions may recursively delete the subtree under `Path'. Find any
-    %% descendants of the deleted tree-node and trigger any projections
-    %% which match the child tree-node's path.
-    ChildrenFindOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
-                            expect_specific_node => false},
-    ChildrenPattern = Path ++ [?KHEPRI_WILDCARD_STAR_STAR],
-    ChildrenRet = khepri_tree:find_matching_nodes(
-                    InitialTree, ChildrenPattern, ChildrenFindOptions),
-    ChildrenProps = case ChildrenRet of
-                        {ok, Props} ->
-                            Props;
-                        _ ->
-                            #{}
-                    end,
-    maps:fold(
-      fun(ChildPath, ChildProps, EffectAcc) ->
-              Matches = khepri_tree:does_path_match(
-                          ChildPath, Pattern, InitialTree),
-              case Matches of
-                  true ->
-                      ChildTrigger = #trigger_projection{
-                                       path = ChildPath,
-                                       old_props = ChildProps,
-                                       new_props = #{},
-                                       projection = Projection},
-                      ChildEffect = {aux, ChildTrigger},
-                      [ChildEffect | EffectAcc];
-                  false ->
-                      EffectAcc
-              end
-      end, Effects1, ChildrenProps).
+  InitialTree, NewTree, Path, Projection, Effects) ->
+    FindOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
+                    expect_specific_node => true},
+    InitialRet = khepri_tree:find_matching_nodes(
+                   InitialTree, Path, FindOptions),
+    InitialProps = case InitialRet of
+                       {ok, #{Path := InitialProps0}} ->
+                           InitialProps0;
+                       _ ->
+                           #{}
+                   end,
+    NewRet = khepri_tree:find_matching_nodes(
+               NewTree, Path, FindOptions),
+    NewProps = case NewRet of
+                     {ok, #{Path := NewProps0}} ->
+                         NewProps0;
+                     _ ->
+                         #{}
+                 end,
+    Trigger = #trigger_projection{path = Path,
+                                  old_props = InitialProps,
+                                  new_props = NewProps,
+                                  projection = Projection},
+    Effect = {aux, Trigger},
+    [Effect | Effects].
 
 create_trigger_side_effects(
   #?MODULE{triggers = Triggers} = _InitialState, NewState, _Changes)

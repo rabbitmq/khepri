@@ -3432,15 +3432,23 @@ info(StoreId, Options) ->
     end,
 
     case khepri_machine:get_projections_state(StoreId, Options) of
-        {ok, ProjectionMapping} when ProjectionMapping =/= #{} ->
-            io:format("~n\033[1;32m== PROJECTIONS ==\033[0m~n", []),
-            maps:foreach(
-              fun(Projection, PathPattern) ->
-                      Name = khepri_projection:name(Projection),
-                      io:format(
-                        "~n~p:~n"
-                        "    ~p~n", [Name, PathPattern])
-              end, ProjectionMapping);
+        {ok, ProjectionTree} ->
+            case khepri_pattern_tree:is_empty(ProjectionTree) of
+                true ->
+                    ok;
+                false ->
+                    io:format("~n\033[1;32m== PROJECTIONS ==\033[0m~n", []),
+                    khepri_pattern_tree:foreach(
+                      ProjectionTree,
+                      fun(PathPattern, Projections) ->
+                              [begin
+                                   Name = khepri_projection:name(Projection),
+                                   io:format(
+                                     "~n~p:~n"
+                                     "    ~p~n", [Name, PathPattern])
+                               end || Projection <- Projections]
+                      end)
+            end;
         _ ->
             ok
     end,
