@@ -1381,7 +1381,7 @@ create_projection_side_effects1(
               InitialTree, NewTree, ProjectionTree,
               ChildPath, delete, EffectAcc)
     end,
-    {ok, Effects1} = khepri_tree:find_matching_nodes(
+    {ok, Effects1} = khepri_tree:fold(
                        InitialTree, ChildrenPattern,
                        EffectsForChildrenFun, Effects,
                        ChildrenFindOptions),
