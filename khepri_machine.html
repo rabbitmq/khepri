@@ -41,17 +41,12 @@ module.</p>
 <p><code>machine_config() = #config{store_id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a>, member = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a>, snapshot_interval = non_neg_integer()}</code></p>
 <p>  Configuration record, holding read-only or rarely changing fields.</p>
 
-<h3 class="typedecl"><a name="type-projections_map">projections_map()</a></h3>
-<p><code>projections_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection">khepri_projection:projection()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_pattern">khepri_path:native_pattern()</a>}</code></p>
-<p>  Internal mapping between <a docgen-rel="seetype" docgen-href="khepri_projection#projection/0" href="khepri_projection.html#type-projection"><code>khepri_projection:projection()</code></a> records and
-  the native path patterns which trigger updates to each projection.</p>
-
 <h3 class="typedecl"><a name="type-props">props()</a></h3>
 <p><code>props() = #{payload_version := <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_version">khepri:payload_version()</a>, child_list_version := <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_version">khepri:child_list_version()</a>}</code></p>
 <p>  Properties attached to each node in the tree structure.</p>
 
 <h3 class="typedecl"><a name="type-state">state()</a></h3>
-<p><code>state() = #khepri_machine{config = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-machine_config">khepri_machine:machine_config()</a>, tree = <a href="/home/runner/work/khepri/khepri/doc/khepri_tree.html#type-tree">khepri_tree:tree()</a>, triggers = #{<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id">khepri:trigger_id()</a> =&gt; #{sproc := <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a>, event_filter := <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a>}}, emitted_triggers = [<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-triggered">khepri_machine:triggered()</a>], projections = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-projections_map">khepri_machine:projections_map()</a>, metrics = #{applied_command_count =&gt; non_neg_integer()}}</code></p>
+<p><code>state() = #khepri_machine{config = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-machine_config">khepri_machine:machine_config()</a>, tree = <a href="/home/runner/work/khepri/khepri/doc/khepri_tree.html#type-tree">khepri_tree:tree()</a>, triggers = #{<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id">khepri:trigger_id()</a> =&gt; #{sproc := <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a>, event_filter := <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a>}}, emitted_triggers = [<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-triggered">khepri_machine:triggered()</a>], projections = <a href="/home/runner/work/khepri/khepri/doc/khepri_pattern_tree.html#type-tree">khepri_pattern_tree:tree</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection">khepri_projection:projection()</a>), metrics = #{applied_command_count =&gt; non_neg_integer()}}</code></p>
 <p>  State of this Ra state machine.</p>
 
 <h3 class="typedecl"><a name="type-triggered">triggered()</a></h3>
