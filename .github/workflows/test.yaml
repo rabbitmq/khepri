@@ -11,14 +11,14 @@ jobs:
 
     strategy:
       matrix:
-        otp_version: [24, 25, 26.0-rc1]
+        otp_version: [24, 25, 26.0-rc2]
         os: [ubuntu-latest, windows-latest]
         exclude:
           # `ct_slave` fails to start Erlang nodes on Windows with Erlang 24.
           - otp_version: 24
             os: windows-latest
-          # The download for 26.0-rc1 currently hangs for 30min+ for Windows builds.
-          - otp_version: 26.0-rc1
+          # The download for 26.0-rc2 currently hangs for 30min+ for Windows builds.
+          - otp_version: 26.0-rc2
             os: windows-latest
 
     env:
@@ -30,7 +30,7 @@ jobs:
         id: install-erlang
         with:
           otp-version: ${{matrix.otp_version}}
-          rebar3-version: '3.18.0'
+          rebar3-version: '3.20.0'
 
       - name: Restore Dialyzer PLT files from cache
         uses: actions/cache@v3
