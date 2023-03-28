@@ -427,6 +427,14 @@ delete_removes_entries_recursively_test_() ->
             lists:sort(
               [{Path1, Data}, {Path2, Data}, {Path3, Data}]),
             lists:sort(ets:tab2list(?MODULE)))},
+         {"Delete one of the leaf nodes",
+          ?_assertEqual(
+            ok,
+            khepri:delete(?FUNCTION_NAME, Path3))},
+         {"List the projection",
+          ?_assertEqual(
+            #{Path1 => Data, Path2 => Data},
+            maps:from_list(ets:tab2list(?MODULE)))},
          {"Delete a branch of the tree",
           %% All tree nodes in the branch are removed from the tree and all
           %% projection records are removed from the projection table.
