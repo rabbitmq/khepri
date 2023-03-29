@@ -1189,6 +1189,10 @@ can_set_snapshot_interval(Config) ->
 projections_are_consistent_on_three_node_cluster(Config) ->
     ProjectionName = ?MODULE,
 
+    %% We call `khepri_projection:new/2 on the local node and thus need
+    %% Khepri.
+    ?assertMatch({ok, _}, application:ensure_all_started(khepri)),
+
     PropsPerNode = ?config(ra_system_props, Config),
     [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
 
