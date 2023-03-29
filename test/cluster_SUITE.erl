@@ -1252,8 +1252,8 @@ projections_are_consistent_on_three_node_cluster(Config) ->
               %% consistent on the caller node.
               ?assertEqual(
                  ok,
-                 rpc:call(Node1, khepri, put, [StoreId, [foo], value1,
-                                               #{reply_from => local}])),
+                 rpc:call(Node, khepri, put, [StoreId, [foo], value1,
+                                              #{reply_from => local}])),
 
               ct:pal("- ets:lookup() from node ~s", [Node]),
               ?assertEqual(
