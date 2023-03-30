@@ -9,8 +9,9 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+-include_lib("horus/include/horus.hrl").
+
 -include("include/khepri.hrl").
--include("src/khepri_fun.hrl").
 -include("src/khepri_machine.hrl").
 
 export_empty_store_test_() ->
@@ -267,7 +268,8 @@ import_standalone_function_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [sproc], Fun)),
       ?_assertMatch(
-         {ok, #{[sproc] := #standalone_fun{}}},
+         {ok, #{[sproc] := StoredFun}}
+           when ?IS_HORUS_STANDALONE_FUN(StoredFun),
          khepri:get_many(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR_STAR])),
       ?_assertEqual(
          ok,
@@ -278,7 +280,8 @@ import_standalone_function_test_() ->
              khepri:import(?FUNCTION_NAME, Module, ModulePriv1)
          end),
       ?_assertMatch(
-         {ok, #{[sproc] := #standalone_fun{}}},
+         {ok, #{[sproc] := StoredFun}}
+           when ?IS_HORUS_STANDALONE_FUN(StoredFun),
          khepri:get_many(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR_STAR]))]}.
 
 import_function_ref_test_() ->

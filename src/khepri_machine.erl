@@ -23,11 +23,12 @@
 -include_lib("kernel/include/logger.hrl").
 -include_lib("stdlib/include/assert.hrl").
 
+-include_lib("horus/include/horus.hrl").
+
 -include("include/khepri.hrl").
 -include("src/khepri_cluster.hrl").
 -include("src/khepri_error.hrl").
 -include("src/khepri_evf.hrl").
--include("src/khepri_fun.hrl").
 -include("src/khepri_machine.hrl").
 -include("src/khepri_ret.hrl").
 -include("src/khepri_tx.hrl").
@@ -272,7 +273,7 @@ transaction(StoreId, Fun, Args, auto = ReadWrite, Options)
        is_function(Fun, length(Args)) andalso
        is_map(Options) ->
     case khepri_tx_adv:to_standalone_fun(Fun, ReadWrite) of
-        #standalone_fun{} = StandaloneFun ->
+        StandaloneFun when ?IS_HORUS_STANDALONE_FUN(StandaloneFun) ->
             readwrite_transaction(StoreId, StandaloneFun, Args, Options);
         _ ->
             readonly_transaction(StoreId, Fun, Args, Options)
@@ -370,19 +371,17 @@ readonly_transaction(StoreId, PathPattern, Args, Options)
 -spec readwrite_transaction(StoreId, FunOrPath, Args, Options) -> Ret when
       StoreId :: khepri:store_id(),
       FunOrPath :: Fun | PathPattern,
-      Fun :: khepri_fun:standalone_fun(),
+      Fun :: horus:horus_fun(),
       PathPattern :: khepri_path:pattern(),
       Args :: list(),
       Options :: khepri:command_options(),
       Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
 
 readwrite_transaction(
-  StoreId, #standalone_fun{arity = Arity} = StandaloneFun, Args, Options)
-  when is_list(Args) andalso length(Args) =:= Arity ->
-    readwrite_transaction1(StoreId, StandaloneFun, Args, Options);
-readwrite_transaction(
   StoreId, Fun, Args, Options)
-  when is_list(Args) andalso is_function(Fun, length(Args)) ->
+  when is_list(Args) andalso
+       (is_function(Fun, length(Args)) orelse
+        ?IS_HORUS_STANDALONE_FUN(Fun, length(Args))) ->
     readwrite_transaction1(StoreId, Fun, Args, Options);
 readwrite_transaction(
   StoreId, PathPattern, Args, Options)
@@ -478,9 +477,12 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options)
 register_projection(
   StoreId, PathPattern0,
   #khepri_projection{name = Name,
-                     projection_fun = #standalone_fun{},
+                     projection_fun = StandaloneFun,
                      ets_options = EtsOptions} = Projection,
-  Options0) when is_atom(Name) andalso is_list(EtsOptions) ->
+  Options0)
+  when is_atom(Name) andalso
+       is_list(EtsOptions) andalso
+       ?IS_HORUS_STANDALONE_FUN(StandaloneFun) ->
     Options = Options0#{reply_from => local},
     PathPattern = khepri_path:from_string(PathPattern0),
     khepri_path:ensure_is_valid(PathPattern),
@@ -1104,7 +1106,7 @@ apply(
 apply(
   Meta,
   #tx{'fun' = StandaloneFun, args = Args},
-  State) when ?IS_STANDALONE_FUN(StandaloneFun) ->
+  State) when ?IS_HORUS_FUN(StandaloneFun) ->
     Ret = khepri_tx_adv:run(State, StandaloneFun, Args, true),
     bump_applied_command_count(Ret, Meta);
 apply(
@@ -1240,7 +1242,7 @@ overview(#?MODULE{config = #config{store_id = StoreId},
                            Tree, [?KHEPRI_WILDCARD_STAR_STAR], TreeOptions),
     MapFun = fun
                  (#{sproc := Sproc} = Props) ->
-                     Props#{sproc => khepri_fun:to_fun(Sproc)};
+                     Props#{sproc => horus:to_fun(Sproc)};
                  (Props) ->
                      Props
              end,

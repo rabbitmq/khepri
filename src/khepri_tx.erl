@@ -30,7 +30,7 @@
 %% <li>The code of the transaction function is extracted from the its initial
 %% Erlang module. This way, the transaction function does not depend on the
 %% initial module availability and is not affected by a module reload. See
-%% {@link khepri_fun})</li>
+%% Horus documentation</li>
 %% <li>The code is verified to make sure it does not perform any denied
 %% operations.</li>
 %% <li>The extracted transaction function is stored as a Khepri state machine

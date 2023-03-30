@@ -9,6 +9,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+-include_lib("horus/include/horus.hrl").
+
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
 -include("src/khepri_payload.hrl").
@@ -47,8 +49,8 @@ fun_extraction_test() ->
               fun() ->
                       Fun = mod_used_for_transactions:get_lambda(),
                       ExpectedRet = Fun(Parent),
-                      StandaloneFun = khepri_fun:to_standalone_fun(Fun, #{}),
-                      Parent ! {standalone_fun,
+                      StandaloneFun = horus:to_standalone_fun(Fun, #{}),
+                      Parent ! {horus_fun,
                                 StandaloneFun,
                                 [Parent],
                                 ExpectedRet}
@@ -63,11 +65,11 @@ fun_extraction_test() ->
             ?assertEqual(false, code:is_loaded(mod_used_for_transactions)),
 
             receive
-                {standalone_fun, StandaloneFun, Args, ExpectedRet} ->
+                {horus_fun, StandaloneFun, Args, ExpectedRet} ->
                     ?assertMatch({ok, _, _}, ExpectedRet),
                     ?assertEqual(
                        ExpectedRet,
-                       khepri_fun:exec(StandaloneFun, Args))
+                       horus:exec(StandaloneFun, Args))
             end
     end.
 
@@ -393,7 +395,10 @@ calling_invalid_local_function_test_() ->
      [?_assertError(
          ?khepri_exception(
             failed_to_prepare_tx_fun,
-            #{error := {call_denied, {node, 0}}}),
+            #{error :=
+              ?horus_error(
+                 extraction_denied,
+                 #{error := {call_denied, {node, 0}}})}),
          begin
              Fun = fun() ->
                            Path = [node, get_node_name()],
@@ -444,8 +449,10 @@ calling_unexported_remote_function_as_fun_term_test_() ->
      [?_assertError(
          ?khepri_exception(
             failed_to_prepare_tx_fun,
-            #{error := {call_to_unexported_function,
-                        {mod_used_for_transactions, unexported, 0}}}),
+            #{error :=
+              ?horus_error(
+                 call_to_unexported_function,
+                 #{mfa := {mod_used_for_transactions, unexported, 0}})}),
          begin
              Fun = fun mod_used_for_transactions:unexported/0,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
@@ -474,7 +481,10 @@ trying_to_send_msg_test_() ->
      [?_assertError(
          ?khepri_exception(
             failed_to_prepare_tx_fun,
-            #{error := sending_message_denied}),
+            #{error :=
+              ?horus_error(
+                 extraction_denied,
+                 #{error := sending_message_denied})}),
          begin
              Pid = self(),
              Fun = fun() ->
@@ -490,7 +500,10 @@ trying_to_receive_msg_test_() ->
      [?_assertError(
          ?khepri_exception(
             failed_to_prepare_tx_fun,
-            #{error := receiving_message_denied}),
+            #{error :=
+              ?horus_error(
+                 extraction_denied,
+                 #{error := receiving_message_denied})}),
          begin
              Fun = fun() ->
                            receive
@@ -510,7 +523,10 @@ trying_to_use_process_dict_test_() ->
      [?_assertError(
          ?khepri_exception(
             failed_to_prepare_tx_fun,
-            #{error := {call_denied, {erlang, get, 0}}}),
+            #{error :=
+              ?horus_error(
+                 extraction_denied,
+                 #{error := {call_denied, {erlang, get, 0}}})}),
          begin
              Fun = fun() ->
                            get()
@@ -525,7 +541,10 @@ trying_to_use_persistent_term_test_() ->
      [?_assertError(
          ?khepri_exception(
             failed_to_prepare_tx_fun,
-            #{error := {call_denied, {persistent_term, put, 2}}}),
+            #{error :=
+              ?horus_error(
+                 extraction_denied,
+                 #{error := {call_denied, {persistent_term, put, 2}}})}),
          begin
              Fun = fun() ->
                            persistent_term:put(key, value)
@@ -540,7 +559,10 @@ trying_to_use_mnesia_test_() ->
      [?_assertError(
          ?khepri_exception(
             failed_to_prepare_tx_fun,
-            #{error := {call_denied, {mnesia, read, 2}}}),
+            #{error :=
+              ?horus_error(
+                 extraction_denied,
+                 #{error := {call_denied, {mnesia, read, 2}}})}),
          begin
              Fun = fun() ->
                            mnesia:read(table, key)
@@ -557,7 +579,10 @@ trying_to_run_http_request_test_() ->
      [?_assertError(
          ?khepri_exception(
             failed_to_prepare_tx_fun,
-            #{error := _}),
+            #{error :=
+              ?horus_error(
+                 extraction_denied,
+                 #{error := _})}),
          begin
              Fun = fun() ->
                            httpc:request("url://")
@@ -572,7 +597,10 @@ trying_to_use_ssl_test_() ->
      [?_assertError(
          ?khepri_exception(
             failed_to_prepare_tx_fun,
-            #{error := {call_denied, {ssl, connect, 4}}}),
+            #{error :=
+              ?horus_error(
+                 extraction_denied,
+                 #{error := {call_denied, {ssl, connect, 4}}})}),
          begin
              Fun = fun() ->
                            ssl:connect("localhost", 1234, [], infinity)
@@ -654,7 +682,10 @@ tx_using_erl_eval_test_() ->
      [?_assertError(
          ?khepri_exception(
             failed_to_prepare_tx_fun,
-            #{error := {call_denied, _}}),
+            #{error :=
+              ?horus_error(
+                 extraction_denied,
+                 #{error := {call_denied, _}})}),
          begin
              _ = khepri:put(
                    ?FUNCTION_NAME, [foo], khepri_payload:data(value1)),

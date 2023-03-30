@@ -12,14 +12,14 @@
 -type unwrapped_minimal_ret() :: khepri:minimal_ret().
 
 -type unwrapped_payload_ret(Default) :: khepri:data() |
-                                        khepri_fun:standalone_fun() |
+                                        horus:horus_fun() |
                                         Default.
 
 -type unwrapped_payload_ret() :: unwrapped_payload_ret(undefined).
 
 -type unwrapped_many_payloads_ret(Default) :: #{khepri_path:path() =>
                                                 khepri:data() |
-                                                khepri_fun:standalone_fun() |
+                                                horus:horus_fun() |
                                                 Default}.
 
 -type unwrapped_many_payloads_ret() :: unwrapped_many_payloads_ret(undefined).

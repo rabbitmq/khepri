@@ -21,8 +21,9 @@
 
 -module(khepri_payload).
 
+-include_lib("horus/include/horus.hrl").
+
 -include("src/khepri_error.hrl").
--include("src/khepri_fun.hrl").
 -include("src/khepri_payload.hrl").
 
 -export([none/0,
@@ -76,7 +77,7 @@ data(Term) ->
     #p_data{data = Term}.
 
 -spec sproc(Fun) -> Payload when
-      Fun :: khepri_fun:standalone_fun() | fun(),
+      Fun :: horus:horus_fun() | fun(),
       Payload :: sproc().
 %% @doc Returns the same function wrapped into an internal structure ready to
 %% be stored in the tree.
@@ -88,7 +89,7 @@ sproc(Fun) when is_function(Fun) ->
              %% This will be overridden with the correct value when the
              %% function will be extracted.
              is_valid_as_tx_fun = false};
-sproc(#standalone_fun{} = Fun) ->
+sproc(Fun) when ?IS_HORUS_STANDALONE_FUN(Fun) ->
     #p_sproc{sproc = Fun,
              is_valid_as_tx_fun = false}.
 
@@ -128,12 +129,11 @@ prepare(#p_sproc{sproc = Fun} = Payload)
   when is_function(Fun) ->
     try
         case khepri_tx_adv:to_standalone_fun(Fun, auto) of
-            #standalone_fun{} = StandaloneFun1 ->
+            StandaloneFun1 when ?IS_HORUS_STANDALONE_FUN(StandaloneFun1) ->
                 Payload#p_sproc{sproc = StandaloneFun1,
                                 is_valid_as_tx_fun = rw};
             _ ->
-                %% TODO: Improve `khepri_fun' API to avoid a second
-                %% extraction.
+                %% TODO: Improve Horus API to avoid a second extraction.
                 StandaloneFun1 = khepri_tx_adv:to_standalone_fun(Fun, rw),
                 Payload#p_sproc{sproc = StandaloneFun1,
                                 is_valid_as_tx_fun = ro}

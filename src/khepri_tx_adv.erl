@@ -15,9 +15,10 @@
 
 -include_lib("stdlib/include/assert.hrl").
 
+-include_lib("horus/include/horus.hrl").
+
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
--include("src/khepri_fun.hrl").
 -include("src/khepri_machine.hrl").
 -include("src/khepri_ret.hrl").
 -include("src/khepri_tx.hrl").
@@ -499,7 +500,7 @@ clear_many_payloads(PathPattern, Options) ->
 -spec to_standalone_fun(Fun, ReadWrite) -> StandaloneFun | no_return() when
       Fun :: fun(),
       ReadWrite :: ro | rw | auto,
-      StandaloneFun :: khepri_fun:standalone_fun().
+      StandaloneFun :: horus:horus_fun().
 %% @private
 
 to_standalone_fun(Fun, ReadWrite)
@@ -513,7 +514,7 @@ to_standalone_fun(Fun, ReadWrite)
       is_standalone_fun_still_needed =>
       fun(Params) -> is_standalone_fun_still_needed(Params, ReadWrite) end},
     try
-        khepri_fun:to_standalone_fun(Fun, Options)
+        horus:to_standalone_fun(Fun, Options)
     catch
         throw:Error:Stacktrace ->
             erlang:error(
@@ -682,8 +683,8 @@ ensure_instruction_is_permitted(Unknown) ->
     throw({unknown_instruction, Unknown}).
 
 should_process_function(Module, Name, Arity, FromModule) ->
-    ShouldCollect = khepri_utils:should_collect_code_for_module(Module),
-    case ShouldCollect of
+    ShouldProcess = khepri_utils:should_process_module(Module),
+    case ShouldProcess of
         true ->
             case Module of
                 FromModule ->
@@ -955,7 +956,7 @@ is_standalone_fun_still_needed(#{calls := Calls}, auto) ->
 
 -spec run(State, StandaloneFun, Args, AllowUpdates) -> Ret when
       State :: khepri_machine:state(),
-      StandaloneFun :: khepri_fun:standalone_fun(),
+      StandaloneFun :: horus:horus_fun(),
       Args :: list(),
       AllowUpdates :: boolean(),
       Ret :: {State, khepri_tx:tx_fun_result() | Exception, SideEffects},
@@ -967,7 +968,7 @@ is_standalone_fun_still_needed(#{calls := Calls}, auto) ->
 %% @private
 
 run(State, StandaloneFun, Args, AllowUpdates)
-  when ?IS_STANDALONE_FUN(StandaloneFun) ->
+  when ?IS_HORUS_FUN(StandaloneFun) ->
     SideEffects = [],
     TxProps = #{allow_updates => AllowUpdates},
     NoState = erlang:put(?TX_STATE_KEY, {State, SideEffects}),
@@ -975,7 +976,7 @@ run(State, StandaloneFun, Args, AllowUpdates)
     ?assertEqual(undefined, NoState),
     ?assertEqual(undefined, NoProps),
     try
-        Ret = khepri_fun:exec(StandaloneFun, Args),
+        Ret = horus:exec(StandaloneFun, Args),
 
         {NewState, NewSideEffects} = erlang:erase(?TX_STATE_KEY),
         NewTxProps = erlang:erase(?TX_PROPS),

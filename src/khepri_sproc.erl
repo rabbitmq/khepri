@@ -13,9 +13,10 @@
 
 -include_lib("stdlib/include/assert.hrl").
 
+-include_lib("horus/include/horus.hrl").
+
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
--include("src/khepri_fun.hrl").
 -include("src/khepri_tx.hrl").
 
 %% For internal use only.
@@ -24,12 +25,12 @@
 
 -spec to_standalone_fun(Fun) -> StandaloneFun | no_return() when
       Fun :: fun(),
-      StandaloneFun :: khepri_fun:standalone_fun().
+      StandaloneFun :: horus:horus_fun().
 
 to_standalone_fun(Fun) when is_function(Fun) ->
     Options = #{should_process_function => fun should_process_function/4},
     try
-        khepri_fun:to_standalone_fun(Fun, Options)
+        horus:to_standalone_fun(Fun, Options)
     catch
         throw:Error:Stacktrace ->
             erlang:error(
@@ -39,17 +40,17 @@ to_standalone_fun(Fun) when is_function(Fun) ->
                    error => Error,
                    stacktrace => Stacktrace}))
     end;
-to_standalone_fun(#standalone_fun{} = Fun) ->
+to_standalone_fun(Fun) when ?IS_HORUS_STANDALONE_FUN(Fun) ->
     Fun.
 
 -spec run(StandaloneFun, Args) -> Ret when
-      StandaloneFun :: khepri_fun:standalone_fun(),
+      StandaloneFun :: horus:horus_fun(),
       Args :: [any()],
       Ret :: any().
 
 run(StandaloneFun, Args) ->
     try
-        khepri_fun:exec(StandaloneFun, Args)
+        horus:exec(StandaloneFun, Args)
     catch
         throw:?TX_ABORT(_Reason):Stacktrace ->
             ?khepri_raise_misuse(
@@ -58,8 +59,7 @@ run(StandaloneFun, Args) ->
     end.
 
 should_process_function(Module, Name, Arity, FromModule) ->
-    ShouldCollect = khepri_utils:should_collect_code_for_module(Module),
-    case ShouldCollect of
+    case khepri_utils:should_process_module(Module) of
         true ->
             case Module of
                 FromModule ->

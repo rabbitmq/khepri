@@ -26,7 +26,7 @@
          display_tree/1,
          display_tree/2,
          display_tree/3,
-         should_collect_code_for_module/1,
+         should_process_module/1,
          init_list_of_modules_to_skip/0,
          clear_list_of_modules_to_skip/0,
          format_exception/4]).
@@ -35,7 +35,7 @@
 -dialyzer(no_missing_calls).
 
 -type display_tree() :: #{data => khepri:data(),
-                          sproc => khepri_fun:standalone_fun(),
+                          sproc => horus:horus_fun(),
                           payload_version => khepri:payload_version(),
                           child_list_version => khepri:child_list_version(),
                           child_list_length => khepri:child_list_length(),
@@ -232,16 +232,17 @@ format_data(Data, _Options) ->
 
 -define(PT_MODULES_TO_SKIP, {khepri, skipped_modules_in_code_collection}).
 
-should_collect_code_for_module(Module) ->
-    Modules = persistent_term:get(?PT_MODULES_TO_SKIP),
-    not maps:is_key(Module, Modules).
+should_process_module(Module) ->
+    case horus_utils:should_process_module(Module) of
+        true ->
+            Modules = persistent_term:get(?PT_MODULES_TO_SKIP),
+            not maps:is_key(Module, Modules);
+        false ->
+            false
+    end.
 
 init_list_of_modules_to_skip() ->
-    InitialModules = #{erlang => true},
-    Applications = [erts,
-                    kernel,
-                    stdlib,
-                    mnesia,
+    Applications = [mnesia,
                     sasl,
                     ssl,
                     khepri],
@@ -259,7 +260,7 @@ init_list_of_modules_to_skip() ->
                           fun(Mod, Modules1) ->
                                   Modules1#{Mod => true}
                           end, Modules0, Mods)
-                end, InitialModules, Applications),
+                end, #{}, Applications),
     ?assert(maps:is_key(khepri, Modules)),
     persistent_term:put(?PT_MODULES_TO_SKIP, Modules),
     ok.
