@@ -48,7 +48,7 @@ tree node.</p>
   Beside the absence of payload, the only type of payload supported is data.</p>
 
 <h3 class="typedecl"><a name="type-sproc">sproc()</a></h3>
-<p><code>sproc() = #p_sproc{sproc = <a href="/home/runner/work/khepri/khepri/doc/khepri_fun.html#type-standalone_fun">khepri_fun:standalone_fun()</a>, is_valid_as_tx_fun = ro | rw | false}</code></p>
+<p><code>sproc() = #p_sproc{sproc = <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun">horus:horus_fun()</a>, is_valid_as_tx_fun = ro | rw | false}</code></p>
 <p>  Internal structure to wrap an anonymous function before it can be stored in
   a tree node and later executed.</p>
 
@@ -87,7 +87,7 @@ one of the internal types.</td></tr>
 <h3 class="function"><a name="sproc-1">sproc/1</a></h3>
 <div class="spec">
 <p><code>sproc(Fun) -&gt; Payload</code>
-<ul class="definitions"><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_fun.html#type-standalone_fun">khepri_fun:standalone_fun()</a> | function()</code></li><li><code>Payload = <a href="#type-sproc">sproc()</a></code></li></ul></p>
+<ul class="definitions"><li><code>Fun = <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun">horus:horus_fun()</a> | function()</code></li><li><code>Payload = <a href="#type-sproc">sproc()</a></code></li></ul></p>
 <p></p>
 </div><p>Returns the same function wrapped into an internal structure ready to
   be stored in the tree.

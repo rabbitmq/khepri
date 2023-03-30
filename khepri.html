@@ -172,7 +172,7 @@ on a many nodes.</p>
   <code>undefined</code> is returned if a tree node has no payload attached to it.</p>
 
 <h3 class="typedecl"><a name="type-many_payloads_ret">many_payloads_ret()</a></h3>
-<p><code>many_payloads_ret(Default) = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(#{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_fun.html#type-standalone_fun">khepri_fun:standalone_fun()</a> | Default}) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></p>
+<p><code>many_payloads_ret(Default) = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(#{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun">horus:horus_fun()</a> | Default}) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></p>
 <p><p>  The return value of query functions in the <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> module that work  
 on many nodes.</p>
  
@@ -192,7 +192,7 @@ on many nodes.</p>
 <p>  The return value of update functions in the <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> module.</p>
 
 <h3 class="typedecl"><a name="type-node_props">node_props()</a></h3>
-<p><code>node_props() = #{data =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a>, has_data =&gt; boolean(), sproc =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_fun.html#type-standalone_fun">khepri_fun:standalone_fun()</a>, is_sproc =&gt; boolean(), payload_version =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_version">khepri:payload_version()</a>, child_list_version =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_version">khepri:child_list_version()</a>, child_list_length =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_length">khepri:child_list_length()</a>, child_names =&gt; [<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-node_id">khepri_path:node_id()</a>]}</code></p>
+<p><code>node_props() = #{data =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a>, has_data =&gt; boolean(), sproc =&gt; <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun">horus:horus_fun()</a>, is_sproc =&gt; boolean(), payload_version =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_version">khepri:payload_version()</a>, child_list_version =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_version">khepri:child_list_version()</a>, child_list_length =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_length">khepri:child_list_length()</a>, child_names =&gt; [<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-node_id">khepri_path:node_id()</a>]}</code></p>
 <p><p>  Structure used to return properties, payload and child nodes for a specific  
 tree node.</p>
  
@@ -216,7 +216,7 @@ on a single tree node.</p>
   <code>undefined</code> is returned if a tree node has no payload attached to it.</p>
 
 <h3 class="typedecl"><a name="type-payload_ret">payload_ret()</a></h3>
-<p><code>payload_ret(Default) = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_fun.html#type-standalone_fun">khepri_fun:standalone_fun()</a> | Default) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></p>
+<p><code>payload_ret(Default) = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun">horus:horus_fun()</a> | Default) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></p>
 <p><p>  The return value of query functions in the <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> module that work  
 on a single tree node.</p>
  
@@ -304,7 +304,7 @@ controls which member of the cluster carries out the reply.</p>
 
 
 <h3 class="typedecl"><a name="type-unwrapped_many_payloads_ret">unwrapped_many_payloads_ret()</a></h3>
-<p><code>unwrapped_many_payloads_ret(Default) = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_fun.html#type-standalone_fun">khepri_fun:standalone_fun()</a> | Default}</code></p>
+<p><code>unwrapped_many_payloads_ret(Default) = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun">horus:horus_fun()</a> | Default}</code></p>
 
 
 <h3 class="typedecl"><a name="type-unwrapped_minimal_ret">unwrapped_minimal_ret()</a></h3>
@@ -316,7 +316,7 @@ controls which member of the cluster carries out the reply.</p>
 
 
 <h3 class="typedecl"><a name="type-unwrapped_payload_ret">unwrapped_payload_ret()</a></h3>
-<p><code>unwrapped_payload_ret(Default) = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_fun.html#type-standalone_fun">khepri_fun:standalone_fun()</a> | Default</code></p>
+<p><code>unwrapped_payload_ret(Default) = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun">horus:horus_fun()</a> | Default</code></p>
 
 
 <h2><a name="index">Function Index</a></h2>
