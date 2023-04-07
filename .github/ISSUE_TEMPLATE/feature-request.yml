@@ -1,0 +1,18 @@
+name: Feature request
+description: Suggest an idea for this project
+labels: enhancement
+
+body:
+  - type: textarea
+    id: describe-problem
+    attributes:
+      label: Why
+    validations:
+      required: true
+
+  - type: textarea
+    id: describe-solution
+    attributes:
+      label: How
+    validations:
+      required: true

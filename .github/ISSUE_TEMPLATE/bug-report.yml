@@ -1,0 +1,25 @@
+name: Bug report
+description: Create a report to help us improve
+labels: bug
+
+body:
+  - type: textarea
+    id: describe-problem
+    attributes:
+      label: What does not work?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: How to reproduce
+    validations:
+      required: false
