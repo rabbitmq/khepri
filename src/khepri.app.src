@@ -5,7 +5,7 @@
   %%   * README.md
   %%   * doc/overview.edoc
   %% Pay attention to links in particular.
-  {vsn, "0.6.0"},
+  {vsn, "0.7.0"},
   {registered, [khepri_sup,
                 khepri_event_handler]},
   {applications,
