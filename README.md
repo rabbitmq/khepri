@@ -22,7 +22,7 @@ state machine in a Ra cluster.
 
 ## Project maturity
 
-Khepri is still under active development and should be considered *Alpha* at
+Khepri is still under active development and should be considered *Beta* at
 this stage.
 
 ## Documentation
