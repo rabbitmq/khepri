@@ -80,13 +80,24 @@ fun((Table :: ets:tid(),
 %%
 %% The return value of this function is ignored.
 
--type projection_fun() :: simple_projection_fun() | extended_projection_fun().
+-type projection_fun() :: copy |
+                          simple_projection_fun() |
+                          extended_projection_fun().
 %% A function that formats an entry in the tree into a record to be stored in a
 %% projection.
 %%
-%% Projection functions may either be "simple" or "extended." See {@link
-%% simple_projection_fun()} and {@link extended_projection_fun()} for more
-%% information.
+%% Projection functions may either be:
+%% <ul>
+%% <li>"simple" - a function that takes the path within the tree for a tree
+%% node and the payload and returns a record. See {@link
+%% simple_projection_fun()}.</li>
+%% <li>"copy" - a projection that ignores the path and use the tree node's
+%% payload as the record directly. This is a special case that avoids the
+%% overhead of executing standalone functions for the sake of performance.</li>
+%% <li>"extended" - a function that takes the ETS table identifier, path, and
+%% old and new tree node properties and executes ETS functions directly.
+%% See {@link extended_projection_fun()}.</li>
+%% </ul>
 %%
 %% The projection function is executed directly by the Ra server process. The
 %% function should be as simple and fast as possible to avoid slowing down the
@@ -144,7 +155,11 @@ new(Name, ProjectionFun) ->
 %%
 %% @returns a {@link projection()} resource.
 
-
+new(Name, copy, Options) when is_map(Options) ->
+    EtsOptions = maps:fold(fun to_ets_options/3, [named_table], Options),
+    #khepri_projection{name = Name,
+                       projection_fun = copy,
+                       ets_options = EtsOptions};
 new(Name, ProjectionFun, Options)
   when is_map(Options) andalso
        (is_function(ProjectionFun, 2) orelse
@@ -244,13 +259,18 @@ trigger(
   #khepri_projection{name = Name, projection_fun = ProjectionFun},
   Path, OldProps, NewProps) ->
     Table = ets:whereis(Name),
-    case ?HORUS_STANDALONE_FUN_ARITY(ProjectionFun) of
-        2 ->
-            trigger_simple_projection(
-              Table, Name, ProjectionFun, Path, OldProps, NewProps);
-        4 ->
-            trigger_extended_projection(
-              Table, Name, ProjectionFun, Path, OldProps, NewProps)
+    case ProjectionFun of
+        copy ->
+            trigger_copy_projection(Table, OldProps, NewProps);
+        StandaloneFun ->
+            case ?HORUS_STANDALONE_FUN_ARITY(StandaloneFun) of
+                2 ->
+                    trigger_simple_projection(
+                      Table, Name, StandaloneFun, Path, OldProps, NewProps);
+                4 ->
+                    trigger_extended_projection(
+                      Table, Name, StandaloneFun, Path, OldProps, NewProps)
+            end
     end.
 
 -spec trigger_extended_projection(
@@ -351,4 +371,20 @@ trigger_simple_projection(
         {_, _} ->
             ok
     end,
+    ok.
+
+-spec trigger_copy_projection(Table, OldProps, NewProps) -> Ret when
+      Table :: ets:tid(),
+      OldProps :: khepri:node_props(),
+      NewProps :: khepri:node_props(),
+      Ret :: ok.
+%% @hidden
+
+trigger_copy_projection(Table, _OldProps, #{data := NewPayload}) ->
+    ets:insert(Table, NewPayload),
+    ok;
+trigger_copy_projection(Table, #{data := OldPayload}, _NewProps) ->
+    ets:delete_object(Table, OldPayload),
+    ok;
+trigger_copy_projection(_Table, _OldProps, _NewProps) ->
     ok.

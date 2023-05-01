@@ -445,3 +445,63 @@ delete_removes_entries_recursively_test_() ->
           ?_assertEqual(
             [{Path1, Data}],
             ets:tab2list(?MODULE))}]}]}.
+
+trivial_copy_projection_test_() ->
+    PathPattern = [stock, wood, ?KHEPRI_WILDCARD_STAR],
+    Path1 = [stock, wood, <<"oak">>],
+    Path2 = [stock, wood, <<"birch">>],
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Register the projection",
+          ?_test(
+              begin
+                  Projection = khepri_projection:new(?MODULE, copy),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)},
+
+         {"Trigger the projection with inserts",
+          fun() ->
+                  ?assertEqual(
+                    ok,
+                    khepri:put(?FUNCTION_NAME, Path1, {Path1, 80})),
+                  ?assertEqual(
+                    ok,
+                    khepri:put(?FUNCTION_NAME, Path2, {Path2, 50}))
+          end},
+
+         {"The projection contains the triggered changes",
+          fun() ->
+                  ?assertEqual(80, ets:lookup_element(?MODULE, Path1, 2)),
+                  ?assertEqual(50, ets:lookup_element(?MODULE, Path2, 2))
+          end},
+
+         {"Trigger the projection with updates",
+          fun() ->
+                  ?assertEqual(
+                    ok,
+                    khepri:put(?FUNCTION_NAME, Path1, {Path1, 70})),
+                  ?assertEqual(
+                    ok,
+                    khepri:put(?FUNCTION_NAME, Path2, {Path2, 40}))
+          end},
+
+         {"The projection contains the updated records",
+          fun() ->
+                  ?assertEqual(70, ets:lookup_element(?MODULE, Path1, 2)),
+                  ?assertEqual(40, ets:lookup_element(?MODULE, Path2, 2))
+          end},
+
+         {"Trigger the projection with a deletion",
+          ?_assertEqual(ok, khepri:delete(?FUNCTION_NAME, Path1))},
+
+         {"The projection contains the expected records",
+          fun() ->
+                  ?assertEqual(false, ets:member(?MODULE, Path1)),
+                  ?assertEqual(40, ets:lookup_element(?MODULE, Path2, 2))
+          end}]
+      }]}.

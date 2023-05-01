@@ -11,6 +11,9 @@
          name :: atom(),
          %% A function compiled by Horus which "projects" entries from
          %% a Khepri store into records stored in a "projected" ETS table.
-         projection_fun :: horus:horus_fun(),
+         %% This field may be the atom `copy' instead. This is a special case
+         %% for a simple and common-case projection that inserts each tree
+         %% node's payload as the record in the ETS table.
+         projection_fun :: copy | horus:horus_fun(),
          %% Options passed to `ets:new/2'
          ets_options :: [atom() | tuple()]}).
