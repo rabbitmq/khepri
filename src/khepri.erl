@@ -1985,7 +1985,9 @@ run_sproc(StoreId, PathPattern, Args, Options) ->
 
 put(PathPattern, Data) ->
     StoreId = khepri_cluster:get_default_store_id(),
-    put(StoreId, PathPattern, Data).
+    {Command, CommandOptions} = khepri_command:put(PathPattern, Data),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
+    ?result_ret_to_minimal_ret(Ret).
 
 -spec put(StoreId, PathPattern, Data) -> Ret when
       StoreId :: khepri:store_id(),
@@ -2001,7 +2003,9 @@ put(PathPattern, Data) ->
 %% @see put/4.
 
 put(StoreId, PathPattern, Data) ->
-    put(StoreId, PathPattern, Data, #{}).
+    {Command, CommandOptions} = khepri_command:put(PathPattern, Data),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
+    ?result_ret_to_minimal_ret(Ret).
 
 -spec put(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -2080,8 +2084,8 @@ put(StoreId, PathPattern, Data) ->
 %% @see khepri_adv:put/4.
 
 put(StoreId, PathPattern, Data, Options) ->
-    Options1 = Options#{props_to_return => []},
-    Ret = khepri_adv:put(StoreId, PathPattern, Data, Options1),
+    {Command, CommandOptions} = khepri_command:put(PathPattern, Data, Options),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
     ?result_ret_to_minimal_ret(Ret).
 
 %% -------------------------------------------------------------------
@@ -2103,7 +2107,9 @@ put(StoreId, PathPattern, Data, Options) ->
 
 put_many(PathPattern, Data) ->
     StoreId = khepri_cluster:get_default_store_id(),
-    put_many(StoreId, PathPattern, Data).
+    {Command, CommandOptions} = khepri_command:put_many(PathPattern, Data),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
+    ?result_ret_to_minimal_ret(Ret).
 
 -spec put_many(StoreId, PathPattern, Data) -> Ret when
       StoreId :: khepri:store_id(),
@@ -2118,7 +2124,9 @@ put_many(PathPattern, Data) ->
 %% @see put_many/4.
 
 put_many(StoreId, PathPattern, Data) ->
-    put_many(StoreId, PathPattern, Data, #{}).
+    {Command, CommandOptions} = khepri_command:put_many(PathPattern, Data),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
+    ?result_ret_to_minimal_ret(Ret).
 
 -spec put_many(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -2187,8 +2195,9 @@ put_many(StoreId, PathPattern, Data) ->
 %% @see khepri_adv:put_many/4.
 
 put_many(StoreId, PathPattern, Data, Options) ->
-    Options1 = Options#{props_to_return => []},
-    Ret = khepri_adv:put_many(StoreId, PathPattern, Data, Options1),
+    {Command, CommandOptions} = khepri_command:put_many(
+                                  PathPattern, Data, Options),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
     ?result_ret_to_minimal_ret(Ret).
 
 %% -------------------------------------------------------------------
@@ -2210,7 +2219,9 @@ put_many(StoreId, PathPattern, Data, Options) ->
 
 create(PathPattern, Data) ->
     StoreId = khepri_cluster:get_default_store_id(),
-    create(StoreId, PathPattern, Data).
+    {Command, CommandOptions} = khepri_command:create(PathPattern, Data),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
+    ?result_ret_to_minimal_ret(Ret).
 
 -spec create(StoreId, PathPattern, Data) -> Ret when
       StoreId :: khepri:store_id(),
@@ -2225,7 +2236,9 @@ create(PathPattern, Data) ->
 %% @see create/4.
 
 create(StoreId, PathPattern, Data) ->
-    create(StoreId, PathPattern, Data, #{}).
+    {Command, CommandOptions} = khepri_command:create(PathPattern, Data),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
+    ?result_ret_to_minimal_ret(Ret).
 
 -spec create(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -2260,8 +2273,9 @@ create(StoreId, PathPattern, Data) ->
 %% @see khepri_adv:create/4.
 
 create(StoreId, PathPattern, Data, Options) ->
-    Options1 = Options#{props_to_return => []},
-    Ret = khepri_adv:create(StoreId, PathPattern, Data, Options1),
+    {Command, CommandOptions} = khepri_command:create(
+                                  PathPattern, Data, Options),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
     ?result_ret_to_minimal_ret(Ret).
 
 %% -------------------------------------------------------------------
@@ -2283,7 +2297,9 @@ create(StoreId, PathPattern, Data, Options) ->
 
 update(PathPattern, Data) ->
     StoreId = khepri_cluster:get_default_store_id(),
-    update(StoreId, PathPattern, Data).
+    {Command, CommandOptions} = khepri_command:update(PathPattern, Data),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
+    ?result_ret_to_minimal_ret(Ret).
 
 -spec update(StoreId, PathPattern, Data) -> Ret when
       StoreId :: khepri:store_id(),
@@ -2298,7 +2314,9 @@ update(PathPattern, Data) ->
 %% @see update/4.
 
 update(StoreId, PathPattern, Data) ->
-    update(StoreId, PathPattern, Data, #{}).
+    {Command, CommandOptions} = khepri_command:update(PathPattern, Data),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
+    ?result_ret_to_minimal_ret(Ret).
 
 -spec update(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -2333,8 +2351,9 @@ update(StoreId, PathPattern, Data) ->
 %% @see khepri_adv:update/4.
 
 update(StoreId, PathPattern, Data, Options) ->
-    Options1 = Options#{props_to_return => []},
-    Ret = khepri_adv:update(StoreId, PathPattern, Data, Options1),
+    {Command, CommandOptions} = khepri_command:update(
+                                  PathPattern, Data, Options),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
     ?result_ret_to_minimal_ret(Ret).
 
 %% -------------------------------------------------------------------
@@ -2358,7 +2377,10 @@ update(StoreId, PathPattern, Data, Options) ->
 
 compare_and_swap(PathPattern, DataPattern, Data) ->
     StoreId = khepri_cluster:get_default_store_id(),
-    compare_and_swap(StoreId, PathPattern, DataPattern, Data).
+    {Command, CommandOptions} = khepri_command:compare_and_swap(
+                                  PathPattern, DataPattern, Data),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
+    ?result_ret_to_minimal_ret(Ret).
 
 -spec compare_and_swap(StoreId, PathPattern, DataPattern, Data) -> Ret when
       StoreId :: khepri:store_id(),
@@ -2375,7 +2397,10 @@ compare_and_swap(PathPattern, DataPattern, Data) ->
 %% @see compare_and_swap/5.
 
 compare_and_swap(StoreId, PathPattern, DataPattern, Data) ->
-    compare_and_swap(StoreId, PathPattern, DataPattern, Data, #{}).
+    {Command, CommandOptions} = khepri_command:compare_and_swap(
+                                  PathPattern, DataPattern, Data),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
+    ?result_ret_to_minimal_ret(Ret).
 
 -spec compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) ->
     Ret when
@@ -2413,9 +2438,9 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data) ->
 %% @see khepri_adv:compare_and_swap/5.
 
 compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) ->
-    Options1 = Options#{props_to_return => []},
-    Ret = khepri_adv:compare_and_swap(
-            StoreId, PathPattern, DataPattern, Data, Options1),
+    {Command, CommandOptions} = khepri_command:compare_and_swap(
+                                  PathPattern, DataPattern, Data, Options),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
     ?result_ret_to_minimal_ret(Ret).
 
 %% -------------------------------------------------------------------
@@ -2670,7 +2695,10 @@ clear_payload(StoreId, PathPattern, Options) ->
 
 clear_many_payloads(PathPattern) ->
     StoreId = khepri_cluster:get_default_store_id(),
-    clear_many_payloads(StoreId, PathPattern).
+    {Command, CommandOptions} = khepri_command:clear_many_payloads(
+                                  PathPattern),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
+    ?result_ret_to_minimal_ret(Ret).
 
 -spec clear_many_payloads(StoreId, PathPattern) -> Ret when
       StoreId :: khepri:store_id(),
@@ -2684,7 +2712,10 @@ clear_many_payloads(PathPattern) ->
 %% @see clear_many_payloads/3.
 
 clear_many_payloads(StoreId, PathPattern) ->
-    clear_many_payloads(StoreId, PathPattern, #{}).
+    {Command, CommandOptions} = khepri_command:clear_many_payloads(
+                                  PathPattern),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
+    ?result_ret_to_minimal_ret(Ret).
 
 -spec clear_many_payloads(StoreId, PathPattern, Options) ->
     Ret when
@@ -2712,9 +2743,9 @@ clear_many_payloads(StoreId, PathPattern) ->
 %% @see khepri_adv:clear_many_payloads/3.
 
 clear_many_payloads(StoreId, PathPattern, Options) ->
-    Options1 = Options#{props_to_return => []},
-    Ret = khepri_adv:clear_many_payloads(
-            StoreId, PathPattern, Options1),
+    {Command, CommandOptions} = khepri_command:clear_many_payloads(
+                                  PathPattern, Options),
+    Ret = khepri_adv:process_command(StoreId, Command, CommandOptions),
     ?result_ret_to_minimal_ret(Ret).
 
 %% -------------------------------------------------------------------

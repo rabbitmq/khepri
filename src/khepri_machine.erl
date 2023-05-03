@@ -35,7 +35,6 @@
 -include("src/khepri_projection.hrl").
 
 -export([fold/5,
-         put/4,
          delete/3,
          transaction/5,
          register_trigger/5,
@@ -58,6 +57,7 @@
          split_query_options/1,
          split_command_options/1,
          split_put_options/1,
+         do_apply/2,
          insert_or_update_node/5,
          delete_matching_nodes/3,
          handle_tx_exception/1,
@@ -125,6 +125,7 @@
               tx_ret/0,
               async_ret/0,
 
+              command/0,
               state/0,
               machine_config/0,
               props/0,
@@ -182,43 +183,6 @@ fold(StoreId, PathPattern, Fun, Acc, Options)
         {exception, _, _, _} = Exception -> handle_tx_exception(Exception);
         Ret                              -> Ret
     end.
-
--spec put(StoreId, PathPattern, Payload, Options) -> Ret when
-      StoreId :: khepri:store_id(),
-      PathPattern :: khepri_path:pattern(),
-      Payload :: khepri_payload:payload(),
-      Options :: khepri:command_options() |
-                 khepri:tree_options() |
-                 khepri:put_options(),
-      Ret :: khepri_machine:common_ret() | khepri_machine:async_ret().
-%% @doc Creates or modifies a specific tree node in the tree structure.
-%%
-%% @param StoreId the name of the Ra cluster.
-%% @param PathPattern the path (or path pattern) to the node to create or
-%%        modify.
-%% @param Payload the payload to put in the specified node.
-%% @param Options command, tree and put options.
-%%
-%% @returns in the case of a synchronous put, an `{ok, NodePropsMap}' tuple
-%% with a map with zero, one or more entries, or an `{error, Reason}' tuple;
-%% in the case of an asynchronous put, always `ok' (the actual return value
-%% may be sent by a message if a correlation ID was specified).
-%%
-%% @private
-
-put(StoreId, PathPattern, Payload, Options)
-  when ?IS_STORE_ID(StoreId) andalso ?IS_KHEPRI_PAYLOAD(Payload) ->
-    PathPattern1 = khepri_path:from_string(PathPattern),
-    khepri_path:ensure_is_valid(PathPattern1),
-    Payload1 = khepri_payload:prepare(Payload),
-    {CommandOptions, TreeAndPutOptions} = split_command_options(Options),
-    Command = #put{path = PathPattern1,
-                   payload = Payload1,
-                   options = TreeAndPutOptions},
-    process_command(StoreId, Command, CommandOptions);
-put(_StoreId, PathPattern, Payload, _Options) ->
-    ?khepri_misuse(invalid_payload, #{path => PathPattern,
-                                      payload => Payload}).
 
 -spec delete(StoreId, PathPattern, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -684,7 +648,7 @@ set_default_options(Options) ->
 %%
 %% @private
 
-process_command(StoreId, Command, Options) ->
+process_command(StoreId, Command, Options) when ?IS_STORE_ID(StoreId) ->
     CommandType = select_command_type(Options),
     case CommandType of
         sync ->
@@ -1115,35 +1079,30 @@ restore_projection(Projection, Tree, PathPattern) ->
       SideEffects :: ra_machine:effects().
 %% @private
 
+apply(Meta, Command, State) ->
+    Ret = do_apply(Command, State),
+    bump_applied_command_count(Ret, Meta).
+
 %% TODO: Handle unknown/invalid commands.
-apply(
-  Meta,
+do_apply(
   #put{path = PathPattern, payload = Payload, options = TreeAndPutOptions},
   State) ->
     {TreeOptions, PutOptions} = split_put_options(TreeAndPutOptions),
-    Ret = insert_or_update_node(
-            State, PathPattern, Payload, PutOptions, TreeOptions),
-    bump_applied_command_count(Ret, Meta);
-apply(
-  Meta,
+    insert_or_update_node(
+      State, PathPattern, Payload, PutOptions, TreeOptions);
+do_apply(
   #delete{path = PathPattern, options = TreeOptions},
   State) ->
-    Ret = delete_matching_nodes(State, PathPattern, TreeOptions),
-    bump_applied_command_count(Ret, Meta);
-apply(
-  Meta,
+    delete_matching_nodes(State, PathPattern, TreeOptions);
+do_apply(
   #tx{'fun' = StandaloneFun, args = Args},
   State) when ?IS_HORUS_FUN(StandaloneFun) ->
-    Ret = khepri_tx_adv:run(State, StandaloneFun, Args, true),
-    bump_applied_command_count(Ret, Meta);
-apply(
-  Meta,
+    khepri_tx_adv:run(State, StandaloneFun, Args, true);
+do_apply(
   #tx{'fun' = PathPattern, args = Args},
   State) when ?IS_KHEPRI_PATH_PATTERN(PathPattern) ->
-    Ret = locate_sproc_and_execute_tx(State, PathPattern, Args, true),
-    bump_applied_command_count(Ret, Meta);
-apply(
-  Meta,
+    locate_sproc_and_execute_tx(State, PathPattern, Args, true);
+do_apply(
   #register_trigger{id = TriggerId,
                     sproc = StoredProcPath,
                     event_filter = EventFilter},
@@ -1157,18 +1116,14 @@ apply(
     Triggers1 = Triggers#{TriggerId => #{sproc => StoredProcPath1,
                                          event_filter => EventFilter1}},
     State1 = State#?MODULE{triggers = Triggers1},
-    Ret = {State1, ok},
-    bump_applied_command_count(Ret, Meta);
-apply(
-  Meta,
+    {State1, ok};
+do_apply(
   #ack_triggered{triggered = ProcessedTriggers},
   #?MODULE{emitted_triggers = EmittedTriggers} = State) ->
     EmittedTriggers1 = EmittedTriggers -- ProcessedTriggers,
     State1 = State#?MODULE{emitted_triggers = EmittedTriggers1},
-    Ret = {State1, ok},
-    bump_applied_command_count(Ret, Meta);
-apply(
-  Meta,
+    {State1, ok};
+do_apply(
   #register_projection{pattern = PathPattern, projection = Projection},
   #?MODULE{tree = Tree, projections = ProjectionTree} = State) ->
     Reply = khepri_projection:init(Projection),
@@ -1188,10 +1143,8 @@ apply(
                  _  ->
                      State
              end,
-    Ret = {State1, Reply},
-    bump_applied_command_count(Ret, Meta);
-apply(
-  Meta,
+    {State1, Reply};
+do_apply(
   #unregister_projection{name = ProjectionName},
   #?MODULE{projections = ProjectionTree} = State) ->
     ProjectionTree1 =
@@ -1224,8 +1177,7 @@ apply(
                     ok
             end,
     State1 = State#?MODULE{projections = ProjectionTree1},
-    Ret = {State1, Reply},
-    bump_applied_command_count(Ret, Meta).
+    {State1, Reply}.
 
 -spec bump_applied_command_count(ApplyRet, Meta) ->
     {State, Ret, SideEffects} when

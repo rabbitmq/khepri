@@ -15,8 +15,7 @@
 -include("test/helpers.hrl").
 
 -dialyzer([{nowarn_function,
-            [use_an_invalid_path_test_/0,
-             use_an_invalid_payload_test_/0]}]).
+            [use_an_invalid_path_test_/0]}]).
 
 insert_a_node_test_() ->
     {setup,
@@ -133,26 +132,3 @@ use_an_invalid_path_test_() ->
            ?FUNCTION_NAME,
            ["not_a_component"],
            ?NO_PAYLOAD))]}.
-
-use_an_invalid_payload_test_() ->
-    {setup,
-     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
-     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertError(
-         ?khepri_exception(invalid_payload, #{path := [foo],
-                                              payload := invalid_payload}),
-         khepri_machine:put(
-           ?FUNCTION_NAME,
-           [foo],
-           invalid_payload,
-           #{})),
-      ?_assertError(
-         ?khepri_exception(
-            invalid_payload,
-            #{path := [foo],
-              payload := {invalid_payload, in_a_tuple}}),
-         khepri_machine:put(
-           ?FUNCTION_NAME,
-           [foo],
-           {invalid_payload, in_a_tuple},
-           #{}))]}.

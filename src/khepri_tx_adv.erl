@@ -156,7 +156,9 @@ do_get_many(PathPattern, Fun, Acc, Options) ->
 %% @see khepri_adv:put/3.
 
 put(PathPattern, Data) ->
-    put(PathPattern, Data, #{}).
+    {Command, CommandOptions} = khepri_command_adv:put(PathPattern, Data),
+    Ret = process_command(Command, CommandOptions),
+    ?common_ret_to_single_result_ret(Ret).
 
 -spec put(PathPattern, Data, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
@@ -172,8 +174,9 @@ put(PathPattern, Data) ->
 %% @see khepri_adv:put/4.
 
 put(PathPattern, Data, Options) ->
-    Options1 = Options#{expect_specific_node => true},
-    Ret = put_many(PathPattern, Data, Options1),
+    {Command, CommandOptions} = khepri_command_adv:put(
+                                  PathPattern, Data, Options),
+    Ret = process_command(Command, CommandOptions),
     ?common_ret_to_single_result_ret(Ret).
 
 %% -------------------------------------------------------------------
@@ -192,7 +195,8 @@ put(PathPattern, Data, Options) ->
 %% @see khepri_adv:put_many/3.
 
 put_many(PathPattern, Data) ->
-    put_many(PathPattern, Data, #{}).
+    {Command, CommandOptions} = khepri_command_adv:put_many(PathPattern, Data),
+    process_command(Command, CommandOptions).
 
 -spec put_many(PathPattern, Data, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
@@ -207,19 +211,9 @@ put_many(PathPattern, Data) ->
 %% @see khepri_adv:put_many/4.
 
 put_many(PathPattern, Data, Options) ->
-    ensure_updates_are_allowed(),
-    PathPattern1 = path_from_string(PathPattern),
-    Payload1 = khepri_payload:wrap(Data),
-    {_CommandOptions, TreeAndPutOptions} =
-    khepri_machine:split_command_options(Options),
-    {TreeOptions, PutOptions} =
-    khepri_machine:split_put_options(TreeAndPutOptions),
-    %% TODO: Ensure `CommandOptions' is unset.
-    Fun = fun(State) ->
-                  khepri_machine:insert_or_update_node(
-                    State, PathPattern1, Payload1, PutOptions, TreeOptions)
-          end,
-    handle_state_for_call(Fun).
+    {Command, CommandOptions} = khepri_command_adv:put_many(
+                                  PathPattern, Data, Options),
+    process_command(Command, CommandOptions).
 
 %% -------------------------------------------------------------------
 %% create().
@@ -237,7 +231,9 @@ put_many(PathPattern, Data, Options) ->
 %% @see khepri_adv:create/3.
 
 create(PathPattern, Data) ->
-    create(PathPattern, Data, #{}).
+    {Command, CommandOptions} = khepri_command_adv:create(PathPattern, Data),
+    Ret = process_command(Command, CommandOptions),
+    ?common_ret_to_single_result_ret(Ret).
 
 -spec create(PathPattern, Data, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
@@ -252,11 +248,9 @@ create(PathPattern, Data) ->
 %% @see khepri_adv:create/4.
 
 create(PathPattern, Data, Options) ->
-    PathPattern1 = path_from_string(PathPattern),
-    PathPattern2 = khepri_path:combine_with_conditions(
-                     PathPattern1, [#if_node_exists{exists = false}]),
-    Options1 = Options#{expect_specific_node => true},
-    Ret = put_many(PathPattern2, Data, Options1),
+    {Command, CommandOptions} = khepri_command_adv:create(
+                                  PathPattern, Data, Options),
+    Ret = process_command(Command, CommandOptions),
     ?common_ret_to_single_result_ret(Ret).
 
 %% -------------------------------------------------------------------
@@ -275,7 +269,9 @@ create(PathPattern, Data, Options) ->
 %% @see khepri_adv:update/3.
 
 update(PathPattern, Data) ->
-    update(PathPattern, Data, #{}).
+    {Command, CommandOptions} = khepri_command_adv:update(PathPattern, Data),
+    Ret = process_command(Command, CommandOptions),
+    ?common_ret_to_single_result_ret(Ret).
 
 -spec update(PathPattern, Data, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
@@ -290,11 +286,9 @@ update(PathPattern, Data) ->
 %% @see khepri_adv:update/4.
 
 update(PathPattern, Data, Options) ->
-    PathPattern1 = path_from_string(PathPattern),
-    PathPattern2 = khepri_path:combine_with_conditions(
-                     PathPattern1, [#if_node_exists{exists = true}]),
-    Options1 = Options#{expect_specific_node => true},
-    Ret = put_many(PathPattern2, Data, Options1),
+    {Command, CommandOptions} = khepri_command_adv:update(
+                                  PathPattern, Data, Options),
+    Ret = process_command(Command, CommandOptions),
     ?common_ret_to_single_result_ret(Ret).
 
 %% -------------------------------------------------------------------
@@ -315,7 +309,10 @@ update(PathPattern, Data, Options) ->
 %% @see khepri_adv:compare_and_swap/4.
 
 compare_and_swap(PathPattern, DataPattern, Data) ->
-    compare_and_swap(PathPattern, DataPattern, Data, #{}).
+    {Command, CommandOptions} = khepri_command_adv:compare_and_swap(
+                                  PathPattern, DataPattern, Data),
+    Ret = process_command(Command, CommandOptions),
+    ?common_ret_to_single_result_ret(Ret).
 
 -spec compare_and_swap(PathPattern, DataPattern, Data, Options) ->
     Ret when
@@ -333,11 +330,9 @@ compare_and_swap(PathPattern, DataPattern, Data) ->
 %% @see khepri_adv:compare_and_swap/5.
 
 compare_and_swap(PathPattern, DataPattern, Data, Options) ->
-    PathPattern1 = path_from_string(PathPattern),
-    PathPattern2 = khepri_path:combine_with_conditions(
-                     PathPattern1, [#if_data_matches{pattern = DataPattern}]),
-    Options1 = Options#{expect_specific_node => true},
-    Ret = put_many(PathPattern2, Data, Options1),
+    {Command, CommandOptions} = khepri_command_adv:compare_and_swap(
+                                  PathPattern, DataPattern, Data, Options),
+    Ret = process_command(Command, CommandOptions),
     ?common_ret_to_single_result_ret(Ret).
 
 %% -------------------------------------------------------------------
@@ -477,7 +472,9 @@ clear_payload(PathPattern, Options) ->
 %% @see khepri_adv:clear_many_payloads/2.
 
 clear_many_payloads(PathPattern) ->
-    clear_many_payloads(PathPattern, #{}).
+    {Command, CommandOptions} = khepri_command_adv:clear_many_payloads(
+                                  PathPattern),
+    process_command(Command, CommandOptions).
 
 -spec clear_many_payloads(PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
@@ -491,7 +488,9 @@ clear_many_payloads(PathPattern) ->
 %% @see khepri_adv:clear_many_payloads/3.
 
 clear_many_payloads(PathPattern, Options) ->
-    put_many(PathPattern, khepri_payload:none(), Options).
+    {Command, CommandOptions} = khepri_command_adv:clear_many_payloads(
+                                  PathPattern, Options),
+    process_command(Command, CommandOptions).
 
 %% -------------------------------------------------------------------
 %% Internal functions.
@@ -991,6 +990,12 @@ run(State, StandaloneFun, Args, AllowUpdates)
             Exception = {exception, Class, Reason, Stacktrace},
             {State, Exception, []}
     end.
+
+process_command(Command, _CommandOptions) ->
+    %% TODO: Ensure `CommandOptions' is empty.
+    ensure_updates_are_allowed(),
+    Fun = fun(State) -> khepri_machine:do_apply(Command, State) end,
+    handle_state_for_call(Fun).
 
 handle_state_for_call(Fun) ->
     {State, SideEffects} = get_tx_state(),
