@@ -62,6 +62,11 @@
 
 -record(unregister_projection, {name :: atom()}).
 
+-record(batch, {commands = [] :: [khepri_machine:command()],
+                options = #{} :: khepri:batch_options()}).
+
+%% State machine aux commands.
+
 -record(trigger_projection, {path :: khepri_path:native_path(),
                              old_props :: khepri:node_props(),
                              new_props :: khepri:node_props(),

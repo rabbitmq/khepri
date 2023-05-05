@@ -86,7 +86,8 @@
                    #register_trigger{} |
                    #ack_triggered{} |
                    #register_projection{} |
-                   #unregister_projection{}.
+                   #unregister_projection{} |
+                   #batch{}.
 %% Commands specific to this Ra machine.
 
 -type machine_init_args() :: #{store_id := khepri:store_id(),
@@ -1177,7 +1178,39 @@ do_apply(
                     ok
             end,
     State1 = State#?MODULE{projections = ProjectionTree1},
-    {State1, Reply}.
+    {State1, Reply};
+do_apply(
+  #batch{commands = Commands, options = Options},
+  State) ->
+    Atomic = maps:get(atomic, Options),
+    Ret = apply_batch(Commands, Atomic, State, [], []),
+    case Ret of
+        {_State1, {ok, _}, _SE}                   -> Ret;
+        {_State1, {error, _}} when not Atomic     -> Ret;
+        {_State1, {error, _} = Error} when Atomic -> {State, Error}
+    end.
+
+apply_batch([Command | Rest], Atomic, State, Results, SideEffects) ->
+    Ret = do_apply(Command, State),
+    {State1, Result, SE} = case Ret of
+                               {St, Rs}        -> {St, Rs, []};
+                               {_St, _Rs, _SE} -> Ret
+                           end,
+    Results1 = [Result | Results],
+    case Result of
+        {error, _} when Atomic ->
+            Results2 = lists:reverse(Results1),
+            Reason = ?khepri_error(
+                        failed_batch,
+                        #{return_values => Results2}),
+            {State, {error, Reason}};
+        _ ->
+            SideEffects1 = SideEffects ++ SE,
+            apply_batch(Rest, Atomic, State1, Results1, SideEffects1)
+    end;
+apply_batch([], _Atomic, State, Results, SideEffects) ->
+    Results1 = lists:reverse(Results),
+    {State, {ok, Results1}, SideEffects}.
 
 -spec bump_applied_command_count(ApplyRet, Meta) ->
     {State, Ret, SideEffects} when

@@ -344,6 +344,15 @@
 %% created/updated tree node.</li>
 %% </ul>
 
+-type batch_options() :: #{atomic => boolean()}.
+%% Options specific to batches.
+%%
+%% <ul>
+%% <li>`atomic' indicates if commands in the batch must be applied
+%% individually and independently, or if they must be applied in an all or
+%% nothing fashion.</li>
+%% </ul>
+
 -type fold_fun() :: fun((khepri_path:native_path(),
                          khepri:node_props(),
                          khepri:fold_acc()) -> khepri:fold_acc()).
@@ -430,6 +439,7 @@
               query_options/0,
               tree_options/0,
               put_options/0,
+              batch_options/0,
 
               fold_fun/0,
               fold_acc/0,
