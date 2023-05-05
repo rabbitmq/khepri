@@ -68,17 +68,26 @@ and available values.</p>
   allowed. <a docgen-rel="seetype" docgen-href="#extended_projection_fun/0" href="#type-extended_projection_fun"><code>extended_projection_fun()</code></a>s may use any valid <a docgen-rel="seetype" docgen-href="ets#table_type/0" href="ets.html#type-table_type"><code>ets:table_type()</code></a>.</p>
 
 <h3 class="typedecl"><a name="type-projection">projection()</a></h3>
-<p><code>projection() = #khepri_projection{name = atom(), projection_fun = <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun">horus:horus_fun()</a>, ets_options = [atom() | tuple()]}</code></p>
+<p><code>projection() = #khepri_projection{name = atom(), projection_fun = copy | <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun">horus:horus_fun()</a>, ets_options = [atom() | tuple()]}</code></p>
 <p>  A projection resource.
  </p>
 
 <h3 class="typedecl"><a name="type-projection_fun">projection_fun()</a></h3>
-<p><code>projection_fun() = <a href="#type-simple_projection_fun">simple_projection_fun()</a> | <a href="#type-extended_projection_fun">extended_projection_fun()</a></code></p>
+<p><code>projection_fun() = copy | <a href="#type-simple_projection_fun">simple_projection_fun()</a> | <a href="#type-extended_projection_fun">extended_projection_fun()</a></code></p>
 <p><p>  A function that formats an entry in the tree into a record to be stored in a  
 projection.</p>
  
-  <p>Projection functions may either be "simple" or "extended." See <a docgen-rel="seetype" docgen-href="#simple_projection_fun/0" href="#type-simple_projection_fun"><code>simple_projection_fun()</code></a> and <a docgen-rel="seetype" docgen-href="#extended_projection_fun/0" href="#type-extended_projection_fun"><code>extended_projection_fun()</code></a> for more  
-information.</p>
+  Projection functions may either be:
+  <ul>
+  <li>"simple" - a function that takes the path within the tree for a tree
+  node and the payload and returns a record. See <a docgen-rel="seetype" docgen-href="#simple_projection_fun/0" href="#type-simple_projection_fun"><code>simple_projection_fun()</code></a>.</li>
+  <li>"copy" - a projection that ignores the path and use the tree node's
+  payload as the record directly. This is a special case that avoids the
+  overhead of executing standalone functions for the sake of performance.</li>
+  <li>"extended" - a function that takes the ETS table identifier, path, and
+  old and new tree node properties and executes ETS functions directly.
+  See <a docgen-rel="seetype" docgen-href="#extended_projection_fun/0" href="#type-extended_projection_fun"><code>extended_projection_fun()</code></a>.</li>
+  </ul>
  
   The projection function is executed directly by the Ra server process. The
   function should be as simple and fast as possible to avoid slowing down the
