@@ -477,12 +477,13 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options)
 register_projection(
   StoreId, PathPattern0,
   #khepri_projection{name = Name,
-                     projection_fun = StandaloneFun,
+                     projection_fun = ProjectionFun,
                      ets_options = EtsOptions} = Projection,
   Options0)
   when is_atom(Name) andalso
        is_list(EtsOptions) andalso
-       ?IS_HORUS_STANDALONE_FUN(StandaloneFun) ->
+       (?IS_HORUS_STANDALONE_FUN(ProjectionFun) orelse
+        ProjectionFun =:= copy) ->
     Options = Options0#{reply_from => local},
     PathPattern = khepri_path:from_string(PathPattern0),
     khepri_path:ensure_is_valid(PathPattern),
