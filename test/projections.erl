@@ -387,6 +387,40 @@ projection_which_errors_does_not_cause_machine_to_exit_test_() ->
           ?_assertEqual({ok, Data}, khepri:get(?FUNCTION_NAME, PathPattern))}]
       }]}.
 
+projection_which_returns_non_tuple_does_not_cause_machine_to_exit_test_() ->
+    PathPattern = [stock, wood, <<"oak">>],
+    Data = not_a_record,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Register the projection",
+          ?_test(
+              begin
+                  Projection = khepri_projection:new(?MODULE, copy),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)},
+         {"Trigger the projection",
+          ?_test(
+              begin
+                  Log = helpers:capture_log(
+                          fun() ->
+                                  ?assertEqual(
+                                    ok,
+                                    khepri:put(
+                                      ?FUNCTION_NAME, PathPattern, Data))
+                          end),
+                  ?assertSubString(<<"Failed to insert record into "
+                                     "ETS table">>, Log),
+                  ?assertSubString(list_to_binary(?MODULE_STRING), Log),
+                  ?assertSubString(<<"bad argument">>, Log)
+              end)},
+         {"The projection does not contain the triggered change",
+          ?_assertEqual([], ets:tab2list(?MODULE))}]}]}.
+
 delete_removes_entries_recursively_test_() ->
     ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
     PathPattern = [stock,

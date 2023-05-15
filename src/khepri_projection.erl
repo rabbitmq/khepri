@@ -261,7 +261,7 @@ trigger(
     Table = ets:whereis(Name),
     case ProjectionFun of
         copy ->
-            trigger_copy_projection(Table, OldProps, NewProps);
+            trigger_copy_projection(Name, Table, OldProps, NewProps);
         StandaloneFun ->
             case ?HORUS_STANDALONE_FUN_ARITY(StandaloneFun) of
                 2 ->
@@ -357,14 +357,14 @@ trigger_simple_projection(
         {_, #{data := NewPayload}} ->
             case TryExec([Path, NewPayload]) of
                 {ok, Record} ->
-                    ets:insert(Table, Record);
+                    try_ets_insert(Name, Table, Record);
                 error ->
                     ok
             end;
         {#{data := OldPayload}, _} ->
             case TryExec([Path, OldPayload]) of
                 {ok, Record} ->
-                    ets:delete_object(Table, Record);
+                    try_ets_delete_object(Name, Table, Record);
                 error ->
                     ok
             end;
@@ -373,18 +373,67 @@ trigger_simple_projection(
     end,
     ok.
 
--spec trigger_copy_projection(Table, OldProps, NewProps) -> Ret when
+-spec trigger_copy_projection(Name, Table, OldProps, NewProps) -> Ret when
+      Name :: atom(),
       Table :: ets:tid(),
       OldProps :: khepri:node_props(),
       NewProps :: khepri:node_props(),
       Ret :: ok.
 %% @hidden
 
-trigger_copy_projection(Table, _OldProps, #{data := NewPayload}) ->
-    ets:insert(Table, NewPayload),
+trigger_copy_projection(Name, Table, _OldProps, #{data := NewPayload}) ->
+    try_ets_insert(Name, Table, NewPayload),
     ok;
-trigger_copy_projection(Table, #{data := OldPayload}, _NewProps) ->
-    ets:delete_object(Table, OldPayload),
+trigger_copy_projection(Name, Table, #{data := OldPayload}, _NewProps) ->
+    try_ets_delete_object(Name, Table, OldPayload),
     ok;
-trigger_copy_projection(_Table, _OldProps, _NewProps) ->
+trigger_copy_projection(_Name, _Table, _OldProps, _NewProps) ->
+    ok.
+
+-spec try_ets_insert(Name, Table, Record) -> ok when
+      Name :: atom(),
+      Table :: ets:tid(),
+      Record :: term().
+%% @hidden
+
+try_ets_insert(Name, Table, Record) ->
+    try
+        ets:insert(Table, Record)
+    catch
+        Class:Reason:Stacktrace ->
+            Exception = khepri_utils:format_exception(
+                          Class, Reason, Stacktrace, #{column => 4}),
+            Msg = io_lib:format("Failed to insert record into ETS table for "
+                                "projection: ~p~n"
+                                "  Record:~n"
+                                "    ~p~n"
+                                "  Crash:~n"
+                                "    ~ts",
+                                [Name, Record, Exception]),
+            ?LOG_ERROR(Msg, [])
+    end,
+    ok.
+
+-spec try_ets_delete_object(Name, Table, Record) -> ok when
+      Name :: atom(),
+      Table :: ets:tid(),
+      Record :: term().
+%% @hidden
+
+try_ets_delete_object(Name, Table, Record) ->
+    try
+        ets:delete_object(Table, Record)
+    catch
+        Class:Reason:Stacktrace ->
+            Exception = khepri_utils:format_exception(
+                          Class, Reason, Stacktrace, #{column => 4}),
+            Msg = io_lib:format("Failed to delete record from ETS table for "
+                                "projection: ~p~n"
+                                "  Record:~n"
+                                "    ~p~n"
+                                "  Crash:~n"
+                                "    ~ts",
+                                [Name, Record, Exception]),
+            ?LOG_ERROR(Msg, [])
+    end,
     ok.
