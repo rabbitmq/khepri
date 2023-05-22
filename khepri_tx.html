@@ -108,10 +108,10 @@ given path pattern.</td></tr>
 matching the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#filter-3">filter/3</a></td><td>Returns a map for which predicate <code>Pred</code> holds true in tree nodes  
 matching the given path pattern.</td></tr>
-<tr><td valign="top"><a href="#put-2">put/2</a></td><td>Runs the stored procedure pointed to by the given path and returns the  
-result.</td></tr>
-<tr><td valign="top"><a href="#put-3">put/3</a></td><td>Runs the stored procedure pointed to by the given path and returns the  
-result.</td></tr>
+<tr><td valign="top"><a href="#put-2">put/2</a></td><td>Sets the payload of the tree node pointed to by the given path  
+pattern.</td></tr>
+<tr><td valign="top"><a href="#put-3">put/3</a></td><td>Sets the payload of the tree node pointed to by the given path  
+pattern.</td></tr>
 <tr><td valign="top"><a href="#put_many-2">put_many/2</a></td><td>Sets the payload of all the tree nodes matching the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#put_many-3">put_many/3</a></td><td>Sets the payload of all the tree nodes matching the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#create-2">create/2</a></td><td>Creates a tree node with the given payload.</td></tr>
@@ -450,8 +450,8 @@ matching the given path pattern.</p>
 <p><code>put(PathPattern, Data) -&gt; Ret</code>
 <ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
 <p></p>
-</div><p><p>Runs the stored procedure pointed to by the given path and returns the  
-result.</p>
+</div><p><p>Sets the payload of the tree node pointed to by the given path  
+pattern.</p>
  
   This is the same as <a docgen-rel="seemfa" docgen-href="khepri#put/3" href="khepri.html#put-3"><code>khepri:put/3</code></a> but inside the context of a
   transaction function.
@@ -463,8 +463,8 @@ result.</p>
 <p><code>put(PathPattern, Data, Options) -&gt; Ret</code>
 <ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a></code></li></ul></p>
 <p></p>
-</div><p><p>Runs the stored procedure pointed to by the given path and returns the  
-result.</p>
+</div><p><p>Sets the payload of the tree node pointed to by the given path  
+pattern.</p>
  
   This is the same as <a docgen-rel="seemfa" docgen-href="khepri#put/4" href="khepri.html#put-4"><code>khepri:put/4</code></a> but inside the context of a
   transaction function.
