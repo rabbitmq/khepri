@@ -147,8 +147,8 @@ do_get_many(PathPattern, Fun, Acc, Options) ->
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Ret :: khepri_adv:single_result().
-%% @doc Runs the stored procedure pointed to by the given path and returns the
-%% result.
+%% @doc Sets the payload of the tree node pointed to by the given path
+%% pattern.
 %%
 %% This is the same as {@link khepri_adv:put/3} but inside the context of a
 %% transaction function.
@@ -163,8 +163,8 @@ put(PathPattern, Data) ->
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Options :: khepri:tree_options() | khepri:put_options(),
       Ret :: khepri_adv:single_result().
-%% @doc Runs the stored procedure pointed to by the given path and returns the
-%% result.
+%% @doc Sets the payload of the tree node pointed to by the given path
+%% pattern.
 %%
 %% This is the same as {@link khepri_adv:put/4} but inside the context of a
 %% transaction function.

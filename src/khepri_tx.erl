@@ -616,8 +616,8 @@ filter(PathPattern, Pred, Options) when is_function(Pred, 2) ->
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Ret :: khepri:minimal_ret().
-%% @doc Runs the stored procedure pointed to by the given path and returns the
-%% result.
+%% @doc Sets the payload of the tree node pointed to by the given path
+%% pattern.
 %%
 %% This is the same as {@link khepri:put/3} but inside the context of a
 %% transaction function.
@@ -632,8 +632,8 @@ put(PathPattern, Data) ->
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Options :: khepri:tree_options() | khepri:put_options(),
       Ret :: khepri:minimal_ret().
-%% @doc Runs the stored procedure pointed to by the given path and returns the
-%% result.
+%% @doc Sets the payload of the tree node pointed to by the given path
+%% pattern.
 %%
 %% This is the same as {@link khepri:put/4} but inside the context of a
 %% transaction function.
