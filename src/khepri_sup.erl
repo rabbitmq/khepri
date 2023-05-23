@@ -18,8 +18,11 @@ start_link() ->
 
 init(_) ->
     SupFlags = #{strategy => one_for_one},
+    BatchProxiesSup = #{id => batch_proxies_sup,
+                        start => {khepri_batch_proxies_sup, start_link, []},
+                        type => supervisor},
     EventHandlerSpec = #{id => event_handler,
                          start => {khepri_event_handler, start_link, []},
                          type => worker},
-    ChildSpecs = [EventHandlerSpec],
+    ChildSpecs = [BatchProxiesSup, EventHandlerSpec],
     {ok, {SupFlags, ChildSpecs}}.

@@ -378,30 +378,37 @@ ensure_server_started(
 
 ensure_server_started_locked(
   RaSystem, #{cluster_name := StoreId} = RaServerConfig, Timeout) ->
-    ThisMember = this_member(StoreId),
-    RaServerConfig1 = RaServerConfig#{id => ThisMember},
-    ?LOG_DEBUG(
-       "Trying to restart local Ra server for store \"~s\" "
-       "in Ra system \"~s\"",
-       [StoreId, RaSystem]),
-    case ra:restart_server(RaSystem, ThisMember) of
-        {error, name_not_registered} ->
+    case khepri_batch_proxies_sup:start_proxy(StoreId) of
+        ok ->
+            ThisMember = this_member(StoreId),
+            RaServerConfig1 = RaServerConfig#{id => ThisMember},
             ?LOG_DEBUG(
-               "Ra server for store \"~s\" not registered in Ra system "
-               "\"~s\", try to start a new one",
+               "Trying to restart local Ra server for store \"~s\" "
+               "in Ra system \"~s\"",
                [StoreId, RaSystem]),
-            case do_start_server(RaSystem, RaServerConfig1) of
+            case ra:restart_server(RaSystem, ThisMember) of
+                {error, name_not_registered} ->
+                    ?LOG_DEBUG(
+                       "Ra server for store \"~s\" not registered in Ra "
+                       "system \"~s\", try to start a new one",
+                       [StoreId, RaSystem]),
+                    case do_start_server(RaSystem, RaServerConfig1) of
+                        ok ->
+                            ok = trigger_election(RaServerConfig1, Timeout),
+                            {ok, StoreId};
+                        Error ->
+                            khepri_batch_proxy:stop(StoreId),
+                            Error
+                    end;
                 ok ->
-                    ok = trigger_election(RaServerConfig1, Timeout),
+                    ok = remember_store(RaSystem, RaServerConfig1),
+                    {ok, StoreId};
+                {error, {already_started, _}} ->
                     {ok, StoreId};
                 Error ->
+                    khepri_batch_proxy:stop(StoreId),
                     Error
             end;
-        ok ->
-            ok = remember_store(RaSystem, RaServerConfig1),
-            {ok, StoreId};
-        {error, {already_started, _}} ->
-            {ok, StoreId};
         Error ->
             Error
     end.
