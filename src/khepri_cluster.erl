@@ -1026,7 +1026,6 @@ locally_known_members(StoreId, Timeout) ->
     do_query_members(StoreId, ThisMember, local, Timeout).
 
 do_query_members(StoreId, RaServer, QueryType, Timeout) ->
-    ?LOG_DEBUG("Query members in store \"~s\"", [StoreId]),
     T0 = khepri_utils:start_timeout_window(Timeout),
     Arg = case QueryType of
               leader -> RaServer;
@@ -1034,9 +1033,6 @@ do_query_members(StoreId, RaServer, QueryType, Timeout) ->
           end,
     case ra:members(Arg, Timeout) of
         {ok, Members, _} ->
-            ?LOG_DEBUG(
-               "Found the following members in store \"~s\": ~p",
-               [StoreId, Members]),
             Members;
         {error, noproc} = Error ->
             case khepri_utils:is_ra_server_alive(RaServer) of
