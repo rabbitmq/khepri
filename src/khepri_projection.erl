@@ -107,12 +107,14 @@ fun((Table :: ets:tid(),
                      keypos => pos_integer(),
                      read_concurrency => boolean(),
                      write_concurrency => boolean() | auto,
-                     compressed => boolean()}.
+                     compressed => boolean(),
+                     standalone_fun_options => horus:options()}.
 %% Options which control the created ETS table.
 %%
-%% These options are a subset of the options available to {@link ets:new/2}.
-%% Refer to the {@link ets:new/2} documentation for a reference on each type
-%% and available values.
+%% If provided, `standalone_fun_options' are merged with defaults and passed to
+%% {@link horus:to_standalone_fun/2}. The remaining options are a subset of the
+%% options available to {@link ets:new/2}. Refer to the {@link ets:new/2}
+%% documentation for a reference on each type and available values.
 %%
 %% When a projection is created from a {@link simple_projection_fun()}, the
 %% `type' option may only be `set' or `ordered_set': `bag' types are not
@@ -164,7 +166,14 @@ new(Name, ProjectionFun, Options)
   when is_map(Options) andalso
        (is_function(ProjectionFun, 2) orelse
         is_function(ProjectionFun, 4)) ->
-    EtsOptions = maps:fold(fun to_ets_options/3, [named_table], Options),
+    {CustomFunOptions, EtsOptions} =
+    case maps:take(standalone_fun_options, Options) of
+        error ->
+            {#{}, Options};
+        {_CustomFunOptions, _EtsOptions} = Value ->
+            Value
+    end,
+    EtsOptions1 = maps:fold(fun to_ets_options/3, [named_table], EtsOptions),
     ShouldProcessFunction =
     if
         is_function(ProjectionFun, 2) ->
@@ -186,14 +195,16 @@ new(Name, ProjectionFun, Options)
                     khepri_tx_adv:should_process_function(M, F, A, From)
             end
     end,
-    FunOptions = #{ensure_instruction_is_permitted =>
-                   fun khepri_tx_adv:ensure_instruction_is_permitted/1,
-                   should_process_function => ShouldProcessFunction,
-                   is_standalone_fun_still_needed => fun(_Params) -> true end},
+    DefaultFunOptions = #{ensure_instruction_is_permitted =>
+                          fun khepri_tx_adv:ensure_instruction_is_permitted/1,
+                          should_process_function => ShouldProcessFunction,
+                          is_standalone_fun_still_needed =>
+                          fun(_Params) -> true end},
+    FunOptions = maps:merge(DefaultFunOptions, CustomFunOptions),
     StandaloneFun = horus:to_standalone_fun(ProjectionFun, FunOptions),
     #khepri_projection{name = Name,
                        projection_fun = StandaloneFun,
-                       ets_options = EtsOptions}.
+                       ets_options = EtsOptions1}.
 
 -spec to_ets_options(Key, Value, Acc) -> Acc
     when

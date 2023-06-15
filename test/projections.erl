@@ -539,3 +539,44 @@ trivial_copy_projection_test_() ->
                   ?assertEqual(40, ets:lookup_element(?MODULE, Path2, 2))
           end}]
       }]}.
+
+projection_with_custom_horus_options_test_() ->
+    PathPattern = [stock, wood, ?KHEPRI_WILDCARD_STAR],
+    Path = [stock, wood, <<"oak">>],
+    Data = 100,
+    ProjectFun = fun(Path0, Payload) ->
+                         {Path0, Payload, crypto:strong_rand_bytes(1)}
+                 end,
+    ShouldProcessFunction = fun (crypto, strong_rand_bytes, _A, _From) ->
+                                    false;
+                                (M, F, A, From) ->
+                                    khepri_tx_adv:should_process_function(
+                                      M, F, A, From)
+                            end,
+    Options = #{standalone_fun_options =>
+                #{should_process_function => ShouldProcessFunction}},
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Register the projection",
+          ?_test(
+              begin
+                  Projection = khepri_projection:new(
+                                 ?MODULE, ProjectFun, Options),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)},
+
+         {"Trigger the projection",
+          ?_assertEqual(
+            ok,
+            khepri:put(?FUNCTION_NAME, Path, Data))},
+
+         {"The projection contains the expected record",
+          ?_assertMatch(
+            [{Path, Data, _}],
+            ets:lookup(?MODULE, Path))}]
+      }]}.
