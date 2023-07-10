@@ -894,6 +894,8 @@ can_use_default_store_on_single_node(_Config) ->
     DataDir = khepri_cluster:get_default_ra_system_or_data_dir(),
     ?assertNot(filelib:is_dir(DataDir)),
 
+    ?assertEqual({error, noproc}, khepri:is_empty()),
+
     ?assertEqual({error, noproc}, khepri:get([foo])),
     ?assertEqual({error, noproc}, khepri:exists([foo])),
     ?assertEqual({error, noproc}, khepri:has_data([foo])),
@@ -902,11 +904,15 @@ can_use_default_store_on_single_node(_Config) ->
     {ok, StoreId} = khepri:start(),
     ?assert(filelib:is_dir(DataDir)),
 
+    ?assertEqual(true, khepri:is_empty()),
+
     ?assertEqual(ok, khepri:create([foo], value1)),
     ?assertEqual(ok, khepri:put([foo], value2)),
     ?assertEqual(ok, khepri:put_many([foo], value2)),
     ?assertEqual(ok, khepri:update([foo], value3)),
     ?assertEqual(ok, khepri:compare_and_swap([foo], value3, value4)),
+
+    ?assertEqual(false, khepri:is_empty(#{})),
 
     ?assertMatch(
        {error, ?khepri_error(mismatching_node, _)},

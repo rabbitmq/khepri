@@ -58,7 +58,9 @@
 %%      `khepri_tx_adv:is_remote_call_valid()' in this file.
 %%   2. If the function modifies the tree, it must be handled in
 %%      `khepri_tx_adv:is_standalone_fun_still_needed()' as well.
--export([get/1, get/2,
+-export([is_empty/0, is_empty/1,
+
+         get/1, get/2,
          get_or/2, get_or/3,
          get_many/1, get_many/2,
          get_many_or/2, get_many_or/3,
@@ -106,6 +108,44 @@
 -export_type([tx_fun/0,
               tx_fun_result/0,
               tx_abort/0]).
+
+%% -------------------------------------------------------------------
+%% is_empty().
+%% -------------------------------------------------------------------
+
+-spec is_empty() -> IsEmpty | Error when
+      IsEmpty :: boolean(),
+      Error :: khepri:error().
+%% @doc Indicates if the store is empty or not.
+%%
+%% This is the same as {@link khepri:is_empty/1} but inside the context of a
+%% transaction function.
+%%
+%% @see is_empty/1.
+%% @see khepri:is_empty/2.
+
+is_empty() ->
+    is_empty(#{}).
+
+-spec is_empty(Options) -> IsEmpty | Error when
+      Options :: khepri:tree_options(),
+      IsEmpty :: boolean(),
+      Error :: khepri:error().
+%% @doc Indicates if the store is empty or not.
+%%
+%% This is the same as {@link khepri:is_empty/2} but inside the context of a
+%% transaction function.
+%%
+%% @see khepri:is_empty/2.
+
+is_empty(Options) ->
+    Path = [],
+    Options1 = Options#{expect_specific_node => true,
+                        props_to_return => [child_list_length]},
+    case khepri_tx_adv:get_many(Path, Options1) of
+        {ok, #{Path := #{child_list_length := Count}}} -> Count =:= 0;
+        {error, _} = Error                             -> Error
+    end.
 
 %% -------------------------------------------------------------------
 %% get().

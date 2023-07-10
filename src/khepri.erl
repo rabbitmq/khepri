@@ -81,6 +81,7 @@
          reset/0, reset/1, reset/2,
          stop/0, stop/1,
          get_store_ids/0,
+         is_empty/0, is_empty/1, is_empty/2,
 
          %% Simple direct atomic operations & queries.
          get/1, get/2, get/3,
@@ -559,6 +560,75 @@ stop(StoreId) ->
 
 get_store_ids() ->
     khepri_cluster:get_store_ids().
+
+%% -------------------------------------------------------------------
+%% is_empty().
+%% -------------------------------------------------------------------
+
+-spec is_empty() -> IsEmpty | Error when
+      IsEmpty :: boolean(),
+      Error :: khepri:error().
+%% @doc Indicates if the store is empty or not.
+%%
+%% Calling this function is the same as calling `is_empty(StoreId)' with the
+%% default store ID (see {@link khepri_cluster:get_default_store_id/0}).
+%%
+%% @see is_empty/1.
+%% @see is_empty/2.
+
+is_empty() ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    is_empty(StoreId).
+
+-spec is_empty
+(StoreId) -> IsEmpty | Error when
+      StoreId :: khepri:store_id(),
+      IsEmpty :: boolean(),
+      Error :: khepri:error();
+(Options) -> IsEmpty | Error when
+      Options :: khepri:query_options() | khepri:tree_options(),
+      IsEmpty :: boolean(),
+      Error :: khepri:error().
+%% @doc Indicates if the store is empty or not.
+%%
+%% This function accepts the following two forms:
+%% <ul>
+%% <li>`is_empty(StoreId)'. Calling it is the same as calling
+%% `is_empty(StoreId, #{})'.</li>
+%% <li>`is_empty(Options)'. Calling it is the same as calling
+%% `is_empty(StoreId, Options)' with the default store ID (see {@link
+%% khepri_cluster:get_default_store_id/0}).</li>
+%% </ul>
+%%
+%% @see is_empty/2.
+
+is_empty(StoreId) when ?IS_STORE_ID(StoreId) ->
+    is_empty(StoreId, #{});
+is_empty(Options) when is_map(Options) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    is_empty(StoreId, Options).
+
+-spec is_empty(StoreId, Options) -> IsEmpty | Error when
+      StoreId :: khepri:store_id(),
+      Options :: khepri:query_options() | khepri:tree_options(),
+      IsEmpty :: boolean(),
+      Error :: khepri:error().
+%% @doc Indicates if the store is empty or not.
+%%
+%% @param StoreId the name of the Khepri store.
+%% @param Options query options such as `favor'.
+%%
+%% @returns `true' if the store is empty, `false' if it is not, or an `{error,
+%% Reason}' tuple.
+
+is_empty(StoreId, Options) ->
+    Path = [],
+    Options1 = Options#{expect_specific_node => true,
+                        props_to_return => [child_list_length]},
+    case khepri_adv:get_many(StoreId, Path, Options1) of
+        {ok, #{Path := #{child_list_length := Count}}} -> Count =:= 0;
+        {error, _} = Error                             -> Error
+    end.
 
 %% -------------------------------------------------------------------
 %% get().

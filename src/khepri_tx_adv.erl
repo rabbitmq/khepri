@@ -721,6 +721,7 @@ ensure_bif_is_valid(Bif, Arity) ->
 is_remote_call_valid(khepri_payload, no_payload, 0) -> true;
 is_remote_call_valid(khepri_payload, data, 1) -> true;
 
+is_remote_call_valid(khepri_tx, is_empty, _) -> true;
 is_remote_call_valid(khepri_tx, get, _) -> true;
 is_remote_call_valid(khepri_tx, get_or, _) -> true;
 is_remote_call_valid(khepri_tx, get_many, _) -> true;
