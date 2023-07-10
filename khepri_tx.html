@@ -66,7 +66,9 @@ catching up after a network partition.</p>
 <p>  Return value of a transaction function.</p>
 
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get-1">get/1</a></td><td>Returns the payload of the tree node pointed to by the given path  
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#is_empty-0">is_empty/0</a></td><td>Indicates if the store is empty or not.</td></tr>
+<tr><td valign="top"><a href="#is_empty-1">is_empty/1</a></td><td>Indicates if the store is empty or not.</td></tr>
+<tr><td valign="top"><a href="#get-1">get/1</a></td><td>Returns the payload of the tree node pointed to by the given path  
 pattern.</td></tr>
 <tr><td valign="top"><a href="#get-2">get/2</a></td><td>Returns the payload of the tree node pointed to by the given path  
 pattern.</td></tr>
@@ -138,6 +140,30 @@ pattern.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="is_empty-0">is_empty/0</a></h3>
+<div class="spec">
+<p><code>is_empty() -&gt; IsEmpty | Error</code>
+<ul class="definitions"><li><code>IsEmpty = boolean()</code></li><li><code>Error = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Indicates if the store is empty or not.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#is_empty/1" href="khepri.html#is_empty-1"><code>khepri:is_empty/1</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="#is_empty-1">is_empty/1</a>, <a href="khepri.html#is_empty-2">khepri:is_empty/2</a>.</p>
+
+<h3 class="function"><a name="is_empty-1">is_empty/1</a></h3>
+<div class="spec">
+<p><code>is_empty(Options) -&gt; IsEmpty | Error</code>
+<ul class="definitions"><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>IsEmpty = boolean()</code></li><li><code>Error = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Indicates if the store is empty or not.</p>
+ 
+  This is the same as <a docgen-rel="seemfa" docgen-href="khepri#is_empty/2" href="khepri.html#is_empty-2"><code>khepri:is_empty/2</code></a> but inside the context of a
+  transaction function.
+ </p>
+<p><b>See also:</b> <a href="khepri.html#is_empty-2">khepri:is_empty/2</a>.</p>
 
 <h3 class="function"><a name="get-1">get/1</a></h3>
 <div class="spec">
