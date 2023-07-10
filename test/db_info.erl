@@ -38,6 +38,52 @@ is_store_running_with_running_store_test_() ->
          true,
          khepri_cluster:is_store_running(?FUNCTION_NAME))]}.
 
+is_store_empty_on_an_empty_store_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         true,
+         khepri:is_empty(?FUNCTION_NAME))]}.
+
+is_store_empty_on_a_non_empty_store_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertEqual(
+         false,
+         khepri:is_empty(?FUNCTION_NAME))]}.
+
+is_store_empty_in_a_tx_on_an_empty_store_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, true},
+         begin
+             Fun = fun() ->
+                           khepri_tx:is_empty()
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end)]}.
+
+is_store_empty_in_a_tx_on_a_non_empty_store_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, false},
+         begin
+             Fun = fun() ->
+                           ok = khepri_tx:create([foo], foo_value),
+                           khepri_tx:is_empty()
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end)]}.
+
 %% FIXME: There is no way yet to stop a store. Therefore this testcase is
 %% polluted by other testcases.
 %get_global_info_with_no_running_stores_test_() ->
