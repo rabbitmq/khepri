@@ -689,7 +689,8 @@ process_sync_command(StoreId, Command, Options) ->
             {error, TimedOut};
         {error, Reason}
           when LeaderId =/= undefined andalso ?HAS_TIME_LEFT(Timeout) andalso
-               (Reason == noproc orelse Reason == nodedown) ->
+               (Reason == noproc orelse Reason == nodedown orelse
+                Reason == shutdown) ->
             %% The cached leader is no more. We simply clear the cache
             %% entry and retry.
             khepri_cluster:clear_cached_leader(StoreId),
@@ -698,7 +699,8 @@ process_sync_command(StoreId, Command, Options) ->
             process_sync_command(StoreId, Command, Options1);
         {error, Reason} = Error
           when LeaderId =:= undefined andalso ?HAS_TIME_LEFT(Timeout) andalso
-               (Reason == noproc orelse Reason == nodedown) ->
+               (Reason == noproc orelse Reason == nodedown orelse
+                Reason == shutdown) ->
             case khepri_utils:is_ra_server_alive(RaServer) of
                 true ->
                     %% The follower doesn't know about the new leader yet.
