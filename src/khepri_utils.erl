@@ -255,7 +255,10 @@ init_list_of_modules_to_skip() ->
                                 true  -> ok;
                                 false -> application:load(App)
                             end,
-                        {ok, Mods} = application:get_key(App, modules),
+                        Mods = case application:get_key(App, modules) of
+                                   {ok, Mods0} -> Mods0;
+                                   undefined   -> []
+                               end,
                         lists:foldl(
                           fun(Mod, Modules1) ->
                                   Modules1#{Mod => true}
