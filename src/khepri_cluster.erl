@@ -1034,7 +1034,7 @@ do_query_members(StoreId, RaServer, QueryType, Timeout) ->
     case ra:members(Arg, Timeout) of
         {ok, Members, _} ->
             Members;
-        {error, noproc} = Error ->
+        {error, noproc} ->
             case khepri_utils:is_ra_server_alive(RaServer) of
                 true ->
                     NewTimeout0 = khepri_utils:end_timeout_window(Timeout, T0),
@@ -1043,9 +1043,10 @@ do_query_members(StoreId, RaServer, QueryType, Timeout) ->
                     do_query_members(
                       StoreId, RaServer, QueryType, NewTimeout);
                 false ->
-                    ?LOG_WARNING(
-                       "Failed to query members in store \"~s\": ~p",
-                       [StoreId, Error]),
+                    ?LOG_DEBUG(
+                       "Cannot query members in store \"~s\": "
+                       "the store is stopped or non-existent",
+                       [StoreId]),
                     []
             end;
         Error ->
