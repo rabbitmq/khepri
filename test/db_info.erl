@@ -127,13 +127,15 @@ get_store_info_on_non_existing_store_test_() ->
          "\033[1;32m== CLUSTER MEMBERS ==\033[0m\n"
          "\n",
          begin
+             #{level := OldLogLevel} = logger:get_primary_config(),
+             _ = logger:set_primary_config(level, debug),
              Log = helpers:capture_log(
                      fun() ->
                              khepri:info(
                                non_existing_store, #{timeout => 1000})
                      end),
-             ?assertSubString(<<"Failed to query members in store">>, Log),
-             ?assertSubString(<<"{error,noproc}">>, Log),
+             _ = logger:set_primary_config(level, OldLogLevel),
+             ?assertSubString(<<"Cannot query members in store">>, Log),
              ?capturedOutput
          end)]}.
 
