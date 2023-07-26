@@ -616,7 +616,11 @@ join({StoreId, RemoteNode} = _RemoteMember, Timeout) ->
 %%
 %% As part of this function, the local Khepri store will reset. It means it
 %% will leave the cluster it is already part of (if any) and all its data
-%% removed.
+%% removed. This is also the case if the node is already part of the given
+%% cluster (i.e. the joining node will be reset and clustered again).
+%%
+%% If a clustered node loses its data directory for any reason, this function
+%% can be called again to make it join the cluster again and restore its data.
 %%
 %% @param StoreId the ID of the local Khepri store.
 %% @param RemoteNode the name of remote Erlang node running Khepri to join.
@@ -760,6 +764,12 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
             ?LOG_DEBUG(
                "Cluster for store \"~s\" successfully expanded",
                [StoreId]),
+            ok;
+        {error, already_member} ->
+            ?LOG_DEBUG(
+               "This node (~0p) is already a member of the remote node's "
+               "cluster (~0p)",
+               [ThisMember, RemoteMember]),
             ok;
         {error, cluster_change_not_permitted} ->
             T2 = khepri_utils:start_timeout_window(Timeout1),
