@@ -761,12 +761,6 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
                "Cluster for store \"~s\" successfully expanded",
                [StoreId]),
             ok;
-        {error, already_member} ->
-            ?LOG_DEBUG(
-               "This node (~0p) is already a member of the remote node's "
-               "cluster (~0p)",
-               [ThisMember, RemoteMember]),
-            ok;
         {error, cluster_change_not_permitted} ->
             T2 = khepri_utils:start_timeout_window(Timeout1),
             ?LOG_DEBUG(
