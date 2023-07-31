@@ -39,7 +39,7 @@
 -export([new/2, new/3, name/1]).
 
  %% For internal use only
--export([init/1, trigger/4]).
+-export([init/1, trigger/4, delete/1]).
 
 -type projection() :: #khepri_projection{}.
 %% A projection resource.
@@ -255,6 +255,10 @@ init(#khepri_projection{name = Name, ets_options = EtsOptions}) ->
         _Info ->
             {error, exists}
     end.
+
+delete(#khepri_projection{name = Name}) ->
+    _ = ets:delete(Name),
+    ok.
 
 -spec trigger(Projection, Path, OldProps, NewProps) -> Ret when
       Projection :: projection(),

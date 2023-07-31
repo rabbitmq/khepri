@@ -117,6 +117,8 @@
          register_trigger/3, register_trigger/4, register_trigger/5,
 
          register_projection/2, register_projection/3, register_projection/4,
+         unregister_projection/1, unregister_projection/2,
+         unregister_projection/3,
 
          %% Transactions; `khepri_tx' provides the API to use inside
          %% transaction functions.
@@ -2928,6 +2930,76 @@ register_projection(PathPattern, Projection, Options)
 register_projection(StoreId, PathPattern, Projection, Options) ->
     khepri_machine:register_projection(
       StoreId, PathPattern, Projection, Options).
+
+%% -------------------------------------------------------------------
+%% unregister_projection().
+%% -------------------------------------------------------------------
+
+-spec unregister_projection(ProjectionName) -> Ret when
+      ProjectionName :: atom(),
+      Ret :: ok | khepri:error().
+%% @doc Removes a projection from the store by name.
+%%
+%% Calling this function is the same as calling
+%% `unregister_projection(StoreId, ProjectionName)' with the default store ID
+%% (see {@link khepri_cluster:get_default_store_id/0}).
+%%
+%% @see unregister_projection/2.
+
+unregister_projection(ProjectionName) when is_atom(ProjectionName) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    unregister_projection(StoreId, ProjectionName).
+
+-spec unregister_projection
+(StoreId, ProjectionName) -> Ret when
+      StoreId :: khepri:store_id(),
+      ProjectionName :: atom(),
+      Ret :: ok | khepri:error();
+(ProjectionName, Options) -> Ret when
+      ProjectionName :: atom(),
+      Options :: khepri:command_options(),
+      Ret :: ok | khepri:error().
+%% @doc Removes a projection from the store by name.
+%%
+%% This function accepts the following two forms:
+%% <ul>
+%% <li>`unregister_projection(StoreId, ProjectionName)'. Calling it is the same
+%% as calling `unregister_projection(StoreId, ProjectionName, #{})'.</li>
+%% <li>`unregister_projection(ProjectionName, Options)'. Calling it is the same
+%% as calling `unregister_projection(StoreId, ProjectionName, Options)' with
+%% the default store ID (see {@link khepri_cluster:get_default_store_id/0}).
+%% </li>
+%% </ul>
+%%
+%% @see unregister_projection/3.
+
+unregister_projection(StoreId, ProjectionName)
+  when ?IS_STORE_ID(StoreId) andalso is_atom(ProjectionName) ->
+    unregister_projection(StoreId, ProjectionName, #{});
+unregister_projection(ProjectionName, Options)
+  when is_atom(ProjectionName) andalso is_map(Options) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    unregister_projection(StoreId, ProjectionName, Options).
+
+-spec unregister_projection(StoreId, ProjectionName, Options) ->
+    Ret when
+      StoreId :: khepri:store_id(),
+      ProjectionName :: atom(),
+      Options :: khepri:command_options(),
+      Ret :: ok | khepri:error().
+%% @doc Removes a projection from the store by name.
+%%
+%% @param StoreId the name of the Khepri store.
+%% @param ProjectionName the name of the projection to unregister as passed to
+%%        {@link khepri_projection:new/3}.
+%% @param Options command options for unregistering the projection.
+%% @returns `ok' if the projection was unregistered, an `{error, Reason}' tuple
+%% otherwise.
+
+unregister_projection(StoreId, ProjectionName, Options)
+  when ?IS_STORE_ID(StoreId) andalso is_atom(ProjectionName) andalso
+       is_map(Options) ->
+    khepri_machine:unregister_projection(StoreId, ProjectionName, Options).
 
 %% -------------------------------------------------------------------
 %% transaction().
