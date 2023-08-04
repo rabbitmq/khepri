@@ -39,7 +39,8 @@
          delete/3,
          transaction/5,
          register_trigger/5,
-         register_projection/4]).
+         register_projection/4,
+         unregister_projection/3]).
 -export([get_keep_while_conds_state/2,
          get_projections_state/2]).
 
@@ -84,7 +85,8 @@
                    #tx{} |
                    #register_trigger{} |
                    #ack_triggered{} |
-                   #register_projection{}.
+                   #register_projection{} |
+                   #unregister_projection{}.
 %% Commands specific to this Ra machine.
 
 -type machine_init_args() :: #{store_id := khepri:store_id(),
@@ -489,6 +491,26 @@ register_projection(
     khepri_path:ensure_is_valid(PathPattern),
     Command = #register_projection{pattern = PathPattern,
                                    projection = Projection},
+    process_command(StoreId, Command, Options).
+
+-spec unregister_projection(StoreId, ProjectionName, Options) -> Ret when
+      StoreId :: khepri:store_id(),
+      ProjectionName :: atom(),
+      Options :: khepri:command_options(),
+      Ret :: ok | khepri:error().
+%% @doc Unregisters a projection by name.
+%%
+%% @param StoreId the name of the Ra cluster.
+%% @param ProjectionName the name of the projection to unregister.
+%% @param Options command options such as the command type.
+%%
+%% @returns `ok' if the projection existed and was unregistered, an `{error,
+%% Reason}' tuple otherwise.
+
+unregister_projection(StoreId, ProjectionName, Options0)
+  when ?IS_STORE_ID(StoreId) andalso is_atom(ProjectionName) ->
+    Options = Options0#{reply_from => local},
+    Command = #unregister_projection{name = ProjectionName},
     process_command(StoreId, Command, Options).
 
 -spec ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
@@ -1164,6 +1186,42 @@ apply(
                  _  ->
                      State
              end,
+    Ret = {State1, Reply},
+    bump_applied_command_count(Ret, Meta);
+apply(
+  Meta,
+  #unregister_projection{name = ProjectionName},
+  #?MODULE{projections = ProjectionTree} = State) ->
+    ProjectionTree1 =
+    khepri_pattern_tree:filtermap(
+      ProjectionTree,
+      fun (PathPattern, Projections) ->
+              Projections1 =
+              lists:filter(
+                fun (#khepri_projection{name = Name} = Projection)
+                      when Name =:= ProjectionName ->
+                        khepri_projection:delete(Projection),
+                        false;
+                    (_OtherProjection) ->
+                        true
+                end, Projections),
+              case Projections1 of
+                  [] ->
+                      false;
+                  _ ->
+                      {PathPattern, Projections1}
+              end
+      end),
+    Reply = case ProjectionTree1 of
+                ProjectionTree ->
+                    Info = #{name => ProjectionName},
+                    Reason = ?khepri_error(projection_not_found, Info),
+                    {error, Reason};
+                _ ->
+                    erase(compiled_projection_tree),
+                    ok
+            end,
+    State1 = State#?MODULE{projections = ProjectionTree1},
     Ret = {State1, Reply},
     bump_applied_command_count(Ret, Meta).
 

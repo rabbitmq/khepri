@@ -10,6 +10,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("include/khepri.hrl").
+-include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
 -dialyzer({nowarn_function, [unknown_options_are_rejected_test/0]}).
@@ -579,4 +580,45 @@ projection_with_custom_horus_options_test_() ->
           ?_assertMatch(
             [{Path, Data, _}],
             ets:lookup(?MODULE, Path))}]
+      }]}.
+
+unregister_projection_test_() ->
+    ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
+    PathPattern = [stock, wood, <<"oak">>],
+    Data = 100,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Register the projection",
+          ?_test(
+              begin
+                  Projection = khepri_projection:new(?MODULE, ProjectFun),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)},
+
+         {"Trigger the projection",
+          ?_assertEqual(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, PathPattern, Data))},
+
+         {"The projection contains the triggered change",
+          ?_assertEqual(Data, ets:lookup_element(?MODULE, PathPattern, 2))},
+
+         {"Unregister the projection",
+          ?_assertEqual(
+            ok,
+            khepri:unregister_projection(?FUNCTION_NAME, ?MODULE))},
+
+         {"The projection table no longer exists",
+          ?_assertEqual(undefined, ets:info(?MODULE))},
+
+         {"Unregistering the projection again fails",
+          ?_assertMatch(
+            {error, ?khepri_error(projection_not_found, _Info)},
+            khepri:unregister_projection(?FUNCTION_NAME, ?MODULE))}]
       }]}.

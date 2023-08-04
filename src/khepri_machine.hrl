@@ -60,6 +60,8 @@
 -record(register_projection, {pattern :: khepri_path:native_pattern(),
                               projection :: khepri_projection:projection()}).
 
+-record(unregister_projection, {name :: atom()}).
+
 -record(trigger_projection, {path :: khepri_path:native_path(),
                              old_props :: khepri:node_props(),
                              new_props :: khepri:node_props(),

@@ -50,7 +50,8 @@
          update/3,
          fold/5,
          foreach/2,
-         compile/1]).
+         compile/1,
+         filtermap/2]).
 
 -spec empty() -> TreeNode when
       TreeNode :: khepri_pattern_tree:tree(Payload),
@@ -268,3 +269,65 @@ compile(#pattern_node{child_nodes = ChildNodes0} = PatternTree) ->
                        Acc#{Condition => Child}
                    end, #{}, ChildNodes0),
     PatternTree#pattern_node{child_nodes = ChildNodes}.
+
+-spec filtermap(ProjectionTree, Fun) -> Ret when
+      ProjectionTree :: khepri_pattern_tree:tree(Payload),
+      Fun :: fun((PathPattern, Payload) -> boolean() | {true, NewPayload}),
+      Ret :: khepri_pattern_tree:tree(NewPayload),
+      PathPattern :: khepri_path:native_pattern(),
+      Payload :: payload(),
+      NewPayload :: payload().
+
+%% @doc Filters and optionally replaces values in the tree.
+%%
+%% The filter-map `Fun' receives each `PathPattern' and `Payload' pair in the
+%% tree. If the function returns `false', the pair is removed from the tree.
+%% If the function returns `true' the value is kept without changes. If the
+%% function returns `{true, NewPayload}', the `PathPattern' is associated with
+%% `NewPayload' in the returned tree.
+%%
+%% @param ProjectionTree the initial tree to update with the filter-map
+%%        function.
+%% @param Fun the filter-map function to apply to each path-pattern and payload
+%%        pair.
+%% @returns A new pattern tree with entries filtered by the filtered and
+%%          updated by the filter-map function.
+
+filtermap(ProjectionTree, Fun) ->
+    filtermap1(ProjectionTree, Fun, []).
+
+filtermap1(
+  #pattern_node{child_nodes = ChildNodes0, payload = Payload0},
+  Fun, ReversedPathPattern) ->
+    Payload = case Payload0 of
+                  ?NO_PAYLOAD ->
+                      Payload0;
+                  _ ->
+                      PathPattern = lists:reverse(ReversedPathPattern),
+                      case Fun(PathPattern, Payload0) of
+                          {true, NewPayload} ->
+                              NewPayload;
+                          true ->
+                              Payload0;
+                          false ->
+                              ?NO_PAYLOAD
+                      end
+              end,
+    ChildNodes = maps:filtermap(
+                   fun(PatternComponent, ChildNode) ->
+                           MappedChild = filtermap1(
+                                           ChildNode, Fun,
+                                           [PatternComponent |
+                                            ReversedPathPattern]),
+                           case MappedChild of
+                               #pattern_node{payload = ?NO_PAYLOAD,
+                                             child_nodes = Grandchildren}
+                                 when Grandchildren =:= #{} ->
+                                   %% Trim any children with no children
+                                   %% and no payload
+                                   false;
+                               _ ->
+                                   {true, MappedChild}
+                           end
+                   end, ChildNodes0),
+    #pattern_node{payload = Payload, child_nodes = ChildNodes}.
