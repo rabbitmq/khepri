@@ -445,6 +445,9 @@ pattern.</td></tr>
 <tr><td valign="top"><a href="#register_projection-2">register_projection/2</a></td><td>Registers a projection.</td></tr>
 <tr><td valign="top"><a href="#register_projection-3">register_projection/3</a></td><td>Registers a projection.</td></tr>
 <tr><td valign="top"><a href="#register_projection-4">register_projection/4</a></td><td>Registers a projection.</td></tr>
+<tr><td valign="top"><a href="#unregister_projection-1">unregister_projection/1</a></td><td>Removes a projection from the store by name.</td></tr>
+<tr><td valign="top"><a href="#unregister_projection-2">unregister_projection/2</a></td><td>Removes a projection from the store by name.</td></tr>
+<tr><td valign="top"><a href="#unregister_projection-3">unregister_projection/3</a></td><td>Removes a projection from the store by name.</td></tr>
 <tr><td valign="top"><a href="#transaction-1">transaction/1</a></td><td>Runs a transaction and returns its result.</td></tr>
 <tr><td valign="top"><a href="#transaction-2">transaction/2</a></td><td>Runs a transaction and returns its result.</td></tr>
 <tr><td valign="top"><a href="#transaction-3">transaction/3</a></td><td>Runs a transaction and returns its result.</td></tr>
@@ -2214,6 +2217,54 @@ projection's ETS table.</p>
  
   Registering a projection fills the projection's ETS table with records from
   any tree nodes which match the <code>PathPattern</code> and are already in the store.
+ </p>
+
+<h3 class="function"><a name="unregister_projection-1">unregister_projection/1</a></h3>
+<div class="spec">
+<p><code>unregister_projection(ProjectionName) -&gt; Ret</code>
+<ul class="definitions"><li><code>ProjectionName = atom()</code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Removes a projection from the store by name.</p>
+ 
+  Calling this function is the same as calling
+  <code>unregister_projection(StoreId, ProjectionName)</code> with the default store ID
+  (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
+ </p>
+<p><b>See also:</b> <a href="#unregister_projection-2">unregister_projection/2</a>.</p>
+
+<h3 class="function"><a name="unregister_projection-2">unregister_projection/2</a></h3>
+<div class="spec">
+<p><code>unregister_projection(StoreId, ProjectionName) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>ProjectionName = atom()</code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p><p><code>unregister_projection(ProjectionName, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>ProjectionName = atom()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p></p>
+<p></p>
+</div><p><p>Removes a projection from the store by name.</p>
+ 
+  This function accepts the following two forms:
+  <ul>
+  <li><code>unregister_projection(StoreId, ProjectionName)</code>. Calling it is the same
+  as calling <code>unregister_projection(StoreId, ProjectionName, #{})</code>.</li>
+  <li><code>unregister_projection(ProjectionName, Options)</code>. Calling it is the same
+  as calling <code>unregister_projection(StoreId, ProjectionName, Options)</code> with
+  the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
+  </li>
+  </ul>
+ </p>
+<p><b>See also:</b> <a href="#unregister_projection-3">unregister_projection/3</a>.</p>
+
+<h3 class="function"><a name="unregister_projection-3">unregister_projection/3</a></h3>
+<div class="spec">
+<p><code>unregister_projection(StoreId, ProjectionName, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>ProjectionName = atom()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
+<code>ProjectionName</code>: the name of the projection to unregister as passed to
+         <a docgen-rel="seemfa" docgen-href="khepri_projection#new/3" href="khepri_projection.html#new-3"><code>khepri_projection:new/3</code></a>.<br>
+<code>Options</code>: command options for unregistering the projection.<br>
+</p>
+<p>returns: <code>ok</code> if the projection was unregistered, an <code>{error, Reason}</code> tuple
+  otherwise.</p>
+</div><p>Removes a projection from the store by name.
  </p>
 
 <h3 class="function"><a name="transaction-1">transaction/1</a></h3>

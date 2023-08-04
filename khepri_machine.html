@@ -69,6 +69,7 @@ module.</p>
 <tr><td valign="top"><a href="#handle_tx_exception-1">handle_tx_exception/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#register_trigger-5">register_trigger/5</a></td><td>Registers a trigger.</td></tr>
 <tr><td valign="top"><a href="#register_projection-4">register_projection/4</a></td><td>Registers a projection.</td></tr>
+<tr><td valign="top"><a href="#unregister_projection-3">unregister_projection/3</a></td><td>Unregisters a projection by name.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -159,6 +160,20 @@ module.</p>
 <p>returns: <code>ok</code> if the projection was registered, an <code>{error, Reason}</code> tuple
   otherwise.</p>
 </div><p>Registers a projection.
+ </p>
+
+<h3 class="function"><a name="unregister_projection-3">unregister_projection/3</a></h3>
+<div class="spec">
+<p><code>unregister_projection(StoreId, ProjectionName, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>ProjectionName = atom()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<code>ProjectionName</code>: the name of the projection to unregister.<br>
+<code>Options</code>: command options such as the command type.
+ <br>
+</p>
+<p>returns: <code>ok</code> if the projection existed and was unregistered, an <code>{error,
+  Reason}</code> tuple otherwise.</p>
+</div><p>Unregisters a projection by name.
  </p>
 <hr>
 
