@@ -898,14 +898,10 @@ wait_for_cluster_readiness(StoreId, Timeout) ->
 %% @private
 
 wait_for_remote_cluster_readiness(StoreId, RemoteNode, Timeout) ->
-    Ret = rpc:call(
-            RemoteNode,
-            khepri_cluster, wait_for_cluster_readiness, [StoreId, Timeout],
-            Timeout),
-    case Ret of
-        {badrpc, _} -> {error, Ret};
-        _           -> Ret
-    end.
+    erpc:call(
+      RemoteNode,
+      khepri_cluster, wait_for_cluster_readiness, [StoreId, Timeout],
+      Timeout).
 
 -spec reset() -> Ret when
       Ret :: ok | khepri:error().
