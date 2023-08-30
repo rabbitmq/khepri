@@ -539,6 +539,11 @@ can_rejoin_after_a_reset_in_a_three_node_cluster(Config) ->
     ?assertMatch(
        ok,
        rpc:call(LeaderNode1, helpers, stop_ra_system, [Props])),
+
+    %% Wait for a new leader to be elected among the remaining members.
+    NewLeader = get_leader_in_store(StoreId, OtherNodes1),
+    ?assertNotEqual(LeaderId1, NewLeader),
+
     %% The following call removes the existing data directory.
     ?assertMatch(
        #{},
