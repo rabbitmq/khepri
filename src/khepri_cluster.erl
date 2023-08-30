@@ -672,7 +672,7 @@ check_status_and_join_locked(StoreId, RemoteNode, Timeout) ->
     Prop2 = get_store_prop(StoreId, ra_server_config),
     case {RaServerRunning, Prop1, Prop2} of
         {true, {ok, RaSystem}, {ok, RaServerConfig}} ->
-            reset_and_join_locked(
+            reset_remotely_and_join_locked(
               StoreId, ThisMember, RaSystem, RaServerConfig,
               RemoteNode, Timeout);
         {false, {error, _} = Error, _} ->
@@ -693,7 +693,7 @@ check_status_and_join_locked(StoreId, RemoteNode, Timeout) ->
                    ra_server_config => Prop2}))
     end.
 
--spec reset_and_join_locked(
+-spec reset_remotely_and_join_locked(
   StoreId, ThisMember, RaSystem, RaServerConfig, RemoteNode, Timeout) ->
     Ret when
       StoreId :: khepri:store_id(),
@@ -705,15 +705,21 @@ check_status_and_join_locked(StoreId, RemoteNode, Timeout) ->
       Ret :: ok | khepri:error().
 %% @private
 
-reset_and_join_locked(
-  StoreId, ThisMember, RaSystem, RaServerConfig, RemoteNode, Timeout) ->
-    %% The local node is reset in case it is already a standalone elected
-    %% leader (which would be the case after a successful call to
-    %% `khepri_cluster:start()') or part of a cluster, and have any data.
+reset_remotely_and_join_locked(
+  StoreId, ThisMember, RaSystem, RaServerConfig, RemoteNode, Timeout)
+  when RemoteNode =/= node() ->
+    %% We attempt to remove the local Ra server from the remote cluster we
+    %% want to join.
     %%
-    %% Just after the reset, we restart it skipping the `trigger_election()'
-    %% step: this is required so that it does not become a leader before
-    %% joining the remote node. Otherwise, we hit an assertion in Ra.
+    %% This is usually a no-op because it is not part of it yet. However, if
+    %% the local Ra server lost its data on disc for whatever reason, the
+    %% cluster membership view will be inconsistent (the local Ra server won't
+    %% know about its former cluster anymore).
+    %%
+    %% Therefore, it is safer to ask the remote cluster to remove the local Ra
+    %% server, just in case. If we don't do that and the remote cluster starts
+    %% to send messages to the local Ra server, the local Ra server might
+    %% crash with a `leader_saw_append_entries_rpc_in_same_term' exception.
     %%
     %% TODO: Should we verify the cluster membership first? To avoid resetting
     %% a node which is already part of the cluster? On the other hand, such a
@@ -723,6 +729,69 @@ reset_and_join_locked(
     %% TODO: Do we want to provide an option to verify the state of the local
     %% node before resetting it? Like "if it has data in the Khepri database,
     %% abort". It may be difficult to make this kind of check atomic though.
+    RemoteMember = node_to_member(StoreId, RemoteNode),
+    ?LOG_DEBUG(
+       "Removing this node (~0p) from the remote node's cluster (~0p) to "
+       "make sure the membership view is consistent",
+       [ThisMember, RemoteMember]),
+    T1 = khepri_utils:start_timeout_window(Timeout),
+    Ret1 = ra:remove_member(RemoteMember, ThisMember, Timeout),
+    Timeout1 = khepri_utils:end_timeout_window(Timeout, T1),
+    case Ret1 of
+        {ok, _, _} ->
+            reset_locally_and_join_locked(
+              StoreId, ThisMember, RaSystem, RaServerConfig, RemoteNode,
+              Timeout1);
+        {error, not_member} ->
+            reset_locally_and_join_locked(
+              StoreId, ThisMember, RaSystem, RaServerConfig, RemoteNode,
+              Timeout1);
+        {error, cluster_change_not_permitted} ->
+            T2 = khepri_utils:start_timeout_window(Timeout1),
+            ?LOG_DEBUG(
+               "Remote cluster (reached through node ~0p) is not ready "
+               "for a membership change yet; waiting...", [RemoteNode]),
+            Ret2 = wait_for_cluster_readiness(StoreId, Timeout1),
+            Timeout2 = khepri_utils:end_timeout_window(Timeout1, T2),
+            case Ret2 of
+                ok ->
+                    reset_remotely_and_join_locked(
+                      StoreId, ThisMember, RaSystem, RaServerConfig,
+                      RemoteNode, Timeout2);
+                Error ->
+                    Error
+            end;
+        {timeout, _} = TimedOut ->
+            {error, TimedOut};
+        {error, _} = Error ->
+            Error
+    end;
+reset_remotely_and_join_locked(
+  _StoreId, _ThisMember, _RaSystem, _RaServerConfig, RemoteNode, _Timeout)
+  when RemoteNode =:= node() ->
+    ok.
+
+-spec reset_locally_and_join_locked(
+  StoreId, ThisMember, RaSystem, RaServerConfig, RemoteNode, Timeout) ->
+    Ret when
+      StoreId :: khepri:store_id(),
+      ThisMember :: ra:server_id(),
+      RaSystem :: atom(),
+      RaServerConfig :: ra_server:config(),
+      RemoteNode :: node(),
+      Timeout :: timeout(),
+      Ret :: ok | khepri:error().
+%% @private
+
+reset_locally_and_join_locked(
+  StoreId, ThisMember, RaSystem, RaServerConfig, RemoteNode, Timeout) ->
+    %% The local node is reset in case it is already a standalone elected
+    %% leader (which would be the case after a successful call to
+    %% `khepri_cluster:start()') or part of a cluster, and have any data.
+    %%
+    %% Just after the reset, we restart it skipping the `trigger_election()'
+    %% step: this is required so that it does not become a leader before
+    %% joining the remote node. Otherwise, we hit an assertion in Ra.
     T0 = khepri_utils:start_timeout_window(Timeout),
     case do_reset(RaSystem, StoreId, ThisMember, Timeout) of
         ok ->
@@ -753,11 +822,9 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
     ?LOG_DEBUG(
        "Adding this node (~0p) to the remote node's cluster (~0p)",
        [ThisMember, RemoteMember]),
+    RemoteMember = node_to_member(StoreId, RemoteNode),
     T1 = khepri_utils:start_timeout_window(Timeout),
-    Ret1 = rpc:call(
-             RemoteNode,
-             ra, add_member, [StoreId, ThisMember, Timeout],
-             Timeout),
+    Ret1 = ra:add_member(RemoteMember, ThisMember, Timeout),
     Timeout1 = khepri_utils:end_timeout_window(Timeout, T1),
     case Ret1 of
         {ok, _, _StoreId} ->
@@ -774,8 +841,8 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
         {error, cluster_change_not_permitted} ->
             T2 = khepri_utils:start_timeout_window(Timeout1),
             ?LOG_DEBUG(
-               "Remote cluster (reached through node node ~0p) is not ready "
-               "for a membership change yet; waiting", [RemoteNode]),
+               "Remote cluster (reached through node ~0p) is not ready "
+               "for a membership change yet; waiting...", [RemoteNode]),
             Ret2 = wait_for_remote_cluster_readiness(
                      StoreId, RemoteNode, Timeout1),
             Timeout2 = khepri_utils:end_timeout_window(Timeout1, T2),
@@ -796,8 +863,8 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
             %% point.
             _ = trigger_election(ThisMember, Timeout1),
             case Error of
-                {badrpc, _} -> {error, Error};
-                _           -> Error
+                {timeout, _} = TimedOut -> {error, TimedOut};
+                {error, _}              -> Error
             end
     end.
 
@@ -831,14 +898,10 @@ wait_for_cluster_readiness(StoreId, Timeout) ->
 %% @private
 
 wait_for_remote_cluster_readiness(StoreId, RemoteNode, Timeout) ->
-    Ret = rpc:call(
-            RemoteNode,
-            khepri_cluster, wait_for_cluster_readiness, [StoreId, Timeout],
-            Timeout),
-    case Ret of
-        {badrpc, _} -> {error, Ret};
-        _           -> Ret
-    end.
+    erpc:call(
+      RemoteNode,
+      khepri_cluster, wait_for_cluster_readiness, [StoreId, Timeout],
+      Timeout).
 
 -spec reset() -> Ret when
       Ret :: ok | khepri:error().
@@ -898,7 +961,7 @@ reset_locked(StoreId, Timeout) ->
 
 do_reset(RaSystem, StoreId, ThisMember, Timeout) ->
     ?LOG_DEBUG(
-       "Detaching this node (~0p) in store \"~s\" from cluster (if any) "
+       "Detaching this node (~0p) in store \"~s\" from its cluster (if any) "
        "before reset",
        [ThisMember, StoreId]),
     T1 = khepri_utils:start_timeout_window(Timeout),
@@ -914,11 +977,22 @@ do_reset(RaSystem, StoreId, ThisMember, Timeout) ->
             ?LOG_DEBUG(
                "Cluster is not ready for a membership change yet; waiting",
                []),
-            Ret2 = wait_for_cluster_readiness(StoreId, Timeout1),
-            Timeout2 = khepri_utils:end_timeout_window(Timeout1, T2),
-            case Ret2 of
-                ok    -> do_reset(RaSystem, StoreId, ThisMember, Timeout2);
-                Error -> Error
+            try
+                Ret2 = wait_for_cluster_readiness(StoreId, Timeout1),
+                Timeout2 = khepri_utils:end_timeout_window(Timeout1, T2),
+                case Ret2 of
+                    ok    -> do_reset(RaSystem, StoreId, ThisMember, Timeout2);
+                    Error -> Error
+                end
+            catch
+                exit:{normal, _} ->
+                    ?LOG_DEBUG(
+                       "The local Ra server exited while we were waiting "
+                       "for it to be ready for a membership change. It "
+                       "means it was removed from the cluster by the remote "
+                       "cluster; we can proceed with the reset."),
+                    forget_store(StoreId),
+                    ok
             end;
         {timeout, _} = TimedOut ->
             {error, TimedOut};
