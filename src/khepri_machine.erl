@@ -170,17 +170,21 @@ fold(StoreId, PathPattern, Fun, Acc, Options)
     khepri_path:ensure_is_valid(PathPattern1),
     {QueryOptions, TreeOptions} = split_query_options(Options),
     Query = fun(#?MODULE{tree = Tree}) ->
-                    try
-                        khepri_tree:fold(
-                          Tree, PathPattern1, Fun, Acc, TreeOptions)
-                    catch
-                        Class:Reason:Stacktrace ->
-                            {exception, Class, Reason, Stacktrace}
-                    end
+                    Tree
             end,
     case process_query(StoreId, Query, QueryOptions) of
-        {exception, _, _, _} = Exception -> handle_tx_exception(Exception);
-        Ret                              -> Ret
+        #tree{} = Tree ->
+            Ret = try
+                      khepri_tree:fold(
+                        Tree, PathPattern1, Fun, Acc, TreeOptions)
+                  catch
+                      Class:Reason:Stacktrace ->
+                          Exception = {exception, Class, Reason, Stacktrace},
+                          handle_tx_exception(Exception)
+                  end,
+            ?raise_exception_if_any(Ret);
+        {error, _} = Error ->
+            ?raise_exception_if_any(Error)
     end.
 
 -spec put(StoreId, PathPattern, Payload, Options) -> Ret when

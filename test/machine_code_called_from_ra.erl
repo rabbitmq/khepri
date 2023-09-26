@@ -39,6 +39,21 @@ query_a_node_test_() ->
              khepri:get(?FUNCTION_NAME, [foo])
          end)]}.
 
+query_nested_in_other_query_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, #{[foo] => {ok, foo_value}}},
+         begin
+             _ = khepri:put(
+                   ?FUNCTION_NAME, [foo], khepri_payload:data(foo_value)),
+             khepri:map(
+               ?FUNCTION_NAME,
+               [foo],
+               fun([foo], _) -> khepri:get(?FUNCTION_NAME, [foo]) end)
+         end)]}.
+
 delete_a_node_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
