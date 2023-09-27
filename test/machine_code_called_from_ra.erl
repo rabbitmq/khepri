@@ -39,7 +39,7 @@ query_a_node_test_() ->
              khepri:get(?FUNCTION_NAME, [foo])
          end)]}.
 
-query_nested_in_other_query_test_() ->
+correct_query_nested_in_other_query_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -51,8 +51,28 @@ query_nested_in_other_query_test_() ->
              khepri:map(
                ?FUNCTION_NAME,
                [foo],
+               fun([foo], _) -> khepri:get(?FUNCTION_NAME, [foo]) end,
+               #{copy_tree_and_run_from_caller => true})
+         end)]}.
+
+-if(?OTP_RELEASE >= 25).
+%% We only test this starting from Erlang/OTP 25.0 because previous versions
+%% didn't have the "calling self" check.
+incorrect_query_nested_in_other_query_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertExit(
+         {calling_self, _},
+         begin
+             _ = khepri:put(
+                   ?FUNCTION_NAME, [foo], khepri_payload:data(foo_value)),
+             khepri:map(
+               ?FUNCTION_NAME,
+               [foo],
                fun([foo], _) -> khepri:get(?FUNCTION_NAME, [foo]) end)
          end)]}.
+-endif.
 
 delete_a_node_test_() ->
     {setup,
