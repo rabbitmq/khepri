@@ -740,8 +740,9 @@ process_sync_command(StoreId, Command, Options) ->
     end.
 
 process_async_command(StoreId, Command, Correlation, Priority) ->
-    LocalServerId = {StoreId, node()},
-    ra:pipeline_command(LocalServerId, Command, Correlation, Priority).
+    LeaderId = khepri_cluster:get_cached_leader(StoreId),
+    RaServer = use_leader_or_local_ra_server(StoreId, LeaderId),
+    ra:pipeline_command(RaServer, Command, Correlation, Priority).
 
 -spec select_command_type(Options) -> CommandType when
       Options :: khepri:command_options(),
