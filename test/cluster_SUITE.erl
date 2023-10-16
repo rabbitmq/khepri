@@ -43,7 +43,8 @@
          handle_leader_down_on_three_node_cluster_command/1,
          handle_leader_down_on_three_node_cluster_response/1,
          can_set_snapshot_interval/1,
-         projections_are_consistent_on_three_node_cluster/1]).
+         projections_are_consistent_on_three_node_cluster/1,
+         async_command_leader_change_in_three_node_cluster/1]).
 
 all() ->
     [can_start_a_single_node,
@@ -63,7 +64,8 @@ all() ->
      handle_leader_down_on_three_node_cluster_command,
      handle_leader_down_on_three_node_cluster_response,
      can_set_snapshot_interval,
-     projections_are_consistent_on_three_node_cluster].
+     projections_are_consistent_on_three_node_cluster,
+     async_command_leader_change_in_three_node_cluster].
 
 groups() ->
     [].
@@ -103,7 +105,8 @@ init_per_testcase(Testcase, Config)
        Testcase =:= fail_to_join_non_existing_store orelse
        Testcase =:= handle_leader_down_on_three_node_cluster_command orelse
        Testcase =:= handle_leader_down_on_three_node_cluster_response orelse
-       Testcase =:= projections_are_consistent_on_three_node_cluster ->
+       Testcase =:= projections_are_consistent_on_three_node_cluster orelse
+       Testcase =:= async_command_leader_change_in_three_node_cluster ->
     Nodes = start_n_nodes(Testcase, 3),
     PropsPerNode0 = [begin
                          {ok, _} = rpc:call(
@@ -1378,6 +1381,104 @@ wait_for_projection_on_nodes([Node | Rest] = Nodes, ProjectionName) ->
          ct:pal("- projection ~s exists on node ~s", [ProjectionName, Node]),
          wait_for_projection_on_nodes(Rest, ProjectionName)
    end.
+
+async_command_leader_change_in_three_node_cluster(Config) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
+
+    %% We assume all nodes are using the same Ra system name & store ID.
+    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    StoreId = RaSystem,
+
+    ct:pal("Start database + cluster nodes"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
+      end, Nodes),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:join() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+      end, [Node1, Node2]),
+
+    LeaderId = get_leader_in_store(StoreId, Nodes),
+    {StoreId, LeaderNode} = LeaderId,
+
+    ct:pal("Send an async command from the leader node ~s", [LeaderNode]),
+    ok = erpc:call(
+           LeaderNode,
+           fun() ->
+                 %% This member hasn't sent any commands so the leader isn't
+                 %% cached yet. The async call will succeed though because this
+                 %% member is the leader.
+                 ?assertEqual(
+                    undefined,
+                    khepri_cluster:get_cached_leader(StoreId)),
+                 CorrelationId = 1,
+                 Extra = #{async => CorrelationId},
+                 ok = khepri:put(StoreId, [foo], ?NO_PAYLOAD, Extra),
+                 receive
+                    {ra_event,
+                     _FromId,
+                     {applied,
+                      [{CorrelationId, {ok, _}}]}} = AsyncRet ->
+                        ok = khepri:handle_async_ret(StoreId, AsyncRet)
+                 after
+                    5_000 ->
+                       throw(timeout)
+                 end
+           end),
+
+    [FollowerNode, _] = Nodes -- [LeaderNode],
+    ct:pal("Send async commands from a follower node ~s", [FollowerNode]),
+    ok = erpc:call(
+           FollowerNode,
+           fun() ->
+                 %% This member hasn't sent any commands so the leader isn't
+                 %% cached yet. This member is not the leader so the async
+                 %% command will fail.
+                 ?assertEqual(
+                    undefined,
+                    khepri_cluster:get_cached_leader(StoreId)),
+                 CorrelationId1 = 1,
+                 Extra1 = #{async => CorrelationId1},
+                 ok = khepri:put(StoreId, [foo], ?NO_PAYLOAD, Extra1),
+                 receive
+                    {ra_event,
+                     _,
+                     {rejected,
+                      {not_leader, _, CorrelationId1}}} = AsyncRet1 ->
+                        ok = khepri:handle_async_ret(StoreId, AsyncRet1)
+                 after
+                    1_000 ->
+                       throw(timeout)
+                 end,
+
+                 %% `khepri:handle_async_ret/2' updated the cached leader so
+                 %% the async call will now send the command to the leader.
+                 ?assertNotEqual(
+                    undefined,
+                    khepri_cluster:get_cached_leader(StoreId)),
+                 CorrelationId2 = 2,
+                 Extra2 = #{async => CorrelationId2},
+                 ok = khepri:put(StoreId, [foo], ?NO_PAYLOAD, Extra2),
+                 receive
+                    {ra_event,
+                     _,
+                     {applied,
+                      [{CorrelationId2, {ok, _}}]}} = AsyncRet2 ->
+                        ok = khepri:handle_async_ret(StoreId, AsyncRet2)
+                 after
+                    1_000 ->
+                       throw(timeout)
+                 end
+           end),
+    ok.
 
 %% -------------------------------------------------------------------
 %% Internal functions

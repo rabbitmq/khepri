@@ -125,6 +125,7 @@
          transaction/1, transaction/2, transaction/3, transaction/4,
          transaction/5,
 
+         handle_async_ret/1, handle_async_ret/2,
          wait_for_async_ret/1, wait_for_async_ret/2,
 
          %% Bang functions: they return the value directly or throw an error.
@@ -3291,6 +3292,62 @@ transaction(FunOrPath, Args, ReadWrite, Options)
 
 transaction(StoreId, FunOrPath, Args, ReadWrite, Options) ->
     khepri_machine:transaction(StoreId, FunOrPath, Args, ReadWrite, Options).
+
+%% -------------------------------------------------------------------
+%% handle_async_ret().
+%% -------------------------------------------------------------------
+
+-spec handle_async_ret(RaEvent) -> ok when
+      RaEvent :: ra_server_proc:ra_event().
+%% @doc Handles the Ra event sent for asynchronous call results.
+%%
+%% Calling this function is the same as calling
+%% `handle_async_ret(StoreId, RaEvent)' with the default store ID (see {@link
+%% khepri_cluster:get_default_store_id/0}).
+%%
+%% @see handle_async_ret/2.
+
+handle_async_ret(RaEvent) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    handle_async_ret(StoreId, RaEvent).
+
+-spec handle_async_ret(StoreId, RaEvent) -> ok when
+      StoreId :: khepri:store_id(),
+      RaEvent :: ra_server_proc:ra_event().
+%% @doc Handles the Ra event sent for asynchronous call results.
+%%
+%% When sending commands with `async' {@link command_options()}, the calling
+%% process will receive Ra events with the following structure:
+%%
+%% `{ra_event, CurrentLeader, {applied, [{Correlation1, Reply1}, ..]}}'
+%%
+%% or
+%%
+%% `{ra_event, FromId, {rejected, {not_leader, Leader | undefined, Correlation}}}'
+%%
+%% The first event acknowledges all commands handled in a batch while the
+%% second is sent per-command when commands are sent against a non-leader
+%% member.
+%%
+%% These events should be passed to this function in order to update leader
+%% information. This function does not handle retrying rejected commands or
+%% return values from applied commands - the caller is responsible for those
+%% tasks.
+%%
+%% @see async_option().
+%% @see ra:pipeline_command/4.
+
+handle_async_ret(
+  StoreId,
+  {ra_event, _CurrentLeader, {applied, _Correlations}})
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
+    ok;
+handle_async_ret(
+  StoreId,
+  {ra_event, FromId, {rejected, {not_leader, MaybeLeader, _CorrelationId}}})
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
+    ok = khepri_cluster:cache_leader_if_changed(StoreId, FromId, MaybeLeader),
+    ok.
 
 %% -------------------------------------------------------------------
 %% wait_for_async_ret().
