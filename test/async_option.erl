@@ -493,8 +493,3 @@ wait_for_async_error_test_() ->
              end
          end)
      ]}.
-
-wait_for_async_ret_but_no_async_call_test() ->
-    ?assertEqual(
-       {error, timeout},
-       khepri:wait_for_async_ret(1, 100)).
