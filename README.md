@@ -25,13 +25,13 @@ state machine in a Ra cluster.
 Khepri is still under active development and should be considered *Beta* at
 this stage.
 
-## Known Limitations
+## Known limitations
 
 Khepri currently hosts the entire data set **in memory as well as on disk**, so
 there is a realistic limit to how large a data set can be stored in it.
 
-For this reason and others, storing **blobs of files** in Khepri is not recommended.
-For that, use an external blob store.
+For this reason and others, storing **blobs of files** in Khepri is not
+recommended. For that, use an external blob store.
 
 ## Documentation
 
