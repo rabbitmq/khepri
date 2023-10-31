@@ -79,7 +79,7 @@ export_import_full_store_to_file_test_() ->
 
 fail_to_open_file_test_() ->
     Module = khepri_export_erlang,
-    Filename = "/",
+    {ok, Filename} = file:get_cwd(),
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) ->
