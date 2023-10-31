@@ -604,7 +604,7 @@ is_empty() ->
 %%
 %% @see is_empty/2.
 
-is_empty(StoreId) when ?IS_STORE_ID(StoreId) ->
+is_empty(StoreId) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     is_empty(StoreId, #{});
 is_empty(Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -676,7 +676,7 @@ get(PathPattern) ->
 %%
 %% @see get/3.
 
-get(StoreId, PathPattern) when ?IS_STORE_ID(StoreId) ->
+get(StoreId, PathPattern) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     get(StoreId, PathPattern, #{});
 get(PathPattern, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -788,7 +788,7 @@ get_or(PathPattern, Default) ->
 %%
 %% @see get_or/4.
 
-get_or(StoreId, PathPattern, Default) when ?IS_STORE_ID(StoreId) ->
+get_or(StoreId, PathPattern, Default) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     get_or(StoreId, PathPattern, Default, #{});
 get_or(PathPattern, Default, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -900,7 +900,7 @@ get_many(PathPattern) ->
 %%
 %% @see get_many/3.
 
-get_many(StoreId, PathPattern) when ?IS_STORE_ID(StoreId) ->
+get_many(StoreId, PathPattern) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     get_many(StoreId, PathPattern, #{});
 get_many(PathPattern, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -998,7 +998,7 @@ get_many_or(PathPattern, Default) ->
 %%
 %% @see get_many_or/4.
 
-get_many_or(StoreId, PathPattern, Default) when ?IS_STORE_ID(StoreId) ->
+get_many_or(StoreId, PathPattern, Default) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     get_many_or(StoreId, PathPattern, Default, #{});
 get_many_or(PathPattern, Default, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -1100,7 +1100,7 @@ exists(PathPattern) ->
 %%
 %% @see exists/3.
 
-exists(StoreId, PathPattern) when ?IS_STORE_ID(StoreId) ->
+exists(StoreId, PathPattern) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     exists(StoreId, PathPattern, #{});
 exists(PathPattern, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -1193,7 +1193,7 @@ has_data(PathPattern) ->
 %%
 %% @see has_data/3.
 
-has_data(StoreId, PathPattern) when ?IS_STORE_ID(StoreId) ->
+has_data(StoreId, PathPattern) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     has_data(StoreId, PathPattern, #{});
 has_data(PathPattern, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -1288,7 +1288,7 @@ is_sproc(PathPattern) ->
 %%
 %% @see is_sproc/3.
 
-is_sproc(StoreId, PathPattern) when ?IS_STORE_ID(StoreId) ->
+is_sproc(StoreId, PathPattern) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     is_sproc(StoreId, PathPattern, #{});
 is_sproc(PathPattern, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -1382,7 +1382,7 @@ count(PathPattern) ->
 %%
 %% @see count/3.
 
-count(StoreId, PathPattern) when ?IS_STORE_ID(StoreId) ->
+count(StoreId, PathPattern) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     count(StoreId, PathPattern, #{});
 count(PathPattern, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -1473,7 +1473,7 @@ fold(PathPattern, Fun, Acc) ->
 %%
 %% @see fold/5.
 
-fold(StoreId, PathPattern, Fun, Acc) when ?IS_STORE_ID(StoreId) ->
+fold(StoreId, PathPattern, Fun, Acc) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     fold(StoreId, PathPattern, Fun, Acc, #{});
 fold(PathPattern, Fun, Acc, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -1577,7 +1577,7 @@ foreach(PathPattern, Fun) ->
 %%
 %% @see foreach/4.
 
-foreach(StoreId, PathPattern, Fun) when ?IS_STORE_ID(StoreId) ->
+foreach(StoreId, PathPattern, Fun) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     foreach(StoreId, PathPattern, Fun, #{});
 foreach(PathPattern, Fun, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -1683,7 +1683,7 @@ map(PathPattern, Fun) ->
 %%
 %% @see map/4.
 
-map(StoreId, PathPattern, Fun) when ?IS_STORE_ID(StoreId) ->
+map(StoreId, PathPattern, Fun) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     map(StoreId, PathPattern, Fun, #{});
 map(PathPattern, Fun, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -1789,7 +1789,7 @@ filter(PathPattern, Pred) ->
 %%
 %% @see filter/4.
 
-filter(StoreId, PathPattern, Pred) when ?IS_STORE_ID(StoreId) ->
+filter(StoreId, PathPattern, Pred) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     filter(StoreId, PathPattern, Pred, #{});
 filter(PathPattern, Pred, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -1906,7 +1906,7 @@ run_sproc(PathPattern, Args) ->
 %%
 %% @see run_sproc/4.
 
-run_sproc(StoreId, PathPattern, Args) when ?IS_STORE_ID(StoreId) ->
+run_sproc(StoreId, PathPattern, Args) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     run_sproc(StoreId, PathPattern, Args, #{});
 run_sproc(PathPattern, Args, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -2460,7 +2460,7 @@ delete(PathPattern) ->
 %%
 %% @see delete/3.
 
-delete(StoreId, PathPattern) when ?IS_STORE_ID(StoreId) ->
+delete(StoreId, PathPattern) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     delete(StoreId, PathPattern, #{});
 delete(PathPattern, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -2549,7 +2549,7 @@ delete_many(PathPattern) ->
 %%
 %% @see delete_many/3.
 
-delete_many(StoreId, PathPattern) when ?IS_STORE_ID(StoreId) ->
+delete_many(StoreId, PathPattern) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     delete_many(StoreId, PathPattern, #{});
 delete_many(PathPattern, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -2770,7 +2770,7 @@ register_trigger(TriggerId, EventFilter, StoredProcPath) ->
 %% @see register_trigger/5.
 
 register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath)
-  when ?IS_STORE_ID(StoreId) andalso is_atom(TriggerId) ->
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(TriggerId) ->
     register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, #{});
 register_trigger(TriggerId, EventFilter, StoredProcPath, Options)
   when is_atom(TriggerId) andalso is_map(Options) ->
@@ -2889,7 +2889,7 @@ register_projection(PathPattern, Projection) ->
 %% @see register_projection/4.
 
 register_projection(StoreId, PathPattern, Projection)
-  when ?IS_STORE_ID(StoreId) ->
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
     register_projection(StoreId, PathPattern, Projection, #{});
 register_projection(PathPattern, Projection, Options)
   when is_map(Options) ->
@@ -2974,7 +2974,7 @@ unregister_projection(ProjectionName) when is_atom(ProjectionName) ->
 %% @see unregister_projection/3.
 
 unregister_projection(StoreId, ProjectionName)
-  when ?IS_STORE_ID(StoreId) andalso is_atom(ProjectionName) ->
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(ProjectionName) ->
     unregister_projection(StoreId, ProjectionName, #{});
 unregister_projection(ProjectionName, Options)
   when is_atom(ProjectionName) andalso is_map(Options) ->
@@ -2997,7 +2997,7 @@ unregister_projection(ProjectionName, Options)
 %% otherwise.
 
 unregister_projection(StoreId, ProjectionName, Options)
-  when ?IS_STORE_ID(StoreId) andalso is_atom(ProjectionName) andalso
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(ProjectionName) andalso
        is_map(Options) ->
     khepri_machine:unregister_projection(StoreId, ProjectionName, Options).
 
@@ -3069,7 +3069,7 @@ transaction(FunOrPath, ReadWriteOrOptions)
     StoreId = khepri_cluster:get_default_store_id(),
     transaction(StoreId, FunOrPath, ReadWriteOrOptions);
 transaction(StoreId, FunOrPath)
-  when ?IS_STORE_ID(StoreId) andalso
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        (is_function(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) ->
     transaction(StoreId, FunOrPath, []).
@@ -3124,13 +3124,13 @@ transaction(StoreId, FunOrPath)
 %% @see transaction/4.
 
 transaction(StoreId, FunOrPath, Args)
-  when ?IS_STORE_ID(StoreId) andalso
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        (is_function(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath))
        andalso is_list(Args) ->
     transaction(StoreId, FunOrPath, Args, auto);
 transaction(StoreId, FunOrPath, ReadWriteOrOptions)
-  when ?IS_STORE_ID(StoreId) andalso
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        (is_function(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        (is_atom(ReadWriteOrOptions) orelse is_map(ReadWriteOrOptions)) ->
@@ -3200,19 +3200,19 @@ transaction(FunOrPath, ReadWrite, Options)
 %% @see transaction/5.
 
 transaction(StoreId, FunOrPath, Args, ReadWrite)
-  when ?IS_STORE_ID(StoreId) andalso
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        (is_function(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        is_list(Args) andalso is_atom(ReadWrite) ->
     transaction(StoreId, FunOrPath, Args, ReadWrite, #{});
 transaction(StoreId, FunOrPath, Args, Options)
-  when ?IS_STORE_ID(StoreId) andalso
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        (is_function(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        is_list(Args) andalso is_map(Options) ->
     transaction(StoreId, FunOrPath, Args, auto, Options);
 transaction(StoreId, FunOrPath, ReadWrite, Options)
-  when ?IS_STORE_ID(StoreId) andalso
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        (is_function(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        is_atom(ReadWrite) andalso is_map(Options) ->
@@ -3397,7 +3397,7 @@ export(Module, ModulePriv) when is_atom(Module) ->
 %% @see export/4.
 
 export(StoreId, Module, ModulePriv)
-  when?IS_STORE_ID(StoreId) andalso is_atom(Module) ->
+  when?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(Module) ->
     export(StoreId, [?KHEPRI_WILDCARD_STAR_STAR], Module, ModulePriv);
 export(PathPattern, Module, ModulePriv)
   when is_atom(Module) ->
@@ -3449,7 +3449,7 @@ export(PathPattern, Module, ModulePriv)
 %% @see import/3.
 
 export(StoreId, PathPattern, Module, ModulePriv)
-  when ?IS_STORE_ID(StoreId) andalso is_atom(Module) ->
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(Module) ->
     khepri_import_export:export(StoreId, PathPattern, Module, ModulePriv).
 
 -spec import(Module, ModulePriv) -> Ret when
@@ -3503,7 +3503,7 @@ import(Module, ModulePriv) when is_atom(Module) ->
 %% @see export/3.
 
 import(StoreId, Module, ModulePriv)
-  when ?IS_STORE_ID(StoreId) andalso is_atom(Module) ->
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(Module) ->
     khepri_import_export:import(StoreId, Module, ModulePriv).
 
 %% -------------------------------------------------------------------

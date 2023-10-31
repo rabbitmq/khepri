@@ -290,15 +290,15 @@ ensure_ra_server_config_and_start(
   RaSystemOrDataDir, StoreIdOrRaServerConfig, Timeout)
   when (?IS_DATA_DIR(RaSystemOrDataDir) orelse
         ?IS_RA_SYSTEM(RaSystemOrDataDir)) andalso
-       (?IS_STORE_ID(StoreIdOrRaServerConfig) orelse
+       (?IS_KHEPRI_STORE_ID(StoreIdOrRaServerConfig) orelse
         is_map(StoreIdOrRaServerConfig)) ->
     %% If the store ID derived from `StoreIdOrRaServerConfig' is not an atom,
     %% it will cause a cause clause exception below.
     RaServerConfig =
     case StoreIdOrRaServerConfig of
-        _ when ?IS_STORE_ID(StoreIdOrRaServerConfig) ->
+        _ when ?IS_KHEPRI_STORE_ID(StoreIdOrRaServerConfig) ->
             #{cluster_name => StoreIdOrRaServerConfig};
-        #{cluster_name := CN} when ?IS_STORE_ID(CN) ->
+        #{cluster_name := CN} when ?IS_KHEPRI_STORE_ID(CN) ->
             StoreIdOrRaServerConfig;
         #{} when not is_map_key(cluster_name, StoreIdOrRaServerConfig) ->
             StoreIdOrRaServerConfig#{
@@ -469,7 +469,7 @@ stop() ->
 %%
 %% @returns `ok' if it succeeds, an error tuple otherwise.
 
-stop(StoreId) when ?IS_STORE_ID(StoreId) ->
+stop(StoreId) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     Lock = server_start_lock(StoreId),
     global:set_lock(Lock),
     try
@@ -588,7 +588,7 @@ join(RemoteNode, Timeout)
     StoreId = get_default_store_id(),
     join(StoreId, RemoteNode, Timeout);
 join(StoreId, RemoteNode)
-  when ?IS_STORE_ID(StoreId) andalso is_atom(RemoteNode) ->
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(RemoteNode) ->
     Timeout = khepri_app:get_default_timeout(),
     join(StoreId, RemoteNode, Timeout);
 join({StoreId, RemoteNode} = _RemoteMember, Timeout) ->
@@ -922,7 +922,7 @@ reset(Timeout)
     StoreId = get_default_store_id(),
     reset(StoreId, Timeout);
 reset(StoreId)
-  when ?IS_STORE_ID(StoreId) ->
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
     Timeout = khepri_app:get_default_timeout(),
     reset(StoreId, Timeout).
 
@@ -1080,7 +1080,7 @@ get_default_store_id() ->
                     khepri, default_store_id,
                     ?DEFAULT_STORE_ID),
     if
-        ?IS_STORE_ID(StoreId) ->
+        ?IS_KHEPRI_STORE_ID(StoreId) ->
             ok;
         true ->
             ?LOG_ERROR(

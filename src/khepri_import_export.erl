@@ -115,7 +115,7 @@
 -include_lib("kernel/include/logger.hrl").
 -include_lib("stdlib/include/assert.hrl").
 
--include("src/khepri_cluster.hrl").
+-include("include/khepri.hrl").
 -include("src/khepri_machine.hrl").
 
 -export([export/4,
@@ -181,7 +181,7 @@
 %% @private
 
 export(StoreId, PathPattern, Module, ModulePriv)
-  when ?IS_STORE_ID(StoreId) andalso is_atom(Module) ->
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(Module) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     Query = fun(State) ->
@@ -349,7 +349,7 @@ abort_write(Module, ModulePriv) ->
 %% @private
 
 import(StoreId, Module, ModulePriv)
-  when ?IS_STORE_ID(StoreId) andalso is_atom(Module) ->
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(Module) ->
     case open_read(Module, ModulePriv) of
         {ok, ModulePriv1}  -> do_import(StoreId, Module, ModulePriv1);
         {error, _} = Error -> Error

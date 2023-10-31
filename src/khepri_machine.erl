@@ -164,7 +164,7 @@
 %% entries, or an `{error, Reason}' tuple.
 
 fold(StoreId, PathPattern, Fun, Acc, Options)
-  when ?IS_STORE_ID(StoreId) andalso
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        is_function(Fun, 3) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
@@ -207,7 +207,7 @@ fold(StoreId, PathPattern, Fun, Acc, Options)
 %% @private
 
 put(StoreId, PathPattern, Payload, Options)
-  when ?IS_STORE_ID(StoreId) andalso ?IS_KHEPRI_PAYLOAD(Payload) ->
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso ?IS_KHEPRI_PAYLOAD(Payload) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     Payload1 = khepri_payload:prepare(Payload),
@@ -236,7 +236,7 @@ put(_StoreId, PathPattern, Payload, _Options) ->
 %% in the case of an asynchronous put, always `ok' (the actual return value
 %% may be sent by a message if a correlation ID was specified).
 
-delete(StoreId, PathPattern, Options) when ?IS_STORE_ID(StoreId) ->
+delete(StoreId, PathPattern, Options) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     {CommandOptions, TreeOptions} = split_command_options(Options),
@@ -270,7 +270,7 @@ delete(StoreId, PathPattern, Options) when ?IS_STORE_ID(StoreId) ->
 %% correlation ID was specified).
 
 transaction(StoreId, Fun, Args, auto = ReadWrite, Options)
-  when ?IS_STORE_ID(StoreId) andalso
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        is_list(Args) andalso
        is_function(Fun, length(Args)) andalso
        is_map(Options) ->
@@ -281,7 +281,7 @@ transaction(StoreId, Fun, Args, auto = ReadWrite, Options)
             readonly_transaction(StoreId, Fun, Args, Options)
     end;
 transaction(StoreId, PathPattern, Args, auto, Options)
-  when ?IS_STORE_ID(StoreId) andalso
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        ?IS_KHEPRI_PATH_PATTERN(PathPattern) andalso
        is_list(Args) andalso
        is_map(Options) ->
@@ -289,14 +289,14 @@ transaction(StoreId, PathPattern, Args, auto, Options)
     khepri_path:ensure_is_valid(PathPattern1),
     readwrite_transaction(StoreId, PathPattern1, Args, Options);
 transaction(StoreId, Fun, Args, rw = ReadWrite, Options)
-  when ?IS_STORE_ID(StoreId) andalso
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        is_list(Args) andalso
        is_function(Fun, length(Args)) andalso
        is_map(Options) ->
     StandaloneFun = khepri_tx_adv:to_standalone_fun(Fun, ReadWrite),
     readwrite_transaction(StoreId, StandaloneFun, Args, Options);
 transaction(StoreId, PathPattern, Args, rw, Options)
-  when ?IS_STORE_ID(StoreId) andalso
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        ?IS_KHEPRI_PATH_PATTERN(PathPattern) andalso
        is_list(Args) andalso
        is_map(Options) ->
@@ -304,13 +304,13 @@ transaction(StoreId, PathPattern, Args, rw, Options)
     khepri_path:ensure_is_valid(PathPattern1),
     readwrite_transaction(StoreId, PathPattern1, Args, Options);
 transaction(StoreId, Fun, Args, ro, Options)
-  when ?IS_STORE_ID(StoreId) andalso
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        is_list(Args) andalso
        is_function(Fun, length(Args)) andalso
        is_map(Options) ->
     readonly_transaction(StoreId, Fun, Args, Options);
 transaction(StoreId, PathPattern, Args, ro, Options)
-  when ?IS_STORE_ID(StoreId) andalso
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        ?IS_KHEPRI_PATH_PATTERN(PathPattern) andalso
        is_list(Args) andalso
        is_map(Options) ->
@@ -318,7 +318,7 @@ transaction(StoreId, PathPattern, Args, ro, Options)
     khepri_path:ensure_is_valid(PathPattern1),
     readonly_transaction(StoreId, PathPattern1, Args, Options);
 transaction(StoreId, Fun, Args, ReadWrite, Options)
-  when ?IS_STORE_ID(StoreId) andalso
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        is_function(Fun) andalso
        is_list(Args) andalso
        is_atom(ReadWrite) andalso
@@ -449,7 +449,7 @@ handle_tx_exception(
 %% otherwise.
 
 register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options)
-  when ?IS_STORE_ID(StoreId) ->
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
     EventFilter1 = khepri_evf:wrap(EventFilter),
     StoredProcPath1 = khepri_path:from_string(StoredProcPath),
     khepri_path:ensure_is_valid(StoredProcPath1),
@@ -508,7 +508,7 @@ register_projection(
 %% Reason}' tuple otherwise.
 
 unregister_projection(StoreId, ProjectionName, Options0)
-  when ?IS_STORE_ID(StoreId) andalso is_atom(ProjectionName) ->
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(ProjectionName) ->
     Options = Options0#{reply_from => local},
     Command = #unregister_projection{name = ProjectionName},
     process_command(StoreId, Command, Options).
@@ -526,7 +526,7 @@ unregister_projection(StoreId, ProjectionName, Options0)
 %% @private
 
 ack_triggers_execution(StoreId, TriggeredStoredProcs)
-  when ?IS_STORE_ID(StoreId) ->
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
     Command = #ack_triggered{triggered = TriggeredStoredProcs},
     process_command(StoreId, Command, #{async => true}).
 
@@ -546,7 +546,7 @@ ack_triggers_execution(StoreId, TriggeredStoredProcs)
 %% @private
 
 get_keep_while_conds_state(StoreId, Options)
-  when ?IS_STORE_ID(StoreId) ->
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
     Query = fun(#?MODULE{tree = #tree{keep_while_conds = KeepWhileConds}}) ->
                     {ok, KeepWhileConds}
             end,
@@ -571,7 +571,7 @@ get_keep_while_conds_state(StoreId, Options)
 %% @private
 
 get_projections_state(StoreId, Options)
-  when ?IS_STORE_ID(StoreId) ->
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
     Query = fun(#?MODULE{projections = Projections}) ->
                     {ok, Projections}
             end,
