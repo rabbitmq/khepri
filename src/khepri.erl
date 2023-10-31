@@ -2059,7 +2059,7 @@ put(StoreId, PathPattern, Data) ->
 %% Example:
 %% ```
 %% %% Insert a tree node at `/:foo/:bar', overwriting the previous value.
-%% ok = khepri_adv:put(StoreId, [foo, bar], new_value).
+%% ok = khepri:put(StoreId, [foo, bar], new_value).
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.
@@ -2169,7 +2169,7 @@ put_many(StoreId, PathPattern, Data) ->
 %% Example:
 %% ```
 %% %% Insert a tree node at `/:foo/:bar', overwriting the previous value.
-%% ok = khepri_adv:put(StoreId, [foo, bar], new_value).
+%% ok = khepri:put(StoreId, [foo, bar], new_value).
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.
@@ -2487,7 +2487,7 @@ delete(PathPattern, Options) when is_map(Options) ->
 %% Example:
 %% ```
 %% %% Delete the tree node at `/:foo/:bar'.
-%% ok = khepri_adv:delete(StoreId, [foo, bar]).
+%% ok = khepri:delete(StoreId, [foo, bar]).
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.
@@ -2569,7 +2569,7 @@ delete_many(PathPattern, Options) when is_map(Options) ->
 %% Example:
 %% ```
 %% %% Delete all nodes in the tree.
-%% ok = khepri_adv:delete_many(StoreId, [?KHEPRI_WILDCARD_STAR]).
+%% ok = khepri:delete_many(StoreId, [?KHEPRI_WILDCARD_STAR]).
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.
