@@ -334,8 +334,8 @@ an empty map.</p>
  
   <p>The <code>Options</code> map may specify command-level options; see <a docgen-rel="seetype" docgen-href="khepri#command_options/0" href="khepri.html#type-command_options"><code>khepri:command_options()</code></a>, <a docgen-rel="seetype" docgen-href="khepri#tree_options/0" href="khepri.html#type-tree_options"><code>khepri:tree_options()</code></a> and <a docgen-rel="seetype" docgen-href="khepri#put_options/0" href="khepri.html#type-put_options"><code>khepri:put_options()</code></a>.</p>
  
-  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="khepri#wait_for_async_ret/1" href="khepri.html#wait_for_async_ret-1"><code>khepri:wait_for_async_ret/1</code></a>  
-function can be used to receive the message from Ra.</p>
+  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="#handle_async_ret/1" href="#handle_async_ret-1"><code>handle_async_ret/1</code></a>  
+function should be used to handle the message received from Ra.</p>
  
   <p>The returned <code>{ok, NodeProps}</code> tuple contains a map with the properties and  
 payload (if any) of the targeted tree node as they were before the put.</p>
@@ -426,8 +426,8 @@ properties like the payload version correspond to the updated node.</p>
  
   <p>The <code>Options</code> map may specify command-level options; see <a docgen-rel="seetype" docgen-href="khepri#command_options/0" href="khepri.html#type-command_options"><code>khepri:command_options()</code></a>, <a docgen-rel="seetype" docgen-href="khepri#tree_options/0" href="khepri.html#type-tree_options"><code>khepri:tree_options()</code></a> and <a docgen-rel="seetype" docgen-href="khepri#put_options/0" href="khepri.html#type-put_options"><code>khepri:put_options()</code></a>.</p>
  
-  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="khepri#wait_for_async_ret/1" href="khepri.html#wait_for_async_ret-1"><code>khepri:wait_for_async_ret/1</code></a>  
-function can be used to receive the message from Ra.</p>
+  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="#handle_async_ret/1" href="#handle_async_ret-1"><code>handle_async_ret/1</code></a>  
+function should be used to handle the message received from Ra.</p>
  
   Example:
   <pre><code>%% Set value of all tree nodes matching `/*/:bar', to `new_value'.
@@ -657,8 +657,8 @@ is returned.</p>
   payload (if any) of the targeted tree node as they were before the delete.
   If the targeted tree node didn't exist, <code>NodeProps</code> will be an empty map.</p>
  
-  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="khepri#wait_for_async_ret/1" href="khepri.html#wait_for_async_ret-1"><code>khepri:wait_for_async_ret/1</code></a>  
-function can be used to receive the message from Ra.</p>
+  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="#handle_async_ret/1" href="#handle_async_ret-1"><code>handle_async_ret/1</code></a>  
+function should be used to handle the message received from Ra.</p>
  
   Example:
   <pre><code>%% Delete the tree node at `/:foo/:bar'.
@@ -723,8 +723,8 @@ correspond to the path to a deleted tree node. Each key then points to a
 map containing the properties and payload (if any) of that deleted tree  
 node as they were before the delete.</p>
  
-  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="khepri#wait_for_async_ret/1" href="khepri.html#wait_for_async_ret-1"><code>khepri:wait_for_async_ret/1</code></a>  
-function can be used to receive the message from Ra.</p>
+  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="#handle_async_ret/1" href="#handle_async_ret-1"><code>handle_async_ret/1</code></a>  
+function should be used to handle the message received from Ra.</p>
  
   Example:
   <pre><code>%% Delete the tree node at `/:foo/:bar'.

@@ -453,8 +453,8 @@ pattern.</td></tr>
 <tr><td valign="top"><a href="#transaction-3">transaction/3</a></td><td>Runs a transaction and returns its result.</td></tr>
 <tr><td valign="top"><a href="#transaction-4">transaction/4</a></td><td>Runs a transaction and returns its result.</td></tr>
 <tr><td valign="top"><a href="#transaction-5">transaction/5</a></td><td>Runs a transaction and returns its result.</td></tr>
-<tr><td valign="top"><a href="#wait_for_async_ret-1">wait_for_async_ret/1</a></td><td>Waits for an asynchronous call.</td></tr>
-<tr><td valign="top"><a href="#wait_for_async_ret-2">wait_for_async_ret/2</a></td><td>Waits for an asynchronous call.</td></tr>
+<tr><td valign="top"><a href="#handle_async_ret-1">handle_async_ret/1</a></td><td>Handles the Ra event sent for asynchronous call results.</td></tr>
+<tr><td valign="top"><a href="#handle_async_ret-2">handle_async_ret/2</a></td><td>Handles the Ra event sent for asynchronous call results.</td></tr>
 <tr><td valign="top"><a href="#get%21-1">'get!'/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get%21-2">'get!'/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#get%21-3">'get!'/3</a></td><td></td></tr>
@@ -1625,8 +1625,8 @@ is not modified.</p>
  
   <p>The <code>Options</code> map may specify command-level options; see <a docgen-rel="seetype" docgen-href="khepri#command_options/0" href="khepri.html#type-command_options"><code>khepri:command_options()</code></a>, <a docgen-rel="seetype" docgen-href="khepri#tree_options/0" href="khepri.html#type-tree_options"><code>khepri:tree_options()</code></a> and <a docgen-rel="seetype" docgen-href="khepri#put_options/0" href="khepri.html#type-put_options"><code>khepri:put_options()</code></a>.</p>
  
-  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="#wait_for_async_ret/1" href="#wait_for_async_ret-1"><code>wait_for_async_ret/1</code></a>  
-function can be used to receive the message from Ra.</p>
+  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="#handle_async_ret/1" href="#handle_async_ret-1"><code>handle_async_ret/1</code></a>  
+function can be used to handle the message received from Ra.</p>
  
   Example:
   <pre><code>%% Insert a tree node at `/:foo/:bar', overwriting the previous value.
@@ -1705,8 +1705,8 @@ is not modified.</p>
  
   <p>The <code>Options</code> map may specify command-level options; see <a docgen-rel="seetype" docgen-href="khepri#command_options/0" href="khepri.html#type-command_options"><code>khepri:command_options()</code></a>, <a docgen-rel="seetype" docgen-href="khepri#tree_options/0" href="khepri.html#type-tree_options"><code>khepri:tree_options()</code></a> and <a docgen-rel="seetype" docgen-href="khepri#put_options/0" href="khepri.html#type-put_options"><code>khepri:put_options()</code></a>.</p>
  
-  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="#wait_for_async_ret/1" href="#wait_for_async_ret-1"><code>wait_for_async_ret/1</code></a>  
-function can be used to receive the message from Ra.</p>
+  <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="#handle_async_ret/1" href="#handle_async_ret-1"><code>handle_async_ret/1</code></a>  
+function can be used to handle the message received from Ra.</p>
  
   Example:
   <pre><code>%% Insert a tree node at `/:foo/:bar', overwriting the previous value.
@@ -2418,30 +2418,44 @@ options.</p>
   specified.
  </p>
 
-<h3 class="function"><a name="wait_for_async_ret-1">wait_for_async_ret/1</a></h3>
+<h3 class="function"><a name="handle_async_ret-1">handle_async_ret/1</a></h3>
 <div class="spec">
-<p><code>wait_for_async_ret(Correlation) -&gt; Ret</code>
-<ul class="definitions"><li><code>Correlation = <a href="/home/runner/work/khepri/ra/doc/ra_server.html#type-command_correlation">ra_server:command_correlation()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_ret">khepri:payload_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-many_payloads_ret">khepri:many_payloads_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a></code></li></ul></p>
+<p><code>handle_async_ret(RaEvent) -&gt; ok</code>
+<ul class="definitions"><li><code>RaEvent = <a href="/home/runner/work/khepri/ra/doc/ra_server_proc.html#type-ra_event">ra_server_proc:ra_event()</a></code></li></ul></p>
 <p></p>
-</div><p><p>Waits for an asynchronous call.</p>
+</div><p><p>Handles the Ra event sent for asynchronous call results.</p>
  
   Calling this function is the same as calling
-  <code>wait_for_async_ret(Correlation)</code> with the default timeout (see <a docgen-rel="seemfa" docgen-href="khepri_app#get_default_timeout/0" href="khepri_app.html#get_default_timeout-0"><code>khepri_app:get_default_timeout/0</code></a>).
+  <code>handle_async_ret(StoreId, RaEvent)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
  </p>
-<p><b>See also:</b> <a href="#wait_for_async_ret-2">wait_for_async_ret/2</a>.</p>
+<p><b>See also:</b> <a href="#handle_async_ret-2">handle_async_ret/2</a>.</p>
 
-<h3 class="function"><a name="wait_for_async_ret-2">wait_for_async_ret/2</a></h3>
+<h3 class="function"><a name="handle_async_ret-2">handle_async_ret/2</a></h3>
 <div class="spec">
-<p><code>wait_for_async_ret(Correlation, Timeout) -&gt; Ret</code>
-<ul class="definitions"><li><code>Correlation = <a href="/home/runner/work/khepri/ra/doc/ra_server.html#type-command_correlation">ra_server:command_correlation()</a></code></li><li><code>Timeout = timeout()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_ret">khepri:payload_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-many_payloads_ret">khepri:many_payloads_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret">khepri_machine:tx_ret()</a></code></li></ul></p>
+<p><code>handle_async_ret(StoreId, RaEvent) -&gt; ok</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>RaEvent = <a href="/home/runner/work/khepri/ra/doc/ra_server_proc.html#type-ra_event">ra_server_proc:ra_event()</a></code></li></ul></p>
 <p></p>
-</div><p><p>Waits for an asynchronous call.</p>
+</div><p><p>Handles the Ra event sent for asynchronous call results.</p>
  
-  This function waits maximum <code>Timeout</code> milliseconds (or <code>infinity</code>) for the
-  result of a previous call where the <code>async</code> option was set with a
-  correlation ID. That correlation ID must be passed to this function.
+  <p>When sending commands with <code>async</code> <a docgen-rel="seetype" docgen-href="#command_options/0" href="#type-command_options"><code>command_options()</code></a>, the calling  
+process will receive Ra events with the following structure:</p>
+ 
+  <p><code>{ra_event, CurrentLeader, {applied, [{Correlation1, Reply1}, ..]}}</code></p>
+ 
+  <p>or</p>
+ 
+  <p><code>{ra_event, FromId, {rejected, {not_leader, Leader | undefined, Correlation}}}</code></p>
+ 
+  <p>The first event acknowledges all commands handled in a batch while the  
+second is sent per-command when commands are sent against a non-leader  
+member.</p>
+ 
+  These events should be passed to this function in order to update leader
+  information. This function does not handle retrying rejected commands or
+  return values from applied commands - the caller is responsible for those
+  tasks.
  </p>
-<p><b>See also:</b> <a href="#wait_for_async_ret-2">wait_for_async_ret/2</a>.</p>
+<p><b>See also:</b> <a href="#type-async_option">async_option()</a>, <a href="ra.html#pipeline_command-4">ra:pipeline_command/4</a>.</p>
 
 <h3 class="function"><a name="get%21-1">'get!'/1</a></h3>
 <div class="spec">
