@@ -5,6 +5,8 @@
 %% Copyright © 2021-2023 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
+-define(IS_KHEPRI_STORE_ID(StoreId), is_atom(StoreId)).
+
 -define(IS_KHEPRI_NODE_ID(PathComponent),
         (is_atom(PathComponent) orelse is_binary(PathComponent))).
 

@@ -104,7 +104,7 @@ get(PathPattern) ->
 %%
 %% @see get/3.
 
-get(StoreId, PathPattern) when ?IS_STORE_ID(StoreId) ->
+get(StoreId, PathPattern) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     get(StoreId, PathPattern, #{});
 get(PathPattern, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -211,7 +211,7 @@ get_many(PathPattern) ->
 %%
 %% @see get_many/3.
 
-get_many(StoreId, PathPattern) when ?IS_STORE_ID(StoreId) ->
+get_many(StoreId, PathPattern) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     get_many(StoreId, PathPattern, #{});
 get_many(PathPattern, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -819,7 +819,7 @@ delete(PathPattern) ->
 %%
 %% @see delete/3.
 
-delete(StoreId, PathPattern) when ?IS_STORE_ID(StoreId) ->
+delete(StoreId, PathPattern) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     delete(StoreId, PathPattern, #{});
 delete(PathPattern, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
@@ -929,7 +929,7 @@ delete_many(PathPattern) ->
 %%
 %% @see delete_many/3.
 
-delete_many(StoreId, PathPattern) when ?IS_STORE_ID(StoreId) ->
+delete_many(StoreId, PathPattern) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     delete_many(StoreId, PathPattern, #{});
 delete_many(PathPattern, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),

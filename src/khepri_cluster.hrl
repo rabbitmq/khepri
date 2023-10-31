@@ -7,7 +7,6 @@
 
 -define(DEFAULT_RA_SYSTEM_NAME, khepri).
 -define(DEFAULT_STORE_ID, khepri).
--define(IS_STORE_ID(StoreId), is_atom(StoreId)).
 
 %% timer:sleep/1 time used as a retry interval when the local Ra server is
 %% unaware of a leader exit.
