@@ -125,7 +125,7 @@
          transaction/1, transaction/2, transaction/3, transaction/4,
          transaction/5,
 
-         wait_for_async_ret/1, wait_for_async_ret/2,
+         handle_async_ret/1, handle_async_ret/2,
 
          %% Bang functions: they return the value directly or throw an error.
          'get!'/1, 'get!'/2, 'get!'/3,
@@ -2053,8 +2053,8 @@ put(StoreId, PathPattern, Data) ->
 %% khepri:command_options()}, {@link khepri:tree_options()} and {@link
 %% khepri:put_options()}.
 %%
-%% When doing an asynchronous update, the {@link wait_for_async_ret/1}
-%% function can be used to receive the message from Ra.
+%% When doing an asynchronous update, the {@link handle_async_ret/1}
+%% function can be used to handle the message received from Ra.
 %%
 %% Example:
 %% ```
@@ -2163,8 +2163,8 @@ put_many(StoreId, PathPattern, Data) ->
 %% khepri:command_options()}, {@link khepri:tree_options()} and {@link
 %% khepri:put_options()}.
 %%
-%% When doing an asynchronous update, the {@link wait_for_async_ret/1}
-%% function can be used to receive the message from Ra.
+%% When doing an asynchronous update, the {@link handle_async_ret/1}
+%% function can be used to handle the message received from Ra.
 %%
 %% Example:
 %% ```
@@ -3293,62 +3293,60 @@ transaction(StoreId, FunOrPath, Args, ReadWrite, Options) ->
     khepri_machine:transaction(StoreId, FunOrPath, Args, ReadWrite, Options).
 
 %% -------------------------------------------------------------------
-%% wait_for_async_ret().
+%% handle_async_ret().
 %% -------------------------------------------------------------------
 
--spec wait_for_async_ret(Correlation) -> Ret when
-      Correlation :: ra_server:command_correlation(),
-      Ret :: khepri:minimal_ret() |
-             khepri:payload_ret() |
-             khepri:many_payloads_ret() |
-             khepri_adv:single_result() |
-             khepri_adv:many_results() |
-             khepri_machine:tx_ret().
-%% @doc Waits for an asynchronous call.
+-spec handle_async_ret(RaEvent) -> ok when
+      RaEvent :: ra_server_proc:ra_event().
+%% @doc Handles the Ra event sent for asynchronous call results.
 %%
 %% Calling this function is the same as calling
-%% `wait_for_async_ret(Correlation)' with the default timeout (see {@link
-%% khepri_app:get_default_timeout/0}).
+%% `handle_async_ret(StoreId, RaEvent)' with the default store ID (see {@link
+%% khepri_cluster:get_default_store_id/0}).
 %%
-%% @see wait_for_async_ret/2.
+%% @see handle_async_ret/2.
 
-wait_for_async_ret(Correlation) ->
-    Timeout = khepri_app:get_default_timeout(),
-    wait_for_async_ret(Correlation, Timeout).
+handle_async_ret(RaEvent) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    handle_async_ret(StoreId, RaEvent).
 
--spec wait_for_async_ret(Correlation, Timeout) -> Ret when
-      Correlation :: ra_server:command_correlation(),
-      Timeout :: timeout(),
-      Ret :: khepri:minimal_ret() |
-             khepri:payload_ret() |
-             khepri:many_payloads_ret() |
-             khepri_adv:single_result() |
-             khepri_adv:many_results() |
-             khepri_machine:tx_ret().
-%% @doc Waits for an asynchronous call.
+-spec handle_async_ret(StoreId, RaEvent) -> ok when
+      StoreId :: khepri:store_id(),
+      RaEvent :: ra_server_proc:ra_event().
+%% @doc Handles the Ra event sent for asynchronous call results.
 %%
-%% This function waits maximum `Timeout' milliseconds (or `infinity') for the
-%% result of a previous call where the `async' option was set with a
-%% correlation ID. That correlation ID must be passed to this function.
+%% When sending commands with `async' {@link command_options()}, the calling
+%% process will receive Ra events with the following structure:
 %%
-%% @see wait_for_async_ret/2.
+%% `{ra_event, CurrentLeader, {applied, [{Correlation1, Reply1}, ..]}}'
+%%
+%% or
+%%
+%% `{ra_event, FromId, {rejected, {not_leader, Leader | undefined, Correlation}}}'
+%%
+%% The first event acknowledges all commands handled in a batch while the
+%% second is sent per-command when commands are sent against a non-leader
+%% member.
+%%
+%% These events should be passed to this function in order to update leader
+%% information. This function does not handle retrying rejected commands or
+%% return values from applied commands - the caller is responsible for those
+%% tasks.
+%%
+%% @see async_option().
+%% @see ra:pipeline_command/4.
 
-wait_for_async_ret(Correlation, Timeout) ->
-    receive
-        {ra_event, _, {applied, [{Correlation, Reply}]}} ->
-            case Reply of
-                {exception, _, _, _} = Exception ->
-                    khepri_machine:handle_tx_exception(Exception);
-                ok ->
-                    Reply;
-                {ok, _} ->
-                    Reply;
-                {error, _} ->
-                    Reply
-            end
-    after Timeout ->
-              {error, timeout}
-    end.
+handle_async_ret(
+  StoreId,
+  {ra_event, _CurrentLeader, {applied, _Correlations}})
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
+    ok;
+handle_async_ret(
+  StoreId,
+  {ra_event, FromId, {rejected, {not_leader, MaybeLeader, _CorrelationId}}})
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
+    ok = khepri_cluster:cache_leader_if_changed(StoreId, FromId, MaybeLeader),
+    ok.
 
 %% -------------------------------------------------------------------
 %% Bang functions.
