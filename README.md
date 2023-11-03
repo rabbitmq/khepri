@@ -193,6 +193,15 @@ be executed multiple times if the leader changes and thus should be idempotent.
 Unlike transaction functions, stored procedures may have whatever side effects
 they want.
 
+## Migrating from Mnesia
+
+To help you migrate an existing Mnesia database, you can use [the
+`khepri_mnesia_migration`
+application](https://github.com/rabbitmq/khepri_mnesia_migration/). It can take
+care of:
+* synchronizing the cluster membership and
+* copying Mnesia tables to a Khepri store.
+
 ## How to build
 
 ### Build
