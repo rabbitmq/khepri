@@ -81,13 +81,10 @@ async_with_correlation_in_put_test_() ->
                 khepri:put(
                   ?FUNCTION_NAME, [foo], ?NO_PAYLOAD,
                   #{async => Correlation})),
-             receive
-                 {ra_event, _, {applied, Correlations}} = AsyncRet ->
-                     ok = khepri:handle_async_ret(?FUNCTION_NAME, AsyncRet),
-                     ?assertEqual(
-                       [{Correlation, {ok, #{[foo] => #{}}}}],
-                       Correlations)
-             end,
+             RaEvent = receive {ra_event, _, _} = Event -> Event end,
+             ?assertEqual(
+               [{Correlation, {ok, #{[foo] => #{}}}}],
+               khepri:handle_async_ret(?FUNCTION_NAME, RaEvent)),
              ?assertEqual(
                 {ok, #{payload_version => 1}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
@@ -130,13 +127,10 @@ async_with_correlation_and_priority_in_put_test_() ->
                 khepri:put(
                   ?FUNCTION_NAME, [foo], ?NO_PAYLOAD,
                   #{async => {Correlation, low}})),
-             receive
-                 {ra_event, _, {applied, Correlations}} = AsyncRet ->
-                     ok = khepri:handle_async_ret(?FUNCTION_NAME, AsyncRet),
-                     ?assertEqual(
-                       [{Correlation, {ok, #{[foo] => #{}}}}],
-                       Correlations)
-             end,
+             RaEvent = receive {ra_event, _, _} = Event -> Event end,
+             ?assertEqual(
+               [{Correlation, {ok, #{[foo] => #{}}}}],
+               khepri:handle_async_ret(?FUNCTION_NAME, RaEvent)),
              ?assertEqual(
                 {ok, #{payload_version => 1}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
@@ -230,13 +224,10 @@ async_with_correlation_in_delete_test_() ->
                 ok,
                 khepri:delete(
                   ?FUNCTION_NAME, [foo], #{async => Correlation})),
-             receive
-                 {ra_event, _, {applied, Correlations}} = AsyncRet ->
-                     ok = khepri:handle_async_ret(?FUNCTION_NAME, AsyncRet),
-                     ?assertEqual(
-                       [{Correlation, {ok, #{[foo] => #{}}}}],
-                       Correlations)
-             end,
+             RaEvent = receive {ra_event, _, _} = Event -> Event end,
+             ?assertEqual(
+               [{Correlation, {ok, #{[foo] => #{}}}}],
+               khepri:handle_async_ret(?FUNCTION_NAME, RaEvent)),
              ?assertEqual(
                 {error,
                  ?khepri_error(node_not_found, #{node_name => foo,
@@ -290,14 +281,11 @@ async_with_correlation_and_priority_in_delete_test_() ->
                 ok,
                 khepri_adv:delete(
                   ?FUNCTION_NAME, [foo], #{async => {Correlation, low}})),
-             receive
-                 {ra_event, _, {applied, Correlations}} = AsyncRet ->
-                     ok = khepri:handle_async_ret(?FUNCTION_NAME, AsyncRet),
-                     ?assertEqual(
-                       [{Correlation, {ok, #{[foo] =>
-                                             #{payload_version => 1}}}}],
-                       Correlations)
-             end,
+             RaEvent = receive {ra_event, _, _} = Event -> Event end,
+             ?assertEqual(
+               [{Correlation, {ok, #{[foo] =>
+                                     #{payload_version => 1}}}}],
+               khepri:handle_async_ret(?FUNCTION_NAME, RaEvent)),
              ?assertEqual(
                 {error,
                  ?khepri_error(node_not_found, #{node_name => foo,
@@ -377,11 +365,10 @@ async_with_correlation_in_transaction_test_() ->
                 ok,
                 khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{async => Correlation})),
-             receive
-                 {ra_event, _, {applied, Correlations}} = AsyncRet ->
-                     ok = khepri:handle_async_ret(?FUNCTION_NAME, AsyncRet),
-                     ?assertEqual([{Correlation, ok}], Correlations)
-             end,
+             RaEvent = receive {ra_event, _, _} = Event -> Event end,
+             ?assertEqual(
+               [{Correlation, ok}],
+               khepri:handle_async_ret(?FUNCTION_NAME, RaEvent)),
              ?assertEqual(
                 {ok, #{payload_version => 1}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
@@ -405,14 +392,10 @@ async_with_correlation_in_aborted_transaction_test_() ->
                 ok,
                 khepri:transaction(
                   ?FUNCTION_NAME, Fun, rw, #{async => Correlation})),
-             receive
-                 {ra_event, _, {applied, Correlations}} = AsyncRet ->
-                     ok = khepri:handle_async_ret(?FUNCTION_NAME, AsyncRet),
-                     [{Correlation, Result}] = Correlations,
-                     ?assertMatch({exception, _, _, _}, Result),
-                     Error = khepri_machine:handle_tx_exception(Result),
-                     ?assertEqual({error, abort_reason}, Error)
-             end,
+             RaEvent = receive {ra_event, _, _} = Event -> Event end,
+             ?assertEqual(
+               [{Correlation, {error, abort_reason}}],
+               khepri:handle_async_ret(?FUNCTION_NAME, RaEvent)),
              ?assertEqual(
                 {error,
                  ?khepri_error(node_not_found, #{node_name => foo,
@@ -460,11 +443,10 @@ async_with_correlation_and_priority_in_transaction_test_() ->
                 khepri:transaction(
                   ?FUNCTION_NAME, Fun,
                   #{async => {Correlation, low}})),
-             receive
-                 {ra_event, _, {applied, Correlations}} = AsyncRet ->
-                     ok = khepri:handle_async_ret(?FUNCTION_NAME, AsyncRet),
-                     ?assertEqual([{Correlation, ok}], Correlations)
-             end,
+             RaEvent = receive {ra_event, _, _} = Event -> Event end,
+             ?assertEqual(
+               [{Correlation, ok}],
+               khepri:handle_async_ret(?FUNCTION_NAME, RaEvent)),
              ?assertEqual(
                 {ok, #{payload_version => 1}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
@@ -483,13 +465,9 @@ wait_for_async_error_test_() ->
                 khepri:update(
                   ?FUNCTION_NAME, [foo], ?NO_PAYLOAD,
                   #{async => Correlation})),
-             receive
-                 {ra_event, _, {applied, Correlations}} = AsyncRet ->
-                     ok = khepri:handle_async_ret(?FUNCTION_NAME, AsyncRet),
-                     ?assertMatch(
-                       [{Correlation,
-                         {error, ?khepri_error(node_not_found, _)}}],
-                       Correlations)
-             end
+             RaEvent = receive {ra_event, _, _} = Event -> Event end,
+             ?assertMatch(
+               [{Correlation, {error, ?khepri_error(node_not_found, _)}}],
+               khepri:handle_async_ret(?FUNCTION_NAME, RaEvent))
          end)
      ]}.

@@ -1422,16 +1422,16 @@ async_command_leader_change_in_three_node_cluster(Config) ->
                  CorrelationId = 1,
                  Extra = #{async => CorrelationId},
                  ok = khepri:put(StoreId, [foo], ?NO_PAYLOAD, Extra),
-                 receive
-                    {ra_event,
-                     _FromId,
-                     {applied,
-                      [{CorrelationId, {ok, _}}]}} = AsyncRet ->
-                        ok = khepri:handle_async_ret(StoreId, AsyncRet)
-                 after
-                    5_000 ->
-                       throw(timeout)
-                 end
+                 RaEvent = receive
+                              {ra_event, _, _} = Event ->
+                                 Event
+                           after
+                              5_000 ->
+                                 throw(timeout)
+                           end,
+                 ?assertMatch(
+                   [{CorrelationId, {ok, _}}],
+                   khepri:handle_async_ret(StoreId, RaEvent))
            end),
 
     [FollowerNode, _] = Nodes -- [LeaderNode],
@@ -1448,16 +1448,16 @@ async_command_leader_change_in_three_node_cluster(Config) ->
                  CorrelationId1 = 1,
                  Extra1 = #{async => CorrelationId1},
                  ok = khepri:put(StoreId, [foo], ?NO_PAYLOAD, Extra1),
-                 receive
-                    {ra_event,
-                     _,
-                     {rejected,
-                      {not_leader, _, CorrelationId1}}} = AsyncRet1 ->
-                        ok = khepri:handle_async_ret(StoreId, AsyncRet1)
-                 after
-                    1_000 ->
-                       throw(timeout)
-                 end,
+                 RaEvent1 = receive
+                               {ra_event, _, _} = Event1 ->
+                                  Event1
+                            after
+                               1_000 ->
+                                  throw(timeout)
+                            end,
+                 ?assertEqual(
+                   [{CorrelationId1, {error, not_leader}}],
+                   khepri:handle_async_ret(StoreId, RaEvent1)),
 
                  %% `khepri:handle_async_ret/2' updated the cached leader so
                  %% the async call will now send the command to the leader.
@@ -1467,16 +1467,16 @@ async_command_leader_change_in_three_node_cluster(Config) ->
                  CorrelationId2 = 2,
                  Extra2 = #{async => CorrelationId2},
                  ok = khepri:put(StoreId, [foo], ?NO_PAYLOAD, Extra2),
-                 receive
-                    {ra_event,
-                     _,
-                     {applied,
-                      [{CorrelationId2, {ok, _}}]}} = AsyncRet2 ->
-                        ok = khepri:handle_async_ret(StoreId, AsyncRet2)
-                 after
-                    1_000 ->
-                       throw(timeout)
-                 end
+                 RaEvent2 = receive
+                               {ra_event, _, _} = Event2 ->
+                                  Event2
+                            after
+                               1_000 ->
+                                  throw(timeout)
+                            end,
+                 ?assertMatch(
+                   [{CorrelationId2, {ok, _}}],
+                   khepri:handle_async_ret(StoreId, RaEvent2))
            end),
     ok.
 
