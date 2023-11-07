@@ -2078,7 +2078,7 @@ put(StoreId, PathPattern, Data) ->
 %% khepri:command_options()}, {@link khepri:tree_options()} and {@link
 %% khepri:put_options()}.
 %%
-%% When doing an asynchronous update, the {@link handle_async_ret/1}
+%% When doing an asynchronous update, the {@link handle_async_ret/2}
 %% function can be used to handle the message received from Ra.
 %%
 %% Example:
@@ -2188,7 +2188,7 @@ put_many(StoreId, PathPattern, Data) ->
 %% khepri:command_options()}, {@link khepri:tree_options()} and {@link
 %% khepri:put_options()}.
 %%
-%% When doing an asynchronous update, the {@link handle_async_ret/1}
+%% When doing an asynchronous update, the {@link handle_async_ret/2}
 %% function can be used to handle the message received from Ra.
 %%
 %% Example:
