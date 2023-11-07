@@ -412,6 +412,30 @@
 %%
 %% `undefined' is returned if a tree node has no payload attached to it.
 
+-type async_ret() :: khepri_adv:single_result() |
+                     khepri_adv:many_results() |
+                     khepri_tx:tx_fun_result() |
+                     khepri:error(not_leader).
+%% The value returned from of a command function which was executed
+%% asynchronously.
+%%
+%% When a caller includes a correlation ID ({@link
+%% ra_server:command_correlation()}) {@link async_option()} in their {@link
+%% khepri:command_options()} on a command function, the caller will receive a
+%% `ra_event' message. Handling the notification with {@link
+%% khepri:handle_async_ret/2} will return a list of pairs of correlation IDs
+%% ({@link ra_server:command_correlation()}) and the return values of the
+%% commands which were applied, or `{error, not_leader}' if the commands could
+%% not be applied since they were sent to a non-leader member.
+%%
+%% Note that when commands are successfully applied, the return values are in
+%% the {@link khepri_adv} formats - {@link khepri_adv:single_result()} or
+%% {@link khepri_adv:many_results()} - rather than {@link
+%% khepri:minimal_ret()}, even if the command was sent using a function from
+%% the {@link khepri} API such as {@link khepri:put/4}.
+%%
+%% See {@link khepri:handle_async_ret/2}.
+
 -export_type([store_id/0,
               ok/1,
               error/0, error/1,
@@ -445,7 +469,8 @@
               unwrapped_payload_ret/0,
               unwrapped_payload_ret/1,
               unwrapped_many_payloads_ret/0,
-              unwrapped_many_payloads_ret/1]).
+              unwrapped_many_payloads_ret/1,
+              async_ret/0]).
 
 %% -------------------------------------------------------------------
 %% Service management.
@@ -3296,8 +3321,11 @@ transaction(StoreId, FunOrPath, Args, ReadWrite, Options) ->
 %% handle_async_ret().
 %% -------------------------------------------------------------------
 
--spec handle_async_ret(RaEvent) -> ok when
-      RaEvent :: ra_server_proc:ra_event().
+-spec handle_async_ret(RaEvent) -> Ret when
+      RaEvent :: ra_server_proc:ra_event(),
+      Ret :: [{CorrelationId, AsyncRet}, ...],
+      CorrelationId :: ra_server:command_correlation(),
+      AsyncRet :: khepri:async_ret().
 %% @doc Handles the Ra event sent for asynchronous call results.
 %%
 %% Calling this function is the same as calling
@@ -3310,43 +3338,72 @@ handle_async_ret(RaEvent) ->
     StoreId = khepri_cluster:get_default_store_id(),
     handle_async_ret(StoreId, RaEvent).
 
--spec handle_async_ret(StoreId, RaEvent) -> ok when
+-spec handle_async_ret(StoreId, RaEvent) -> Ret when
       StoreId :: khepri:store_id(),
-      RaEvent :: ra_server_proc:ra_event().
+      RaEvent :: ra_server_proc:ra_event(),
+      Ret :: [{CorrelationId, AsyncRet}, ...],
+      CorrelationId :: ra_server:command_correlation(),
+      AsyncRet :: khepri:async_ret().
 %% @doc Handles the Ra event sent for asynchronous call results.
 %%
 %% When sending commands with `async' {@link command_options()}, the calling
 %% process will receive Ra events with the following structure:
 %%
-%% `{ra_event, CurrentLeader, {applied, [{Correlation1, Reply1}, ..]}}'
+%% `{ra_event, CurrentLeader, {applied, [{Correlation1, Reply1}, ...]}}'
 %%
 %% or
 %%
-%% `{ra_event, FromId, {rejected, {not_leader, Leader | undefined, Correlation}}}'
+%% `{ra_event,
+%%   FromId,
+%%   {rejected, {not_leader, Leader | undefined, Correlation}}}'
 %%
 %% The first event acknowledges all commands handled in a batch while the
 %% second is sent per-command when commands are sent against a non-leader
 %% member.
 %%
-%% These events should be passed to this function in order to update leader
-%% information. This function does not handle retrying rejected commands or
-%% return values from applied commands - the caller is responsible for those
-%% tasks.
+%% These events should be passed to this function in order to map the return
+%% values from the async commands and to update leader information. This
+%% function does not handle retrying rejected commands or return values from
+%% applied commands - the caller is responsible for those tasks.
+%%
+%% Example:
+%% ```
+%% ok = khepri:put(StoreId, [stock, wood, <<"oak">>], 200, #{async => 1}),
+%% ok = khepri:put(StoreId, [stock, wood, <<"maple">>], 150, #{async => 2}),
+%% RaEvent = receive {ra_event, _, _} = Event -> Event end,
+%% ?assertMatch(
+%%   [{1, {ok, #{[stock, wood, <<"oak">>] => _}}},
+%%    {2, {ok, #{[stock, wood, <<"maple">>] => _}}}],
+%%   khepri:handle_async_ret(RaEvent)).
+%% '''
 %%
 %% @see async_option().
 %% @see ra:pipeline_command/4.
 
 handle_async_ret(
   StoreId,
-  {ra_event, _CurrentLeader, {applied, _Correlations}})
+  {ra_event, _CurrentLeader, {applied, Correlations0}})
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
-    ok;
+    lists:map(
+      fun({CorrelationId, Reply0}) ->
+          Reply = case Reply0 of
+                      {exception, _, _, _} = Exception ->
+                          khepri_machine:handle_tx_exception(Exception);
+                      ok ->
+                          Reply0;
+                      {ok, _} ->
+                          Reply0;
+                      {error, _} ->
+                          Reply0
+                  end,
+          {CorrelationId, Reply}
+      end, Correlations0);
 handle_async_ret(
   StoreId,
-  {ra_event, FromId, {rejected, {not_leader, MaybeLeader, _CorrelationId}}})
+  {ra_event, FromId, {rejected, {not_leader, MaybeLeader, CorrelationId}}})
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
     ok = khepri_cluster:cache_leader_if_changed(StoreId, FromId, MaybeLeader),
-    ok.
+    [{CorrelationId, {error, not_leader}}].
 
 %% -------------------------------------------------------------------
 %% Bang functions.
