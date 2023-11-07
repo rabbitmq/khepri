@@ -87,6 +87,24 @@ though; other types are unsupported.</p>
   asynchronous command with the specified parameters.</li>
   </ul></p>
 
+<h3 class="typedecl"><a name="type-async_ret">async_ret()</a></h3>
+<p><code>async_ret() = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error</a>(not_leader)</code></p>
+<p><p>  The value returned from of a command function which was executed  
+asynchronously.</p>
+ 
+  <p>When a caller includes a correlation ID (<a docgen-rel="seetype" docgen-href="ra_server#command_correlation/0" href="ra_server.html#type-command_correlation"><code>ra_server:command_correlation()</code></a>) <a docgen-rel="seetype" docgen-href="#async_option/0" href="#type-async_option"><code>async_option()</code></a> in their <a docgen-rel="seetype" docgen-href="khepri#command_options/0" href="khepri.html#type-command_options"><code>khepri:command_options()</code></a> on a command function, the caller will receive a
+  <code>ra_event</code> message. Handling the notification with <a docgen-rel="seemfa" docgen-href="khepri#handle_async_ret/2" href="khepri.html#handle_async_ret-2"><code>khepri:handle_async_ret/2</code></a> will return a list of pairs of correlation IDs
+  (<a docgen-rel="seetype" docgen-href="ra_server#command_correlation/0" href="ra_server.html#type-command_correlation"><code>ra_server:command_correlation()</code></a>) and the return values of the
+  commands which were applied, or <code>{error, not_leader}</code> if the commands could  
+not be applied since they were sent to a non-leader member.</p>
+ 
+  <p>Note that when commands are successfully applied, the return values are in
+  the <a docgen-rel="seeerl" docgen-href="khepri_adv" href="khepri_adv.html"><code>khepri_adv</code></a> formats - <a docgen-rel="seetype" docgen-href="khepri_adv#single_result/0" href="khepri_adv.html#type-single_result"><code>khepri_adv:single_result()</code></a> or
+  <a docgen-rel="seetype" docgen-href="khepri_adv#many_results/0" href="khepri_adv.html#type-many_results"><code>khepri_adv:many_results()</code></a> - rather than <a docgen-rel="seetype" docgen-href="khepri#minimal_ret/0" href="khepri.html#type-minimal_ret"><code>khepri:minimal_ret()</code></a>, even if the command was sent using a function from
+  the <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> API such as <a docgen-rel="seemfa" docgen-href="khepri#put/4" href="khepri.html#put-4"><code>khepri:put/4</code></a>.</p>
+ 
+  See <a docgen-rel="seemfa" docgen-href="khepri#handle_async_ret/2" href="khepri.html#handle_async_ret-2"><code>khepri:handle_async_ret/2</code></a>.</p>
+
 <h3 class="typedecl"><a name="type-child_list_length">child_list_length()</a></h3>
 <p><code>child_list_length() = non_neg_integer()</code></p>
 <p>  Number of direct child nodes under a tree node.</p>
@@ -2420,8 +2438,8 @@ options.</p>
 
 <h3 class="function"><a name="handle_async_ret-1">handle_async_ret/1</a></h3>
 <div class="spec">
-<p><code>handle_async_ret(RaEvent) -&gt; ok</code>
-<ul class="definitions"><li><code>RaEvent = <a href="/home/runner/work/khepri/ra/doc/ra_server_proc.html#type-ra_event">ra_server_proc:ra_event()</a></code></li></ul></p>
+<p><code>handle_async_ret(RaEvent) -&gt; Ret</code>
+<ul class="definitions"><li><code>RaEvent = <a href="/home/runner/work/khepri/ra/doc/ra_server_proc.html#type-ra_event">ra_server_proc:ra_event()</a></code></li><li><code>Ret = [{CorrelationId, AsyncRet}, ...]</code></li><li><code>CorrelationId = <a href="/home/runner/work/khepri/ra/doc/ra_server.html#type-command_correlation">ra_server:command_correlation()</a></code></li><li><code>AsyncRet = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-async_ret">khepri:async_ret()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Handles the Ra event sent for asynchronous call results.</p>
  
@@ -2432,28 +2450,39 @@ options.</p>
 
 <h3 class="function"><a name="handle_async_ret-2">handle_async_ret/2</a></h3>
 <div class="spec">
-<p><code>handle_async_ret(StoreId, RaEvent) -&gt; ok</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>RaEvent = <a href="/home/runner/work/khepri/ra/doc/ra_server_proc.html#type-ra_event">ra_server_proc:ra_event()</a></code></li></ul></p>
+<p><code>handle_async_ret(StoreId, RaEvent) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>RaEvent = <a href="/home/runner/work/khepri/ra/doc/ra_server_proc.html#type-ra_event">ra_server_proc:ra_event()</a></code></li><li><code>Ret = [{CorrelationId, AsyncRet}, ...]</code></li><li><code>CorrelationId = <a href="/home/runner/work/khepri/ra/doc/ra_server.html#type-command_correlation">ra_server:command_correlation()</a></code></li><li><code>AsyncRet = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-async_ret">khepri:async_ret()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Handles the Ra event sent for asynchronous call results.</p>
  
   <p>When sending commands with <code>async</code> <a docgen-rel="seetype" docgen-href="#command_options/0" href="#type-command_options"><code>command_options()</code></a>, the calling  
 process will receive Ra events with the following structure:</p>
  
-  <p><code>{ra_event, CurrentLeader, {applied, [{Correlation1, Reply1}, ..]}}</code></p>
+  <p><code>{ra_event, CurrentLeader, {applied, [{Correlation1, Reply1}, ...]}}</code></p>
  
   <p>or</p>
  
-  <p><code>{ra_event, FromId, {rejected, {not_leader, Leader | undefined, Correlation}}}</code></p>
+  <p><code>{ra_event,
+    FromId,
+    {rejected, {not_leader, Leader | undefined, Correlation}}}</code></p>
  
   <p>The first event acknowledges all commands handled in a batch while the  
 second is sent per-command when commands are sent against a non-leader  
 member.</p>
  
-  These events should be passed to this function in order to update leader
-  information. This function does not handle retrying rejected commands or
-  return values from applied commands - the caller is responsible for those
-  tasks.
+  <p>These events should be passed to this function in order to map the return  
+values from the async commands and to update leader information. This  
+function does not handle retrying rejected commands or return values from  
+applied commands - the caller is responsible for those tasks.</p>
+ 
+  Example:
+  <pre><code>ok = khepri:put(StoreId, [stock, wood, &lt;&lt;"oak"&gt;&gt;], 200, #{async =&gt; 1}),
+ok = khepri:put(StoreId, [stock, wood, &lt;&lt;"maple"&gt;&gt;], 150, #{async =&gt; 2}),
+RaEvent = receive {ra_event, _, _} = Event -&gt; Event end,
+?assertMatch(
+  [{1, {ok, #{[stock, wood, &lt;&lt;"oak"&gt;&gt;] =&gt; _}}},
+   {2, {ok, #{[stock, wood, &lt;&lt;"maple"&gt;&gt;] =&gt; _}}}],
+  khepri:handle_async_ret(RaEvent)).</code></pre>
  </p>
 <p><b>See also:</b> <a href="#type-async_option">async_option()</a>, <a href="ra.html#pipeline_command-4">ra:pipeline_command/4</a>.</p>
 
