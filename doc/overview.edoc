@@ -5,7 +5,7 @@
 @author The RabbitMQ team <rabbitmq-core@groups.vmware.com>
 @copyright 2021-2023 Broadcom. All Rights Reserved. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 @title The Khepri Database
-@version 0.9.0
+@version 0.10.0
 
 @doc
 Khepri is a tree-like replicated on-disk database library for Erlang and
