@@ -50,7 +50,8 @@
          handle_aux/6,
          apply/3,
          state_enter/2,
-         overview/1]).
+         overview/1,
+         version/0]).
 
 %% For internal use only.
 -export([clear_cache/1,
@@ -1315,6 +1316,9 @@ overview(#?MODULE{config = #config{store_id = StoreId},
       tree => NodeTree,
       triggers => Triggers,
       keep_while_conds => KeepWhileConds}.
+
+version() ->
+    0.
 
 %% -------------------------------------------------------------------
 %% Internal functions.
