@@ -186,7 +186,7 @@ export(StoreId, PathPattern, Module, ModulePriv)
     khepri_path:ensure_is_valid(PathPattern1),
     Query = fun(State) ->
                     try
-                        do_export(State, PathPattern, Module, ModulePriv)
+                        do_export(State, PathPattern1, Module, ModulePriv)
                     catch
                         Class:Exception:Stacktrace ->
                             {error, {exception, Class, Exception, Stacktrace}}
