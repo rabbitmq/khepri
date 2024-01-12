@@ -1106,8 +1106,13 @@ locally_known_members(StoreId) ->
     locally_known_members(StoreId, Timeout).
 
 locally_known_members(StoreId, Timeout) ->
-    ThisMember = this_member(StoreId),
-    do_query_members(StoreId, ThisMember, local, Timeout).
+    case ra_leaderboard:lookup_members(StoreId) of
+        Members when is_list(Members) ->
+            Members;
+        undefined ->
+            ThisMember = this_member(StoreId),
+            do_query_members(StoreId, ThisMember, local, Timeout)
+    end.
 
 do_query_members(StoreId, RaServer, QueryType, Timeout) ->
     T0 = khepri_utils:start_timeout_window(Timeout),
