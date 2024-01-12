@@ -46,6 +46,9 @@
          projections_are_consistent_on_three_node_cluster/1,
          async_command_leader_change_in_three_node_cluster/1]).
 
+%% Exported functions passed to ra:*_query().
+-export([return_metrics_qf/1]).
+
 all() ->
     [can_start_a_single_node,
      can_restart_a_single_node_with_ra_server_config,
@@ -1234,9 +1237,7 @@ can_set_snapshot_interval(Config) ->
     ?assertEqual(
        #{},
        khepri_machine:process_query(
-         StoreId,
-         fun(#khepri_machine{metrics = Metrics}) -> Metrics end,
-         #{})),
+         StoreId, {?MODULE, return_metrics_qf, []}, #{})),
 
     ct:pal("Use database after starting it"),
     ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
@@ -1245,9 +1246,7 @@ can_set_snapshot_interval(Config) ->
     ?assertEqual(
        #{applied_command_count => 1},
        khepri_machine:process_query(
-         StoreId,
-         fun(#khepri_machine{metrics = Metrics}) -> Metrics end,
-         #{})),
+         StoreId, {?MODULE, return_metrics_qf, []}, #{})),
 
     ct:pal("Use database after starting it"),
     ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
@@ -1256,9 +1255,7 @@ can_set_snapshot_interval(Config) ->
     ?assertEqual(
        #{applied_command_count => 2},
        khepri_machine:process_query(
-         StoreId,
-         fun(#khepri_machine{metrics = Metrics}) -> Metrics end,
-         #{})),
+         StoreId, {?MODULE, return_metrics_qf, []}, #{})),
 
     ct:pal("Use database after starting it"),
     ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
@@ -1267,9 +1264,7 @@ can_set_snapshot_interval(Config) ->
     ?assertEqual(
        #{},
        khepri_machine:process_query(
-         StoreId,
-         fun(#khepri_machine{metrics = Metrics}) -> Metrics end,
-         #{})),
+         StoreId, {?MODULE, return_metrics_qf, []}, #{})),
 
     ct:pal("Stop database"),
     ?assertEqual(
@@ -1277,6 +1272,9 @@ can_set_snapshot_interval(Config) ->
        khepri:stop(StoreId)),
 
     ok.
+
+return_metrics_qf(#khepri_machine{metrics = Metrics}) ->
+    Metrics.
 
 projections_are_consistent_on_three_node_cluster(Config) ->
     ProjectionName = ?MODULE,

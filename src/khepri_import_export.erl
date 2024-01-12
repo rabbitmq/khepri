@@ -121,6 +121,9 @@
 -export([export/4,
          import/3]).
 
+%% Exported functions passed to ra:*_query().
+-export([export_qf/4]).
+
 -type module_priv() :: any().
 %% Private data passed to `Module:open_write/1' or `Module:open_read/1'
 %% initially.
@@ -184,20 +187,29 @@ export(StoreId, PathPattern, Module, ModulePriv)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(Module) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
-    Query = fun(State) ->
-                    try
-                        do_export(State, PathPattern1, Module, ModulePriv)
-                    catch
-                        Class:Exception:Stacktrace ->
-                            {error, {exception, Class, Exception, Stacktrace}}
-                    end
-            end,
+    Query = {?MODULE, export_qf, [PathPattern1, Module, ModulePriv]},
     Ret = khepri_machine:process_query(StoreId, Query, #{}),
     case Ret of
         {error, {exception, Class, Exception, Stacktrace}} ->
             erlang:raise(Class, Exception, Stacktrace);
         _ ->
             Ret
+    end.
+
+-spec export_qf(PathPattern, Module, ModulePriv, State) -> Ret when
+      PathPattern :: khepri_path:native_pattern(),
+      Module :: module(),
+      ModulePriv :: khepri_import_export:module_priv(),
+      State :: khepri_machine:state(),
+      Ret :: ok | {ok, ModulePriv} | {error, any()}.
+%% @private
+
+export_qf(PathPattern, Module, ModulePriv, State) ->
+    try
+        do_export(State, PathPattern, Module, ModulePriv)
+    catch
+        Class:Exception:Stacktrace ->
+            {error, {exception, Class, Exception, Stacktrace}}
     end.
 
 -spec do_export(MachineState, PathPattern, Module, ModulePriv) -> Ret when

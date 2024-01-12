@@ -344,6 +344,14 @@
 %% created/updated tree node.</li>
 %% </ul>
 
+-type mod_func_args() :: {Module :: module(),
+                          Func :: atom(),
+                          Args :: [any()]}.
+%% Module/function/arguments triplet.
+%%
+%% It differs from Erlang's `mfa()' type because it takes a list of arguments,
+%% not an arity as its 3rd element.
+
 -type fold_fun() :: fun((khepri_path:native_path(),
                          khepri:node_props(),
                          khepri:fold_acc()) -> khepri:fold_acc()).
@@ -455,6 +463,7 @@
               tree_options/0,
               put_options/0,
 
+              mod_func_args/0,
               fold_fun/0,
               fold_acc/0,
               foreach_fun/0,

@@ -30,9 +30,10 @@
 -include("src/khepri_error.hrl").
 -include("src/khepri_evf.hrl").
 -include("src/khepri_machine.hrl").
+-include("src/khepri_mfa.hrl").
+-include("src/khepri_projection.hrl").
 -include("src/khepri_ret.hrl").
 -include("src/khepri_tx.hrl").
--include("src/khepri_projection.hrl").
 
 -export([fold/5,
          put/4,
@@ -64,6 +65,13 @@
          handle_tx_exception/1,
          process_query/3,
          process_command/3]).
+
+%% Exported functions passed to ra:*_query().
+-export([fold_qf/5,
+         ro_tx_with_fun_qf/3,
+         ro_tx_with_sproc_qf/3,
+         get_keep_while_conds_state_qf/1,
+         get_projections_state_qf/1]).
 
 -ifdef(TEST).
 -export([get_tree/1,
@@ -106,8 +114,12 @@
 -type aux_state() :: #khepri_machine_aux{}.
 %% Auxiliary state of this Ra state machine.
 
--type query_fun() :: fun((state()) -> any()).
-%% Function representing a query and used {@link process_query/3}.
+-type query_fun() :: khepri:mod_func_args().
+%% MFA representing a query and used by {@link process_query/3}.
+%%
+%% An anonymous function (`fun()') is unsupported on purpose because a
+%% function reference may not be valid on a remote node if it has to be
+%% executed there.
 
 -type common_ret() :: khepri:ok(khepri_adv:node_props_map()) |
                       khepri:error().
@@ -170,18 +182,28 @@ fold(StoreId, PathPattern, Fun, Acc, Options)
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     {QueryOptions, TreeOptions} = split_query_options(Options),
-    Query = fun(#?MODULE{tree = Tree}) ->
-                    try
-                        khepri_tree:fold(
-                          Tree, PathPattern1, Fun, Acc, TreeOptions)
-                    catch
-                        Class:Reason:Stacktrace ->
-                            {exception, Class, Reason, Stacktrace}
-                    end
-            end,
+    Query = {?MODULE, fold_qf, [PathPattern1, Fun, Acc, TreeOptions]},
     case process_query(StoreId, Query, QueryOptions) of
         {exception, _, _, _} = Exception -> handle_tx_exception(Exception);
         Ret                              -> Ret
+    end.
+
+-spec fold_qf(PathPattern, Fun, Acc, TreeOptions, State) -> Ret when
+      PathPattern :: khepri_path:native_pattern(),
+      Fun :: khepri:fold_fun(),
+      Acc :: khepri:fold_acc(),
+      TreeOptions :: khepri:tree_options(),
+      State :: khepri_machine:state(),
+      Ret :: khepri:ok(NewAcc) | khepri:error(),
+      NewAcc :: Acc.
+%% @private.
+
+fold_qf(PathPattern, Fun, Acc, TreeOptions, #?MODULE{tree = Tree}) ->
+    try
+        khepri_tree:fold(Tree, PathPattern, Fun, Acc, TreeOptions)
+    catch
+        Class:Reason:Stacktrace ->
+            {exception, Class, Reason, Stacktrace}
     end.
 
 -spec put(StoreId, PathPattern, Payload, Options) -> Ret when
@@ -340,14 +362,7 @@ transaction(StoreId, Fun, Args, ReadWrite, Options)
 
 readonly_transaction(StoreId, Fun, Args, Options)
   when is_list(Args) andalso is_function(Fun, length(Args)) ->
-    Query = fun(State) ->
-                    %% It is a read-only transaction, therefore we assert that
-                    %% the state is unchanged and that there are no side
-                    %% effects.
-                    {State, Ret, []} = khepri_tx_adv:run(
-                                         State, Fun, Args, false),
-                    Ret
-            end,
+    Query = {?MODULE, ro_tx_with_fun_qf, [Fun, Args]},
     case process_query(StoreId, Query, Options) of
         {exception, _, _, _} = Exception ->
             handle_tx_exception(Exception);
@@ -356,20 +371,48 @@ readonly_transaction(StoreId, Fun, Args, Options)
     end;
 readonly_transaction(StoreId, PathPattern, Args, Options)
   when ?IS_KHEPRI_PATH_PATTERN(PathPattern) andalso is_list(Args) ->
-    Query = fun(State) ->
-                    %% It is a read-only transaction, therefore we assert that
-                    %% the state is unchanged and that there are no side
-                    %% effects.
-                    {State, Ret, []} = locate_sproc_and_execute_tx(
-                                         State, PathPattern, Args, false),
-                    Ret
-            end,
+    Query = {?MODULE, ro_tx_with_sproc_qf, [PathPattern, Args]},
     case process_query(StoreId, Query, Options) of
         {exception, _, _, _} = Exception ->
             handle_tx_exception(Exception);
         Ret ->
             {ok, Ret}
     end.
+
+-spec ro_tx_with_fun_qf(Fun, Args, State) -> Ret when
+      Fun :: khepri_tx:tx_fun(),
+      Args :: list(),
+      State :: khepri_machine:state(),
+      Ret :: khepri_tx:tx_fun_result() | Exception,
+      Exception :: {exception, Class, Reason, Stacktrace},
+      Class :: error | exit | throw,
+      Reason :: any(),
+      Stacktrace :: list().
+%% @private.
+
+ro_tx_with_fun_qf(Fun, Args, State) ->
+    %% It is a read-only transaction, therefore we assert that the state is
+    %% unchanged and that there are no side effects.
+    {State, Ret, []} = khepri_tx_adv:run(State, Fun, Args, false),
+    Ret.
+
+-spec ro_tx_with_sproc_qf(PathPattern, Args, State) -> Ret when
+      PathPattern :: khepri_path:native_path(),
+      Args :: list(),
+      State :: khepri_machine:state(),
+      Ret :: khepri_tx:tx_fun_result() | Exception,
+      Exception :: {exception, Class, Reason, Stacktrace},
+      Class :: error | exit | throw,
+      Reason :: any(),
+      Stacktrace :: list().
+%% @private.
+
+ro_tx_with_sproc_qf(PathPattern, Args, State) ->
+    %% It is a read-only transaction, therefore we assert that the state is
+    %% unchanged and that there are no side effects.
+    {State, Ret, []} = locate_sproc_and_execute_tx(
+                         State, PathPattern, Args, false),
+    Ret.
 
 -spec readwrite_transaction(StoreId, FunOrPath, Args, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -548,11 +591,18 @@ ack_triggers_execution(StoreId, TriggeredStoredProcs)
 
 get_keep_while_conds_state(StoreId, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
-    Query = fun(#?MODULE{tree = #tree{keep_while_conds = KeepWhileConds}}) ->
-                    {ok, KeepWhileConds}
-            end,
+    Query = {?MODULE, get_keep_while_conds_state_qf, []},
     Options1 = Options#{favor => consistency},
     process_query(StoreId, Query, Options1).
+
+-spec get_keep_while_conds_state_qf(State) -> Ret when
+      State :: khepri_machine:state(),
+      Ret :: khepri:ok(khepri_tree:keep_while_conds_map()).
+%% @private.
+
+get_keep_while_conds_state_qf(
+  #?MODULE{tree = #tree{keep_while_conds = KeepWhileConds}}) ->
+    {ok, KeepWhileConds}.
 
 -spec get_projections_state(StoreId, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -573,11 +623,19 @@ get_keep_while_conds_state(StoreId, Options)
 
 get_projections_state(StoreId, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
-    Query = fun(#?MODULE{projections = Projections}) ->
-                    {ok, Projections}
-            end,
+    Query = {?MODULE, get_projections_state_qf, []},
     Options1 = Options#{favor => consistency},
     process_query(StoreId, Query, Options1).
+
+-spec get_projections_state_qf(State) -> Ret when
+      State :: khepri_machine:state(),
+      Ret :: khepri:ok(ProjectionState),
+      ProjectionState :: khepri_pattern_tree:tree(Projection),
+      Projection :: khepri_projection:projection().
+%% @private.
+
+get_projections_state_qf(#?MODULE{projections = Projections}) ->
+    {ok, Projections}.
 
 -spec split_query_options(Options) -> {QueryOptions, TreeOptions} when
       Options :: QueryOptions | TreeOptions,
@@ -797,7 +855,7 @@ select_command_type(#{async := {Correlation, Priority}})
 %%
 %% @private
 
-process_query(StoreId, QueryFun, Options) ->
+process_query(StoreId, QueryFun, Options) when ?IS_MFA(QueryFun) ->
     QueryType = select_query_type(StoreId, Options),
     Timeout = get_timeout(Options),
     case QueryType of
