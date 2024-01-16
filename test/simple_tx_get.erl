@@ -15,6 +15,10 @@
 -include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
+%% Exported functions passed to khepri_machine:readonly_transaction().
+-export([foreach_node_cb_qf1/0,
+         foreach_node_cb_qf2/0]).
+
 -dialyzer([{no_return,
             [crash_during_fold_test_/0]}]).
 
@@ -44,17 +48,13 @@ get_existing_node_test_() ->
       ?_assertEqual(
          {ok, {ok, foo_value}},
          begin
-             Fun = fun() ->
-                           khepri_tx:get([foo])
-                   end,
+             Fun = {khepri_tx, get, [[foo]]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
          {ok, {ok, foo_value}},
          begin
-             Fun = fun() ->
-                           khepri_tx:get([foo])
-                   end,
+             Fun = {khepri_tx, get, [[foo]]},
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
 
@@ -87,6 +87,36 @@ get_existing_node_with_no_payload_test_() ->
              Fun = fun() ->
                            khepri_tx:get([foo])
                    end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end)]}.
+
+get_using_anonymous_fun_test_() ->
+    Fun = fun() ->
+                  khepri_tx:get([foo])
+          end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Fun, auto)
+         end),
+      ?_assertEqual(
+         {ok, {ok, foo_value}},
+         begin
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
 
@@ -128,17 +158,13 @@ get_or_default_on_existing_node_test_() ->
       ?_assertEqual(
          {ok, {ok, foo_value}},
          begin
-             Fun = fun() ->
-                           khepri_tx:get_or([foo], default)
-                   end,
+             Fun = {khepri_tx, get_or, [[foo], default]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
          {ok, {ok, foo_value}},
          begin
-             Fun = fun() ->
-                           khepri_tx:get_or([foo], default)
-                   end,
+             Fun = {khepri_tx, get_or, [[foo], default]},
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
 
@@ -155,6 +181,36 @@ get_or_default_on_existing_node_with_no_payload_test_() ->
              Fun = fun() ->
                            khepri_tx:get_or([foo], default)
                    end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end)]}.
+
+get_or_using_anonymous_fun_test_() ->
+    Fun = fun() ->
+                  khepri_tx:get_or([foo], default)
+          end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Fun, auto)
+         end),
+      ?_assertEqual(
+         {ok, {ok, foo_value}},
+         begin
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
 
@@ -201,9 +257,7 @@ get_many_existing_nodes_test_() ->
           {ok, #{[foo] => undefined,
                  [baz] => baz_value}}},
          begin
-             Fun = fun() ->
-                           khepri_tx:get_many([?KHEPRI_WILDCARD_STAR])
-                   end,
+             Fun = {khepri_tx, get_many, [[?KHEPRI_WILDCARD_STAR]]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
@@ -211,9 +265,7 @@ get_many_existing_nodes_test_() ->
           {ok, #{[foo] => undefined,
                  [baz] => baz_value}}},
          begin
-             Fun = fun() ->
-                           khepri_tx:get_many([?KHEPRI_WILDCARD_STAR])
-                   end,
+             Fun = {khepri_tx, get_many, [[?KHEPRI_WILDCARD_STAR]]},
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertError(
@@ -226,6 +278,36 @@ get_many_existing_nodes_test_() ->
                              [?KHEPRI_WILDCARD_STAR],
                              #{expect_specific_node => true})
                    end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end)]}.
+
+get_many_using_anonymous_fun_test_() ->
+    Fun = fun() ->
+                  khepri_tx:get_many([foo])
+          end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Fun, auto)
+         end),
+      ?_assertEqual(
+         {ok, {ok, #{[foo] => foo_value}}},
+         begin
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
 
@@ -258,10 +340,8 @@ get_many_or_default_existing_nodes_test_() ->
           {ok, #{[foo] => default,
                  [baz] => baz_value}}},
          begin
-             Fun = fun() ->
-                           khepri_tx:get_many_or(
-                             [?KHEPRI_WILDCARD_STAR], default)
-                   end,
+             Fun = {khepri_tx, get_many_or,
+                    [[?KHEPRI_WILDCARD_STAR], default]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
@@ -269,10 +349,8 @@ get_many_or_default_existing_nodes_test_() ->
           {ok, #{[foo] => default,
                  [baz] => baz_value}}},
          begin
-             Fun = fun() ->
-                           khepri_tx:get_many_or(
-                             [?KHEPRI_WILDCARD_STAR], default)
-                   end,
+             Fun = {khepri_tx, get_many_or,
+                    [[?KHEPRI_WILDCARD_STAR], default]},
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertError(
@@ -288,6 +366,36 @@ get_many_or_default_existing_nodes_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
 
+get_many_or_using_anonymous_fun_test_() ->
+    Fun = fun() ->
+                  khepri_tx:get_many_or([foo], default)
+          end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Fun, auto)
+         end),
+      ?_assertEqual(
+         {ok, {ok, #{[foo] => foo_value}}},
+         begin
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end)]}.
+
 check_node_exists_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
@@ -298,33 +406,55 @@ check_node_exists_test_() ->
       ?_assertEqual(
          {ok, true},
          begin
-             Fun = fun() ->
-                           khepri_tx:exists([foo])
-                   end,
+             Fun = {khepri_tx, exists, [[foo]]},
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertEqual(
          {ok, true},
          begin
-             Fun = fun() ->
-                           khepri_tx:exists([foo, bar])
-                   end,
+             Fun = {khepri_tx, exists, [[foo, bar]]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
          {ok, true},
          begin
-             Fun = fun() ->
-                           khepri_tx:exists([foo, bar])
-                   end,
+             Fun = {khepri_tx, exists, [[foo, bar]]},
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertEqual(
          {ok, false},
          begin
-             Fun = fun() ->
-                           khepri_tx:exists([baz])
-                   end,
+             Fun = {khepri_tx, exists, [[baz]]},
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end)]}.
+
+check_node_exists_using_anonymous_fun_test_() ->
+    Fun = fun() ->
+                  khepri_tx:exists([foo])
+          end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Fun, auto)
+         end),
+      ?_assertEqual(
+         {ok, true},
+         begin
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
 
@@ -377,17 +507,13 @@ check_node_has_data_on_existing_node_test_() ->
       ?_assertEqual(
          {ok, true},
          begin
-             Fun = fun() ->
-                           khepri_tx:has_data([foo, bar])
-                   end,
+             Fun = {khepri_tx, has_data, [[foo, bar]]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
          {ok, true},
          begin
-             Fun = fun() ->
-                           khepri_tx:has_data([foo, bar])
-                   end,
+             Fun = {khepri_tx, has_data, [[foo, bar]]},
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertEqual(
@@ -396,6 +522,36 @@ check_node_has_data_on_existing_node_test_() ->
              Fun = fun() ->
                            khepri_tx:has_data([baz])
                    end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end)]}.
+
+check_node_has_data_using_anonymous_fun_test_() ->
+    Fun = fun() ->
+                  khepri_tx:has_data([foo])
+          end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Fun, auto)
+         end),
+      ?_assertEqual(
+         {ok, true},
+         begin
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
 
@@ -448,17 +604,13 @@ check_node_is_sproc_on_existing_node_test_() ->
       ?_assertEqual(
          {ok, true},
          begin
-             Fun = fun() ->
-                           khepri_tx:is_sproc([foo, bar])
-                   end,
+             Fun = {khepri_tx, is_sproc, [[foo, bar]]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
          {ok, true},
          begin
-             Fun = fun() ->
-                           khepri_tx:is_sproc([foo, bar])
-                   end,
+             Fun = {khepri_tx, is_sproc, [[foo, bar]]},
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertEqual(
@@ -467,6 +619,36 @@ check_node_is_sproc_on_existing_node_test_() ->
              Fun = fun() ->
                            khepri_tx:is_sproc([baz])
                    end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end)]}.
+
+check_node_is_sproc_using_anonymous_fun_test_() ->
+    Fun = fun() ->
+                  khepri_tx:is_sproc([foo])
+          end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Fun, auto)
+         end),
+      ?_assertEqual(
+         {ok, false},
+         begin
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
 
@@ -517,17 +699,13 @@ count_existing_node_test_() ->
       ?_assertEqual(
          {ok, {ok, 1}},
          begin
-             Fun = fun() ->
-                           khepri_tx:count([foo])
-                   end,
+             Fun = {khepri_tx, count, [[foo]]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
          {ok, {ok, 1}},
          begin
-             Fun = fun() ->
-                           khepri_tx:count([foo])
-                   end,
+             Fun = {khepri_tx, count, [[foo]]},
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
 
@@ -557,6 +735,36 @@ count_many_nodes_test_() ->
              Fun = fun() ->
                            khepri_tx:count([?KHEPRI_WILDCARD_STAR_STAR])
                    end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end)]}.
+
+count_using_anonymous_fun_test_() ->
+    Fun = fun() ->
+                  khepri_tx:count([foo])
+          end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Fun, auto)
+         end),
+      ?_assertEqual(
+         {ok, {ok, 1}},
+         begin
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
 
@@ -594,17 +802,13 @@ fold_existing_node_test_() ->
       ?_assertEqual(
          {ok, {ok, [[foo]]}},
          begin
-             Tx = fun() ->
-                          khepri_tx:fold([foo], Fun, [])
-                  end,
+             Tx = {khepri_tx, fold, [[foo], Fun, []]},
              khepri:transaction(?FUNCTION_NAME, Tx, ro)
          end),
       ?_assertEqual(
          {ok, {ok, [[foo]]}},
          begin
-             Tx = fun() ->
-                          khepri_tx:fold([foo], Fun, [])
-                  end,
+             Tx = {khepri_tx, fold, [[foo], Fun, []]},
              khepri:transaction(?FUNCTION_NAME, Tx, rw)
          end)]}.
 
@@ -636,6 +840,37 @@ fold_many_nodes_test_() ->
              Tx = fun() ->
                           khepri_tx:fold([?KHEPRI_WILDCARD_STAR_STAR], Fun, [])
                   end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
+fold_using_anonymous_fun_test_() ->
+    Fun = fun list_nodes_cb/3,
+    Tx = fun() ->
+                 khepri_tx:fold([foo], Fun, [])
+         end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Tx}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Tx, ro)
+         end),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Tx}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Tx, auto)
+         end),
+      ?_assertEqual(
+         {ok, {ok, [[foo]]}},
+         begin
              khepri:transaction(?FUNCTION_NAME, Tx, rw)
          end)]}.
 
@@ -712,9 +947,7 @@ foreach_existing_node_test_() ->
       ?_assertError(
          ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
-             Tx = fun() ->
-                          khepri_tx:foreach([foo], Fun)
-                  end,
+             Tx = {khepri_tx, foreach, [[foo], Fun]},
              khepri:transaction(?FUNCTION_NAME, Tx, ro)
          end),
       ?_assertEqual(
@@ -724,9 +957,7 @@ foreach_existing_node_test_() ->
       ?_assertEqual(
          {ok, ok},
          begin
-             Tx = fun() ->
-                          khepri_tx:foreach([foo], Fun)
-                  end,
+             Tx = {khepri_tx, foreach, [[foo], Fun]},
              khepri:transaction(?FUNCTION_NAME, Tx, rw)
          end),
       ?_assertEqual(
@@ -735,7 +966,6 @@ foreach_existing_node_test_() ->
          khepri_adv:get_many(?FUNCTION_NAME, "**"))]}.
 
 foreach_many_nodes_test_() ->
-    Fun = fun foreach_node_cb/2,
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -749,10 +979,7 @@ foreach_many_nodes_test_() ->
       ?_assertEqual(
          {ok, ok},
          begin
-             Tx = fun() ->
-                          khepri_tx:foreach(
-                            [?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR], Fun)
-                  end,
+             Tx = {?MODULE, foreach_node_cb_qf1, []},
              khepri:transaction(?FUNCTION_NAME, Tx, rw)
          end),
       ?_assertEqual(
@@ -766,9 +993,7 @@ foreach_many_nodes_test_() ->
       ?_assertEqual(
          {ok, ok},
          begin
-             Tx = fun() ->
-                          khepri_tx:foreach([?KHEPRI_WILDCARD_STAR_STAR], Fun)
-                  end,
+             Tx = {?MODULE, foreach_node_cb_qf2, []},
              khepri:transaction(?FUNCTION_NAME, Tx, rw)
          end),
       ?_assertEqual(
@@ -779,6 +1004,45 @@ foreach_many_nodes_test_() ->
                 [baz] => #{data => foreach_value2,
                            payload_version => 3}}},
          khepri_adv:get_many(?FUNCTION_NAME, "**"))]}.
+
+foreach_using_anonymous_fun_test_() ->
+    Fun = fun(_Path, _NodeProps) -> ok end,
+    Tx = fun() ->
+                 khepri_tx:foreach([foo], Fun)
+         end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Tx}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Tx, ro)
+         end),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Tx}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Tx, auto)
+         end),
+      ?_assertEqual(
+         {ok, ok},
+         begin
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
+foreach_node_cb_qf1() ->
+    Fun = fun foreach_node_cb/2,
+    khepri_tx:foreach([?THIS_KHEPRI_NODE, ?KHEPRI_WILDCARD_STAR], Fun).
+
+foreach_node_cb_qf2() ->
+    Fun = fun foreach_node_cb/2,
+    khepri_tx:foreach([?KHEPRI_WILDCARD_STAR_STAR], Fun).
 
 foreach_node_cb(Path, #{data := foreach_value1}) ->
     ok = khepri_tx:put(Path, foreach_value2);
@@ -861,6 +1125,37 @@ map_many_nodes_test_() ->
              khepri:transaction(?FUNCTION_NAME, Tx, rw)
          end)]}.
 
+map_using_anonymous_fun_test_() ->
+    Fun = fun map_node_cb/2,
+    Tx = fun() ->
+                 khepri_tx:map([foo], Fun)
+         end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Tx}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Tx, ro)
+         end),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Tx}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Tx, auto)
+         end),
+      ?_assertEqual(
+         {ok, {ok, #{[foo] => {data, foo_value}}}},
+         begin
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
 map_node_cb(_Path, #{data := Data}) ->
     {data, Data};
 map_node_cb(_Path, _NodeProps) ->
@@ -934,6 +1229,37 @@ filter_many_nodes_test_() ->
                           khepri_tx:filter(
                             [?KHEPRI_WILDCARD_STAR_STAR], Pred)
                   end,
+             khepri:transaction(?FUNCTION_NAME, Tx, rw)
+         end)]}.
+
+filter_using_anonymous_fun_test_() ->
+    Pred = fun filter_node_cb/2,
+    Tx = fun() ->
+                 khepri_tx:filter([foo], Pred)
+         end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Tx}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Tx, ro)
+         end),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Tx}),
+         begin
+             khepri:transaction(?FUNCTION_NAME, Tx, auto)
+         end),
+      ?_assertEqual(
+         {ok, {ok, #{}}},
+         begin
              khepri:transaction(?FUNCTION_NAME, Tx, rw)
          end)]}.
 

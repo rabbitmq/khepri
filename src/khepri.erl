@@ -72,6 +72,7 @@
 -include("include/khepri.hrl").
 -include("src/khepri_cluster.hrl").
 -include("src/khepri_error.hrl").
+-include("src/khepri_mfa.hrl").
 -include("src/khepri_ret.hrl").
 
 -export([
@@ -152,6 +153,12 @@
 
          info/0,
          info/1, info/2]).
+
+%% Exported functions passed to khepri_machine:fold().
+-export([get_many_or_ff/4,
+         foreach_ff/4,
+         map_ff/4,
+         filter_ff/4]).
 
 -compile({no_auto_import, [get/1, get/2, put/2, erase/1]}).
 
@@ -354,26 +361,46 @@
 
 -type fold_fun() :: fun((khepri_path:native_path(),
                          khepri:node_props(),
-                         khepri:fold_acc()) -> khepri:fold_acc()).
+                         khepri:fold_acc()) -> khepri:fold_acc()) |
+                    khepri:mod_func_args().
 %% Function passed to {@link khepri:fold/5}.
+%%
+%% If the function may run on a remote node (e.g. the leader; see {@link
+%% favor_option()}), it must be an MFA and not an anonymous function. The
+%% reason is that a function reference may not be valid on a remote node.
 
 -type fold_acc() :: any().
 %% Term passed to and returned by a {@link fold_fun/0}.
 
 -type foreach_fun() :: fun((khepri_path:native_path(),
-                            khepri:node_props()) -> any()).
+                            khepri:node_props()) -> any()) |
+                       khepri:mod_func_args().
 %% Function passed to {@link khepri:foreach/4}.
+%%
+%% If the function may run on a remote node (e.g. the leader; see {@link
+%% favor_option()}), it must be an MFA and not an anonymous function. The
+%% reason is that a function reference may not be valid on a remote node.
 
 -type map_fun() :: fun((khepri_path:native_path(),
-                        khepri:node_props()) -> khepri:map_fun_ret()).
+                        khepri:node_props()) -> khepri:map_fun_ret()) |
+                   khepri:mod_func_args().
 %% Function passed to {@link khepri:map/4}.
+%%
+%% If the function may run on a remote node (e.g. the leader; see {@link
+%% favor_option()}), it must be an MFA and not an anonymous function. The
+%% reason is that a function reference may not be valid on a remote node.
 
 -type map_fun_ret() :: any().
 %% Value returned by {@link khepri:map_fun/0}.
 
 -type filter_fun() :: fun((khepri_path:native_path(),
-                           khepri:node_props()) -> boolean()).
+                           khepri:node_props()) -> boolean()) |
+                      khepri:mod_func_args().
 %% Function passed to {@link khepri:filter/4}.
+%%
+%% If the function may run on a remote node (e.g. the leader; see {@link
+%% favor_option()}), it must be an MFA and not an anonymous function. The
+%% reason is that a function reference may not be valid on a remote node.
 
 -type ok(Type) :: {ok, Type}.
 %% The result of a function after a successful call, wrapped in an "ok" tuple.
@@ -1082,12 +1109,12 @@ get_many_or(PathPattern, Default, Options) when is_map(Options) ->
 %% @see khepri_adv:get_many/3.
 
 get_many_or(StoreId, PathPattern, Default, Options) ->
-    Fun = fun(Path, NodeProps, Acc) ->
-                  Payload = khepri_utils:node_props_to_payload(
-                              NodeProps, Default),
-                  Acc#{Path => Payload}
-          end,
+    Fun = {?MODULE, get_many_or_ff, [Default]},
     khepri_machine:fold(StoreId, PathPattern, Fun, #{}, Options).
+
+get_many_or_ff(Default, Path, NodeProps, Acc) ->
+    Payload = khepri_utils:node_props_to_payload(NodeProps, Default),
+    Acc#{Path => Payload}.
 
 %% -------------------------------------------------------------------
 %% exists().
@@ -1450,7 +1477,7 @@ count(PathPattern, Options) when is_map(Options) ->
 %% an `{error, Reason}' tuple.
 
 count(StoreId, PathPattern, Options) ->
-    Fun = fun khepri_tree:count_node_cb/3,
+    Fun = {khepri_tree, count_node_cb, []},
     Options1 = Options#{expect_specific_node => false},
     khepri_machine:fold(StoreId, PathPattern, Fun, 0, Options1).
 
@@ -1657,15 +1684,28 @@ foreach(PathPattern, Fun, Options) when is_map(Options) ->
 %%
 %% @returns `ok' or an `{error, Reason}' tuple.
 
-foreach(StoreId, PathPattern, Fun, Options) when is_function(Fun, 2) ->
-    FoldFun = fun(Path, NodeProps, Acc) ->
-                      _ = Fun(Path, NodeProps),
-                      Acc
-              end,
+foreach(StoreId, PathPattern, Fun, Options) when ?IS_FUN_OR_MFA(Fun, 2) ->
+    khepri_machine:ensure_is_mfa_if_remote_query(StoreId, Fun, Options),
+    FoldFun = {?MODULE, foreach_ff, [Fun]},
     case fold(StoreId, PathPattern, FoldFun, ok, Options) of
         {ok, ok}                 -> ok;
         {error, _Reason} = Error -> Error
     end.
+
+-spec foreach_ff(Fun, Path, NodeProps, Acc) -> Acc when
+      Fun :: khepri:foreach_fun(),
+      Path :: khepri_path:native_path(),
+      NodeProps :: khepri:node_props(),
+      Acc :: khepri:fold_acc().
+%% @private.
+
+foreach_ff({Mod, Func, Args}, Path, NodeProps, Acc) ->
+    Args1 = Args ++ [Path, NodeProps],
+    _ = erlang:apply(Mod, Func, Args1),
+    Acc;
+foreach_ff(Fun, Path, NodeProps, Acc) when is_function(Fun, 2) ->
+    _ = Fun(Path, NodeProps),
+    Acc.
 
 %% -------------------------------------------------------------------
 %% map().
@@ -1769,12 +1809,25 @@ map(PathPattern, Fun, Options) when is_map(Options) ->
 %%
 %% @returns `{ok, Map}' or an `{error, Reason}' tuple.
 
-map(StoreId, PathPattern, Fun, Options) when is_function(Fun, 2) ->
-    FoldFun = fun(Path, NodeProps, Acc) ->
-                      Ret = Fun(Path, NodeProps),
-                      Acc#{Path => Ret}
-              end,
+map(StoreId, PathPattern, Fun, Options) when ?IS_FUN_OR_MFA(Fun, 2) ->
+    khepri_machine:ensure_is_mfa_if_remote_query(StoreId, Fun, Options),
+    FoldFun = {?MODULE, map_ff, [Fun]},
     fold(StoreId, PathPattern, FoldFun, #{}, Options).
+
+-spec map_ff(Fun, Path, NodeProps, Acc) -> Acc when
+      Fun :: khepri:map_fun(),
+      Path :: khepri_path:native_path(),
+      NodeProps :: khepri:node_props(),
+      Acc :: khepri:fold_acc().
+%% @private.
+
+map_ff({Mod, Func, Args}, Path, NodeProps, Acc) ->
+    Args1 = Args ++ [Path, NodeProps],
+    Ret = erlang:apply(Mod, Func, Args1),
+    Acc#{Path => Ret};
+map_ff(Fun, Path, NodeProps, Acc) when is_function(Fun, 2) ->
+    Ret = Fun(Path, NodeProps),
+    Acc#{Path => Ret}.
 
 %% -------------------------------------------------------------------
 %% filter().
@@ -1876,18 +1929,37 @@ filter(PathPattern, Pred, Options) when is_map(Options) ->
 %%
 %% @returns `{ok, Map}' or an `{error, Reason}' tuple.
 
-filter(StoreId, PathPattern, Pred, Options) when is_function(Pred, 2) ->
-    FoldFun = fun(Path, NodeProps, Acc) ->
-                      case Pred(Path, NodeProps) of
-                          true ->
-                              Payload = node_props_to_payload(
-                                          NodeProps, undefined),
-                              Acc#{Path => Payload};
-                          false ->
-                              Acc
-                      end
-              end,
+filter(StoreId, PathPattern, Pred, Options) when ?IS_FUN_OR_MFA(Pred, 2) ->
+    khepri_machine:ensure_is_mfa_if_remote_query(StoreId, Pred, Options),
+    FoldFun = {?MODULE, filter_ff, [Pred]},
     fold(StoreId, PathPattern, FoldFun, #{}, Options).
+
+-spec filter_ff(Pred, Path, NodeProps, Acc) -> Acc when
+      Pred :: khepri:filter_fun(),
+      Path :: khepri_path:native_path(),
+      NodeProps :: khepri:node_props(),
+      Acc :: khepri:fold_acc().
+%% @private.
+
+filter_ff({Mod, Func, Args}, Path, NodeProps, Acc) ->
+    Args1 = Args ++ [Path, NodeProps],
+    case erlang:apply(Mod, Func, Args1) of
+        true ->
+            Payload = node_props_to_payload(
+                        NodeProps, undefined),
+            Acc#{Path => Payload};
+        false ->
+            Acc
+    end;
+filter_ff(Pred, Path, NodeProps, Acc) when is_function(Pred, 2) ->
+    case Pred(Path, NodeProps) of
+        true ->
+            Payload = node_props_to_payload(
+                        NodeProps, undefined),
+            Acc#{Path => Payload};
+        false ->
+            Acc
+    end.
 
 node_props_to_payload(#{data := Data}, _Default)           -> Data;
 node_props_to_payload(#{sproc := StandaloneFun}, _Default) -> StandaloneFun;
@@ -3091,20 +3163,20 @@ transaction(FunOrPath) ->
 %% @see transaction/3.
 
 transaction(FunOrPath, Args)
-  when (is_function(FunOrPath) orelse
+  when (?IS_FUN_OR_MFA(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        is_list(Args) ->
     StoreId = khepri_cluster:get_default_store_id(),
     transaction(StoreId, FunOrPath, Args);
 transaction(FunOrPath, ReadWriteOrOptions)
-  when (is_function(FunOrPath) orelse
+  when (?IS_FUN_OR_MFA(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        (is_atom(ReadWriteOrOptions) orelse is_map(ReadWriteOrOptions)) ->
     StoreId = khepri_cluster:get_default_store_id(),
     transaction(StoreId, FunOrPath, ReadWriteOrOptions);
 transaction(StoreId, FunOrPath)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
-       (is_function(FunOrPath) orelse
+       (?IS_FUN_OR_MFA(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) ->
     transaction(StoreId, FunOrPath, []).
 
@@ -3159,27 +3231,27 @@ transaction(StoreId, FunOrPath)
 
 transaction(StoreId, FunOrPath, Args)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
-       (is_function(FunOrPath) orelse
-        ?IS_KHEPRI_PATH_PATTERN(FunOrPath))
-       andalso is_list(Args) ->
+       (?IS_FUN_OR_MFA(FunOrPath) orelse
+        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
+       is_list(Args) ->
     transaction(StoreId, FunOrPath, Args, auto);
 transaction(StoreId, FunOrPath, ReadWriteOrOptions)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
-       (is_function(FunOrPath) orelse
+       (?IS_FUN_OR_MFA(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        (is_atom(ReadWriteOrOptions) orelse is_map(ReadWriteOrOptions)) ->
     transaction(StoreId, FunOrPath, [], ReadWriteOrOptions);
 transaction(FunOrPath, Args, ReadWriteOrOptions)
-  when (is_function(FunOrPath) orelse
-        ?IS_KHEPRI_PATH_PATTERN(FunOrPath))
-       andalso is_list(Args) andalso
+  when (?IS_FUN_OR_MFA(FunOrPath) orelse
+        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
+       is_list(Args) andalso
        (is_atom(ReadWriteOrOptions) orelse is_map(ReadWriteOrOptions)) ->
     StoreId = khepri_cluster:get_default_store_id(),
     transaction(StoreId, FunOrPath, Args, ReadWriteOrOptions);
 transaction(FunOrPath, ReadWrite, Options)
-  when (is_function(FunOrPath) orelse
-        ?IS_KHEPRI_PATH_PATTERN(FunOrPath))
-       andalso is_atom(ReadWrite) andalso is_map(Options) ->
+  when (?IS_FUN_OR_MFA(FunOrPath) orelse
+        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
+       is_atom(ReadWrite) andalso is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
     transaction(StoreId, FunOrPath, ReadWrite, Options).
 
@@ -3235,24 +3307,24 @@ transaction(FunOrPath, ReadWrite, Options)
 
 transaction(StoreId, FunOrPath, Args, ReadWrite)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
-       (is_function(FunOrPath) orelse
+       (?IS_FUN_OR_MFA(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        is_list(Args) andalso is_atom(ReadWrite) ->
     transaction(StoreId, FunOrPath, Args, ReadWrite, #{});
 transaction(StoreId, FunOrPath, Args, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
-       (is_function(FunOrPath) orelse
+       (?IS_FUN_OR_MFA(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        is_list(Args) andalso is_map(Options) ->
     transaction(StoreId, FunOrPath, Args, auto, Options);
 transaction(StoreId, FunOrPath, ReadWrite, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
-       (is_function(FunOrPath) orelse
+       (?IS_FUN_OR_MFA(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        is_atom(ReadWrite) andalso is_map(Options) ->
     transaction(StoreId, FunOrPath, [], ReadWrite, Options);
 transaction(FunOrPath, Args, ReadWrite, Options)
-  when (is_function(FunOrPath) orelse
+  when (?IS_FUN_OR_MFA(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        is_list(Args) andalso
        is_atom(ReadWrite) andalso is_map(Options) ->

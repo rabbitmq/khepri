@@ -22,7 +22,7 @@
         fun() ->
             helpers:init_list_of_modules_to_skip(),
             __Fun = fun() -> Expression end,
-            khepri_tx_adv:to_standalone_fun(__Fun, rw)
+            khepri_tx_adv:to_standalone_fun(__Fun, 0, rw)
         end()).
 
 -define(assertStandaloneFun(Expression),
@@ -535,6 +535,7 @@ when_readwrite_mode_is_true_test() ->
             fun() ->
                     khepri_tx:get([foo])
             end,
+            0,
             rw))),
     ?assert(
        ?IS_HORUS_STANDALONE_FUN(
@@ -542,6 +543,7 @@ when_readwrite_mode_is_true_test() ->
             fun() ->
                     khepri_tx:put([foo], khepri_payload:data(value))
             end,
+            0,
             rw))),
     ?assertError(
        ?khepri_exception(
@@ -555,6 +557,7 @@ when_readwrite_mode_is_true_test() ->
                  _ = khepri_tx:get([foo]),
                  self() ! message
          end,
+         0,
          rw)),
     ?assertError(
        ?khepri_exception(
@@ -568,15 +571,18 @@ when_readwrite_mode_is_true_test() ->
                  _ = khepri_tx:put([foo], khepri_payload:data(value)),
                  self() ! message
          end,
+         0,
          rw)),
     ?assert(
        ?IS_HORUS_STANDALONE_FUN(
           khepri_tx_adv:to_standalone_fun(
             fun mod_used_for_transactions:exported/0,
+            0,
             rw))),
     ?assert(
        is_function(khepri_tx_adv:to_standalone_fun(
                      fun dict:new/0,
+                     0,
                      rw),
                    0)),
 
@@ -585,6 +591,7 @@ when_readwrite_mode_is_true_test() ->
        ?IS_HORUS_STANDALONE_FUN(
           khepri_tx_adv:to_standalone_fun(
             fun() -> Fun() end,
+            0,
             rw))).
 
 when_readwrite_mode_is_false_test() ->
@@ -594,6 +601,7 @@ when_readwrite_mode_is_false_test() ->
                      fun() ->
                              khepri_tx:get([foo])
                      end,
+                     0,
                      ro),
                    0)),
     %% In the following case, `to_standalone()' works, but the transaction
@@ -604,6 +612,7 @@ when_readwrite_mode_is_false_test() ->
                              khepri_tx:put(
                                [foo], khepri_payload:data(value))
                      end,
+                     0,
                      ro),
                    0)),
     ?assert(
@@ -612,6 +621,7 @@ when_readwrite_mode_is_false_test() ->
                              _ = khepri_tx:get([foo]),
                              self() ! message
                      end,
+                     0,
                      ro),
                    0)),
     %% In the following case, `to_standalone()' works, but the transaction
@@ -623,16 +633,19 @@ when_readwrite_mode_is_false_test() ->
                                    [foo], khepri_payload:data(value)),
                              self() ! message
                      end,
+                     0,
                      ro),
                    0)),
     ?assert(
        is_function(khepri_tx_adv:to_standalone_fun(
                      fun mod_used_for_transactions:exported/0,
+                     0,
                      ro),
                    0)),
     ?assert(
        is_function(khepri_tx_adv:to_standalone_fun(
                      fun dict:new/0,
+                     0,
                      ro),
                    0)),
 
@@ -640,6 +653,7 @@ when_readwrite_mode_is_false_test() ->
     ?assert(
        is_function(khepri_tx_adv:to_standalone_fun(
                      fun() -> Fun() end,
+                     0,
                      ro),
                    0)).
 
@@ -650,6 +664,7 @@ when_readwrite_mode_is_auto_test() ->
                      fun() ->
                              khepri_tx:get([foo])
                      end,
+                     0,
                      auto),
                    0)),
     ?assert(
@@ -658,6 +673,7 @@ when_readwrite_mode_is_auto_test() ->
             fun() ->
                     khepri_tx:put([foo], khepri_payload:data(value))
             end,
+            0,
             auto))),
     ?assert(
        is_function(khepri_tx_adv:to_standalone_fun(
@@ -665,6 +681,7 @@ when_readwrite_mode_is_auto_test() ->
                              _ = khepri_tx:get([foo]),
                              self() ! message
                      end,
+                     0,
                      auto),
                    0)),
     ?assertError(
@@ -679,15 +696,18 @@ when_readwrite_mode_is_auto_test() ->
                  _ = khepri_tx:put([foo], khepri_payload:data(value)),
                  self() ! message
          end,
+         0,
          auto)),
     ?assert(
        is_function(khepri_tx_adv:to_standalone_fun(
                      fun mod_used_for_transactions:exported/0,
+                     0,
                      auto),
                    0)),
     ?assert(
        is_function(khepri_tx_adv:to_standalone_fun(
                      fun dict:new/0,
+                     0,
                      auto),
                    0)),
 
@@ -698,4 +718,5 @@ when_readwrite_mode_is_auto_test() ->
        ?IS_HORUS_STANDALONE_FUN(
           khepri_tx_adv:to_standalone_fun(
             fun() -> Fun() end,
+            0,
             auto))).

@@ -259,7 +259,7 @@ get_many(PathPattern, Options) when is_map(Options) ->
 %% @see khepri:get_many/3.
 
 get_many(StoreId, PathPattern, Options) ->
-    Fun = fun khepri_tree:collect_node_props_cb/3,
+    Fun = {khepri_tree, collect_node_props_cb, []},
     khepri_machine:fold(StoreId, PathPattern, Fun, #{}, Options).
 
 %% -------------------------------------------------------------------

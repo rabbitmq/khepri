@@ -164,7 +164,7 @@ favor_compromise_in_transaction_test_() ->
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_test(
          begin
-             Fun = fun() -> khepri_tx:get([foo]) end,
+             Fun = {khepri_tx, get, [[foo]]},
 
              ?assertEqual(
                 undefined,
@@ -223,7 +223,7 @@ favor_consistency_in_transaction_test_() ->
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_test(
          begin
-             Fun = fun() -> khepri_tx:get([foo]) end,
+             Fun = {khepri_tx, get, [[foo]]},
 
              ?assertEqual(
                 undefined,

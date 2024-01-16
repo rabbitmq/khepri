@@ -63,6 +63,7 @@
          insert_or_update_node/5,
          delete_matching_nodes/3,
          handle_tx_exception/1,
+         ensure_is_mfa_if_remote_query/3,
          process_query/3,
          process_command/3]).
 
@@ -178,14 +179,29 @@
 
 fold(StoreId, PathPattern, Fun, Acc, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
-       is_function(Fun, 3) ->
+       ?IS_FUN_OR_MFA(Fun, 3) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     {QueryOptions, TreeOptions} = split_query_options(Options),
+    ensure_is_mfa_if_remote_query(StoreId, Fun, QueryOptions),
     Query = {?MODULE, fold_qf, [PathPattern1, Fun, Acc, TreeOptions]},
     case process_query(StoreId, Query, QueryOptions) of
         {exception, _, _, _} = Exception -> handle_tx_exception(Exception);
         Ret                              -> Ret
+    end.
+
+ensure_is_mfa_if_remote_query(_StoreId, {_Mod, _Func, _Args}, _Options) ->
+    ok;
+ensure_is_mfa_if_remote_query(StoreId, Fun, Options) ->
+    QueryType = select_query_type(StoreId, Options),
+    case QueryType of
+        local ->
+            ok;
+        _ ->
+            ?khepri_misuse(
+               denied_fun_in_non_local_query,
+               #{'fun' => Fun,
+                 query_type => QueryType})
     end.
 
 -spec fold_qf(PathPattern, Fun, Acc, TreeOptions, State) -> Ret when
@@ -279,9 +295,13 @@ delete(StoreId, PathPattern, Options) when ?IS_KHEPRI_STORE_ID(StoreId) ->
       Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
 %% @doc Runs a transaction and returns the result.
 %%
+%% If the transaction is read-only (i.e. a query), it must be an MFA or a path
+%% to a stored procedure. Anonymous functions are unsupported on purpose
+%% because a function reference may not be valid on a remote node.
+%%
 %% @param StoreId the name of the Ra cluster.
-%% @param FunOrPath an arbitrary anonymous function or a path pattern pointing
-%%        to a stored procedure.
+%% @param FunOrPath an arbitrary anonymous function, an MFA or a path pattern
+%%        pointing to a stored procedure.
 %% @param Args a list of arguments to pass to `FunOrPath'.
 %% @param ReadWrite the read/write or read-only nature of the transaction.
 %% @param Options command options such as the command type.
@@ -295,12 +315,15 @@ delete(StoreId, PathPattern, Options) when ?IS_KHEPRI_STORE_ID(StoreId) ->
 transaction(StoreId, Fun, Args, auto = ReadWrite, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        is_list(Args) andalso
-       is_function(Fun, length(Args)) andalso
+       ?IS_FUN_OR_MFA(Fun, length(Args)) andalso
        is_map(Options) ->
-    case khepri_tx_adv:to_standalone_fun(Fun, ReadWrite) of
+    ensure_args_match_arity(Fun, Args),
+    Arity = length(Args),
+    case khepri_tx_adv:to_standalone_fun(Fun, Arity, ReadWrite) of
         StandaloneFun when ?IS_HORUS_STANDALONE_FUN(StandaloneFun) ->
             readwrite_transaction(StoreId, StandaloneFun, Args, Options);
         _ ->
+            ensure_is_mfa_if_remote_query(StoreId, Fun, Options),
             readonly_transaction(StoreId, Fun, Args, Options)
     end;
 transaction(StoreId, PathPattern, Args, auto, Options)
@@ -314,9 +337,11 @@ transaction(StoreId, PathPattern, Args, auto, Options)
 transaction(StoreId, Fun, Args, rw = ReadWrite, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        is_list(Args) andalso
-       is_function(Fun, length(Args)) andalso
+       ?IS_FUN_OR_MFA(Fun, length(Args)) andalso
        is_map(Options) ->
-    StandaloneFun = khepri_tx_adv:to_standalone_fun(Fun, ReadWrite),
+    ensure_args_match_arity(Fun, Args),
+    Arity = length(Args),
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(Fun, Arity, ReadWrite),
     readwrite_transaction(StoreId, StandaloneFun, Args, Options);
 transaction(StoreId, PathPattern, Args, rw, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
@@ -329,8 +354,9 @@ transaction(StoreId, PathPattern, Args, rw, Options)
 transaction(StoreId, Fun, Args, ro, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        is_list(Args) andalso
-       is_function(Fun, length(Args)) andalso
+       ?IS_FUN_OR_MFA(Fun, length(Args)) andalso
        is_map(Options) ->
+    ensure_args_match_arity(Fun, Args),
     readonly_transaction(StoreId, Fun, Args, Options);
 transaction(StoreId, PathPattern, Args, ro, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
@@ -342,10 +368,36 @@ transaction(StoreId, PathPattern, Args, ro, Options)
     readonly_transaction(StoreId, PathPattern1, Args, Options);
 transaction(StoreId, Fun, Args, ReadWrite, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
-       is_function(Fun) andalso
+       ?IS_FUN_OR_MFA(Fun) andalso
        is_list(Args) andalso
        is_atom(ReadWrite) andalso
        is_map(Options) ->
+    ensure_args_match_arity(Fun, Args).
+
+ensure_args_match_arity({Mod, Func, CallerArgs} = Fun, Args) ->
+    Args1 = CallerArgs ++ Args,
+    Arity = length(Args1),
+    try
+        Exports = Mod:module_info(exports),
+        case erlang:function_exported(Mod, Func, Arity) of
+            true ->
+                ok;
+            false ->
+                GuessedArity = case lists:keyfind(Func, 1, Exports) of
+                                   {Func, A} when A =/= Arity -> A;
+                                   _                          -> unknown
+                               end,
+                ?khepri_misuse(
+                   denied_tx_fun_with_invalid_args,
+                   #{'fun' => Fun, arity => GuessedArity, args => Args1})
+        end
+    catch
+        error:undef ->
+            ok
+    end;
+ensure_args_match_arity(Fun, Args) when is_function(Fun, length(Args)) ->
+    ok;
+ensure_args_match_arity(Fun, Args) when is_function(Fun) ->
     {arity, Arity} = erlang:fun_info(Fun, arity),
     ?khepri_misuse(
        denied_tx_fun_with_invalid_args,
@@ -361,7 +413,8 @@ transaction(StoreId, Fun, Args, ReadWrite, Options)
       Ret :: khepri_machine:tx_ret().
 
 readonly_transaction(StoreId, Fun, Args, Options)
-  when is_list(Args) andalso is_function(Fun, length(Args)) ->
+  when is_list(Args) andalso ?IS_FUN_OR_MFA(Fun, length(Args)) ->
+    ensure_is_mfa_if_remote_query(StoreId, Fun, Options),
     Query = {?MODULE, ro_tx_with_fun_qf, [Fun, Args]},
     case process_query(StoreId, Query, Options) of
         {exception, _, _, _} = Exception ->

@@ -47,7 +47,11 @@
          async_command_leader_change_in_three_node_cluster/1]).
 
 %% Exported functions passed to ra:*_query().
--export([return_metrics_qf/1]).
+-export([return_metrics_qf/1,
+         can_use_default_store_on_single_node_qf1/3,
+         can_use_default_store_on_single_node_qf2/2,
+         can_use_default_store_on_single_node_qf3/2,
+         can_use_default_store_on_single_node_qf4/0]).
 
 all() ->
     [can_start_a_single_node,
@@ -1037,31 +1041,52 @@ can_use_default_store_on_single_node(_Config) ->
 
     ?assertEqual(
        {ok, #{[foo] => ok}},
-       khepri:fold([foo], fun(P, _NP, Acc) -> Acc#{P => ok} end, #{})),
+       khepri:fold(
+         [foo],
+         {?MODULE, can_use_default_store_on_single_node_qf1, []},
+         #{})),
     ?assertEqual(
        {ok, #{[foo] => ok}},
-       khepri:fold([foo], fun(P, _NP, Acc) -> Acc#{P => ok} end, #{}, #{})),
+       khepri:fold(
+         [foo],
+         {?MODULE, can_use_default_store_on_single_node_qf1, []},
+         #{}, #{})),
 
     ?assertEqual(
        ok,
-       khepri:foreach([foo], fun(_P, _NP) -> ok end)),
+       khepri:foreach(
+         [foo],
+         {?MODULE, can_use_default_store_on_single_node_qf2, []})),
     ?assertEqual(
        ok,
-       khepri:foreach([foo], fun(_P, _NP) -> ok end, #{})),
+       khepri:foreach(
+         [foo],
+         {?MODULE, can_use_default_store_on_single_node_qf2, []},
+         #{})),
 
     ?assertEqual(
        {ok, #{[foo] => ok}},
-       khepri:map([foo], fun(_P, _NP) -> ok end)),
+       khepri:map(
+         [foo],
+         {?MODULE, can_use_default_store_on_single_node_qf2, []})),
     ?assertEqual(
        {ok, #{[foo] => ok}},
-       khepri:map([foo], fun(_P, _NP) -> ok end, #{})),
+       khepri:map(
+         [foo],
+         {?MODULE, can_use_default_store_on_single_node_qf2, []},
+         #{})),
 
     ?assertEqual(
        {ok, #{[foo] => value4}},
-       khepri:filter([foo], fun(_P, _NP) -> true end)),
+       khepri:filter(
+         [foo],
+         {?MODULE, can_use_default_store_on_single_node_qf3, []})),
     ?assertEqual(
        {ok, #{[foo] => value4}},
-       khepri:filter([foo], fun(_P, _NP) -> true end, #{})),
+       khepri:filter(
+         [foo],
+         {?MODULE, can_use_default_store_on_single_node_qf3, []},
+         #{})),
 
     ?assertEqual(
        {ok, #{data => value4,
@@ -1111,9 +1136,20 @@ can_use_default_store_on_single_node(_Config) ->
          trigger_id,
          [foo],
          [sproc], #{})),
-    ?assertEqual({ok, ok}, khepri:transaction(fun() -> ok end)),
-    ?assertEqual({ok, ok}, khepri:transaction(fun() -> ok end, ro)),
-    ?assertEqual({ok, ok}, khepri:transaction(fun() -> ok end, ro, #{})),
+    ?assertEqual(
+       {ok, ok},
+       khepri:transaction(
+         {?MODULE, can_use_default_store_on_single_node_qf4, []})),
+    ?assertEqual(
+       {ok, ok},
+       khepri:transaction(
+         {?MODULE, can_use_default_store_on_single_node_qf4, []},
+         ro)),
+    ?assertEqual(
+       {ok, ok},
+       khepri:transaction(
+         {?MODULE, can_use_default_store_on_single_node_qf4, []},
+         ro, #{})),
 
     ?assertEqual(ok, khepri:create([bar], value1)),
     ?assertEqual(ok, khepri:clear_payload([bar])),
@@ -1159,6 +1195,18 @@ can_use_default_store_on_single_node(_Config) ->
 
     helpers:remove_store_dir(DataDir),
     ?assertNot(filelib:is_dir(DataDir)).
+
+can_use_default_store_on_single_node_qf1(P, _NP, Acc) ->
+    Acc#{P => ok}.
+
+can_use_default_store_on_single_node_qf2(_P, _NP) ->
+    ok.
+
+can_use_default_store_on_single_node_qf3(_P, _NP) ->
+    true.
+
+can_use_default_store_on_single_node_qf4() ->
+    ok.
 
 can_start_store_in_specified_data_dir_on_single_node(_Config) ->
     DataDir = atom_to_list(?FUNCTION_NAME),

@@ -21,9 +21,7 @@ create_non_existing_node_test_() ->
      [?_assertError(
          ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
-             Fun = fun() ->
-                           khepri_tx_adv:create([foo], foo_value)
-                   end,
+             Fun = {khepri_tx_adv, create, [[foo], foo_value]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
@@ -124,9 +122,7 @@ insert_existing_node_test_() ->
       ?_assertError(
          ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
-             Fun = fun() ->
-                           khepri_tx_adv:put([foo], foo_value2)
-                   end,
+             Fun = {khepri_tx_adv, put, [[foo], foo_value2]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
@@ -210,10 +206,8 @@ insert_many_existing_nodes_test_() ->
       ?_assertError(
          ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
-             Fun = fun() ->
-                           khepri_tx_adv:put_many(
-                             [?KHEPRI_WILDCARD_STAR, foo], foo_value_all)
-                   end,
+             Fun = {khepri_tx_adv, put_many,
+                    [[?KHEPRI_WILDCARD_STAR, foo], foo_value_all]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
@@ -298,9 +292,7 @@ update_existing_node_test_() ->
       ?_assertError(
          ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
-             Fun = fun() ->
-                           khepri_tx_adv:update([foo], foo_value2)
-                   end,
+             Fun = {khepri_tx_adv, update, [[foo], foo_value2]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
@@ -367,10 +359,8 @@ compare_and_swap_matching_node_test_() ->
       ?_assertError(
          ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
-             Fun = fun() ->
-                           khepri_tx_adv:compare_and_swap(
-                             [foo], foo_value1, foo_value2)
-                   end,
+             Fun = {khepri_tx_adv, compare_and_swap,
+                    [[foo], foo_value1, foo_value2]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(

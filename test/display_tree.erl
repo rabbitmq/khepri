@@ -365,7 +365,7 @@ machine_overview_test() ->
     %% implementation.
     Fun = fun() -> return_value end,
     helpers:init_list_of_modules_to_skip(),
-    StandaloneFun = khepri_tx_adv:to_standalone_fun(Fun, rw),
+    StandaloneFun = khepri_tx_adv:to_standalone_fun(Fun, 0, rw),
     Commands = [#put{path = [foo],
                      payload = khepri_payload:data(foo_value)},
                 #put{path = [foo, bar],

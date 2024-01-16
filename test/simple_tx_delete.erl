@@ -39,9 +39,7 @@ delete_existing_node_test_() ->
       ?_assertError(
          ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
-             Fun = fun() ->
-                           khepri_tx:delete([foo])
-                   end,
+             Fun = {khepri_tx, delete, [[foo]]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
@@ -98,10 +96,8 @@ delete_many_on_existing_node_with_condition_true_test_() ->
       ?_assertError(
          ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
-             Fun = fun() ->
-                           khepri_tx:delete_many(
-                             [#if_name_matches{regex = "foo"}])
-                   end,
+             Fun = {khepri_tx, delete_many,
+                    [[#if_name_matches{regex = "foo"}]]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
@@ -212,9 +208,7 @@ clear_payload_from_existing_node_test_() ->
       ?_assertError(
          ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
-             Fun = fun() ->
-                           khepri_tx:clear_payload([foo])
-                   end,
+             Fun = {khepri_tx, clear_payload, [[foo]]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
@@ -300,10 +294,8 @@ clear_many_payloads_from_existing_node_test_() ->
       ?_assertError(
          ?khepri_exception(denied_update_in_readonly_tx, #{}),
          begin
-             Fun = fun() ->
-                           khepri_tx:clear_many_payloads(
-                             [#if_name_matches{regex = "foo"}])
-                   end,
+             Fun = {khepri_tx, clear_many_payloads,
+                    [[#if_name_matches{regex = "foo"}]]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(

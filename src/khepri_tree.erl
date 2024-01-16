@@ -400,7 +400,13 @@ fold(Tree, PathPattern, Fun, Acc, TreeOptions) ->
 
 find_matching_nodes_cb(Path, #node{} = Node, Fun, Acc, TreeOptions) ->
     NodeProps = gather_node_props(Node, TreeOptions),
-    Acc1 = Fun(Path, NodeProps, Acc),
+    Acc1 = case Fun of
+               {Mod, Func, Args} ->
+                   Args1 = Args ++ [Path, NodeProps, Acc],
+                   erlang:apply(Mod, Func, Args1);
+               _ when is_function(Fun, 3) ->
+                   Fun(Path, NodeProps, Acc)
+           end,
     {ok, keep, Acc1};
 find_matching_nodes_cb(
   _,

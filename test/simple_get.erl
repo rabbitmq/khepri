@@ -15,6 +15,12 @@
 -include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
+%% Exported functions passed to khepri_machine:fold().
+-export([list_nodes_cb/3,
+         foreach_node_cb/3,
+         map_node_cb/2,
+         filter_node_cb/2]).
+
 get_non_existing_node_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
@@ -294,7 +300,7 @@ count_many_nodes_test_() ->
          khepri:count(?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR_STAR]))]}.
 
 fold_non_existing_node_test_() ->
-    Fun = fun list_nodes_cb/3,
+    Fun = {?MODULE, list_nodes_cb, []},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -307,7 +313,7 @@ fold_non_existing_node_test_() ->
            ?FUNCTION_NAME, [foo], Fun, [], #{expect_specific_node => true}))]}.
 
 fold_existing_node_test_() ->
-    Fun = fun list_nodes_cb/3,
+    Fun = {?MODULE, list_nodes_cb, []},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -319,7 +325,7 @@ fold_existing_node_test_() ->
          khepri:fold(?FUNCTION_NAME, [foo], Fun, []))]}.
 
 fold_many_nodes_test_() ->
-    Fun = fun list_nodes_cb/3,
+    Fun = {?MODULE, list_nodes_cb, []},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -341,6 +347,24 @@ fold_many_nodes_test_() ->
            ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR_STAR],
            Fun, []))]}.
 
+fold_using_an_anonymous_fun_test_() ->
+    Fun = fun list_nodes_cb/3,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         khepri:fold(?FUNCTION_NAME, [foo], Fun, [])),
+      ?_assertEqual(
+         {ok, [[foo]]},
+         khepri:fold(
+           ?FUNCTION_NAME, [foo], Fun, [], #{favor => low_latency}))]}.
+
 crash_during_fold_test_() ->
     Fun = fun(_Path, _NodeProps, _Acc) -> throw(bug) end,
     {setup,
@@ -351,15 +375,14 @@ crash_during_fold_test_() ->
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertThrow(
          bug,
-         khepri:fold(?FUNCTION_NAME, [foo], Fun, []))]}.
+         khepri:fold(
+           ?FUNCTION_NAME, [foo], Fun, [], #{favor => low_latency}))]}.
 
 list_nodes_cb(Path, _NodeProps, List) ->
     lists:sort([Path | List]).
 
 foreach_non_existing_node_test_() ->
-    Fun = fun(Path, NodeProps) ->
-                  foreach_node_cb(?FUNCTION_NAME, Path, NodeProps)
-          end,
+    Fun = {?MODULE, foreach_node_cb, [?FUNCTION_NAME]},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -374,9 +397,7 @@ foreach_non_existing_node_test_() ->
       ?_assertEqual({ok, #{}}, khepri_adv:get_many(?FUNCTION_NAME, "**"))]}.
 
 foreach_existing_node_test_() ->
-    Fun = fun(Path, NodeProps) ->
-                  foreach_node_cb(?FUNCTION_NAME, Path, NodeProps)
-          end,
+    Fun = {?MODULE, foreach_node_cb, [?FUNCTION_NAME]},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -403,9 +424,7 @@ foreach_existing_node_test_() ->
         end)]}.
 
 foreach_many_nodes_test_() ->
-    Fun = fun(Path, NodeProps) ->
-                  foreach_node_cb(?FUNCTION_NAME, Path, NodeProps)
-          end,
+    Fun = {?MODULE, foreach_node_cb, [?FUNCTION_NAME]},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -466,6 +485,26 @@ foreach_many_nodes_test_() ->
                lists:seq(1, 120))
          end)]}.
 
+foreach_using_an_anonymous_fun_test_() ->
+    Fun = fun(Path, NodeProps) ->
+                  foreach_node_cb(?FUNCTION_NAME, Path, NodeProps)
+          end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         khepri:foreach(?FUNCTION_NAME, [foo], Fun)),
+      ?_assertEqual(
+         ok,
+         khepri:foreach(
+           ?FUNCTION_NAME, [foo], Fun, #{favor => low_latency}))]}.
+
 foreach_node_cb(StoreId, Path, #{data := foreach_value1}) ->
     ok = khepri:put(
            StoreId, Path, foreach_value2, #{async => true});
@@ -474,7 +513,7 @@ foreach_node_cb(StoreId, Path, _NodeProps) ->
            StoreId, Path, foreach_value1, #{async => true}).
 
 map_non_existing_node_test_() ->
-    Fun = fun map_node_cb/2,
+    Fun = {?MODULE, map_node_cb, []},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -487,7 +526,7 @@ map_non_existing_node_test_() ->
            ?FUNCTION_NAME, [foo], Fun, #{expect_specific_node => true}))]}.
 
 map_existing_node_test_() ->
-    Fun = fun map_node_cb/2,
+    Fun = {?MODULE, map_node_cb, []},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -499,7 +538,7 @@ map_existing_node_test_() ->
          khepri:map(?FUNCTION_NAME, [foo], Fun))]}.
 
 map_many_nodes_test_() ->
-    Fun = fun map_node_cb/2,
+    Fun = {?MODULE, map_node_cb, []},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -522,13 +561,30 @@ map_many_nodes_test_() ->
          khepri:map(
            ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR_STAR], Fun))]}.
 
+map_using_an_anonymous_fun_test_() ->
+    Fun = fun map_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         khepri:map(?FUNCTION_NAME, [foo], Fun)),
+      ?_assertEqual(
+         {ok, #{[foo] => {data, foo_value}}},
+         khepri:map(?FUNCTION_NAME, [foo], Fun, #{favor => low_latency}))]}.
+
 map_node_cb(_Path, #{data := Data}) ->
     {data, Data};
 map_node_cb(_Path, _NodeProps) ->
     nodata.
 
 filter_non_existing_node_test_() ->
-    Pred = fun filter_node_cb/2,
+    Pred = {?MODULE, filter_node_cb, []},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -541,7 +597,7 @@ filter_non_existing_node_test_() ->
            ?FUNCTION_NAME, [foo], Pred, #{expect_specific_node => true}))]}.
 
 filter_existing_node_test_() ->
-    Pred = fun filter_node_cb/2,
+    Pred = {?MODULE, filter_node_cb, []},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -553,7 +609,7 @@ filter_existing_node_test_() ->
          khepri:filter(?FUNCTION_NAME, [foo], Pred))]}.
 
 filter_many_nodes_test_() ->
-    Pred = fun filter_node_cb/2,
+    Pred = {?MODULE, filter_node_cb, []},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -572,6 +628,28 @@ filter_many_nodes_test_() ->
          {ok, #{[baz] => baz_value}},
          khepri:filter(
            ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR_STAR], Pred))]}.
+
+filter_using_an_anonymous_fun_test_() ->
+    Fun = fun filter_node_cb/2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [baz], baz_value)),
+      ?_assertError(
+         ?khepri_exception(
+            denied_fun_in_non_local_query,
+            #{'fun' := Fun}),
+         khepri:filter(?FUNCTION_NAME, [baz], Fun)),
+      ?_assertEqual(
+         {ok, #{[baz] => baz_value}},
+         khepri:filter(
+           ?FUNCTION_NAME, [baz], Fun, #{favor => low_latency})),
+      ?_assertEqual(
+         {ok, #{}},
+         khepri:filter(
+           ?FUNCTION_NAME, [foo], Fun, #{favor => low_latency}))]}.
 
 filter_node_cb([_ | _] = Path, _NodeProps) ->
     lists:last(Path) =:= baz;

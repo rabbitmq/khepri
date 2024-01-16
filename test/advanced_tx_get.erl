@@ -43,9 +43,7 @@ get_existing_node_test_() ->
           {ok, #{data => foo_value,
                  payload_version => 1}}},
          begin
-             Fun = fun() ->
-                           khepri_tx_adv:get([foo])
-                   end,
+             Fun = {khepri_tx_adv, get, [[foo]]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
@@ -138,9 +136,7 @@ get_many_existing_nodes_test_() ->
                  [baz] => #{data => baz_value,
                             payload_version => 1}}}},
          begin
-             Fun = fun() ->
-                           khepri_tx_adv:get_many([?KHEPRI_WILDCARD_STAR])
-                   end,
+             Fun = {khepri_tx_adv, get_many, [[?KHEPRI_WILDCARD_STAR]]},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
