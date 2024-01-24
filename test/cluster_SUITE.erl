@@ -28,6 +28,7 @@
 
          can_start_a_single_node/1,
          can_restart_a_single_node_with_ra_server_config/1,
+         can_query_members_with_a_single_node/1,
          fail_to_start_with_bad_ra_server_config/1,
          initial_members_are_ignored/1,
          can_start_a_three_node_cluster/1,
@@ -35,6 +36,7 @@
          can_rejoin_after_a_reset_in_a_three_node_cluster/1,
          can_restart_nodes_in_a_three_node_cluster/1,
          can_reset_a_cluster_member/1,
+         can_query_members_with_a_three_node_cluster/1,
          fail_to_join_if_not_started/1,
          fail_to_join_non_existing_node/1,
          fail_to_join_non_existing_store/1,
@@ -49,6 +51,7 @@
 all() ->
     [can_start_a_single_node,
      can_restart_a_single_node_with_ra_server_config,
+     can_query_members_with_a_single_node,
      fail_to_start_with_bad_ra_server_config,
      initial_members_are_ignored,
      can_start_a_three_node_cluster,
@@ -56,6 +59,7 @@ all() ->
      can_rejoin_after_a_reset_in_a_three_node_cluster,
      can_restart_nodes_in_a_three_node_cluster,
      can_reset_a_cluster_member,
+     can_query_members_with_a_three_node_cluster,
      fail_to_join_if_not_started,
      fail_to_join_non_existing_node,
      fail_to_join_non_existing_store,
@@ -87,6 +91,7 @@ end_per_group(_Group, _Config) ->
 init_per_testcase(Testcase, Config)
   when Testcase =:= can_start_a_single_node orelse
        Testcase =:= can_restart_a_single_node_with_ra_server_config orelse
+       Testcase =:= can_query_members_with_a_single_node orelse
        Testcase =:= fail_to_start_with_bad_ra_server_config orelse
        Testcase =:= initial_members_are_ignored orelse
        Testcase =:= fail_to_join_non_existing_node orelse
@@ -101,6 +106,7 @@ init_per_testcase(Testcase, Config)
        Testcase =:= can_rejoin_after_a_reset_in_a_three_node_cluster orelse
        Testcase =:= can_restart_nodes_in_a_three_node_cluster orelse
        Testcase =:= can_reset_a_cluster_member orelse
+       Testcase =:= can_query_members_with_a_three_node_cluster orelse
        Testcase =:= fail_to_join_if_not_started orelse
        Testcase =:= fail_to_join_non_existing_store orelse
        Testcase =:= handle_leader_down_on_three_node_cluster_command orelse
@@ -223,6 +229,107 @@ can_restart_a_single_node_with_ra_server_config(Config) ->
 
     ok.
 
+can_query_members_with_a_single_node(Config) ->
+    Node = node(),
+    #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
+    StoreId = RaSystem,
+
+    ct:pal("Query members before starting database"),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:members(StoreId)),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:members(StoreId, 10000)),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:locally_known_members(StoreId)),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:locally_known_members(StoreId, 10000)),
+
+    ct:pal("Query nodes before starting database"),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:nodes(StoreId)),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:nodes(StoreId, 10000)),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:locally_known_nodes(StoreId)),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:locally_known_nodes(StoreId, 10000)),
+
+    ct:pal("Start database"),
+    ?assertEqual(
+       {ok, StoreId},
+       khepri:start(RaSystem, StoreId)),
+
+    ct:pal("Query members after starting database"),
+    ?assertEqual(
+       {ok, [{StoreId, Node}]},
+       khepri_cluster:members(StoreId)),
+    ?assertEqual(
+       {ok, [{StoreId, Node}]},
+       khepri_cluster:members(StoreId, 10000)),
+    ?assertEqual(
+       {ok, [{StoreId, Node}]},
+       khepri_cluster:locally_known_members(StoreId)),
+    ?assertEqual(
+       {ok, [{StoreId, Node}]},
+       khepri_cluster:locally_known_members(StoreId, 10000)),
+
+    ct:pal("Query nodes after starting database"),
+    ?assertEqual(
+       {ok, [Node]},
+       khepri_cluster:nodes(StoreId)),
+    ?assertEqual(
+       {ok, [Node]},
+       khepri_cluster:nodes(StoreId, 10000)),
+    ?assertEqual(
+       {ok, [Node]},
+       khepri_cluster:locally_known_nodes(StoreId)),
+    ?assertEqual(
+       {ok, [Node]},
+       khepri_cluster:locally_known_nodes(StoreId, 10000)),
+
+    ct:pal("Stop database"),
+    ?assertEqual(
+       ok,
+       khepri:stop(StoreId)),
+
+    ct:pal("Query members after stopping database"),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:members(StoreId)),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:members(StoreId, 10000)),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:locally_known_members(StoreId)),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:locally_known_members(StoreId, 10000)),
+
+    ct:pal("Query nodes after stopping database"),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:nodes(StoreId)),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:nodes(StoreId, 10000)),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:locally_known_nodes(StoreId)),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:locally_known_nodes(StoreId, 10000)),
+
+    ok.
+
 fail_to_start_with_bad_ra_server_config(Config) ->
     Node = node(),
     #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
@@ -277,7 +384,7 @@ initial_members_are_ignored(Config) ->
     ct:pal("This member is alone in the \"cluster\""),
     ThisMember = khepri_cluster:this_member(StoreId),
     ?assertEqual(
-       [ThisMember],
+       {ok, [ThisMember]},
        khepri_cluster:members(StoreId)),
 
     ct:pal("Stop database"),
@@ -329,26 +436,40 @@ can_start_a_three_node_cluster(Config) ->
               ExpectedMembers = lists:sort([{StoreId, N} || N <- Nodes]),
               ?assertEqual(
                  ExpectedMembers,
-                 lists:sort(
-                   rpc:call(Node, khepri_cluster, members, [StoreId]))),
+                 begin
+                     {ok, M} = rpc:call(
+                                 Node,
+                                 khepri_cluster, members, [StoreId]),
+                     lists:sort(M)
+                 end),
               ?assertEqual(
                  ExpectedMembers,
-                 lists:sort(
-                   rpc:call(
-                     Node, khepri_cluster, locally_known_members,
-                     [StoreId]))),
+                 begin
+                     {ok, LKM} = rpc:call(
+                                   Node,
+                                   khepri_cluster, locally_known_members,
+                                   [StoreId]),
+                     lists:sort(LKM)
+                 end),
 
               ExpectedNodes = lists:sort(Nodes),
               ?assertEqual(
                  ExpectedNodes,
-                 lists:sort(
-                   rpc:call(Node, khepri_cluster, nodes, [StoreId]))),
+                 begin
+                     {ok, N} = rpc:call(
+                                 Node,
+                                 khepri_cluster, nodes, [StoreId]),
+                     lists:sort(N)
+                 end),
               ?assertEqual(
                  ExpectedNodes,
-                 lists:sort(
-                   rpc:call(
-                     Node, khepri_cluster, locally_known_nodes,
-                     [StoreId])))
+                 begin
+                     {ok, LKN} = rpc:call(
+                                   Node,
+                                   khepri_cluster, locally_known_nodes,
+                                   [StoreId]),
+                     lists:sort(LKN)
+                 end)
       end, Nodes),
 
     ct:pal("Use database after starting it"),
@@ -867,8 +988,12 @@ can_reset_a_cluster_member(Config) ->
               ct:pal("- khepri_cluster:nodes() from node ~s", [Node]),
               ?assertEqual(
                  lists:sort(Nodes),
-                 lists:sort(rpc:call(
-                              Node, khepri_cluster, nodes, [StoreId])))
+                 begin
+                     {ok, N} = rpc:call(
+                                 Node,
+                                 khepri_cluster, nodes, [StoreId]),
+                     lists:sort(N)
+                 end)
       end, Nodes),
 
     %% Reset the current leader.
@@ -889,9 +1014,172 @@ can_reset_a_cluster_member(Config) ->
               ct:pal("- khepri_cluster:nodes() from node ~s", [Node]),
               ?assertEqual(
                  lists:sort(RunningNodes1),
-                 lists:sort(rpc:call(
-                              Node, khepri_cluster, nodes, [StoreId])))
+                 begin
+                     {ok, N} = rpc:call(
+                                 Node,
+                                 khepri_cluster, nodes, [StoreId]),
+                     lists:sort(N)
+                 end)
       end, RunningNodes1),
+
+    ok.
+
+can_query_members_with_a_three_node_cluster(Config) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    [Node1, Node2, Node3] = Nodes = lists:sort(maps:keys(PropsPerNode)),
+
+    %% We assume all nodes are using the same Ra system name & store ID.
+    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    StoreId = RaSystem,
+
+    ct:pal("Query members before starting database"),
+    lists:foreach(
+      fun(Node) ->
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(Node, khepri_cluster, members, [StoreId])),
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(Node, khepri_cluster, members, [StoreId, 10000])),
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(
+                   Node,
+                   khepri_cluster, locally_known_members, [StoreId])),
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(
+                   Node,
+                   khepri_cluster, locally_known_members, [StoreId, 10000]))
+      end, Nodes),
+
+    ct:pal("Query nodes before starting database"),
+    lists:foreach(
+      fun(Node) ->
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(Node, khepri_cluster, nodes, [StoreId])),
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(Node, khepri_cluster, nodes, [StoreId, 10000])),
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(
+                   Node,
+                   khepri_cluster, locally_known_nodes, [StoreId])),
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(
+                   Node,
+                   khepri_cluster, locally_known_nodes, [StoreId, 10000]))
+      end, Nodes),
+
+    ct:pal("Start database + cluster nodes"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
+      end, Nodes),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:join() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+      end, [Node1, Node2]),
+
+    ct:pal("Query members after starting database"),
+    lists:foreach(
+      fun(Node) ->
+              ?assertEqual(
+                 {ok, [{StoreId, N} || N <- Nodes]},
+                 erpc:call(Node, khepri_cluster, members, [StoreId])),
+              ?assertEqual(
+                 {ok, [{StoreId, N} || N <- Nodes]},
+                 erpc:call(Node, khepri_cluster, members, [StoreId, 10000])),
+              ?assertEqual(
+                 {ok, [{StoreId, N} || N <- Nodes]},
+                 erpc:call(
+                   Node,
+                   khepri_cluster, locally_known_members, [StoreId])),
+              ?assertEqual(
+                 {ok, [{StoreId, N} || N <- Nodes]},
+                 erpc:call(
+                   Node,
+                   khepri_cluster, locally_known_members, [StoreId, 10000]))
+      end, Nodes),
+
+    ct:pal("Query nodes after starting database"),
+    lists:foreach(
+      fun(Node) ->
+              ?assertEqual(
+                 {ok, Nodes},
+                 erpc:call(Node, khepri_cluster, nodes, [StoreId])),
+              ?assertEqual(
+                 {ok, Nodes},
+                 erpc:call(Node, khepri_cluster, nodes, [StoreId, 10000])),
+              ?assertEqual(
+                 {ok, Nodes},
+                 erpc:call(
+                   Node,
+                   khepri_cluster, locally_known_nodes, [StoreId])),
+              ?assertEqual(
+                 {ok, Nodes},
+                 erpc:call(
+                   Node,
+                   khepri_cluster, locally_known_nodes, [StoreId, 10000]))
+      end, Nodes),
+
+    ct:pal("Stop database"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:stop() from node ~s", [Node]),
+              ?assertEqual(ok, rpc:call(Node, khepri, stop, [StoreId]))
+      end, Nodes),
+
+    ct:pal("Query members after stopping database"),
+    lists:foreach(
+      fun(Node) ->
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(Node, khepri_cluster, members, [StoreId])),
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(Node, khepri_cluster, members, [StoreId, 10000])),
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(
+                   Node,
+                   khepri_cluster, locally_known_members, [StoreId])),
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(
+                   Node,
+                   khepri_cluster, locally_known_members, [StoreId, 10000]))
+      end, Nodes),
+
+    ct:pal("Query nodes after stopping database"),
+    lists:foreach(
+      fun(Node) ->
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(Node, khepri_cluster, nodes, [StoreId])),
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(Node, khepri_cluster, nodes, [StoreId, 10000])),
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(
+                   Node,
+                   khepri_cluster, locally_known_nodes, [StoreId])),
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(
+                   Node,
+                   khepri_cluster, locally_known_nodes, [StoreId, 10000]))
+      end, Nodes),
 
     ok.
 
@@ -934,7 +1222,7 @@ fail_to_join_non_existing_node(Config) ->
 
     ThisMember = khepri_cluster:this_member(StoreId),
     ?assertEqual(
-       [ThisMember],
+       {ok, [ThisMember]},
        khepri_cluster:members(StoreId)),
 
     ct:pal("Stop database"),
@@ -964,7 +1252,7 @@ fail_to_join_non_existing_store(Config) ->
          Node1, khepri_cluster, join, [StoreId, Node2])),
 
     ?assertEqual(
-       [khepri_cluster:node_to_member(StoreId, Node1)],
+       {ok, [khepri_cluster:node_to_member(StoreId, Node1)]},
        rpc:call(
          Node1, khepri_cluster, members, [StoreId])),
 
@@ -976,6 +1264,7 @@ fail_to_join_non_existing_store(Config) ->
     ok.
 
 can_use_default_store_on_single_node(_Config) ->
+    Node = node(),
     ?assertMatch({ok, _}, application:ensure_all_started(khepri)),
     DataDir = khepri_cluster:get_default_ra_system_or_data_dir(),
     ?assertNot(filelib:is_dir(DataDir)),
@@ -986,6 +1275,11 @@ can_use_default_store_on_single_node(_Config) ->
     ?assertEqual({error, noproc}, khepri:exists([foo])),
     ?assertEqual({error, noproc}, khepri:has_data([foo])),
     ?assertEqual({error, noproc}, khepri:is_sproc([foo])),
+
+    ?assertEqual({error, noproc}, khepri_cluster:members()),
+    ?assertEqual({error, noproc}, khepri_cluster:locally_known_members()),
+    ?assertEqual({error, noproc}, khepri_cluster:nodes()),
+    ?assertEqual({error, noproc}, khepri_cluster:locally_known_nodes()),
 
     {ok, StoreId} = khepri:start(),
     ?assert(filelib:is_dir(DataDir)),
@@ -1076,6 +1370,13 @@ can_use_default_store_on_single_node(_Config) ->
        {ok, #{[foo] => #{data => value4,
                          payload_version => 7}}},
        khepri_adv:get_many([foo], #{})),
+
+    ?assertEqual({ok, [{StoreId, Node}]}, khepri_cluster:members()),
+    ?assertEqual(
+       {ok, [{StoreId, Node}]},
+       khepri_cluster:locally_known_members()),
+    ?assertEqual({ok, [Node]}, khepri_cluster:nodes()),
+    ?assertEqual({ok, [Node]}, khepri_cluster:locally_known_nodes()),
 
     ?assertEqual(ok, khepri:stop()),
     ?assertEqual({error, noproc}, khepri:get([foo])),
@@ -1584,7 +1885,7 @@ stop_erlang_node(_Node, Node) ->
 get_leader_in_store(StoreId, [Node | _] = _RunningNodes) ->
     %% Query members; this is used to make sure there is an elected leader.
     ct:pal("Trying to figure who the leader is in \"~s\"", [StoreId]),
-    [_ | _] = Members = rpc:call(Node, khepri_cluster, members, [StoreId]),
+    {ok, Members} = rpc:call(Node, khepri_cluster, members, [StoreId]),
     Pids = [[Member, rpc:call(N, erlang, whereis, [RegName])]
             || {RegName, N} = Member <- Members],
     LeaderId = rpc:call(Node, ra_leaderboard, lookup_leader, [StoreId]),

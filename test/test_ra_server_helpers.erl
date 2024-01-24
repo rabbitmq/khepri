@@ -30,8 +30,8 @@ cleanup(#{store_id := StoreId} = Props) ->
                 %% If the list is empty, assumed it was running on this node
                 %% but the store was stopped. This is the case in
                 %% app_starts_workers_test_() for instance.
-                [] -> [node()];
-                L  -> L
+                {ok, L}    -> L;
+                {error, _} -> [node()]
             end,
     lists:foreach(
       fun(Node) ->

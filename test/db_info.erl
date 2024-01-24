@@ -125,7 +125,8 @@ get_store_info_on_non_existing_store_test_() ->
       ?_assertEqual(
          "\n"
          "\033[1;32m== CLUSTER MEMBERS ==\033[0m\n"
-         "\n",
+         "\n"
+         "Failed to query cluster members: {error,noproc}\n",
          begin
              #{level := OldLogLevel} = logger:get_primary_config(),
              _ = logger:set_primary_config(level, debug),

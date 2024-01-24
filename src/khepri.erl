@@ -3601,9 +3601,13 @@ info(StoreId) ->
 
 info(StoreId, Options) ->
     io:format("~n\033[1;32m== CLUSTER MEMBERS ==\033[0m~n~n", []),
-    Nodes = lists:sort(
-              [Node || {_, Node} <- khepri_cluster:members(StoreId)]),
-    lists:foreach(fun(Node) -> io:format("~ts~n", [Node]) end, Nodes),
+    case khepri_cluster:nodes(StoreId) of
+        {ok, Nodes} ->
+            Nodes1 = lists:sort(Nodes),
+            lists:foreach(fun(Node) -> io:format("~ts~n", [Node]) end, Nodes1);
+        {error, _} = Error ->
+            io:format("Failed to query cluster members: ~p~n", [Error])
+    end,
 
     case khepri_machine:get_keep_while_conds_state(StoreId, Options) of
         {ok, KeepWhileConds} when KeepWhileConds =/= #{} ->
