@@ -120,12 +120,18 @@ ok = khepri_cluster:reset().</code></pre>
 <tr><td valign="top"><a href="#reset-2">reset/2</a></td><td>Resets the store on this Erlang node.</td></tr>
 <tr><td valign="top"><a href="#get_default_ra_system_or_data_dir-0">get_default_ra_system_or_data_dir/0</a></td><td>Returns the default Ra system name or data directory.</td></tr>
 <tr><td valign="top"><a href="#get_default_store_id-0">get_default_store_id/0</a></td><td>Returns the default Khepri store ID.</td></tr>
-<tr><td valign="top"><a href="#members-1">members/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#members-2">members/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#locally_known_members-1">locally_known_members/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#locally_known_members-2">locally_known_members/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#nodes-1">nodes/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#locally_known_nodes-1">locally_known_nodes/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#members-0">members/0</a></td><td>Returns the list of Ra members that are part of the cluster.</td></tr>
+<tr><td valign="top"><a href="#members-1">members/1</a></td><td>Returns the list of Ra members that are part of the cluster.</td></tr>
+<tr><td valign="top"><a href="#members-2">members/2</a></td><td>Returns the list of Ra members that are part of the cluster.</td></tr>
+<tr><td valign="top"><a href="#locally_known_members-0">locally_known_members/0</a></td><td>Returns the list of Ra members that are part of the cluster.</td></tr>
+<tr><td valign="top"><a href="#locally_known_members-1">locally_known_members/1</a></td><td>Returns the list of Ra members that are part of the cluster.</td></tr>
+<tr><td valign="top"><a href="#locally_known_members-2">locally_known_members/2</a></td><td>Returns the list of Ra members that are part of the cluster.</td></tr>
+<tr><td valign="top"><a href="#nodes-0">nodes/0</a></td><td>Returns the list of Erlang nodes that are part of the cluster.</td></tr>
+<tr><td valign="top"><a href="#nodes-1">nodes/1</a></td><td>Returns the list of Erlang nodes that are part of the cluster.</td></tr>
+<tr><td valign="top"><a href="#nodes-2">nodes/2</a></td><td>Returns the list of Erlang nodes that are part of the cluster.</td></tr>
+<tr><td valign="top"><a href="#locally_known_nodes-0">locally_known_nodes/0</a></td><td>Returns the list of Erlang nodes that are part of the cluster.</td></tr>
+<tr><td valign="top"><a href="#locally_known_nodes-1">locally_known_nodes/1</a></td><td>Returns the list of Erlang nodes that are part of the cluster.</td></tr>
+<tr><td valign="top"><a href="#locally_known_nodes-2">locally_known_nodes/2</a></td><td>Returns the list of Erlang nodes that are part of the cluster.</td></tr>
 <tr><td valign="top"><a href="#get_store_ids-0">get_store_ids/0</a></td><td>Returns the list of running stores.</td></tr>
 <tr><td valign="top"><a href="#is_store_running-1">is_store_running/1</a></td><td>Indicates if <code>StoreId</code> is running or not.</td></tr>
 <tr><td valign="top"><a href="#get_cached_leader-1">get_cached_leader/1</a></td><td></td></tr>
@@ -335,41 +341,160 @@ Erlang node name.</p>
   variable. The variable can be set to an atom. The default is <code>khepri</code>.
  </p>
 
+<h3 class="function"><a name="members-0">members/0</a></h3>
+<div class="spec">
+<p><code>members() -&gt; Ret</code>
+<ul class="definitions"><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Members) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Members = [<a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a>, ...]</code></li></ul></p>
+<p></p>
+</div><p><p>Returns the list of Ra members that are part of the cluster.</p>
+ 
+  Calling this function is the same as calling <code>members(StoreId)</code> with the
+  default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
+ </p>
+<p><b>See also:</b> <a href="#members-1">members/1</a>, <a href="#members-2">members/2</a>.</p>
+
 <h3 class="function"><a name="members-1">members/1</a></h3>
 <div class="spec">
-<p><code>members(StoreId) -&gt; any()</code></p>
+<p><code>members(StoreId) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Members) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Members = [<a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a>, ...]</code></li></ul></p>
 <p></p>
-</div>
+</div><p><p>Returns the list of Ra members that are part of the cluster.</p>
+ 
+  Calling this function is the same as calling <code>members(StoreId,
+  DefaultTimeout)</code> where <code>DefaultTimeout</code> is returned by <a docgen-rel="seemfa" docgen-href="khepri_app#get_default_timeout/0" href="khepri_app.html#get_default_timeout-0"><code>khepri_app:get_default_timeout/0</code></a>.
+ </p>
+<p><b>See also:</b> <a href="#members-2">members/2</a>.</p>
 
 <h3 class="function"><a name="members-2">members/2</a></h3>
 <div class="spec">
-<p><code>members(StoreId, Timeout) -&gt; any()</code></p>
+<p><code>members(StoreId, Timeout) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Timeout = timeout()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Members) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Members = [<a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a>, ...]</code></li></ul></p>
+<p><code>StoreId</code>: the ID of the store to stop.<br>
+<code>Timeout</code>: the timeout.
+ <br>
+</p>
+<p>returns: an <code>{ok, Members}</code> tuple or an <code>{error, Reason}</code> tuple. <code>Members</code>
+  is a non-empty list of Ra server IDs.</p>
+</div><p><p>Returns the list of Ra members that are part of the cluster.</p>
+ 
+  The Ra leader is queried for the list of members, therefore the membership
+  view is consistent with the rest of the cluster.
+ </p>
+
+<h3 class="function"><a name="locally_known_members-0">locally_known_members/0</a></h3>
+<div class="spec">
+<p><code>locally_known_members() -&gt; Ret</code>
+<ul class="definitions"><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Members) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Members = [<a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a>, ...]</code></li></ul></p>
 <p></p>
-</div>
+</div><p><p>Returns the list of Ra members that are part of the cluster.</p>
+ 
+  Calling this function is the same as calling
+  <code>locally_known_members(StoreId)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
+ </p>
+<p><b>See also:</b> <a href="#locally_known_members-1">locally_known_members/1</a>, <a href="#locally_known_members-2">locally_known_members/2</a>.</p>
 
 <h3 class="function"><a name="locally_known_members-1">locally_known_members/1</a></h3>
 <div class="spec">
-<p><code>locally_known_members(StoreId) -&gt; any()</code></p>
+<p><code>locally_known_members(StoreId) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Members) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Members = [<a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a>, ...]</code></li></ul></p>
 <p></p>
-</div>
+</div><p><p>Returns the list of Ra members that are part of the cluster.</p>
+ 
+  Calling this function is the same as calling
+  <code>locally_known_members(StoreId, DefaultTimeout)</code> where <code>DefaultTimeout</code> is
+  returned by <a docgen-rel="seemfa" docgen-href="khepri_app#get_default_timeout/0" href="khepri_app.html#get_default_timeout-0"><code>khepri_app:get_default_timeout/0</code></a>.
+ </p>
+<p><b>See also:</b> <a href="#locally_known_members-2">locally_known_members/2</a>.</p>
 
 <h3 class="function"><a name="locally_known_members-2">locally_known_members/2</a></h3>
 <div class="spec">
-<p><code>locally_known_members(StoreId, Timeout) -&gt; any()</code></p>
+<p><code>locally_known_members(StoreId, Timeout) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Timeout = timeout()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Members) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Members = [<a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a>, ...]</code></li></ul></p>
+<p><code>StoreId</code>: the ID of the store to stop.<br>
+<code>Timeout</code>: the timeout.
+ <br>
+</p>
+<p>returns: an <code>{ok, Members}</code> tuple or an <code>{error, Reason}</code> tuple. <code>Members</code>
+  is a non-empty list of Ra server IDs.</p>
+</div><p><p>Returns the list of Ra members that are part of the cluster.</p>
+ 
+  The function queries a locally cached value first, then queries the local
+  Ra server. Either way, the returned value may be out-of-date compared to
+  the current membership known by the Ra leader.
+ </p>
+
+<h3 class="function"><a name="nodes-0">nodes/0</a></h3>
+<div class="spec">
+<p><code>nodes() -&gt; Ret</code>
+<ul class="definitions"><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Nodes) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Nodes = [node(), ...]</code></li></ul></p>
 <p></p>
-</div>
+</div><p><p>Returns the list of Erlang nodes that are part of the cluster.</p>
+ 
+  Calling this function is the same as calling <code>nodes(StoreId)</code> with the
+  default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
+ </p>
+<p><b>See also:</b> <a href="#nodes-1">nodes/1</a>, <a href="#nodes-2">nodes/2</a>.</p>
 
 <h3 class="function"><a name="nodes-1">nodes/1</a></h3>
 <div class="spec">
-<p><code>nodes(StoreId) -&gt; any()</code></p>
+<p><code>nodes(StoreId) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Nodes) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Nodes = [node(), ...]</code></li></ul></p>
 <p></p>
-</div>
+</div><p><p>Returns the list of Erlang nodes that are part of the cluster.</p>
+ 
+  Calling this function is the same as calling <code>nodes(StoreId,
+  DefaultTimeout)</code> where <code>DefaultTimeout</code> is returned by <a docgen-rel="seemfa" docgen-href="khepri_app#get_default_timeout/0" href="khepri_app.html#get_default_timeout-0"><code>khepri_app:get_default_timeout/0</code></a>.
+ </p>
+<p><b>See also:</b> <a href="#nodes-2">nodes/2</a>.</p>
+
+<h3 class="function"><a name="nodes-2">nodes/2</a></h3>
+<div class="spec">
+<p><code>nodes(StoreId, Timeout) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Timeout = timeout()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Nodes) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Nodes = [node(), ...]</code></li></ul></p>
+<p></p>
+</div><p><p>Returns the list of Erlang nodes that are part of the cluster.</p>
+ 
+  The Ra leader is queried for the list of members, therefore the membership
+  view is consistent with the rest of the cluster.
+ </p>
+<p><b>See also:</b> <a href="#members-2">members/2</a>.</p>
+
+<h3 class="function"><a name="locally_known_nodes-0">locally_known_nodes/0</a></h3>
+<div class="spec">
+<p><code>locally_known_nodes() -&gt; Ret</code>
+<ul class="definitions"><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Nodes) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Nodes = [node(), ...]</code></li></ul></p>
+<p></p>
+</div><p><p>Returns the list of Erlang nodes that are part of the cluster.</p>
+ 
+  Calling this function is the same as calling <code>locally_known_nodes(StoreId)</code>
+  with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
+ </p>
+<p><b>See also:</b> <a href="#locally_known_nodes-1">locally_known_nodes/1</a>, <a href="#locally_known_nodes-2">locally_known_nodes/2</a>.</p>
 
 <h3 class="function"><a name="locally_known_nodes-1">locally_known_nodes/1</a></h3>
 <div class="spec">
-<p><code>locally_known_nodes(StoreId) -&gt; any()</code></p>
+<p><code>locally_known_nodes(StoreId) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Nodes) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Nodes = [node(), ...]</code></li></ul></p>
 <p></p>
-</div>
+</div><p><p>Returns the list of Erlang nodes that are part of the cluster.</p>
+ 
+  Calling this function is the same as calling <code>locally_known_nodes(StoreId,
+  DefaultTimeout)</code> where <code>DefaultTimeout</code> is returned by <a docgen-rel="seemfa" docgen-href="khepri_app#get_default_timeout/0" href="khepri_app.html#get_default_timeout-0"><code>khepri_app:get_default_timeout/0</code></a>.
+ </p>
+<p><b>See also:</b> <a href="#locally_known_nodes-2">locally_known_nodes/2</a>.</p>
+
+<h3 class="function"><a name="locally_known_nodes-2">locally_known_nodes/2</a></h3>
+<div class="spec">
+<p><code>locally_known_nodes(StoreId, Timeout) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Timeout = timeout()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(Nodes) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li><li><code>Nodes = [node(), ...]</code></li></ul></p>
+<p></p>
+</div><p><p>Returns the list of Erlang nodes that are part of the cluster.</p>
+ 
+  The function queries a locally cached value first, then queries the local
+  Ra server. Either way, the returned value may be out-of-date compared to
+  the current membership known by the Ra leader.
+ </p>
+<p><b>See also:</b> <a href="#locally_known_members-2">locally_known_members/2</a>.</p>
 
 <h3 class="function"><a name="get_store_ids-0">get_store_ids/0</a></h3>
 <div class="spec">
