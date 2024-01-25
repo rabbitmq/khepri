@@ -949,14 +949,15 @@ do_select_query_type(StoreId, compromise) ->
             %% Otherwise, we select a leader query which is a good balance
             %% between freshness and latency.
             Last = atomics:get(AtomicsRef, Idx),
-            Now = erlang:system_time(second),
+            Now = erlang:monotonic_time(),
+            Elapsed = erlang:convert_time_unit(Now - Last, native, second),
             ConsistentAgainAfter = application:get_env(
                                      khepri,
                                      consistent_query_interval_in_compromise,
                                      10),
             if
-                Now - Last < ConsistentAgainAfter -> leader;
-                true                              -> consistent
+                Elapsed < ConsistentAgainAfter -> leader;
+                true                           -> consistent
             end;
         undefined ->
             consistent
@@ -987,7 +988,7 @@ just_did_consistent_call(StoreId) ->
                          persistent_term:put(Key, Ref),
                          Ref
                  end,
-    Now = erlang:system_time(second),
+    Now = erlang:monotonic_time(),
     ok = atomics:put(AtomicsRef, Idx, Now),
     ok.
 
