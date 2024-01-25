@@ -128,13 +128,15 @@ prepare(#p_data{} = Payload) ->
 prepare(#p_sproc{sproc = Fun} = Payload)
   when is_function(Fun) ->
     try
-        case khepri_tx_adv:to_standalone_fun(Fun, auto) of
+        {arity, Arity} = erlang:fun_info(Fun, arity),
+        case khepri_tx_adv:to_standalone_fun(Fun, Arity, auto) of
             StandaloneFun1 when ?IS_HORUS_STANDALONE_FUN(StandaloneFun1) ->
                 Payload#p_sproc{sproc = StandaloneFun1,
                                 is_valid_as_tx_fun = rw};
             _ ->
                 %% TODO: Improve Horus API to avoid a second extraction.
-                StandaloneFun1 = khepri_tx_adv:to_standalone_fun(Fun, rw),
+                StandaloneFun1 = khepri_tx_adv:to_standalone_fun(
+                                   Fun, Arity, rw),
                 Payload#p_sproc{sproc = StandaloneFun1,
                                 is_valid_as_tx_fun = ro}
         end

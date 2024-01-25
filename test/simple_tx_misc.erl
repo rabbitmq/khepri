@@ -17,13 +17,13 @@
 -include("test/helpers.hrl").
 
 -dialyzer([{no_match,
-            [exception_in_ro_transaction_test_/0,
+            [exception_in_ro_transaction_test_qf/0,
              exception_in_rw_transaction_test_/0]},
            {no_missing_calls,
             [calling_unexported_remote_function_as_fun_term_test_/0]},
            {no_return,
             [aborted_transaction_test_/0,
-             exception_in_ro_transaction_test_/0,
+             exception_in_ro_transaction_test_qf/0,
              exception_in_rw_transaction_test_/0]},
            {nowarn_function,
             [fun_taking_invalid_args_in_ro_transaction_test_/0,
@@ -31,6 +31,14 @@
              not_a_function_as_ro_transaction_test_/0,
              not_a_function_as_rw_transaction_test_/0,
              use_an_invalid_path_in_tx_test_/0]}]).
+
+%% Exported functions passed to khepri_machine:readonly_transaction().
+-export([noop_in_ro_transaction_test_qf/0,
+         autodetect_ro_test_qf/0,
+         fun_taking_args_in_rw_transaction_test_qf/3,
+         fun_taking_invalid_args_in_ro_transaction_test_qf/1,
+         test_transaction_api_args_permutations_test_qf/0,
+         exception_in_ro_transaction_test_qf/0]).
 
 %% Used internally for a testcase.
 -export([really_do_get_root_path/0,
@@ -81,9 +89,7 @@ is_transaction_test_() ->
       [?_assertEqual(
           {ok, true},
           begin
-              Fun = fun() ->
-                            khepri_tx:is_transaction()
-                    end,
+              Fun = {khepri_tx, is_transaction, []},
               khepri:transaction(?FUNCTION_NAME, Fun, ro)
           end),
        ?_assertEqual(
@@ -103,11 +109,12 @@ noop_in_ro_transaction_test_() ->
      [?_assertEqual(
          {ok, ok},
          begin
-             Fun = fun() ->
-                           ok
-                   end,
+             Fun = {?MODULE, noop_in_ro_transaction_test_qf, []},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end)]}.
+
+noop_in_ro_transaction_test_qf() ->
+    ok.
 
 noop_in_rw_transaction_test_() ->
     {setup,
@@ -132,16 +139,17 @@ autodetect_ro_test_() ->
              _ = khepri:put(
                    ?FUNCTION_NAME, [foo], khepri_payload:data(value1)),
 
-             Fun = fun() ->
-                           Path = [foo],
-                           case khepri_tx:exists(Path) of
-                               true  -> khepri_tx:get(Path);
-                               Other -> Other
-                           end
-                   end,
+             Fun = {?MODULE, autodetect_ro_test_qf, []},
              %% Let Khepri detect if the transaction is R/W or R/O.
              khepri:transaction(?FUNCTION_NAME, Fun)
          end)]}.
+
+autodetect_ro_test_qf() ->
+    Path = [foo],
+    case khepri_tx:exists(Path) of
+        true  -> khepri_tx:get(Path);
+        Other -> Other
+    end.
 
 autodetect_rw_test_() ->
     {setup,
@@ -227,13 +235,14 @@ fun_taking_args_in_ro_transaction_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {ok, arg1, arg2}},
+         {ok, {ok, arg1, arg2, arg3}},
          begin
-             Fun = fun(Arg1, Arg2) ->
-                           {ok, Arg1, Arg2}
-                   end,
-             khepri:transaction(?FUNCTION_NAME, Fun, [arg1, arg2], ro)
+             Fun = {?MODULE, fun_taking_args_in_rw_transaction_test_qf, [arg1]},
+             khepri:transaction(?FUNCTION_NAME, Fun, [arg2, arg3], ro)
          end)]}.
+
+fun_taking_args_in_rw_transaction_test_qf(Arg1, Arg2, Arg3) ->
+    {ok, Arg1, Arg2, Arg3}.
 
 fun_taking_args_in_rw_transaction_test_() ->
     {setup,
@@ -258,11 +267,13 @@ fun_taking_invalid_args_in_ro_transaction_test_() ->
             #{arity := 1,
               args := []}),
          begin
-             Fun = fun(Arg) ->
-                           Arg
-                   end,
+             Fun = {?MODULE,
+                    fun_taking_invalid_args_in_ro_transaction_test_qf, []},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end)]}.
+
+fun_taking_invalid_args_in_ro_transaction_test_qf(Arg) ->
+    Arg.
 
 fun_taking_invalid_args_in_rw_transaction_test_() ->
     {setup,
@@ -281,7 +292,7 @@ fun_taking_invalid_args_in_rw_transaction_test_() ->
          end)]}.
 
 test_transaction_api_args_permutations_test_() ->
-    Fun = fun() -> ok end,
+    Fun = {?MODULE, test_transaction_api_args_permutations_test_qf, []},
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -306,6 +317,9 @@ test_transaction_api_args_permutations_test_() ->
       ?_assertEqual(
          {ok, ok},
          khepri:transaction(?FUNCTION_NAME, Fun, rw, #{}))]}.
+
+test_transaction_api_args_permutations_test_qf() ->
+    ok.
 
 not_a_function_as_ro_transaction_test_() ->
     Term = an_atom,
@@ -332,11 +346,12 @@ exception_in_ro_transaction_test_() ->
      [?_assertError(
          {badmatch, {ok, undefined}},
          begin
-             Fun = fun() ->
-                           bad_return_value = khepri_tx:get([])
-                   end,
+             Fun = {?MODULE, exception_in_ro_transaction_test_qf, []},
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end)]}.
+
+exception_in_ro_transaction_test_qf() ->
+    bad_return_value = khepri_tx:get([]).
 
 exception_in_rw_transaction_test_() ->
     {setup,

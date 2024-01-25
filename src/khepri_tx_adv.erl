@@ -20,6 +20,7 @@
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
 -include("src/khepri_machine.hrl").
+-include("src/khepri_mfa.hrl").
 -include("src/khepri_ret.hrl").
 -include("src/khepri_tx.hrl").
 
@@ -45,7 +46,7 @@
 
 %% For internal use only.
 -export([do_get_many/4,
-         to_standalone_fun/2,
+         to_standalone_fun/3,
          run/4,
          ensure_instruction_is_permitted/1,
          should_process_function/4,
@@ -497,13 +498,17 @@ clear_many_payloads(PathPattern, Options) ->
 %% Internal functions.
 %% -------------------------------------------------------------------
 
--spec to_standalone_fun(Fun, ReadWrite) -> StandaloneFun | no_return() when
+-spec to_standalone_fun(Fun, Arity, ReadWrite) ->
+    StandaloneFun | no_return() when
       Fun :: fun(),
+      Arity :: arity(),
       ReadWrite :: ro | rw | auto,
       StandaloneFun :: horus:horus_fun().
 %% @private
 
-to_standalone_fun(Fun, ReadWrite)
+to_standalone_fun(Fun, _Arity, ro) when ?IS_FUN_OR_MFA(Fun) ->
+    Fun;
+to_standalone_fun(Fun, _Arity, ReadWrite)
   when is_function(Fun) andalso
        (ReadWrite =:= auto orelse ReadWrite =:= rw) ->
     Options =
@@ -524,8 +529,9 @@ to_standalone_fun(Fun, ReadWrite)
                    error => Error,
                    stacktrace => Stacktrace}))
     end;
-to_standalone_fun(Fun, ro) ->
-    Fun.
+to_standalone_fun(Fun, Arity, ReadWrite) when ?IS_MFA(Fun) ->
+    Fun1 = khepri_mfa:to_fun(Fun, Arity),
+    to_standalone_fun(Fun1, Arity, ReadWrite).
 
 ensure_instruction_is_permitted({allocate, _, _}) ->
     ok;
@@ -758,6 +764,8 @@ is_remote_call_valid(khepri_tx_adv, delete_many, _) -> true;
 is_remote_call_valid(khepri_tx_adv, clear_payload, _) -> true;
 is_remote_call_valid(khepri_tx_adv, clear_many_payloads, _) -> true;
 
+is_remote_call_valid(khepri_mfa, _, _) -> true;
+
 is_remote_call_valid(_, module_info, _) -> false;
 
 is_remote_call_valid(erlang, abs, _) -> true;
@@ -957,7 +965,7 @@ is_standalone_fun_still_needed(#{calls := Calls}, auto) ->
 
 -spec run(State, StandaloneFun, Args, AllowUpdates) -> Ret when
       State :: khepri_machine:state(),
-      StandaloneFun :: horus:horus_fun(),
+      StandaloneFun :: horus:horus_fun() | khepri:mod_func_args(),
       Args :: list(),
       AllowUpdates :: boolean(),
       Ret :: {State, khepri_tx:tx_fun_result() | Exception, SideEffects},
@@ -969,7 +977,7 @@ is_standalone_fun_still_needed(#{calls := Calls}, auto) ->
 %% @private
 
 run(State, StandaloneFun, Args, AllowUpdates)
-  when ?IS_HORUS_FUN(StandaloneFun) ->
+  when ?IS_HORUS_FUN(StandaloneFun) orelse ?IS_MFA(StandaloneFun) ->
     SideEffects = [],
     TxProps = #{allow_updates => AllowUpdates},
     NoState = erlang:put(?TX_STATE_KEY, {State, SideEffects}),
@@ -977,7 +985,12 @@ run(State, StandaloneFun, Args, AllowUpdates)
     ?assertEqual(undefined, NoState),
     ?assertEqual(undefined, NoProps),
     try
-        Ret = horus:exec(StandaloneFun, Args),
+        Ret = case StandaloneFun of
+                  {Mod, Func, CallerArgs} ->
+                      erlang:apply(Mod, Func, CallerArgs ++ Args);
+                  _ ->
+                      horus:exec(StandaloneFun, Args)
+              end,
 
         {NewState, NewSideEffects} = erlang:erase(?TX_STATE_KEY),
         NewTxProps = erlang:erase(?TX_PROPS),

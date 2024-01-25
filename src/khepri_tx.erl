@@ -99,7 +99,7 @@
 -type tx_fun_result() :: any() | no_return().
 %% Return value of a transaction function.
 
--type tx_fun() :: fun().
+-type tx_fun() :: fun() | khepri:mod_func_args().
 %% Transaction function signature.
 
 -type tx_abort() :: khepri:error(any()).
