@@ -551,8 +551,7 @@ get_keep_while_conds_state(StoreId, Options)
     Query = fun(#?MODULE{tree = #tree{keep_while_conds = KeepWhileConds}}) ->
                     {ok, KeepWhileConds}
             end,
-    Options1 = Options#{favor => consistency},
-    process_query(StoreId, Query, Options1).
+    process_query(StoreId, Query, Options).
 
 -spec get_projections_state(StoreId, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -576,8 +575,7 @@ get_projections_state(StoreId, Options)
     Query = fun(#?MODULE{projections = Projections}) ->
                     {ok, Projections}
             end,
-    Options1 = Options#{favor => consistency},
-    process_query(StoreId, Query, Options1).
+    process_query(StoreId, Query, Options).
 
 -spec split_query_options(Options) -> {QueryOptions, TreeOptions} when
       Options :: QueryOptions | TreeOptions,
