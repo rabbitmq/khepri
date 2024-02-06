@@ -1198,7 +1198,7 @@ apply(
     ProjectionTree1 =
     khepri_pattern_tree:filtermap(
       ProjectionTree,
-      fun (PathPattern, Projections) ->
+      fun (_PathPattern, Projections) ->
               Projections1 =
               lists:filter(
                 fun (#khepri_projection{name = Name} = Projection)
@@ -1212,7 +1212,7 @@ apply(
                   [] ->
                       false;
                   _ ->
-                      {PathPattern, Projections1}
+                      {true, Projections1}
               end
       end),
     Reply = case ProjectionTree1 of
