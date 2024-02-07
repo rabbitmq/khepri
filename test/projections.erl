@@ -609,6 +609,11 @@ unregister_projection_test_() ->
          {"The projection contains the triggered change",
           ?_assertEqual(Data, ets:lookup_element(?MODULE, PathPattern, 2))},
 
+         {"Unregister an unknown projection",
+          ?_assertEqual(
+            {error, {khepri, projection_not_found, #{name => undefined}}},
+            khepri:unregister_projection(?FUNCTION_NAME, undefined))},
+
          {"Unregister the projection",
           ?_assertEqual(
             ok,
