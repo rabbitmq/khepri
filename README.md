@@ -231,7 +231,7 @@ rebar3 as test dialyzer
 © 2021-2024 Broadcom. All Rights Reserved. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 
 This work is dual-licensed under the Apache License 2.0 and the Mozilla Public
-License 2.0. You can choose between one of them if you use this work.
+License 2.0. Users can choose any of these licenses according to their needs.
 
 The logo (`doc/khepri-logo.svg`) and the favicon (`doc/khepri-favicon.svg`) are
 based on the following two resources:
