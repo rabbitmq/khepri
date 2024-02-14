@@ -46,7 +46,8 @@
          handle_leader_down_on_three_node_cluster_response/1,
          can_set_snapshot_interval/1,
          projections_are_consistent_on_three_node_cluster/1,
-         async_command_leader_change_in_three_node_cluster/1]).
+         async_command_leader_change_in_three_node_cluster/1,
+         spam_txs_during_election/1]).
 
 all() ->
     [can_start_a_single_node,
@@ -69,7 +70,8 @@ all() ->
      handle_leader_down_on_three_node_cluster_response,
      can_set_snapshot_interval,
      projections_are_consistent_on_three_node_cluster,
-     async_command_leader_change_in_three_node_cluster].
+     async_command_leader_change_in_three_node_cluster,
+     spam_txs_during_election].
 
 groups() ->
     [].
@@ -114,6 +116,20 @@ init_per_testcase(Testcase, Config)
        Testcase =:= projections_are_consistent_on_three_node_cluster orelse
        Testcase =:= async_command_leader_change_in_three_node_cluster ->
     Nodes = start_n_nodes(Testcase, 3),
+    PropsPerNode0 = [begin
+                         {ok, _} = rpc:call(
+                                     Node, application, ensure_all_started,
+                                     [khepri]),
+                         Props = rpc:call(
+                                   Node, helpers, start_ra_system,
+                                   [Testcase]),
+                         {Node, Props}
+                     end || {Node, _Peer} <- Nodes],
+    PropsPerNode = maps:from_list(PropsPerNode0),
+    [{ra_system_props, PropsPerNode}, {peer_nodes, Nodes} | Config];
+init_per_testcase(Testcase, Config)
+  when Testcase =:= spam_txs_during_election ->
+    Nodes = start_n_nodes(Testcase, 2),
     PropsPerNode0 = [begin
                          {ok, _} = rpc:call(
                                      Node, application, ensure_all_started,
@@ -1813,6 +1829,127 @@ async_command_leader_change_in_three_node_cluster(Config) ->
            end),
     ok.
 
+%% This testcase tries to reproduce a bug discovered while working on the
+%% following patch:
+%% https://github.com/rabbitmq/rabbitmq-server/pull/10472
+%%
+%% `ra:process_command()' may return an error but the command may still be
+%% appended to the log. The current retry mechanism calls
+%% `ra:process_command()' again after some specific errors. Therefore, the
+%% command may be appended twice and thus executed twice.
+%%
+%% For transactions in particular, this can be a problem because the caller
+%% will receive the return value of the second run, not the first.
+%%
+%% In this testcase, we reproduce the situation by starting a process that
+%% spams the Khepri store with transactions that bump a counter. Concurrently,
+%% we add and remove a cluster member to trigger an election. At the end, we
+%% compare the number of transactions to the counter value. They must be the
+%% same.
+
+spam_txs_during_election(Config) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    [Node1, Node2] = Nodes = maps:keys(PropsPerNode),
+
+    %% We assume all nodes are using the same Ra system name & store ID.
+    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    StoreId = RaSystem,
+
+    ct:pal("Start database on each node"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 erpc:call(Node, khepri, start, [RaSystem, StoreId]))
+      end, Nodes),
+
+    %% The first process to spam the Khepri store is here to make sure the test
+    %% base is ok. We don't expect any failure at this stage.
+    Parent = self(),
+    {Pid1, MRef1} = spawn_monitor(
+                      fun() ->
+                              bump_counter_proc(Parent, Node1, StoreId, 0)
+                      end),
+    timer:sleep(500),
+
+    ct:pal("Node ~s joins node ~s", [Node2, Node1]),
+    ?assertEqual(
+       ok,
+       erpc:call(Node2, khepri_cluster, join, [StoreId, Node1])),
+
+    ct:pal("Asking spammer process #1 ~0p to stop", [Pid1]),
+    Pid1 ! stop,
+    Runs1 = receive
+                {'DOWN', MRef1, _, Pid1, Reason1} ->
+                    ?assertEqual(normal, Reason1),
+                    receive {runs, R1} -> R1 end
+            end,
+    ct:pal("Spammer process #1 ~0p ran transaction ~b times", [Pid1, Runs1]),
+
+    %% The real test starts here: we have a cluster of two nodes and we are
+    %% about to remove the initial one which must be the leader. This will stop
+    %% that leader process that answers transactions and it should return an
+    %% `{error, shutdown}' error. The retry mechanism will submit the
+    %% transaction again.
+    %%
+    %% The spammer process is started on the second node, the one that will
+    %% become the leader, just because the first one will go away. The
+    %% important part is that its requests will first go to the leader on node
+    %% 1 first, then at some point will go to the new leader on node 2.
+    {Pid2, MRef2} = spawn_monitor(
+                      fun() ->
+                              bump_counter_proc(Parent, Node2, StoreId, Runs1)
+                      end),
+    timer:sleep(500),
+
+    ct:pal("Node ~s leaves node ~s", [Node1, Node2]),
+    ?assertEqual(
+       ok,
+       erpc:call(Node1, khepri_cluster, reset, [StoreId])),
+    timer:sleep(500),
+
+    ct:pal("Asking spammer process #2 ~0p to stop", [Pid2]),
+    Pid2 ! stop,
+    _Runs = receive
+                {'DOWN', MRef2, _, Pid2, Reason2} ->
+                    ?assertEqual(normal, Reason2),
+                    receive {runs, R2} -> R2 end
+            end,
+
+    ok.
+
+bump_counter_proc(Parent, Node, StoreId, Runs) ->
+    receive
+        stop ->
+            ct:pal(
+              "Spammer process ~0p exiting after ~b runs",
+              [self(), Runs]),
+            Parent ! {runs, Runs},
+            ok
+    after 0 ->
+              NewRuns = Runs + 1,
+              ?LOG_INFO(
+                 "Transaction run #~b on node ~0p",
+                 [NewRuns, Node]),
+              {ok, Ret} = erpc:call(
+                            Node, khepri, transaction,
+                            [StoreId, fun bump_counter_tx/0, rw,
+                             #{reply_from => leader}]),
+              ?LOG_INFO(
+                 "Transaction returned ~p after ~b runs",
+                 [Ret, NewRuns]),
+              ?assertEqual({counter, NewRuns}, Ret),
+              bump_counter_proc(Parent, Node, StoreId, NewRuns)
+    end.
+
+bump_counter_tx() ->
+    Path = [counter],
+    {ok, Counter} = khepri_tx:get_or(Path, 0),
+    NewCounter = Counter + 1,
+    ok = khepri_tx:put(Path, NewCounter),
+    {counter, NewCounter}.
+
 %% -------------------------------------------------------------------
 %% Internal functions
 %% -------------------------------------------------------------------
@@ -1860,6 +1997,8 @@ basic_logger_config() ->
               ok = logger:set_handler_config(
                     HandlerId, formatter,
                     {logger_formatter, ?LOGFMT_CONFIG}),
+              ok = logger:update_handler_config(
+                    HandlerId, config, #{burst_limit_enable => false}),
               _ = logger:add_handler_filter(
                     HandlerId, progress,
                     {fun logger_filters:progress/2,stop}),
