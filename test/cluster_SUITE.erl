@@ -79,9 +79,20 @@ groups() ->
 init_per_suite(Config) ->
     basic_logger_config(),
     ok = cth_log_redirect:handle_remote_events(true),
-    Config.
+    ok = helpers:start_epmd(),
+    case net_kernel:start(?MODULE, #{name_domain => shortnames}) of
+        {ok, _} ->
+            [{started_net_kernel, true} | Config];
+        _ ->
+            ?assertNotEqual(nonode@nohost, node()),
+            [{started_net_kernel, false} | Config]
+    end.
 
-end_per_suite(_Config) ->
+end_per_suite(Config) ->
+    _ = case ?config(started_net_kernel, Config) of
+            true  -> net_kernel:stop();
+            false -> ok
+        end,
     ok.
 
 init_per_group(_Group, Config) ->
@@ -1574,23 +1585,12 @@ can_set_snapshot_interval(Config) ->
 
     ct:pal("Start database"),
     RaServerConfig = #{cluster_name => StoreId,
-                       machine_config => #{snapshot_interval => 3}},
+                       machine_config => #{snapshot_interval => 4}},
     ?assertEqual(
        {ok, StoreId},
        khepri:start(RaSystem, RaServerConfig)),
 
-    ct:pal("Verify applied command count is 0"),
-    ?assertEqual(
-       #{},
-       khepri_machine:process_query(
-         StoreId,
-         fun khepri_machine:get_metrics/1,
-         #{})),
-
-    ct:pal("Use database after starting it"),
-    ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
-
-    ct:pal("Verify applied command count is 1"),
+    ct:pal("Verify applied command count is 1 (`machine_version` command)"),
     ?assertEqual(
        #{applied_command_count => 1},
        khepri_machine:process_query(
@@ -1604,6 +1604,17 @@ can_set_snapshot_interval(Config) ->
     ct:pal("Verify applied command count is 2"),
     ?assertEqual(
        #{applied_command_count => 2},
+       khepri_machine:process_query(
+         StoreId,
+         fun khepri_machine:get_metrics/1,
+         #{})),
+
+    ct:pal("Use database after starting it"),
+    ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
+
+    ct:pal("Verify applied command count is 3"),
+    ?assertEqual(
+       #{applied_command_count => 3},
        khepri_machine:process_query(
          StoreId,
          fun khepri_machine:get_metrics/1,

@@ -16,6 +16,25 @@
 %% This module is private. The documentation is still visible because it may
 %% help understand some implementation details. However, this module should
 %% never be called directly outside of Khepri.
+%%
+%% == State machine history ==
+%%
+%% <table>
+%% <tr><th>Version</th><th>What changed</th></tr>
+%% <tr>
+%% <td style="text-align: right; vertical-align: top;">0</td>
+%% <td>Initial version</td>
+%% </tr>
+%% <tr>
+%% <td style="text-align: right; vertical-align: top;">1</td>
+%% <td>Added deduplication mechanism:
+%% <ul>
+%% <li>new command option `protect_against_dups'</li>
+%% <li>new commands `#dedup{}' and `#dedup_ack{}'</li>
+%% <li>new state field `dedups'</li>
+%% </ul></td>
+%% </tr>
+%% </table>
 
 -module(khepri_machine).
 -behaviour(ra_machine).
@@ -51,7 +70,8 @@
          apply/3,
          state_enter/2,
          overview/1,
-         version/0]).
+         version/0,
+         which_module/1]).
 
 %% For internal use only.
 -export([clear_cache/1,
@@ -72,14 +92,18 @@
          get_root/1,
          get_keep_while_conds/1,
          get_keep_while_conds_revidx/1,
-         get_last_consistent_call_atomics/1,
          get_triggers/1,
          get_emitted_triggers/1,
          get_projections/1,
          has_projection/2,
-         get_metrics/1]).
+         get_metrics/1,
+         get_dedups/1]).
+
 -ifdef(TEST).
--export([make_virgin_state/1]).
+-export([make_virgin_state/1,
+         convert_state/3,
+         set_tree/2,
+         get_last_consistent_call_atomics/1]).
 -endif.
 
 -compile({no_auto_import, [apply/3]}).
@@ -96,7 +120,9 @@
                    #register_trigger{} |
                    #ack_triggered{} |
                    #register_projection{} |
-                   #unregister_projection{}.
+                   #unregister_projection{} |
+                   #dedup{} |
+                   #dedup_ack{}.
 %% Commands specific to this Ra machine.
 
 -type machine_init_args() :: #{store_id := khepri:store_id(),
@@ -117,9 +143,15 @@
          emitted_triggers = [] :: [khepri_machine:triggered()],
          projections = khepri_pattern_tree:empty() ::
                        khepri_machine:projection_tree(),
-         metrics = #{} :: khepri_machine:metrics()}).
+         metrics = #{} :: khepri_machine:metrics(),
 
--opaque state() :: #khepri_machine{}.
+         %% Added in machine version 1.
+         dedups = #{} :: khepri_machine:dedups_map()}).
+
+-opaque state_v1() :: #khepri_machine{}.
+%% State of this Ra state machine, version 1.
+
+-type state() :: state_v1() | khepri_machine_v0:state().
 %% State of this Ra state machine.
 
 -type triggers_map() :: #{khepri:trigger_id() =>
@@ -129,6 +161,9 @@
 
 -type metrics() :: #{applied_command_count => non_neg_integer()}.
 %% Internal state machine metrics.
+
+-type dedups_map() :: #{reference() => {any(), integer()}}.
+%% Map to handle command deduplication.
 
 -type aux_state() :: #khepri_machine_aux{}.
 %% Auxiliary state of this Ra state machine.
@@ -153,13 +188,17 @@
               tx_ret/0,
               async_ret/0,
 
+              machine_init_args/0,
               state/0,
+              state_v1/0,
               machine_config/0,
               triggers_map/0,
               metrics/0,
+              dedups_map/0,
               props/0,
               triggered/0,
-              projection_tree/0]).
+              projection_tree/0,
+              command/0]).
 
 -define(HAS_TIME_LEFT(Timeout), (Timeout =:= infinity orelse Timeout > 0)).
 
@@ -425,7 +464,8 @@ readwrite_transaction(
 
 readwrite_transaction1(StoreId, StandaloneFunOrPath, Args, Options) ->
     Command = #tx{'fun' = StandaloneFunOrPath, args = Args},
-    case process_command(StoreId, Command, Options) of
+    Options1 = maps:merge(#{protect_against_dups => true}, Options),
+    case process_command(StoreId, Command, Options1) of
         {exception, _, _, _} = Exception ->
             handle_tx_exception(Exception);
         ok = Ret ->
@@ -725,7 +765,58 @@ process_command(StoreId, Command, Options) ->
               StoreId, Command, Correlation, Priority)
     end.
 
-process_sync_command(StoreId, Command, Options) ->
+process_sync_command(
+  StoreId, Command, #{protect_against_dups := true} = Options) ->
+    MacVer = version(),
+    case effective_version(StoreId) of
+        {ok, EffectiveMacVer} when EffectiveMacVer >= MacVer ->
+            %% When `protect_against_dups' is true, we wrap the command inside
+            %% a #dedup{} one to give it a unique reference. This is used for
+            %% non-idempotent commands which could be replayed when there is a
+            %% change of leadership in the Ra cluster. The state machine uses
+            %% this reference to remember what it replied to a given
+            %% reference.
+            %%
+            %% `do_process_sync_command/3' is responsible for the retry loop
+            %% like with any other commands. Once it returned, we cast a
+            %% #dedup_ack{} command with the same reference to let the machine
+            %% know it can forget about that reference and the associated
+            %% reply.
+            CommandRef = make_ref(),
+
+            %% We can't keep a dedup entry forever in the machine state if the
+            %% initial caller never acknowledges the reply. Therefore we set
+            %% an expiration time after which the entry will be dropped.
+            %%
+            %% We base this expiry on the command's timeout. If it's
+            %% `infinity' we default to 15 minutes from now.
+            Now = erlang:system_time(millisecond),
+            Expiry = case get_timeout(Options) of
+                         infinity -> Now + 15 * 60 * 1000;
+                         Timeout  -> Now + Timeout
+                     end,
+            DedupCommand = #dedup{ref = CommandRef,
+                                  expiry = Expiry,
+                                  command = Command},
+            DedupAck = #dedup_ack{ref = CommandRef},
+            Ret = do_process_sync_command(
+                    StoreId, DedupCommand, Options),
+
+            %% We acknowledge that we received the reply and all duplicates
+            %% can be ignored.
+            LeaderId = khepri_cluster:get_cached_leader(StoreId),
+            RaServer = use_leader_or_local_ra_server(
+                         StoreId, LeaderId),
+            _ = ra:pipeline_command(RaServer, DedupAck),
+            Ret;
+        _ ->
+            do_process_sync_command(StoreId, Command, Options)
+    end;
+process_sync_command(
+  StoreId, Command, Options) ->
+    do_process_sync_command(StoreId, Command, Options).
+
+do_process_sync_command(StoreId, Command, Options) ->
     Timeout = get_timeout(Options),
     ReplyFrom = maps:get(reply_from, Options, leader),
     CommandOptions = #{timeout => Timeout, reply_from => ReplyFrom},
@@ -749,7 +840,7 @@ process_sync_command(StoreId, Command, Options) ->
             khepri_cluster:clear_cached_leader(StoreId),
             NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
             Options1 = Options#{timeout => NewTimeout},
-            process_sync_command(StoreId, Command, Options1);
+            do_process_sync_command(StoreId, Command, Options1);
         {error, Reason} = Error
           when LeaderId =:= undefined andalso ?HAS_TIME_LEFT(Timeout) andalso
                (Reason == noproc orelse Reason == nodedown orelse
@@ -762,7 +853,7 @@ process_sync_command(StoreId, Command, Options) ->
                     NewTimeout = khepri_utils:sleep(
                                    ?NOPROC_RETRY_INTERVAL, NewTimeout0),
                     Options1 = Options#{timeout => NewTimeout},
-                    process_sync_command(StoreId, Command, Options1);
+                    do_process_sync_command(StoreId, Command, Options1);
                 false ->
                     Error
             end;
@@ -1060,18 +1151,9 @@ clear_cache(StoreId) ->
       State :: state().
 %% @private
 
-init(#{store_id := StoreId,
-       member := Member} = Params) ->
-    Config = case Params of
-                 #{snapshot_interval := SnapshotInterval} ->
-                     #config{store_id = StoreId,
-                             member = Member,
-                             snapshot_interval = SnapshotInterval};
-                 _ ->
-                     #config{store_id = StoreId,
-                             member = Member}
-             end,
-    State = #khepri_machine{config = Config},
+init(Params) ->
+    %% Initialize the state.
+    State = khepri_machine_v0:init(Params),
 
     %% Create initial "schema" if provided.
     Commands = maps:get(commands, Params, []),
@@ -1165,25 +1247,25 @@ apply(
     {TreeOptions, PutOptions} = split_put_options(TreeAndPutOptions),
     Ret = insert_or_update_node(
             State, PathPattern, Payload, PutOptions, TreeOptions),
-    bump_applied_command_count(Ret, Meta);
+    post_apply(Ret, Meta);
 apply(
   Meta,
   #delete{path = PathPattern, options = TreeOptions},
   State) ->
     Ret = delete_matching_nodes(State, PathPattern, TreeOptions),
-    bump_applied_command_count(Ret, Meta);
+    post_apply(Ret, Meta);
 apply(
   Meta,
   #tx{'fun' = StandaloneFun, args = Args},
   State) when ?IS_HORUS_FUN(StandaloneFun) ->
     Ret = khepri_tx_adv:run(State, StandaloneFun, Args, true),
-    bump_applied_command_count(Ret, Meta);
+    post_apply(Ret, Meta);
 apply(
   Meta,
   #tx{'fun' = PathPattern, args = Args},
   State) when ?IS_KHEPRI_PATH_PATTERN(PathPattern) ->
     Ret = locate_sproc_and_execute_tx(State, PathPattern, Args, true),
-    bump_applied_command_count(Ret, Meta);
+    post_apply(Ret, Meta);
 apply(
   Meta,
   #register_trigger{id = TriggerId,
@@ -1201,7 +1283,7 @@ apply(
                                          event_filter => EventFilter1}},
     State1 = set_triggers(State, Triggers1),
     Ret = {State1, ok},
-    bump_applied_command_count(Ret, Meta);
+    post_apply(Ret, Meta);
 apply(
   Meta,
   #ack_triggered{triggered = ProcessedTriggers},
@@ -1210,7 +1292,7 @@ apply(
     EmittedTriggers1 = EmittedTriggers -- ProcessedTriggers,
     State1 = set_emitted_triggers(State, EmittedTriggers1),
     Ret = {State1, ok},
-    bump_applied_command_count(Ret, Meta);
+    post_apply(Ret, Meta);
 apply(
   Meta,
   #register_projection{pattern = PathPattern, projection = Projection},
@@ -1223,7 +1305,7 @@ apply(
             Reason = ?khepri_error(projection_already_exists, Info),
             Reply = {error, Reason},
             Ret = {State, Reply},
-            bump_applied_command_count(Ret, Meta);
+            post_apply(Ret, Meta);
         false ->
             ProjectionTree1 = khepri_pattern_tree:update(
                                 ProjectionTree,
@@ -1241,7 +1323,7 @@ apply(
                                             pattern = PathPattern},
             Effects = [{aux, AuxEffect}],
             Ret = {State1, ok, Effects},
-            bump_applied_command_count(Ret, Meta)
+            post_apply(Ret, Meta)
     end;
 apply(
   Meta,
@@ -1279,7 +1361,45 @@ apply(
             end,
     State1 = set_projections(State, ProjectionTree1),
     Ret = {State1, Reply},
-    bump_applied_command_count(Ret, Meta);
+    post_apply(Ret, Meta);
+apply(
+  #{machine_version := MacVer} = Meta,
+  #dedup{ref = CommandRef, expiry = Expiry, command = Command},
+  State)
+  when is_reference(CommandRef) andalso
+       is_integer(Expiry) andalso
+       MacVer >= 1 ->
+    Dedups = get_dedups(State),
+    case Dedups of
+        #{CommandRef := {Reply, _Expiry}} ->
+            Ret = {State, Reply},
+            post_apply(Ret, Meta);
+        _ ->
+            {State1, Reply, SideEffects} = apply(Meta, Command, State),
+            Dedups1 = Dedups#{CommandRef => {Reply, Expiry}},
+            State2 = set_dedups(State1, Dedups1),
+            {State2, Reply, SideEffects}
+    end;
+apply(
+  #{machine_version := MacVer} = Meta,
+  #dedup_ack{ref = CommandRef},
+  State)
+  when is_reference(CommandRef) andalso
+       MacVer >= 1 ->
+    Dedups = get_dedups(State),
+    State1 = case Dedups of
+                 #{CommandRef := _} ->
+                     Dedups1 = maps:remove(CommandRef, Dedups),
+                     set_dedups(State, Dedups1);
+                 _ ->
+                     State
+             end,
+    Ret = {State1, ok},
+    post_apply(Ret, Meta);
+apply(Meta, {machine_version, OldMacVer, NewMacVer}, OldState) ->
+    NewState = convert_state(OldState, OldMacVer, NewMacVer),
+    Ret = {NewState, ok},
+    post_apply(Ret, Meta);
 apply(#{machine_version := MacVer} = Meta, UnknownCommand, State) ->
     Error = ?khepri_exception(
                unknown_khepri_state_machine_command,
@@ -1295,19 +1415,32 @@ apply(#{machine_version := MacVer} = Meta, UnknownCommand, State) ->
                        file => ?FILE,
                        line => ?LINE}]}],
     Ret = {State, Reply, SideEffects},
-    bump_applied_command_count(Ret, Meta).
+    post_apply(Ret, Meta).
 
--spec bump_applied_command_count(ApplyRet, Meta) ->
-    {State, Ret, SideEffects} when
-      ApplyRet :: {State, Ret} | {State, Ret, SideEffects},
+-spec post_apply(ApplyRet, Meta) -> {State, Result, SideEffects} when
+      ApplyRet :: {State, Result} | {State, Result, SideEffects},
       State :: state(),
-      Ret :: any(),
+      Result :: any(),
       Meta :: ra_machine:command_meta_data(),
       SideEffects :: ra_machine:effects().
 %% @private
 
-bump_applied_command_count({State, Result}, Meta) ->
-    bump_applied_command_count({State, Result, []}, Meta);
+post_apply({State, Result}, Meta) ->
+    post_apply({State, Result, []}, Meta);
+post_apply({_State, _Result, _SideEffects} = Ret, Meta) ->
+    Ret1 = bump_applied_command_count(Ret, Meta),
+    Ret2 = drop_expired_dedups(Ret1, Meta),
+    Ret2.
+
+-spec bump_applied_command_count(ApplyRet, Meta) ->
+    {State, Result, SideEffects} when
+      ApplyRet :: {State, Result, SideEffects},
+      State :: state(),
+      Result :: any(),
+      Meta :: ra_machine:command_meta_data(),
+      SideEffects :: ra_machine:effects().
+%% @private
+
 bump_applied_command_count(
   {State, Result, SideEffects},
   #{index := RaftIndex}) ->
@@ -1336,6 +1469,26 @@ reset_applied_command_count(State) ->
     Metrics = get_metrics(State),
     Metrics1 = maps:remove(applied_command_count, Metrics),
     set_metrics(State, Metrics1).
+
+-spec drop_expired_dedups(ApplyRet, Meta) ->
+    {State, Result, SideEffects} when
+      ApplyRet :: {State, Result, SideEffects},
+      State :: state(),
+      Result :: any(),
+      Meta :: ra_machine:command_meta_data(),
+      SideEffects :: ra_machine:effects().
+%% @private
+
+drop_expired_dedups(
+  {State, Result, SideEffects},
+  #{system_time := Timestamp}) ->
+    Dedups = get_dedups(State),
+    Dedups1 = maps:filter(
+                fun(_CommandRef, {_Reply, Expiry}) ->
+                        Expiry >= Timestamp
+                end, Dedups),
+    State1 = set_dedups(State, Dedups1),
+    {State1, Result, SideEffects}.
 
 %% @private
 
@@ -1400,8 +1553,46 @@ overview(State) ->
       triggers => Triggers,
       keep_while_conds => KeepWhileConds}.
 
+-spec version() -> MacVer when
+      MacVer :: 1.
+%% @doc Returns the state machine version.
+
 version() ->
-    0.
+    1.
+
+-spec which_module(MacVer) -> Module when
+      MacVer :: 1 | 0,
+      Module :: ?MODULE.
+%% @doc Returns the state machine module corresponding to the given version.
+
+which_module(1) -> ?MODULE;
+which_module(0) -> ?MODULE.
+
+-spec effective_version(StoreId) -> Ret when
+      StoreId :: khepri:store_id(),
+      Ret :: khepri:ok(EffectiveMacVer) | khepri:error(),
+      EffectiveMacVer :: ra_machine:version().
+%% @doc Returns the effective state machine version of the local Ra server.
+
+effective_version(StoreId) ->
+    ThisNode = node(),
+    RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
+    case ra_counters:counters(RaServer, [effective_machine_version]) of
+        #{effective_machine_version := EffectiveMacVer} ->
+            {ok, EffectiveMacVer};
+        _ ->
+            case ra:member_overview(RaServer) of
+                {ok, #{effective_machine_version := EffectiveMacVer}, _} ->
+                    {ok, EffectiveMacVer};
+                {error, _} = Error ->
+                    Reason = ?khepri_error(
+                                effective_machine_version_not_defined,
+                                #{store_id => StoreId,
+                                  ra_server => RaServer,
+                                  error => Error}),
+                    {error, Reason}
+            end
+    end.
 
 %% -------------------------------------------------------------------
 %% Internal functions.
@@ -1807,7 +1998,7 @@ clear_compiled_projection_tree() ->
 %% @private
 
 is_state(State) ->
-    is_record(State, khepri_machine).
+    is_record(State, khepri_machine) orelse khepri_machine_v0:is_state(State).
 
 -spec ensure_is_state(State) -> ok when
       State :: khepri_machine:state().
@@ -1827,7 +2018,9 @@ ensure_is_state(State) ->
 %% @private
 
 get_config(#khepri_machine{config = Config}) ->
-    Config.
+    Config;
+get_config(State) ->
+    khepri_machine_v0:get_config(State).
 
 -spec get_tree(State) -> Tree when
       State :: khepri_machine:state(),
@@ -1837,7 +2030,9 @@ get_config(#khepri_machine{config = Config}) ->
 %% @private
 
 get_tree(#khepri_machine{tree = Tree}) ->
-    Tree.
+    Tree;
+get_tree(State) ->
+    khepri_machine_v0:get_tree(State).
 
 -spec set_tree(State, Tree) -> NewState when
       State :: khepri_machine:state(),
@@ -1848,7 +2043,9 @@ get_tree(#khepri_machine{tree = Tree}) ->
 %% @private
 
 set_tree(#khepri_machine{} = State, Tree) ->
-    State#khepri_machine{tree = Tree}.
+    State#khepri_machine{tree = Tree};
+set_tree(State, Tree) ->
+    khepri_machine_v0:set_tree(State, Tree).
 
 -spec get_root(State) -> Root when
       State :: khepri_machine:state(),
@@ -1857,7 +2054,7 @@ set_tree(#khepri_machine{} = State, Tree) ->
 %%
 %% @private
 
-get_root(#khepri_machine{} = State) ->
+get_root(State) ->
     #tree{root = Root} = get_tree(State),
     Root.
 
@@ -1868,7 +2065,7 @@ get_root(#khepri_machine{} = State) ->
 %%
 %% @private
 
-get_keep_while_conds(#khepri_machine{} = State) ->
+get_keep_while_conds(State) ->
     #tree{keep_while_conds = KeepWhileConds} = get_tree(State),
     KeepWhileConds.
 
@@ -1880,7 +2077,7 @@ get_keep_while_conds(#khepri_machine{} = State) ->
 %%
 %% @private
 
-get_keep_while_conds_revidx(#khepri_machine{} = State) ->
+get_keep_while_conds_revidx(State) ->
     #tree{keep_while_conds_revidx = KeepWhileCondsRevIdx} = get_tree(State),
     KeepWhileCondsRevIdx.
 
@@ -1892,7 +2089,9 @@ get_keep_while_conds_revidx(#khepri_machine{} = State) ->
 %% @private
 
 get_triggers(#khepri_machine{triggers = Triggers}) ->
-    Triggers.
+    Triggers;
+get_triggers(State) ->
+    khepri_machine_v0:get_triggers(State).
 
 -spec set_triggers(State, Triggers) -> NewState when
       State :: khepri_machine:state(),
@@ -1903,7 +2102,9 @@ get_triggers(#khepri_machine{triggers = Triggers}) ->
 %% @private
 
 set_triggers(#khepri_machine{} = State, Triggers) ->
-    State#khepri_machine{triggers = Triggers}.
+    State#khepri_machine{triggers = Triggers};
+set_triggers(State, Triggers) ->
+    khepri_machine_v0:set_triggers(State, Triggers).
 
 -spec get_emitted_triggers(State) -> EmittedTriggers when
       State :: khepri_machine:state(),
@@ -1913,7 +2114,9 @@ set_triggers(#khepri_machine{} = State, Triggers) ->
 %% @private
 
 get_emitted_triggers(#khepri_machine{emitted_triggers = EmittedTriggers}) ->
-    EmittedTriggers.
+    EmittedTriggers;
+get_emitted_triggers(State) ->
+    khepri_machine_v0:get_emitted_triggers(State).
 
 -spec set_emitted_triggers(State, EmittedTriggers) -> NewState when
       State :: khepri_machine:state(),
@@ -1924,7 +2127,9 @@ get_emitted_triggers(#khepri_machine{emitted_triggers = EmittedTriggers}) ->
 %% @private
 
 set_emitted_triggers(#khepri_machine{} = State, EmittedTriggers) ->
-    State#khepri_machine{emitted_triggers = EmittedTriggers}.
+    State#khepri_machine{emitted_triggers = EmittedTriggers};
+set_emitted_triggers(State, EmittedTriggers) ->
+    khepri_machine_v0:set_emitted_triggers(State, EmittedTriggers).
 
 -spec get_projections(State) -> Projections when
       State :: khepri_machine:state(),
@@ -1934,7 +2139,9 @@ set_emitted_triggers(#khepri_machine{} = State, EmittedTriggers) ->
 %% @private
 
 get_projections(#khepri_machine{projections = Projections}) ->
-    Projections.
+    Projections;
+get_projections(State) ->
+    khepri_machine_v0:get_projections(State).
 
 -spec has_projection(ProjectionTree, ProjectionName) -> boolean() when
       ProjectionTree :: khepri_machine:projection_tree(),
@@ -1964,7 +2171,9 @@ has_projection(ProjectionTree, Name) when is_atom(Name) ->
 %% @private
 
 set_projections(#khepri_machine{} = State, Projections) ->
-    State#khepri_machine{projections = Projections}.
+    State#khepri_machine{projections = Projections};
+set_projections(State, Projections) ->
+    khepri_machine_v0:set_projections(State, Projections).
 
 -spec get_metrics(State) -> Metrics when
       State :: khepri_machine:state(),
@@ -1974,7 +2183,9 @@ set_projections(#khepri_machine{} = State, Projections) ->
 %% @private
 
 get_metrics(#khepri_machine{metrics = Metrics}) ->
-    Metrics.
+    Metrics;
+get_metrics(State) ->
+    khepri_machine_v0:get_metrics(State).
 
 -spec set_metrics(State, Metrics) -> NewState when
       State :: khepri_machine:state(),
@@ -1985,13 +2196,61 @@ get_metrics(#khepri_machine{metrics = Metrics}) ->
 %% @private
 
 set_metrics(#khepri_machine{} = State, Metrics) ->
-    State#khepri_machine{metrics = Metrics}.
+    State#khepri_machine{metrics = Metrics};
+set_metrics(State, Metrics) ->
+    khepri_machine_v0:set_metrics(State, Metrics).
+
+-spec get_dedups(State) -> Dedups when
+      State :: khepri_machine:state(),
+      Dedups :: khepri_machine:dedups_map().
+%% @doc Returns the dedups from the given state.
+%%
+%% @private
+
+get_dedups(#khepri_machine{dedups = Dedups}) ->
+    Dedups;
+get_dedups(_State) ->
+    #{}.
+
+-spec set_dedups(State, Dedups) -> NewState when
+      State :: khepri_machine:state(),
+      Dedups :: khepri_machine:dedups_map(),
+      NewState :: khepri_machine:state().
+%% @doc Sets the dedups in the given state.
+%%
+%% @private
+
+set_dedups(#khepri_machine{} = State, Dedups) ->
+    State#khepri_machine{dedups = Dedups};
+set_dedups(State, _Dedups) ->
+    State.
 
 -ifdef(TEST).
--spec make_virgin_state(Config) -> State when
-      Config :: khepri_machine:machine_config(),
-      State :: khepri_machine:state().
+-spec make_virgin_state(Params) -> State when
+      Params :: khepri_machine:machine_init_args(),
+      State :: khepri_machine_v0:state().
 
-make_virgin_state(Config) ->
-    #khepri_machine{config = Config}.
+make_virgin_state(Params) ->
+    khepri_machine_v0:init(Params).
 -endif.
+
+-spec convert_state(OldState, OldMacVer, NewMacVer) -> NewState when
+      OldState :: khepri_machine_v0:state(),
+      OldMacVer :: ra_machine:version(),
+      NewMacVer :: ra_machine:version(),
+      NewState :: khepri_machine:state().
+%% @doc Converts a state to a newer version.
+%%
+%% @private
+
+convert_state(State, MacVer, MacVer) ->
+    State;
+convert_state(State, 0, 1) ->
+    %% To go from version 0 to version 1, we add the `dedups' fields at the
+    %% end of the record. The default value is an empty map.
+    ?assert(khepri_machine_v0:is_state(State)),
+    Fields0 = khepri_machine_v0:state_to_list(State),
+    Fields1 = Fields0 ++ [#{}],
+    State1 = list_to_tuple(Fields1),
+    ?assert(is_state(State1)),
+    State1.

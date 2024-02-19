@@ -9,7 +9,8 @@
 
 -include_lib("stdlib/include/assert.hrl").
 
--export([init_list_of_modules_to_skip/0,
+-export([start_epmd/0,
+         init_list_of_modules_to_skip/0,
          start_ra_system/1,
          stop_ra_system/1,
          store_dir_name/1,
@@ -23,6 +24,21 @@
          format/2]).
 
 -define(CAPTURE_LOGGER_ID, capture_logger).
+
+start_epmd() ->
+    RootDir = code:root_dir(),
+    ErtsVersion = erlang:system_info(version),
+    ErtsDir = lists:flatten(io_lib:format("erts-~ts", [ErtsVersion])),
+    EpmdPath0 = filename:join([RootDir, ErtsDir, "bin", "epmd"]),
+    EpmdPath = case os:type() of
+                   {win32, _} -> EpmdPath0 ++ ".exe";
+                   _          -> EpmdPath0
+               end,
+    Port = erlang:open_port(
+             {spawn_executable, EpmdPath},
+             [{args, ["-daemon"]}]),
+    erlang:port_close(Port),
+    ok.
 
 init_list_of_modules_to_skip() ->
     _ = application:load(khepri),

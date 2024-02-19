@@ -267,7 +267,8 @@
 
 -type command_options() :: #{timeout => timeout(),
                              async => async_option(),
-                             reply_from => reply_from_option()}.
+                             reply_from => reply_from_option(),
+                             protect_against_dups => boolean()}.
 %% Options used in commands.
 %%
 %% Commands are {@link put/4}, {@link delete/3} and read-write {@link
@@ -279,6 +280,11 @@
 %% command; see {@link async_option()}.</li>
 %% <li>`reply_from' indicates which cluster member should reply to the
 %% command request; see {@link reply_from_option()}.</li>
+%% <li>`protect_against_dups' indicates if the deduplication mechanism should
+%% be used for the command. This mechanism helps to avoid the same command to
+%% be processed multiple times if there is a Ra cluster member stopping or a
+%% change of leadership occurring at the same time. It is disabled by default,
+%% except for R/W transactions.</li>
 %% </ul>
 
 -type favor_option() :: consistency | compromise | low_latency.
