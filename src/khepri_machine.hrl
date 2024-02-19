@@ -19,7 +19,7 @@
 -record(khepri_machine_aux,
         {store_id :: khepri:store_id()}).
 
-%% State machine commands.
+%% State machine commands and aux. effects.
 
 -record(put, {path :: khepri_path:native_pattern(),
               payload = ?NO_PAYLOAD :: khepri_payload:payload(),
@@ -56,3 +56,9 @@
 
 -record(restore_projection, {pattern :: khepri_path:native_pattern(),
                              projection :: khepri_projection:projection()}).
+
+-record(dedup, {ref :: reference(),
+                expiry :: integer(),
+                command :: khepri_machine:command()}).
+
+-record(dedup_ack, {ref :: reference()}).
