@@ -1104,7 +1104,8 @@ restore_projection(Projection, Tree, PathPattern) ->
         Error ->
             ?LOG_DEBUG(
                "Failed to recover projection ~s due to an error: ~p",
-               khepri_projection:name(Projection), Error),
+               [khepri_projection:name(Projection), Error],
+               #{domain => [khepri, ra_machine]}),
             ok
     end.
 
@@ -1116,7 +1117,6 @@ restore_projection(Projection, Tree, PathPattern) ->
       SideEffects :: ra_machine:effects().
 %% @private
 
-%% TODO: Handle unknown/invalid commands.
 apply(
   Meta,
   #put{path = PathPattern, payload = Payload, options = TreeAndPutOptions},
@@ -1226,6 +1226,22 @@ apply(
             end,
     State1 = State#?MODULE{projections = ProjectionTree1},
     Ret = {State1, Reply},
+    bump_applied_command_count(Ret, Meta);
+apply(#{machine_version := MacVer} = Meta, UnknownCommand, State) ->
+    Error = ?khepri_exception(
+               unknown_khepri_state_machine_command,
+               #{command => UnknownCommand,
+                 machine_version => MacVer}),
+    Reply = {error, Error},
+    SideEffects = [{mod_call, logger, error,
+                    ["Unknown Khepri state machine command with machine "
+                     "version ~b:~n~p",
+                     [MacVer, UnknownCommand],
+                     #{domain => [khepri, ra_machine],
+                       mfa => {?MODULE, ?FUNCTION_NAME, ?FUNCTION_ARITY},
+                       file => ?FILE,
+                       line => ?LINE}]}],
+    Ret = {State, Reply, SideEffects},
     bump_applied_command_count(Ret, Meta).
 
 -spec bump_applied_command_count(ApplyRet, Meta) ->

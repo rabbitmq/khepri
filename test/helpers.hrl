@@ -5,9 +5,10 @@
 %% Copyright © 2021-2024 Broadcom. All Rights Reserved. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 %%
 
--define(META, #{index => ?LINE,
-                term => 1,
-                system_time => ?LINE}).
+-define(META, #{term => 1,
+                index => ?LINE,
+                system_time => erlang:system_time(millisecond),
+                machine_version => khepri_machine:version()}).
 
 -define(MACH_PARAMS(),
         #{store_id => ?FUNCTION_NAME,
