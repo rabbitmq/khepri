@@ -65,13 +65,16 @@
          process_query/3,
          process_command/3]).
 
--ifdef(TEST).
--export([get_tree/1,
+%% Functions to access the opaque #khepri_machine{} state.
+-export([make_virgin_state/1,
+         is_state/1,
+         ensure_is_state/1,
+         get_tree/1,
          get_root/1,
          get_keep_while_conds/1,
          get_keep_while_conds_revidx/1,
-         get_last_consistent_call_atomics/1]).
--endif.
+         get_last_consistent_call_atomics/1,
+         get_metrics/1]).
 
 -compile({no_auto_import, [apply/3]}).
 
@@ -100,8 +103,26 @@
 -type machine_config() :: #config{}.
 %% Configuration record, holding read-only or rarely changing fields.
 
--type state() :: #?MODULE{}.
+%% State machine's internal state record.
+-record(khepri_machine,
+        {config = #config{} :: khepri_machine:machine_config(),
+         tree = #tree{} :: khepri_tree:tree(),
+         triggers = #{} :: khepri_machine:triggers_map(),
+         emitted_triggers = [] :: [khepri_machine:triggered()],
+         projections = khepri_pattern_tree:empty() ::
+                       khepri_machine:projection_tree(),
+         metrics = #{} :: khepri_machine:metrics()}).
+
+-opaque state() :: #?MODULE{}.
 %% State of this Ra state machine.
+
+-type triggers_map() :: #{khepri:trigger_id() =>
+                          #{sproc := khepri_path:native_path(),
+                            event_filter := khepri_evf:event_filter()}}.
+%% Internal triggers map in the machine state.
+
+-type metrics() :: #{applied_command_count => non_neg_integer()}.
+%% Internal state machine metrics.
 
 -type aux_state() :: #khepri_machine_aux{}.
 %% Auxiliary state of this Ra state machine.
@@ -128,6 +149,8 @@
 
               state/0,
               machine_config/0,
+              triggers_map/0,
+              metrics/0,
               props/0,
               triggered/0,
               projection_tree/0]).
@@ -1308,6 +1331,16 @@ emitted_triggers_to_side_effects(
 emitted_triggers_to_side_effects(_State) ->
     [].
 
+-spec overview(State) -> Overview when
+      State :: khepri_machine:state(),
+      Overview :: #{store_id := StoreId,
+                    tree := NodeTree,
+                    triggers := Triggers,
+                    keep_while_conds := KeepWhileConds},
+      StoreId :: khepri:store_id(),
+      NodeTree :: khepri_utils:display_tree(),
+      Triggers :: khepri_machine:triggers_map(),
+      KeepWhileConds :: khepri_tree:keep_while_conds_map().
 %% @private
 
 overview(#?MODULE{config = #config{store_id = StoreId},
@@ -1714,18 +1747,68 @@ get_compiled_projection_tree(SourceProjectionTree) ->
             CompiledProjectionTree
     end.
 
--ifdef(TEST).
+-spec make_virgin_state(Config) -> State when
+      Config :: khepri_machine:machine_config(),
+      State :: khepri_machine:state().
+%% @private
+
+make_virgin_state(Config) ->
+    #?MODULE{config = Config}.
+
+-spec is_state(State) -> IsState when
+      State :: khepri_machine:state(),
+      IsState :: boolean().
+%% @private
+
+is_state(State) ->
+    is_record(State, khepri_machine).
+
+-spec ensure_is_state(State) -> ok when
+      State :: khepri_machine:state().
+%% @private
+
+ensure_is_state(State) ->
+    ?assert(is_state(State)),
+    ok.
+
+-spec get_tree(State) -> Tree when
+      State :: khepri_machine:state(),
+      Tree :: khepri_tree:tree().
+%% @private
+
 get_tree(#?MODULE{tree = Tree}) ->
     Tree.
 
+-spec get_root(State) -> Root when
+      State :: khepri_machine:state(),
+      Root :: khepri_tree:tree_node().
+%% @private
+
 get_root(#?MODULE{tree = #tree{root = Root}}) ->
     Root.
+
+-spec get_keep_while_conds(State) -> KeepWhileConds when
+      State :: khepri_machine:state(),
+      KeepWhileConds :: khepri_tree:keep_while_conds_map().
+%% @private
 
 get_keep_while_conds(
   #?MODULE{tree = #tree{keep_while_conds = KeepWhileConds}}) ->
     KeepWhileConds.
 
+-spec get_keep_while_conds_revidx(State) -> KeepWhileCondsRevIdx when
+      State :: khepri_machine:state(),
+      KeepWhileCondsRevIdx :: khepri_tree:keep_while_conds_revidx().
+%% @private
+
 get_keep_while_conds_revidx(
   #?MODULE{tree = #tree{keep_while_conds_revidx = KeepWhileCondsRevIdx}}) ->
     KeepWhileCondsRevIdx.
--endif.
+
+-spec get_metrics(State) -> Metrics when
+      State :: khepri_machine:state(),
+      Metrics :: khepri_machine:metrics().
+%% @private
+
+get_metrics(#?MODULE{metrics = Metrics}) ->
+    Metrics.

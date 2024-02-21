@@ -208,10 +208,9 @@ export(StoreId, PathPattern, Module, ModulePriv)
       Ret :: ok | {ok, ModulePriv} | {error, any()}.
 %% @private
 
-do_export(
-  #khepri_machine{tree = Tree} = State,
-  PathPattern, Module, ModulePriv) ->
+do_export(State, PathPattern, Module, ModulePriv) ->
     %% Initialize export using the callback module.
+    Tree = khepri_machine:get_tree(State),
     case open_write(Module, ModulePriv) of
         {ok, ModulePriv1} ->
             %% Prepare the traversal.
@@ -274,10 +273,8 @@ open_write(Module, ModulePriv) ->
       Ret :: {ok, ModulePriv} | {error, any()}.
 %% @private
 
-write(
-  #khepri_machine{tree = #tree{keep_while_conds = KeepWhileConds}},
-  Path, #node{payload = Payload},
-  Module, ModulePriv) ->
+write(State, Path, #node{payload = Payload}, Module, ModulePriv) ->
+    #tree{keep_while_conds = KeepWhileConds} = khepri_machine:get_tree(State),
     PutOptions = case KeepWhileConds of
                      #{Path := KeepWhile} -> #{keep_while => KeepWhile};
                      _                    -> #{}

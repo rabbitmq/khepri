@@ -16,19 +16,6 @@
          member :: ra:server_id(),
          snapshot_interval = ?SNAPSHOT_INTERVAL :: non_neg_integer()}).
 
-%% State machine's internal state record.
--record(khepri_machine,
-        {config = #config{} :: khepri_machine:machine_config(),
-         tree = #tree{} :: khepri_tree:tree(),
-         triggers = #{} ::
-           #{khepri:trigger_id() =>
-             #{sproc := khepri_path:native_path(),
-               event_filter := khepri_evf:event_filter()}},
-         emitted_triggers = [] :: [khepri_machine:triggered()],
-         projections = khepri_pattern_tree:empty() ::
-                       khepri_machine:projection_tree(),
-         metrics = #{} :: #{applied_command_count => non_neg_integer()}}).
-
 -record(khepri_machine_aux,
         {store_id :: khepri:store_id()}).
 

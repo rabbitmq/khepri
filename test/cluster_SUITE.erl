@@ -1536,7 +1536,7 @@ can_set_snapshot_interval(Config) ->
        #{},
        khepri_machine:process_query(
          StoreId,
-         fun(#khepri_machine{metrics = Metrics}) -> Metrics end,
+         fun khepri_machine:get_metrics/1,
          #{})),
 
     ct:pal("Use database after starting it"),
@@ -1547,7 +1547,7 @@ can_set_snapshot_interval(Config) ->
        #{applied_command_count => 1},
        khepri_machine:process_query(
          StoreId,
-         fun(#khepri_machine{metrics = Metrics}) -> Metrics end,
+         fun khepri_machine:get_metrics/1,
          #{})),
 
     ct:pal("Use database after starting it"),
@@ -1558,7 +1558,7 @@ can_set_snapshot_interval(Config) ->
        #{applied_command_count => 2},
        khepri_machine:process_query(
          StoreId,
-         fun(#khepri_machine{metrics = Metrics}) -> Metrics end,
+         fun khepri_machine:get_metrics/1,
          #{})),
 
     ct:pal("Use database after starting it"),
@@ -1569,7 +1569,7 @@ can_set_snapshot_interval(Config) ->
        #{},
        khepri_machine:process_query(
          StoreId,
-         fun(#khepri_machine{metrics = Metrics}) -> Metrics end,
+         fun khepri_machine:get_metrics/1,
          #{})),
 
     ct:pal("Stop database"),

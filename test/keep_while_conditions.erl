@@ -108,9 +108,11 @@ insert_when_keep_while_false_test() ->
     {S1, Ret1, SE1} = khepri_machine:apply(?META, Command1, S0),
 
     ?assertEqual(
-      S0#khepri_machine.tree#tree.root,
-      S1#khepri_machine.tree#tree.root),
-    ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
+      khepri_machine:get_root(S0),
+      khepri_machine:get_root(S1)),
+    ?assertEqual(
+       #{applied_command_count => 1},
+       khepri_machine:get_metrics(S1)),
     ?assertEqual({error,
                   ?khepri_error(
                      keep_while_conditions_not_met,
@@ -129,9 +131,11 @@ insert_when_keep_while_false_test() ->
     {S2, Ret2, SE2} = khepri_machine:apply(?META, Command2, S0),
 
     ?assertEqual(
-      S0#khepri_machine.tree#tree.root,
-      S1#khepri_machine.tree#tree.root),
-    ?assertEqual(#{applied_command_count => 1}, S2#khepri_machine.metrics),
+      khepri_machine:get_root(S0),
+      khepri_machine:get_root(S2)),
+    ?assertEqual(
+       #{applied_command_count => 1},
+       khepri_machine:get_metrics(S2)),
     ?assertEqual({error,
                   ?khepri_error(
                      keep_while_conditions_not_met,

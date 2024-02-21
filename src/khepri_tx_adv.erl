@@ -130,7 +130,8 @@ get_many(PathPattern, Options) ->
 do_get_many(PathPattern, Fun, Acc, Options) ->
     PathPattern1 = path_from_string(PathPattern),
     {_QueryOptions, TreeOptions} = khepri_machine:split_query_options(Options),
-    {#khepri_machine{tree = Tree}, _SideEffects} = get_tx_state(),
+    {State, _SideEffects} = get_tx_state(),
+    Tree = khepri_machine:get_tree(State),
     Ret = khepri_tree:fold(Tree, PathPattern1, Fun, Acc, TreeOptions),
     case Ret of
         {error, ?khepri_exception(_, _) = Exception} ->
@@ -981,7 +982,7 @@ run(State, StandaloneFun, Args, AllowUpdates)
 
         {NewState, NewSideEffects} = erlang:erase(?TX_STATE_KEY),
         NewTxProps = erlang:erase(?TX_PROPS),
-        ?assert(is_record(NewState, khepri_machine)),
+        ?assert(khepri_machine:is_state(NewState)),
         ?assertEqual(TxProps, NewTxProps),
         {NewState, Ret, NewSideEffects}
     catch
@@ -1010,7 +1011,8 @@ handle_state_for_call(Fun) ->
 
 get_tx_state() ->
     case erlang:get(?TX_STATE_KEY) of
-        {#khepri_machine{}, _SideEffects} = StateAndSideEffects ->
+        {State, _SideEffects} = StateAndSideEffects ->
+            khepri_machine:ensure_is_state(State),
             StateAndSideEffects;
         undefined ->
             ?khepri_misuse(invalid_use_of_khepri_tx_outside_transaction, #{})
@@ -1021,9 +1023,10 @@ get_tx_state() ->
       SideEffects :: ra_machine:effects().
 %% @private
 
-set_tx_state(#khepri_machine{} = NewState, SideEffects) ->
-     _ = erlang:put(?TX_STATE_KEY, {NewState, SideEffects}),
-     ok.
+set_tx_state(NewState, SideEffects) ->
+    khepri_machine:ensure_is_state(NewState),
+    _ = erlang:put(?TX_STATE_KEY, {NewState, SideEffects}),
+    ok.
 
 -spec get_tx_props() -> TxProps when
       TxProps :: tx_props().
