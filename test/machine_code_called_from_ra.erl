@@ -16,7 +16,8 @@
 
 -dialyzer([{nowarn_function,
             [use_an_invalid_path_test_/0,
-             use_an_invalid_payload_test_/0]}]).
+             use_an_invalid_payload_test_/0,
+             submit_unknown_command_test_/0]}]).
 
 insert_a_node_test_() ->
     {setup,
@@ -156,3 +157,17 @@ use_an_invalid_payload_test_() ->
            [foo],
            {invalid_payload, in_a_tuple},
            #{}))]}.
+
+submit_unknown_command_test_() ->
+    UnknownCommand = unknown_command,
+    MacVer = khepri_machine:version(),
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertError(
+         ?khepri_exception(
+            unknown_khepri_state_machine_command,
+            #{command := UnknownCommand,
+              machine_version := MacVer}),
+         khepri_machine:process_command(
+           ?FUNCTION_NAME, unknown_command, #{}))]}.
