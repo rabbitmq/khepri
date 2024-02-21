@@ -244,9 +244,11 @@ insert_a_node_with_condition_false_on_self_test() ->
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
 
     ?assertEqual(
-      S0#khepri_machine.tree#tree.root,
-      S1#khepri_machine.tree#tree.root),
-    ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
+      khepri_machine:get_root(S0),
+      khepri_machine:get_root(S1)),
+    ?assertEqual(
+       #{applied_command_count => 1},
+       khepri_machine:get_metrics(S1)),
     ?assertEqual({error,
                   ?khepri_error(
                      mismatching_node,
@@ -309,9 +311,11 @@ insert_a_node_with_condition_false_on_self_using_dot_test() ->
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
 
     ?assertEqual(
-      S0#khepri_machine.tree#tree.root,
-      S1#khepri_machine.tree#tree.root),
-    ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
+      khepri_machine:get_root(S0),
+      khepri_machine:get_root(S1)),
+    ?assertEqual(
+       #{applied_command_count => 1},
+       khepri_machine:get_metrics(S1)),
     ?assertEqual({error,
                   ?khepri_error(
                      mismatching_node,
@@ -374,9 +378,11 @@ insert_a_node_with_condition_false_on_parent_test() ->
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
 
     ?assertEqual(
-      S0#khepri_machine.tree#tree.root,
-      S1#khepri_machine.tree#tree.root),
-    ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
+      khepri_machine:get_root(S0),
+      khepri_machine:get_root(S1)),
+    ?assertEqual(
+       #{applied_command_count => 1},
+       khepri_machine:get_metrics(S1)),
     ?assertEqual({error,
                   ?khepri_error(
                      mismatching_node,
@@ -409,7 +415,9 @@ insert_a_node_with_if_node_exists_true_on_self_test() ->
     {S1, Ret1, SE1} = khepri_machine:apply(?META, Command1, S0),
     Root = khepri_machine:get_root(S1),
 
-    ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
+    ?assertEqual(
+       #{applied_command_count => 1},
+       khepri_machine:get_metrics(S1)),
     ?assertEqual(
        #node{
           props = #{payload_version => 1,
@@ -439,9 +447,11 @@ insert_a_node_with_if_node_exists_true_on_self_test() ->
     {S2, Ret2, SE2} = khepri_machine:apply(?META, Command2, S0),
 
     ?assertEqual(
-      S0#khepri_machine.tree#tree.root,
-      S2#khepri_machine.tree#tree.root),
-    ?assertEqual(#{applied_command_count => 1}, S2#khepri_machine.metrics),
+      khepri_machine:get_root(S0),
+      khepri_machine:get_root(S2)),
+    ?assertEqual(
+       #{applied_command_count => 1},
+       khepri_machine:get_metrics(S2)),
     ?assertEqual({error,
                   ?khepri_error(
                      node_not_found,
@@ -466,9 +476,11 @@ insert_a_node_with_if_node_exists_false_on_self_test() ->
     {S1, Ret1, SE1} = khepri_machine:apply(?META, Command1, S0),
 
     ?assertEqual(
-      S0#khepri_machine.tree#tree.root,
-      S1#khepri_machine.tree#tree.root),
-    ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
+      khepri_machine:get_root(S0),
+      khepri_machine:get_root(S1)),
+    ?assertEqual(
+       #{applied_command_count => 1},
+       khepri_machine:get_metrics(S1)),
     ?assertEqual({error,
                   ?khepri_error(
                      mismatching_node,
@@ -490,7 +502,9 @@ insert_a_node_with_if_node_exists_false_on_self_test() ->
     {S2, Ret2, SE2} = khepri_machine:apply(?META, Command2, S0),
     Root = khepri_machine:get_root(S2),
 
-    ?assertEqual(#{applied_command_count => 1}, S2#khepri_machine.metrics),
+    ?assertEqual(
+       #{applied_command_count => 1},
+       khepri_machine:get_metrics(S2)),
     ?assertEqual(
        #node{
           props = #{payload_version => 1,
@@ -556,9 +570,11 @@ insert_a_node_with_if_node_exists_true_on_parent_test() ->
     {S2, Ret2, SE2} = khepri_machine:apply(?META, Command2, S0),
 
     ?assertEqual(
-      S0#khepri_machine.tree#tree.root,
-      S2#khepri_machine.tree#tree.root),
-    ?assertEqual(#{applied_command_count => 1}, S2#khepri_machine.metrics),
+      khepri_machine:get_root(S0),
+      khepri_machine:get_root(S2)),
+    ?assertEqual(
+       #{applied_command_count => 1},
+       khepri_machine:get_metrics(S2)),
     ?assertEqual({error,
                   ?khepri_error(
                      node_not_found,
@@ -584,9 +600,11 @@ insert_a_node_with_if_node_exists_false_on_parent_test() ->
     {S1, Ret1, SE1} = khepri_machine:apply(?META, Command1, S0),
 
     ?assertEqual(
-      S0#khepri_machine.tree#tree.root,
-      S1#khepri_machine.tree#tree.root),
-    ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
+      khepri_machine:get_root(S0),
+      khepri_machine:get_root(S1)),
+    ?assertEqual(
+       #{applied_command_count => 1},
+       khepri_machine:get_metrics(S1)),
     ?assertEqual({error,
                   ?khepri_error(
                      mismatching_node,
@@ -609,7 +627,9 @@ insert_a_node_with_if_node_exists_false_on_parent_test() ->
     {S2, Ret2, SE2} = khepri_machine:apply(?META, Command2, S0),
     Root = khepri_machine:get_root(S2),
 
-    ?assertEqual(#{applied_command_count => 1}, S2#khepri_machine.metrics),
+    ?assertEqual(
+       #{applied_command_count => 1},
+       khepri_machine:get_metrics(S2)),
     ?assertEqual(
        #node{
           props = #{payload_version => 1,
@@ -646,9 +666,11 @@ insert_with_a_path_matching_many_nodes_test() ->
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
 
     ?assertEqual(
-      S0#khepri_machine.tree#tree.root,
-      S1#khepri_machine.tree#tree.root),
-    ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
+      khepri_machine:get_root(S0),
+      khepri_machine:get_root(S1)),
+    ?assertEqual(
+       #{applied_command_count => 1},
+       khepri_machine:get_metrics(S1)),
     ?assertEqual(
        {error,
         ?khepri_exception(
@@ -698,20 +720,24 @@ put_command_bumps_applied_command_count_test() ->
                                snapshot_interval => 3,
                                commands => Commands}),
 
-    ?assertEqual(#{}, S0#khepri_machine.metrics),
+    ?assertEqual(#{}, khepri_machine:get_metrics(S0)),
 
     Command1 = #put{path = [bar],
                     payload = ?NO_PAYLOAD},
     {S1, _, SE1} = khepri_machine:apply(?META, Command1, S0),
 
-    ?assertEqual(#{applied_command_count => 1}, S1#khepri_machine.metrics),
+    ?assertEqual(
+       #{applied_command_count => 1},
+       khepri_machine:get_metrics(S1)),
     ?assertEqual([], SE1),
 
     Command2 = #put{path = [baz],
                     payload = ?NO_PAYLOAD},
     {S2, _, SE2} = khepri_machine:apply(?META, Command2, S1),
 
-    ?assertEqual(#{applied_command_count => 2}, S2#khepri_machine.metrics),
+    ?assertEqual(
+       #{applied_command_count => 2},
+       khepri_machine:get_metrics(S2)),
     ?assertEqual([], SE2),
 
     Command3 = #put{path = [qux],
@@ -719,5 +745,5 @@ put_command_bumps_applied_command_count_test() ->
     Meta = ?META,
     {S3, _, SE3} = khepri_machine:apply(Meta, Command3, S2),
 
-    ?assertEqual(#{}, S3#khepri_machine.metrics),
+    ?assertEqual(#{}, khepri_machine:get_metrics(S3)),
     ?assertEqual([{release_cursor, maps:get(index, Meta), S3}], SE3).

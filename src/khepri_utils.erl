@@ -43,6 +43,8 @@
                           child_nodes => #{khepri_path:node_id() =>
                                            display_tree()}}.
 
+-export_type([display_tree/0]).
+
 -spec start_timeout_window(Timeout) -> Timestamp | none when
       Timeout :: timeout(),
       Timestamp :: integer().

@@ -459,8 +459,8 @@ count(PathPattern) ->
 
 count(PathPattern, Options) ->
     PathPattern1 = khepri_tx_adv:path_from_string(PathPattern),
-    {#khepri_machine{tree = Tree},
-     _SideEffects} = khepri_tx_adv:get_tx_state(),
+    {State, _SideEffects} = khepri_tx_adv:get_tx_state(),
+    Tree = khepri_machine:get_tree(State),
     Fun = fun khepri_tree:count_node_cb/3,
     {_QueryOptions, TreeOptions} = khepri_machine:split_query_options(Options),
     TreeOptions1 = TreeOptions#{expect_specific_node => false},
@@ -510,8 +510,8 @@ fold(PathPattern, Fun, Acc) ->
 
 fold(PathPattern, Fun, Acc, Options) ->
     PathPattern1 = khepri_tx_adv:path_from_string(PathPattern),
-    {#khepri_machine{tree = Tree},
-     _SideEffects} = khepri_tx_adv:get_tx_state(),
+    {State, _SideEffects} = khepri_tx_adv:get_tx_state(),
+    Tree = khepri_machine:get_tree(State),
     {_QueryOptions, TreeOptions} = khepri_machine:split_query_options(Options),
     TreeOptions1 = TreeOptions#{expect_specific_node => false},
     Ret = khepri_tree:fold(Tree, PathPattern1, Fun, Acc, TreeOptions1),
@@ -996,6 +996,6 @@ abort(Reason) ->
 is_transaction() ->
     StateAndSideEffects = erlang:get(?TX_STATE_KEY),
     case StateAndSideEffects of
-        {#khepri_machine{}, _SideEffects} -> true;
-        _                                 -> false
+        {_State, _SideEffects} -> true;
+        _                      -> false
     end.
