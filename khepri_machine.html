@@ -42,6 +42,10 @@ module.</p>
 <p><code>machine_config() = #config{store_id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a>, member = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a>, snapshot_interval = non_neg_integer()}</code></p>
 <p>  Configuration record, holding read-only or rarely changing fields.</p>
 
+<h3 class="typedecl"><a name="type-metrics">metrics()</a></h3>
+<p><code>metrics() = #{applied_command_count =&gt; non_neg_integer()}</code></p>
+<p>  Internal state machine metrics.</p>
+
 <h3 class="typedecl"><a name="type-projection_tree">projection_tree()</a></h3>
 <p><code>projection_tree() = <a href="/home/runner/work/khepri/khepri/doc/khepri_pattern_tree.html#type-tree">khepri_pattern_tree:tree</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection">khepri_projection:projection()</a>)</code></p>
 <p>  A pattern tree that holds all registered projections in the machine's state.</p>
@@ -51,12 +55,16 @@ module.</p>
 <p>  Properties attached to each node in the tree structure.</p>
 
 <h3 class="typedecl"><a name="type-state">state()</a></h3>
-<p><code>state() = #khepri_machine{config = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-machine_config">khepri_machine:machine_config()</a>, tree = <a href="/home/runner/work/khepri/khepri/doc/khepri_tree.html#type-tree">khepri_tree:tree()</a>, triggers = #{<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id">khepri:trigger_id()</a> =&gt; #{sproc := <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a>, event_filter := <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a>}}, emitted_triggers = [<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-triggered">khepri_machine:triggered()</a>], projections = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-projection_tree">khepri_machine:projection_tree()</a>, metrics = #{applied_command_count =&gt; non_neg_integer()}}</code></p>
+<p><b>abstract datatype</b>: <code>state()</code></p>
 <p>  State of this Ra state machine.</p>
 
 <h3 class="typedecl"><a name="type-triggered">triggered()</a></h3>
 <p><code>triggered() = #triggered{id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id">khepri:trigger_id()</a>, event_filter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a>, sproc = <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun">horus:horus_fun()</a>, props = map()}</code></p>
 
+
+<h3 class="typedecl"><a name="type-triggers_map">triggers_map()</a></h3>
+<p><code>triggers_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id">khepri:trigger_id()</a> =&gt; #{sproc := <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a>, event_filter := <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a>}}</code></p>
+<p>  Internal triggers map in the machine state.</p>
 
 <h3 class="typedecl"><a name="type-tx_ret">tx_ret()</a></h3>
 <p><code>tx_ret() = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a>) | <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort">khepri_tx:tx_abort()</a> | no_return()</code></p>
@@ -70,6 +78,7 @@ module.</p>
 <tr><td valign="top"><a href="#register_trigger-5">register_trigger/5</a></td><td>Registers a trigger.</td></tr>
 <tr><td valign="top"><a href="#register_projection-4">register_projection/4</a></td><td>Registers a projection.</td></tr>
 <tr><td valign="top"><a href="#unregister_projection-3">unregister_projection/3</a></td><td>Unregisters a projection by name.</td></tr>
+<tr><td valign="top"><a href="#get_last_consistent_call_atomics-1">get_last_consistent_call_atomics/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#version-0">version/0</a></td><td></td></tr>
 </table>
 
@@ -176,6 +185,12 @@ module.</p>
   Reason}</code> tuple otherwise.</p>
 </div><p>Unregisters a projection by name.
  </p>
+
+<h3 class="function"><a name="get_last_consistent_call_atomics-1">get_last_consistent_call_atomics/1</a></h3>
+<div class="spec">
+<p><code>get_last_consistent_call_atomics(StoreId) -&gt; any()</code></p>
+<p></p>
+</div>
 
 <h3 class="function"><a name="version-0">version/0</a></h3>
 <div class="spec">
