@@ -193,10 +193,21 @@ fold(StoreId, PathPattern, Fun, Acc, Options)
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     {QueryOptions, TreeOptions} = split_query_options(Options),
+    case QueryOptions of
+        #{copy_tree_and_run_from_caller := true} ->
+            fold_from_caller(
+              StoreId, PathPattern1, Fun, Acc, QueryOptions, TreeOptions);
+        _ ->
+            fold_from_ra_server(
+              StoreId, PathPattern1, Fun, Acc, QueryOptions, TreeOptions)
+    end.
+
+fold_from_ra_server(
+  StoreId, PathPattern, Fun, Acc, QueryOptions, TreeOptions) ->
     Query = fun(#?MODULE{tree = Tree}) ->
                     try
                         khepri_tree:fold(
-                          Tree, PathPattern1, Fun, Acc, TreeOptions)
+                          Tree, PathPattern, Fun, Acc, TreeOptions)
                     catch
                         Class:Reason:Stacktrace ->
                             {exception, Class, Reason, Stacktrace}
@@ -205,6 +216,26 @@ fold(StoreId, PathPattern, Fun, Acc, Options)
     case process_query(StoreId, Query, QueryOptions) of
         {exception, _, _, _} = Exception -> handle_tx_exception(Exception);
         Ret                              -> Ret
+    end.
+
+fold_from_caller(
+  StoreId, PathPattern, Fun, Acc, QueryOptions, TreeOptions) ->
+    Query = fun(#?MODULE{tree = Tree}) ->
+                    Tree
+            end,
+    case process_query(StoreId, Query, QueryOptions) of
+        #tree{} = Tree ->
+            Ret = try
+                      khepri_tree:fold(
+                        Tree, PathPattern, Fun, Acc, TreeOptions)
+                  catch
+                      Class:Reason:Stacktrace ->
+                          Exception = {exception, Class, Reason, Stacktrace},
+                          handle_tx_exception(Exception)
+                  end,
+            ?raise_exception_if_any(Ret);
+        {error, _} = Error ->
+            ?raise_exception_if_any(Error)
     end.
 
 -spec put(StoreId, PathPattern, Payload, Options) -> Ret when
@@ -612,7 +643,8 @@ split_query_options(Options) ->
       fun
           (Option, Value, {Q, T}) when
                 Option =:= timeout orelse
-                Option =:= favor ->
+                Option =:= favor orelse
+                Option =:= copy_tree_and_run_from_caller ->
               Q1 = Q#{Option => Value},
               {Q1, T};
           (props_to_return, [], {Q, T}) ->

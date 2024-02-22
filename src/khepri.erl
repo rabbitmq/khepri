@@ -303,13 +303,19 @@
 %% </ul>
 
 -type query_options() :: #{timeout => timeout(),
-                           favor => favor_option()}.
+                           favor => favor_option(),
+                           copy_tree_and_run_from_caller => boolean()}.
 %% Options used in queries.
 %%
 %% <ul>
 %% <li>`timeout' is passed to Ra query processing function.</li>
 %% <li>`favor' indicates where to put the cursor between freshness of the
 %% returned data and low latency of queries; see {@link favor_option()}.</li>
+%% <li>`copy_tree_and_run_from_caller' indicates if the query anonymous
+%% function should run from the calling process instead of the Ra process.
+%% This allows to recursively query the Khepri store from the anonymous
+%% function. However, this means the Khepri tree is copied to the calling
+%% process. Defaults to `false'</li>
 %% </ul>
 
 -type tree_options() :: #{expect_specific_node => boolean(),
