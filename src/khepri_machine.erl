@@ -65,16 +65,21 @@
          process_query/3,
          process_command/3]).
 
-%% Functions to access the opaque #khepri_machine{} state.
--export([make_virgin_state/1,
-         is_state/1,
+%% Internal functions to access the opaque #khepri_machine{} state.
+-export([is_state/1,
          ensure_is_state/1,
          get_tree/1,
          get_root/1,
          get_keep_while_conds/1,
          get_keep_while_conds_revidx/1,
          get_last_consistent_call_atomics/1,
+         get_triggers/1,
+         get_emitted_triggers/1,
+         get_projections/1,
          get_metrics/1]).
+-ifdef(TEST).
+-export([make_virgin_state/1]).
+-endif.
 
 -compile({no_auto_import, [apply/3]}).
 
@@ -113,7 +118,7 @@
                        khepri_machine:projection_tree(),
          metrics = #{} :: khepri_machine:metrics()}).
 
--opaque state() :: #?MODULE{}.
+-opaque state() :: #khepri_machine{}.
 %% State of this Ra state machine.
 
 -type triggers_map() :: #{khepri:trigger_id() =>
@@ -193,7 +198,8 @@ fold(StoreId, PathPattern, Fun, Acc, Options)
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     {QueryOptions, TreeOptions} = split_query_options(Options),
-    Query = fun(#?MODULE{tree = Tree}) ->
+    Query = fun(State) ->
+                    Tree = get_tree(State),
                     try
                         khepri_tree:fold(
                           Tree, PathPattern1, Fun, Acc, TreeOptions)
@@ -571,7 +577,8 @@ ack_triggers_execution(StoreId, TriggeredStoredProcs)
 
 get_keep_while_conds_state(StoreId, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
-    Query = fun(#?MODULE{tree = #tree{keep_while_conds = KeepWhileConds}}) ->
+    Query = fun(State) ->
+                    KeepWhileConds = get_keep_while_conds(State),
                     {ok, KeepWhileConds}
             end,
     process_query(StoreId, Query, Options).
@@ -595,7 +602,8 @@ get_keep_while_conds_state(StoreId, Options)
 
 get_projections_state(StoreId, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
-    Query = fun(#?MODULE{projections = Projections}) ->
+    Query = fun(State) ->
+                    Projections = get_projections(State),
                     {ok, Projections}
             end,
     process_query(StoreId, Query, Options).
@@ -1062,7 +1070,7 @@ init(#{store_id := StoreId,
                      #config{store_id = StoreId,
                              member = Member}
              end,
-    State = #?MODULE{config = Config},
+    State = #khepri_machine{config = Config},
 
     %% Create initial "schema" if provided.
     Commands = maps:get(commands, Params, []),
@@ -1103,7 +1111,9 @@ handle_aux(
     {no_reply, AuxState, LogState};
 handle_aux(
   _RaState, cast, restore_projections, AuxState, LogState,
-  #?MODULE{tree = Tree, projections = ProjectionTree}) ->
+  State) ->
+    Tree = get_tree(State),
+    ProjectionTree = get_projections(State),
     khepri_pattern_tree:foreach(
       ProjectionTree,
       fun(PathPattern, Projections) ->
@@ -1171,7 +1181,8 @@ apply(
   #register_trigger{id = TriggerId,
                     sproc = StoredProcPath,
                     event_filter = EventFilter},
-  #?MODULE{triggers = Triggers} = State) ->
+  State) ->
+    Triggers = get_triggers(State),
     StoredProcPath1 = khepri_path:realpath(StoredProcPath),
     EventFilter1 = case EventFilter of
                        #evf_tree{path = Path} ->
@@ -1180,21 +1191,24 @@ apply(
                    end,
     Triggers1 = Triggers#{TriggerId => #{sproc => StoredProcPath1,
                                          event_filter => EventFilter1}},
-    State1 = State#?MODULE{triggers = Triggers1},
+    State1 = set_triggers(State, Triggers1),
     Ret = {State1, ok},
     bump_applied_command_count(Ret, Meta);
 apply(
   Meta,
   #ack_triggered{triggered = ProcessedTriggers},
-  #?MODULE{emitted_triggers = EmittedTriggers} = State) ->
+  State) ->
+    EmittedTriggers = get_emitted_triggers(State),
     EmittedTriggers1 = EmittedTriggers -- ProcessedTriggers,
-    State1 = State#?MODULE{emitted_triggers = EmittedTriggers1},
+    State1 = set_emitted_triggers(State, EmittedTriggers1),
     Ret = {State1, ok},
     bump_applied_command_count(Ret, Meta);
 apply(
   Meta,
   #register_projection{pattern = PathPattern, projection = Projection},
-  #?MODULE{tree = Tree, projections = ProjectionTree} = State) ->
+  State) ->
+    Tree = get_tree(State),
+    ProjectionTree = get_projections(State),
     Reply = khepri_projection:init(Projection),
     State1 = case Reply of
                  ok ->
@@ -1208,7 +1222,7 @@ apply(
                                                  [Projection | Projections]
                                          end),
                      erase(compiled_projection_tree),
-                     State#?MODULE{projections = ProjectionTree1};
+                     set_projections(State, ProjectionTree1);
                  _  ->
                      State
              end,
@@ -1217,7 +1231,8 @@ apply(
 apply(
   Meta,
   #unregister_projection{name = ProjectionName},
-  #?MODULE{projections = ProjectionTree} = State) ->
+  State) ->
+    ProjectionTree = get_projections(State),
     ProjectionTree1 =
     khepri_pattern_tree:filtermap(
       ProjectionTree,
@@ -1247,7 +1262,7 @@ apply(
                     erase(compiled_projection_tree),
                     ok
             end,
-    State1 = State#?MODULE{projections = ProjectionTree1},
+    State1 = set_projections(State, ProjectionTree1),
     Ret = {State1, Reply},
     bump_applied_command_count(Ret, Meta);
 apply(#{machine_version := MacVer} = Meta, UnknownCommand, State) ->
@@ -1279,17 +1294,16 @@ apply(#{machine_version := MacVer} = Meta, UnknownCommand, State) ->
 bump_applied_command_count({State, Result}, Meta) ->
     bump_applied_command_count({State, Result, []}, Meta);
 bump_applied_command_count(
-  {#?MODULE{config = #config{snapshot_interval = SnapshotInterval},
-            metrics = Metrics} = State,
-   Result,
-   SideEffects},
+  {State, Result, SideEffects},
   #{index := RaftIndex}) ->
+    #config{snapshot_interval = SnapshotInterval} = get_config(State),
+    Metrics = get_metrics(State),
     AppliedCmdCount0 = maps:get(applied_command_count, Metrics, 0),
     AppliedCmdCount = AppliedCmdCount0 + 1,
     case AppliedCmdCount < SnapshotInterval of
         true ->
             Metrics1 = Metrics#{applied_command_count => AppliedCmdCount},
-            State1 = State#?MODULE{metrics = Metrics1},
+            State1 = set_metrics(State, Metrics1),
             {State1, Result, SideEffects};
         false ->
             ?LOG_DEBUG(
@@ -1303,9 +1317,10 @@ bump_applied_command_count(
             {State1, Result, SideEffects1}
     end.
 
-reset_applied_command_count(#?MODULE{metrics = Metrics} = State) ->
+reset_applied_command_count(State) ->
+    Metrics = get_metrics(State),
     Metrics1 = maps:remove(applied_command_count, Metrics),
-    State#?MODULE{metrics = Metrics1}.
+    set_metrics(State, Metrics1).
 
 %% @private
 
@@ -1320,16 +1335,19 @@ state_enter(_StateName, _State) ->
 
 %% @private
 
-emitted_triggers_to_side_effects(
-  #?MODULE{config = #config{store_id = StoreId},
-           emitted_triggers = [_ | _] = EmittedTriggers}) ->
-    SideEffect = {mod_call,
-                  khepri_event_handler,
-                  handle_triggered_sprocs,
-                  [StoreId, EmittedTriggers]},
-    [SideEffect];
-emitted_triggers_to_side_effects(_State) ->
-    [].
+emitted_triggers_to_side_effects(State) ->
+    #config{store_id = StoreId} = get_config(State),
+    EmittedTriggers = get_emitted_triggers(State),
+    case EmittedTriggers of
+        [_ | _] ->
+            SideEffect = {mod_call,
+                          khepri_event_handler,
+                          handle_triggered_sprocs,
+                          [StoreId, EmittedTriggers]},
+            [SideEffect];
+        [] ->
+            []
+    end.
 
 -spec overview(State) -> Overview when
       State :: khepri_machine:state(),
@@ -1343,9 +1361,11 @@ emitted_triggers_to_side_effects(_State) ->
       KeepWhileConds :: khepri_tree:keep_while_conds_map().
 %% @private
 
-overview(#?MODULE{config = #config{store_id = StoreId},
-                  tree = #tree{keep_while_conds = KeepWhileConds} = Tree,
-                  triggers = Triggers}) ->
+overview(State) ->
+    #config{store_id = StoreId} = get_config(State),
+    Tree = get_tree(State),
+    KeepWhileConds = get_keep_while_conds(State),
+    Triggers = get_triggers(State),
     TreeOptions = #{props_to_return => [payload,
                                         payload_version,
                                         child_list_version,
@@ -1372,9 +1392,8 @@ version() ->
 %% Internal functions.
 %% -------------------------------------------------------------------
 
-locate_sproc_and_execute_tx(
-  #?MODULE{tree = Tree} = State,
-  PathPattern, Args, AllowUpdates) ->
+locate_sproc_and_execute_tx(State, PathPattern, Args, AllowUpdates) ->
+    Tree = get_tree(State),
     TreeOptions = #{expect_specific_node => true,
                     props_to_return => [raw_payload]},
     {StandaloneFun, Args1} =
@@ -1426,14 +1445,13 @@ failed_to_locate_sproc(Reason) ->
       Result :: khepri_machine:common_ret().
 %% @private
 
-insert_or_update_node(
-  #?MODULE{tree = Tree} = State,
-  PathPattern, Payload, PutOptions, TreeOptions) ->
+insert_or_update_node(State, PathPattern, Payload, PutOptions, TreeOptions) ->
+    Tree = get_tree(State),
     Ret1 = khepri_tree:insert_or_update_node(
              Tree, PathPattern, Payload, PutOptions, TreeOptions),
     case Ret1 of
         {ok, Tree1, AppliedChanges, Ret2} ->
-            State1 = State#?MODULE{tree = Tree1},
+            State1 = set_tree(State, Tree1),
             {State2, SideEffects} = create_tree_change_side_effects(
                                       State, State1, Ret2, AppliedChanges),
             {State2, {ok, Ret2}, SideEffects};
@@ -1449,13 +1467,13 @@ insert_or_update_node(
       Result :: khepri_machine:common_ret().
 %% @private
 
-delete_matching_nodes(
-  #?MODULE{tree = Tree} = State, PathPattern, TreeOptions) ->
+delete_matching_nodes(State, PathPattern, TreeOptions) ->
+    Tree = get_tree(State),
     Ret = khepri_tree:delete_matching_nodes(
             Tree, PathPattern, #{}, TreeOptions),
     case Ret of
         {ok, Tree1, AppliedChanges, Ret2} ->
-            State1 = State#?MODULE{tree = Tree1},
+            State1 = set_tree(State, Tree1),
             {State2, SideEffects} = create_tree_change_side_effects(
                                       State, State1, Ret2, AppliedChanges),
             {State2, {ok, Ret2}, SideEffects};
@@ -1480,10 +1498,10 @@ create_tree_change_side_effects(
                                     InitialState, NewState, Changes),
     {NewState1, ProjectionEffects ++ TriggerEffects}.
 
-create_projection_side_effects(
-  #?MODULE{tree = InitialTree} = _InitialState,
-  #?MODULE{tree = NewTree, projections = ProjectionTree0} = _NewState,
-  Changes) ->
+create_projection_side_effects(InitialState, NewState, Changes) ->
+    InitialTree = get_tree(InitialState),
+    NewTree = get_tree(NewState),
+    ProjectionTree0 = get_projections(NewState),
     ProjectionTree = get_compiled_projection_tree(ProjectionTree0),
     maps:fold(
       fun(Path, Change, Effects) ->
@@ -1577,41 +1595,42 @@ evaluate_projection(
     Effect = {aux, Trigger},
     [Effect | Effects].
 
-create_trigger_side_effects(
-  #?MODULE{triggers = Triggers} = _InitialState, NewState, _Changes)
-  when Triggers =:= #{} ->
-    {NewState, []};
-create_trigger_side_effects(
-  %% We want to consider the new state (with the updated tree), but we want
-  %% to use triggers from the initial state, in case they were updated too.
-  %% In other words, we want to evaluate triggers in the state they were at
-  %% the time the change to the tree was requested.
-  #?MODULE{triggers = Triggers,
-           emitted_triggers = EmittedTriggers} = _InitialState,
-  #?MODULE{config = #config{store_id = StoreId},
-           tree = Tree} = NewState,
-  Changes) ->
-    TriggeredStoredProcs = list_triggered_sprocs(Tree, Changes, Triggers),
+create_trigger_side_effects(InitialState, NewState, Changes) ->
+    %% We want to consider the new state (with the updated tree), but we want
+    %% to use triggers from the initial state, in case they were updated too.
+    %% In other words, we want to evaluate triggers in the state they were at
+    %% the time the change to the tree was requested.
+    Triggers = get_triggers(InitialState),
+    case Triggers =:= #{} of
+        true ->
+            {NewState, []};
+        false ->
+            EmittedTriggers = get_emitted_triggers(InitialState),
+            #config{store_id = StoreId} = get_config(NewState),
+            Tree = get_tree(NewState),
+            TriggeredStoredProcs = list_triggered_sprocs(
+                                     Tree, Changes, Triggers),
 
-    %% We record the list of triggered stored procedures in the state
-    %% machine's state. This is used to guaranty at-least-once execution of
-    %% the trigger: the event handler process is supposed to ack when it
-    %% executed the triggered stored procedure. If the Ra cluster changes
-    %% leader in between, we know that we need to retry the execution.
-    %%
-    %% This could lead to multiple execution of the same trigger, therefore
-    %% the stored procedure must be idempotent.
-    NewState1 = NewState#?MODULE{
-                            emitted_triggers =
-                            EmittedTriggers ++ TriggeredStoredProcs},
+            %% We record the list of triggered stored procedures in the state
+            %% machine's state. This is used to guaranty at-least-once
+            %% execution of the trigger: the event handler process is supposed
+            %% to ack when it executed the triggered stored procedure. If the
+            %% Ra cluster changes leader in between, we know that we need to
+            %% retry the execution.
+            %%
+            %% This could lead to multiple execution of the same trigger,
+            %% therefore the stored procedure must be idempotent.
+            NewState1 = set_emitted_triggers(
+                          NewState, EmittedTriggers ++ TriggeredStoredProcs),
 
-    %% We still emit a `mod_call' effect to wake up the event handler process
-    %% so it doesn't have to poll the internal list.
-    SideEffect = {mod_call,
-                  khepri_event_handler,
-                  handle_triggered_sprocs,
-                  [StoreId, TriggeredStoredProcs]},
-    {NewState1, [SideEffect]}.
+            %% We still emit a `mod_call' effect to wake up the event handler
+            %% process so it doesn't have to poll the internal list.
+            SideEffect = {mod_call,
+                          khepri_event_handler,
+                          handle_triggered_sprocs,
+                          [StoreId, TriggeredStoredProcs]},
+            {NewState1, [SideEffect]}
+    end.
 
 list_triggered_sprocs(Tree, Changes, Triggers) ->
     TriggeredStoredProcs =
@@ -1747,17 +1766,15 @@ get_compiled_projection_tree(SourceProjectionTree) ->
             CompiledProjectionTree
     end.
 
--spec make_virgin_state(Config) -> State when
-      Config :: khepri_machine:machine_config(),
-      State :: khepri_machine:state().
-%% @private
-
-make_virgin_state(Config) ->
-    #?MODULE{config = Config}.
+%% -------------------------------------------------------------------
+%% State record management functions.
+%% -------------------------------------------------------------------
 
 -spec is_state(State) -> IsState when
       State :: khepri_machine:state(),
       IsState :: boolean().
+%% @doc Tells if the given argument is a valid state.
+%%
 %% @private
 
 is_state(State) ->
@@ -1765,50 +1782,169 @@ is_state(State) ->
 
 -spec ensure_is_state(State) -> ok when
       State :: khepri_machine:state().
+%% @doc Throws an exception if the given argument is not a valid state.
+%%
 %% @private
 
 ensure_is_state(State) ->
     ?assert(is_state(State)),
     ok.
 
+-spec get_config(State) -> Config when
+      State :: khepri_machine:state(),
+      Config :: khepri_machine:machine_config().
+%% @doc Returns the config from the given state.
+%%
+%% @private
+
+get_config(#khepri_machine{config = Config}) ->
+    Config.
+
 -spec get_tree(State) -> Tree when
       State :: khepri_machine:state(),
       Tree :: khepri_tree:tree().
+%% @doc Returns the tree from the given state.
+%%
 %% @private
 
-get_tree(#?MODULE{tree = Tree}) ->
+get_tree(#khepri_machine{tree = Tree}) ->
     Tree.
+
+-spec set_tree(State, Tree) -> NewState when
+      State :: khepri_machine:state(),
+      Tree :: khepri_tree:tree(),
+      NewState :: khepri_machine:state().
+%% @doc Sets the tree in the given state.
+%%
+%% @private
+
+set_tree(#khepri_machine{} = State, Tree) ->
+    State#khepri_machine{tree = Tree}.
 
 -spec get_root(State) -> Root when
       State :: khepri_machine:state(),
       Root :: khepri_tree:tree_node().
+%% @doc Returns the root of the tree from the given state.
+%%
 %% @private
 
-get_root(#?MODULE{tree = #tree{root = Root}}) ->
+get_root(#khepri_machine{} = State) ->
+    #tree{root = Root} = get_tree(State),
     Root.
 
 -spec get_keep_while_conds(State) -> KeepWhileConds when
       State :: khepri_machine:state(),
       KeepWhileConds :: khepri_tree:keep_while_conds_map().
+%% @doc Returns the `keep_while' conditions in the tree from the given state.
+%%
 %% @private
 
-get_keep_while_conds(
-  #?MODULE{tree = #tree{keep_while_conds = KeepWhileConds}}) ->
+get_keep_while_conds(#khepri_machine{} = State) ->
+    #tree{keep_while_conds = KeepWhileConds} = get_tree(State),
     KeepWhileConds.
 
 -spec get_keep_while_conds_revidx(State) -> KeepWhileCondsRevIdx when
       State :: khepri_machine:state(),
       KeepWhileCondsRevIdx :: khepri_tree:keep_while_conds_revidx().
+%% @doc Returns the `keep_while' conditions reverse index in the tree from the
+%% given state.
+%%
 %% @private
 
-get_keep_while_conds_revidx(
-  #?MODULE{tree = #tree{keep_while_conds_revidx = KeepWhileCondsRevIdx}}) ->
+get_keep_while_conds_revidx(#khepri_machine{} = State) ->
+    #tree{keep_while_conds_revidx = KeepWhileCondsRevIdx} = get_tree(State),
     KeepWhileCondsRevIdx.
+
+-spec get_triggers(State) -> Triggers when
+      State :: khepri_machine:state(),
+      Triggers :: khepri_machine:triggers_map().
+%% @doc Returns the triggers from the given state.
+%%
+%% @private
+
+get_triggers(#khepri_machine{triggers = Triggers}) ->
+    Triggers.
+
+-spec set_triggers(State, Triggers) -> NewState when
+      State :: khepri_machine:state(),
+      Triggers :: khepri_machine:triggers_map(),
+      NewState :: khepri_machine:state().
+%% @doc Sets the triggers in the given state.
+%%
+%% @private
+
+set_triggers(#khepri_machine{} = State, Triggers) ->
+    State#khepri_machine{triggers = Triggers}.
+
+-spec get_emitted_triggers(State) -> EmittedTriggers when
+      State :: khepri_machine:state(),
+      EmittedTriggers :: [khepri_machine:triggered()].
+%% @doc Returns the emitted_triggers from the given state.
+%%
+%% @private
+
+get_emitted_triggers(#khepri_machine{emitted_triggers = EmittedTriggers}) ->
+    EmittedTriggers.
+
+-spec set_emitted_triggers(State, EmittedTriggers) -> NewState when
+      State :: khepri_machine:state(),
+      EmittedTriggers :: [khepri_machine:triggered()],
+      NewState :: khepri_machine:state().
+%% @doc Sets the emitted_triggers in the given state.
+%%
+%% @private
+
+set_emitted_triggers(#khepri_machine{} = State, EmittedTriggers) ->
+    State#khepri_machine{emitted_triggers = EmittedTriggers}.
+
+-spec get_projections(State) -> Projections when
+      State :: khepri_machine:state(),
+      Projections :: khepri_machine:projection_tree().
+%% @doc Returns the projections from the given state.
+%%
+%% @private
+
+get_projections(#khepri_machine{projections = Projections}) ->
+    Projections.
+
+-spec set_projections(State, Projections) -> NewState when
+      State :: khepri_machine:state(),
+      Projections :: khepri_machine:projection_tree(),
+      NewState :: khepri_machine:state().
+%% @doc Sets the projections in the given state.
+%%
+%% @private
+
+set_projections(#khepri_machine{} = State, Projections) ->
+    State#khepri_machine{projections = Projections}.
 
 -spec get_metrics(State) -> Metrics when
       State :: khepri_machine:state(),
       Metrics :: khepri_machine:metrics().
+%% @doc Returns the metrics from the given state.
+%%
 %% @private
 
-get_metrics(#?MODULE{metrics = Metrics}) ->
+get_metrics(#khepri_machine{metrics = Metrics}) ->
     Metrics.
+
+-spec set_metrics(State, Metrics) -> NewState when
+      State :: khepri_machine:state(),
+      Metrics :: khepri_machine:metrics(),
+      NewState :: khepri_machine:state().
+%% @doc Sets the metrics in the given state.
+%%
+%% @private
+
+set_metrics(#khepri_machine{} = State, Metrics) ->
+    State#khepri_machine{metrics = Metrics}.
+
+-ifdef(TEST).
+-spec make_virgin_state(Config) -> State when
+      Config :: khepri_machine:machine_config(),
+      State :: khepri_machine:state().
+%% @private
+
+make_virgin_state(Config) ->
+    #khepri_machine{config = Config}.
+-endif.
