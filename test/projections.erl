@@ -33,6 +33,11 @@ trigger_simple_projection_on_path_test_() ->
                       ?FUNCTION_NAME, PathPattern, Projection))
               end)},
 
+         {"The store contains the projection",
+          ?_assertEqual(
+            true,
+            khepri:has_projection(?FUNCTION_NAME, ?MODULE))},
+
          {"Trigger the projection",
           ?_assertEqual(
             ok,
@@ -618,6 +623,11 @@ unregister_projection_test_() ->
           ?_assertEqual(
             ok,
             khepri:unregister_projection(?FUNCTION_NAME, ?MODULE))},
+
+         {"The store no longer contains the projection",
+          ?_assertEqual(
+            false,
+            khepri:has_projection(?FUNCTION_NAME, ?MODULE))},
 
          {"The projection table no longer exists",
           ?_assertEqual(undefined, ets:info(?MODULE))},

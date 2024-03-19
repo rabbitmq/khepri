@@ -76,6 +76,7 @@
          get_triggers/1,
          get_emitted_triggers/1,
          get_projections/1,
+         has_projection/2,
          get_metrics/1]).
 -ifdef(TEST).
 -export([make_virgin_state/1]).
@@ -1906,6 +1907,25 @@ set_emitted_triggers(#khepri_machine{} = State, EmittedTriggers) ->
 
 get_projections(#khepri_machine{projections = Projections}) ->
     Projections.
+
+-spec has_projection(ProjectionTree, ProjectionName) -> boolean() when
+      ProjectionTree :: khepri_machine:projection_tree(),
+      ProjectionName :: atom().
+%% @doc Determines if the given projection tree contains a projection.
+%%
+%% Two projections are considered equal if they have the same name.
+%%
+%% @private
+
+has_projection(ProjectionTree, Name) when is_atom(Name) ->
+    khepri_pattern_tree:any(
+      ProjectionTree,
+      fun(Projections) ->
+              lists:any(
+                fun(#khepri_projection{name = N}) ->
+                        N =:= Name
+                end, Projections)
+      end).
 
 -spec set_projections(State, Projections) -> NewState when
       State :: khepri_machine:state(),
