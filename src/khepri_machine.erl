@@ -1122,6 +1122,13 @@ handle_aux(
                Projection <- Projections]
       end),
     {no_reply, AuxState, LogState};
+handle_aux(
+  _RaState, cast,
+  #restore_projection{projection = Projection, pattern = PathPattern},
+  AuxState, LogState, State) ->
+    Tree = get_tree(State),
+    ok = restore_projection(Projection, Tree, PathPattern),
+    {no_reply, AuxState, LogState};
 handle_aux(_RaState, _Type, _Command, AuxState, LogState, _MachineState) ->
     {no_reply, AuxState, LogState}.
 
@@ -1208,27 +1215,34 @@ apply(
   Meta,
   #register_projection{pattern = PathPattern, projection = Projection},
   State) ->
-    Tree = get_tree(State),
+    ProjectionName = khepri_projection:name(Projection),
     ProjectionTree = get_projections(State),
-    Reply = khepri_projection:init(Projection),
-    State1 = case Reply of
-                 ok ->
-                     restore_projection(Projection, Tree, PathPattern),
-                     ProjectionTree1 = khepri_pattern_tree:update(
-                                         ProjectionTree,
-                                         PathPattern,
-                                         fun (?NO_PAYLOAD) ->
-                                                 [Projection];
-                                             (Projections) ->
-                                                 [Projection | Projections]
-                                         end),
-                     erase(compiled_projection_tree),
-                     set_projections(State, ProjectionTree1);
-                 _  ->
-                     State
-             end,
-    Ret = {State1, Reply},
-    bump_applied_command_count(Ret, Meta);
+    case has_projection(ProjectionTree, ProjectionName) of
+        true ->
+            Info = #{name => ProjectionName},
+            Reason = ?khepri_error(projection_already_exists, Info),
+            Reply = {error, Reason},
+            Ret = {State, Reply},
+            bump_applied_command_count(Ret, Meta);
+        false ->
+            ProjectionTree1 = khepri_pattern_tree:update(
+                                ProjectionTree,
+                                PathPattern,
+                                fun (?NO_PAYLOAD) ->
+                                        [Projection];
+                                    (Projections) ->
+                                        [Projection | Projections]
+                                end),
+            %% The new projection has been registered so the cached compiled
+            %% projection tree needs to be erased.
+            clear_compiled_projection_tree(),
+            State1 = set_projections(State, ProjectionTree1),
+            AuxEffect = #restore_projection{projection = Projection,
+                                            pattern = PathPattern},
+            Effects = [{aux, AuxEffect}],
+            Ret = {State1, ok, Effects},
+            bump_applied_command_count(Ret, Meta)
+    end;
 apply(
   Meta,
   #unregister_projection{name = ProjectionName},
@@ -1260,7 +1274,7 @@ apply(
                     Reason = ?khepri_error(projection_not_found, Info),
                     {error, Reason};
                 _ ->
-                    erase(compiled_projection_tree),
+                    clear_compiled_projection_tree(),
                     ok
             end,
     State1 = set_projections(State, ProjectionTree1),
@@ -1766,6 +1780,20 @@ get_compiled_projection_tree(SourceProjectionTree) ->
         CompiledProjectionTree ->
             CompiledProjectionTree
     end.
+
+-spec clear_compiled_projection_tree() -> ok.
+%% @doc Erases the cached projection tree.
+%%
+%% This function should be called whenever the projection tree is changed:
+%% whenever a projection is registered or unregistered.
+%%
+%% @see get_compiled_projection_tree/1.
+%%
+%% @private
+
+clear_compiled_projection_tree() ->
+    erase(compiled_projection_tree),
+    ok.
 
 %% -------------------------------------------------------------------
 %% State record management functions.

@@ -288,7 +288,8 @@ duplicate_registrations_give_an_error_test_() ->
               begin
                   Projection = khepri_projection:new(?MODULE, ProjectFun),
                   ?assertEqual(
-                    {error, exists},
+                    {error, ?khepri_error(projection_already_exists,
+                                          #{name => ?MODULE})},
                     khepri:register_projection(
                       ?FUNCTION_NAME, PathPattern, Projection))
               end)}]

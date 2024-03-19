@@ -53,3 +53,6 @@
                              old_props :: khepri:node_props(),
                              new_props :: khepri:node_props(),
                              projection :: khepri_projection:projection()}).
+
+-record(restore_projection, {pattern :: khepri_path:native_pattern(),
+                             projection :: khepri_projection:projection()}).
