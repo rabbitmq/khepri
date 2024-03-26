@@ -1409,6 +1409,39 @@ can_use_default_store_on_single_node(_Config) ->
          trigger_id,
          [foo],
          [sproc], #{})),
+
+    ProjectionName1 = projection1,
+    ?assertEqual(false, khepri:has_projection(ProjectionName1)),
+    ?assertEqual(
+       false,
+       khepri:has_projection(ProjectionName1, #{favor => consistency})),
+    Projection1 = khepri_projection:new(ProjectionName1, copy),
+    ?assertEqual(ok, khepri:register_projection("/**", Projection1)),
+    ?assertEqual(
+       {error, ?khepri_error(
+                 projection_already_exists,
+                 #{name => ProjectionName1})},
+       khepri:register_projection("/**", Projection1)),
+    ?assertEqual(
+       true,
+       khepri:has_projection(ProjectionName1, #{favor => consistency})),
+
+    ProjectionName2 = projection2,
+    ?assertEqual(false, khepri:has_projection(ProjectionName2)),
+    Projection2 = khepri_projection:new(
+                    ProjectionName2, copy,
+                    #{read_concurrency => true, keypos => 2}),
+    ?assertEqual(ok, khepri:register_projection("/**", Projection2, #{})),
+    ?assertEqual(true, khepri:has_projection(ProjectionName2)),
+
+    ?assertEqual(ok, khepri:unregister_projection(ProjectionName1)),
+    ?assertEqual(
+       {error, ?khepri_error(
+                 projection_not_found,
+                 #{name => ProjectionName1})},
+       khepri:unregister_projection(ProjectionName1)),
+    ?assertEqual(ok, khepri:unregister_projection(ProjectionName2, #{})),
+
     ?assertEqual({ok, ok}, khepri:transaction(fun() -> ok end)),
     ?assertEqual({ok, ok}, khepri:transaction(fun() -> ok end, ro)),
     ?assertEqual({ok, ok}, khepri:transaction(fun() -> ok end, ro, #{})),
