@@ -119,6 +119,7 @@
          register_projection/2, register_projection/3, register_projection/4,
          unregister_projection/1, unregister_projection/2,
          unregister_projection/3,
+         has_projection/1, has_projection/2, has_projection/3,
 
          %% Transactions; `khepri_tx' provides the API to use inside
          %% transaction functions.
@@ -3025,6 +3026,85 @@ unregister_projection(StoreId, ProjectionName, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(ProjectionName) andalso
        is_map(Options) ->
     khepri_machine:unregister_projection(StoreId, ProjectionName, Options).
+
+%% -------------------------------------------------------------------
+%% has_projection().
+%% -------------------------------------------------------------------
+
+-spec has_projection(ProjectionName) -> Ret when
+      ProjectionName :: atom(),
+      Ret :: boolean() | khepri:error().
+%% @doc Determines whether the store has a projection registered with the given
+%% name.
+%%
+%% Calling this function is the same as calling
+%% `has_projection(StoreId, ProjectionName)' with the default store ID
+%% (see {@link khepri_cluster:get_default_store_id/0}).
+%%
+%% @see has_projection/2.
+
+has_projection(ProjectionName) when is_atom(ProjectionName) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    has_projection(StoreId, ProjectionName).
+
+-spec has_projection
+(StoreId, ProjectionName) -> Ret when
+      StoreId :: khepri:store_id(),
+      ProjectionName :: atom(),
+      Ret :: boolean() | khepri:error();
+(ProjectionName, Options) -> Ret when
+      ProjectionName :: atom(),
+      Options :: khepri:query_options(),
+      Ret :: boolean() | khepri:error().
+%% @doc Determines whether the store has a projection registered with the given
+%% name.
+%%
+%% This function accepts the following two forms:
+%% <ul>
+%% <li>`has_projection(StoreId, ProjectionName)'. Calling it is the same
+%% as calling `has_projection(StoreId, ProjectionName, #{})'.</li>
+%% <li>`has_projection(ProjectionName, Options)'. Calling it is the same
+%% as calling `has_projection(StoreId, ProjectionName, Options)' with
+%% the default store ID (see {@link khepri_cluster:get_default_store_id/0}).
+%% </li>
+%% </ul>
+%%
+%% @see has_projection/3.
+
+has_projection(StoreId, ProjectionName)
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(ProjectionName) ->
+    has_projection(StoreId, ProjectionName, #{});
+has_projection(ProjectionName, Options)
+  when is_atom(ProjectionName) andalso is_map(Options) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    has_projection(StoreId, ProjectionName, Options).
+
+-spec has_projection(StoreId, ProjectionName, Options) ->
+    Ret when
+      StoreId :: khepri:store_id(),
+      ProjectionName :: atom(),
+      Options :: khepri:query_options(),
+      Ret :: boolean() | khepri:error().
+%% @doc Determines whether the store has a projection registered with the given
+%% name.
+%%
+%% @param StoreId the name of the Khepri store.
+%% @param ProjectionName the name of the projection to has as passed to
+%%        {@link khepri_projection:new/3}.
+%% @param Options query options.
+%% @returns `true' if the store contains a projection registered with the given
+%% name, `false' if it does not, or an `{error, Reason}' tuple if the query
+%% failed.
+
+has_projection(StoreId, ProjectionName, Options)
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(ProjectionName) andalso
+       is_map(Options) ->
+    case khepri_machine:get_projections_state(StoreId, Options) of
+        {ok, ProjectionTree} ->
+            khepri_machine:has_projection(ProjectionTree, ProjectionName);
+        {error, _} = Error ->
+            Error
+    end.
 
 %% -------------------------------------------------------------------
 %% transaction().

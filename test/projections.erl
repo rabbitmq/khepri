@@ -33,6 +33,11 @@ trigger_simple_projection_on_path_test_() ->
                       ?FUNCTION_NAME, PathPattern, Projection))
               end)},
 
+         {"The store contains the projection",
+          ?_assertEqual(
+            true,
+            khepri:has_projection(?FUNCTION_NAME, ?MODULE))},
+
          {"Trigger the projection",
           ?_assertEqual(
             ok,
@@ -283,7 +288,8 @@ duplicate_registrations_give_an_error_test_() ->
               begin
                   Projection = khepri_projection:new(?MODULE, ProjectFun),
                   ?assertEqual(
-                    {error, exists},
+                    {error, ?khepri_error(projection_already_exists,
+                                          #{name => ?MODULE})},
                     khepri:register_projection(
                       ?FUNCTION_NAME, PathPattern, Projection))
               end)}]
@@ -618,6 +624,11 @@ unregister_projection_test_() ->
           ?_assertEqual(
             ok,
             khepri:unregister_projection(?FUNCTION_NAME, ?MODULE))},
+
+         {"The store no longer contains the projection",
+          ?_assertEqual(
+            false,
+            khepri:has_projection(?FUNCTION_NAME, ?MODULE))},
 
          {"The projection table no longer exists",
           ?_assertEqual(undefined, ets:info(?MODULE))},

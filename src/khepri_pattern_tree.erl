@@ -42,6 +42,8 @@
 
 -type update_fun(Payload) :: fun((Payload) -> Payload).
 
+-type find_fun(Payload) :: fun((Payload) -> boolean()).
+
 -export_type([tree_node/1,
               tree/1]).
 
@@ -51,7 +53,8 @@
          fold/5,
          foreach/2,
          compile/1,
-         filtermap/2]).
+         filtermap/2,
+         any/2]).
 
 -spec empty() -> TreeNode when
       TreeNode :: khepri_pattern_tree:tree(Payload),
@@ -331,3 +334,21 @@ filtermap1(
                            end
                    end, ChildNodes0),
     #pattern_node{payload = Payload, child_nodes = ChildNodes}.
+
+-spec any(PatternTree, FindFun) -> Ret when
+      PatternTree :: khepri_pattern_tree:tree(Payload),
+      FindFun :: find_fun(Payload),
+      Ret :: payload() | undefined,
+      Payload :: payload().
+%% @doc Determines whether the pattern tree contains a tree node with a payload
+%% that matches the given predicate.
+%%
+%% @param PatternTree the tree to search.
+%% @param FindFun the predicate with which to evaluate tree nodes.
+%% @returns `true' if the predicate evaluates as `true' for any payload,
+%%          `false' otherwise.
+
+any(#pattern_node{payload = Payload, child_nodes = Children}, FindFun) ->
+    (Payload =/= ?NO_PAYLOAD andalso FindFun(Payload)) orelse
+        lists:any(
+          fun(Child) -> any(Child, FindFun) end, maps:values(Children)).
