@@ -1991,7 +1991,6 @@ set_metrics(#khepri_machine{} = State, Metrics) ->
 -spec make_virgin_state(Config) -> State when
       Config :: khepri_machine:machine_config(),
       State :: khepri_machine:state().
-%% @private
 
 make_virgin_state(Config) ->
     #khepri_machine{config = Config}.
