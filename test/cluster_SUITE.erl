@@ -550,9 +550,8 @@ can_start_a_three_node_cluster(Config) ->
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
-              Member = khepri_cluster:node_to_member(StoreId, Node),
               ?assertEqual(
-                 {error, {timeout, Member}},
+                 {error, timeout},
                  rpc:call(Node, khepri, get, [StoreId, [foo]]))
       end, RunningNodes2),
 

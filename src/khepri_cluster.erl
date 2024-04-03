@@ -765,8 +765,8 @@ reset_remotely_and_join_locked(
                 Error ->
                     Error
             end;
-        {timeout, _} = TimedOut ->
-            {error, TimedOut};
+        {timeout, _} ->
+            {error, timeout};
         {error, _} = Error ->
             Error
     end;
@@ -867,8 +867,8 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
             %% point.
             _ = trigger_election(ThisMember, Timeout1),
             case Error of
-                {timeout, _} = TimedOut -> {error, TimedOut};
-                {error, _}              -> Error
+                {timeout, _} -> {error, timeout};
+                {error, _}   -> Error
             end
     end.
 
@@ -993,8 +993,8 @@ do_reset(RaSystem, StoreId, ThisMember, Timeout) ->
                     forget_store(StoreId),
                     ok
             end;
-        {timeout, _} = TimedOut ->
-            {error, TimedOut};
+        {timeout, _} ->
+            {error, timeout};
         {error, _} = Error ->
             Error
     end.
