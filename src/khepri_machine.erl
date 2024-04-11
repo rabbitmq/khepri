@@ -738,8 +738,8 @@ process_sync_command(StoreId, Command, Options) ->
               StoreId, LeaderId, NewLeaderId),
             just_did_consistent_call(StoreId),
             ?raise_exception_if_any(Ret);
-        {timeout, _} = TimedOut ->
-            {error, TimedOut};
+        {timeout, _LeaderId} ->
+            {error, timeout};
         {error, Reason}
           when LeaderId =/= undefined andalso ?HAS_TIME_LEFT(Timeout) andalso
                (Reason == noproc orelse Reason == nodedown orelse
@@ -916,8 +916,8 @@ process_query_response(
     ?raise_exception_if_any(Ret);
 process_query_response(
   _StoreId, _RaServer, _IsLeader, _QueryFun, _QueryType, _Timeout,
-  {timeout, _} = TimedOut) ->
-    {error, TimedOut};
+  {timeout, _LeaderId}) ->
+    {error, timeout};
 process_query_response(
   StoreId, _RaServer, true = _IsLeader, QueryFun, QueryType, Timeout,
   {error, Reason})
