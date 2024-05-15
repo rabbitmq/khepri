@@ -119,7 +119,7 @@ nodes added or removed).</p>
   existing nodes are not reflected in this version.</p>
 
 <h3 class="typedecl"><a name="type-command_options">command_options()</a></h3>
-<p><code>command_options() = #{timeout =&gt; timeout(), async =&gt; <a href="#type-async_option">async_option()</a>, reply_from =&gt; <a href="#type-reply_from_option">reply_from_option()</a>}</code></p>
+<p><code>command_options() = #{timeout =&gt; timeout(), async =&gt; <a href="#type-async_option">async_option()</a>, reply_from =&gt; <a href="#type-reply_from_option">reply_from_option()</a>, protect_against_dups =&gt; boolean()}</code></p>
 <p><p>  Options used in commands.</p>
  
   <p>Commands are <a docgen-rel="seemfa" docgen-href="#put/4" href="#put-4"><code>put/4</code></a>, <a docgen-rel="seemfa" docgen-href="#delete/3" href="#delete-3"><code>delete/3</code></a> and read-write <a docgen-rel="seemfa" docgen-href="#transaction/4" href="#transaction-4"><code>transaction/4</code></a>.</p>
@@ -130,6 +130,11 @@ nodes added or removed).</p>
   command; see <a docgen-rel="seetype" docgen-href="#async_option/0" href="#type-async_option"><code>async_option()</code></a>.</li>
   <li><code>reply_from</code> indicates which cluster member should reply to the
   command request; see <a docgen-rel="seetype" docgen-href="#reply_from_option/0" href="#type-reply_from_option"><code>reply_from_option()</code></a>.</li>
+  <li><code>protect_against_dups</code> indicates if the deduplication mechanism should
+  be used for the command. This mechanism helps to avoid the same command to
+  be processed multiple times if there is a Ra cluster member stopping or a
+  change of leadership occurring at the same time. It is disabled by default,
+  except for R/W transactions.</li>
   </ul></p>
 
 <h3 class="typedecl"><a name="type-data">data()</a></h3>

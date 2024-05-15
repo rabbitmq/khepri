@@ -25,22 +25,53 @@ Khepri private low-level API.</p>
   state machine. All functions in <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> are built on top of this  
 module.</p>
  
-  This module is private. The documentation is still visible because it may
-  help understand some implementation details. However, this module should
-  never be called directly outside of Khepri.
+  <p>This module is private. The documentation is still visible because it may  
+help understand some implementation details. However, this module should  
+never be called directly outside of Khepri.</p>
+ 
+  <h3><a name="State_machine_history">State machine history</a></h3>
+ 
+  <table>
+  <tr><th>Version</th><th>What changed</th></tr>
+  <tr>
+  <td style="text-align: right; vertical-align: top;">0</td>
+  <td>Initial version</td>
+  </tr>
+  <tr>
+  <td style="text-align: right; vertical-align: top;">1</td>
+  <td>Added deduplication mechanism:
+  <ul>
+  <li>new command option <code>protect_against_dups</code></li>
+  <li>new commands <code>#dedup{}</code> and <code>#dedup_ack{}</code></li>
+  <li>new state field <code>dedups</code></li>
+  </ul></td>
+  </tr>
+  </table>
 <h2><a name="types">Data Types</a></h2>
 
 <h3 class="typedecl"><a name="type-async_ret">async_ret()</a></h3>
 <p><code>async_ret() = ok</code></p>
 
 
+<h3 class="typedecl"><a name="type-command">command()</a></h3>
+<p><code>command() = #put{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_pattern">khepri_path:native_pattern()</a>, payload = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a>, options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a>} | #delete{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_pattern">khepri_path:native_pattern()</a>, options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a>} | #tx{'fun' = <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun">horus:horus_fun()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a>, args = list()} | #register_trigger{id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id">khepri:trigger_id()</a>, event_filter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a>, sproc = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a>} | #ack_triggered{triggered = [<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-triggered">khepri_machine:triggered()</a>]} | #register_projection{pattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_pattern">khepri_path:native_pattern()</a>, projection = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection">khepri_projection:projection()</a>} | #unregister_projection{name = atom()} | #dedup{ref = reference(), expiry = integer(), command = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-command">khepri_machine:command()</a>} | #dedup_ack{ref = reference()}</code></p>
+<p>  Commands specific to this Ra machine.</p>
+
 <h3 class="typedecl"><a name="type-common_ret">common_ret()</a></h3>
 <p><code>common_ret() = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-node_props_map">khepri_adv:node_props_map()</a>) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></p>
 
 
+<h3 class="typedecl"><a name="type-dedups_map">dedups_map()</a></h3>
+<p><code>dedups_map() = #{reference() =&gt; {any(), integer()}}</code></p>
+<p>  Map to handle command deduplication.</p>
+
 <h3 class="typedecl"><a name="type-machine_config">machine_config()</a></h3>
 <p><code>machine_config() = #config{store_id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a>, member = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a>, snapshot_interval = non_neg_integer()}</code></p>
 <p>  Configuration record, holding read-only or rarely changing fields.</p>
+
+<h3 class="typedecl"><a name="type-machine_init_args">machine_init_args()</a></h3>
+<p><code>machine_init_args() = #{store_id := <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a>, member := <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a>, snapshot_interval =&gt; non_neg_integer(), commands =&gt; [<a href="#type-command">command()</a>], atom() =&gt; any()}</code></p>
+<p>  Structure passed to <a docgen-rel="seemfa" docgen-href="#init/1" href="#init-1"><code>init/1</code></a>.</p>
 
 <h3 class="typedecl"><a name="type-metrics">metrics()</a></h3>
 <p><code>metrics() = #{applied_command_count =&gt; non_neg_integer()}</code></p>
@@ -55,8 +86,12 @@ module.</p>
 <p>  Properties attached to each node in the tree structure.</p>
 
 <h3 class="typedecl"><a name="type-state">state()</a></h3>
-<p><b>abstract datatype</b>: <code>state()</code></p>
+<p><code>state() = <a href="#type-state_v1">state_v1()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine_v0.html#type-state">khepri_machine_v0:state()</a></code></p>
 <p>  State of this Ra state machine.</p>
+
+<h3 class="typedecl"><a name="type-state_v1">state_v1()</a></h3>
+<p><b>abstract datatype</b>: <code>state_v1()</code></p>
+<p>  State of this Ra state machine, version 1.</p>
 
 <h3 class="typedecl"><a name="type-triggered">triggered()</a></h3>
 <p><code>triggered() = #triggered{id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id">khepri:trigger_id()</a>, event_filter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter">khepri_evf:event_filter()</a>, sproc = <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun">horus:horus_fun()</a>, props = map()}</code></p>
@@ -78,8 +113,8 @@ module.</p>
 <tr><td valign="top"><a href="#register_trigger-5">register_trigger/5</a></td><td>Registers a trigger.</td></tr>
 <tr><td valign="top"><a href="#register_projection-4">register_projection/4</a></td><td>Registers a projection.</td></tr>
 <tr><td valign="top"><a href="#unregister_projection-3">unregister_projection/3</a></td><td>Unregisters a projection by name.</td></tr>
-<tr><td valign="top"><a href="#get_last_consistent_call_atomics-1">get_last_consistent_call_atomics/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#version-0">version/0</a></td><td></td></tr>
+<tr><td valign="top"><a href="#version-0">version/0</a></td><td>Returns the state machine version.</td></tr>
+<tr><td valign="top"><a href="#which_module-1">which_module/1</a></td><td>Returns the state machine module corresponding to the given version.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -186,17 +221,19 @@ module.</p>
 </div><p>Unregisters a projection by name.
  </p>
 
-<h3 class="function"><a name="get_last_consistent_call_atomics-1">get_last_consistent_call_atomics/1</a></h3>
-<div class="spec">
-<p><code>get_last_consistent_call_atomics(StoreId) -&gt; any()</code></p>
-<p></p>
-</div>
-
 <h3 class="function"><a name="version-0">version/0</a></h3>
 <div class="spec">
-<p><code>version() -&gt; any()</code></p>
+<p><code>version() -&gt; MacVer</code>
+<ul class="definitions"><li><code>MacVer = 1</code></li></ul></p>
 <p></p>
-</div>
+</div><p>Returns the state machine version.</p>
+
+<h3 class="function"><a name="which_module-1">which_module/1</a></h3>
+<div class="spec">
+<p><code>which_module(MacVer) -&gt; Module</code>
+<ul class="definitions"><li><code>MacVer = 1 | 0</code></li><li><code>Module = khepri_machine</code></li></ul></p>
+<p></p>
+</div><p>Returns the state machine module corresponding to the given version.</p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
