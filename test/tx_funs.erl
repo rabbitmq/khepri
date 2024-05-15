@@ -55,9 +55,9 @@ allowed_khepri_tx_api_test() ->
        end).
 
 denied_khepri_tx_adv_run_4_test() ->
-    Config = #config{store_id = ?FUNCTION_NAME,
-                     member = {?FUNCTION_NAME, node()}},
-    MachineState = khepri_machine:make_virgin_state(Config),
+    Params = #{store_id => ?FUNCTION_NAME,
+               member => {?FUNCTION_NAME, node()}},
+    MachineState = khepri_machine:make_virgin_state(Params),
     ?assertToFunError(
        ?khepri_exception(
           failed_to_prepare_tx_fun,

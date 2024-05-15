@@ -982,7 +982,7 @@ run(State, StandaloneFun, Args, AllowUpdates)
 
         {NewState, NewSideEffects} = erlang:erase(?TX_STATE_KEY),
         NewTxProps = erlang:erase(?TX_PROPS),
-        ?assert(khepri_machine:is_state(NewState)),
+        khepri_machine:ensure_is_state(NewState),
         ?assertEqual(TxProps, NewTxProps),
         {NewState, Ret, NewSideEffects}
     catch
