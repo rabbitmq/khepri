@@ -7,7 +7,7 @@ erl_crash.dump
 /doc/*
 !/doc/_head.html
 !/doc/khepri-favicon.svg
-!/doc/khepri-logo.svg
+!/doc/khepri-logo*.svg
 !/doc/khepri-social-preview.svg
 !/doc/khepri-social-preview.png
 !/doc/overview.edoc
