@@ -2503,12 +2503,11 @@ delete(PathPattern, Options) when is_map(Options) ->
 %% node names and conditions) or as a string. See {@link
 %% khepri_path:from_string/1}.
 %%
-%% The `PathPattern' must target a specific tree node. In other words,
-%% updating many nodes with the same payload is denied. That fact is checked
-%% before the tree node is looked up: so if a condition in the path could
-%% potentially match several nodes, an exception is raised, even though only
-%% one tree node would match at the time. If you want to delete multiple nodes
-%% at once, use {@link delete_many/3}.
+%% The `PathPattern' must target a specific tree node. In other words, deleting
+%% many nodes is denied. That fact is checked before the tree node is looked
+%% up: so if a condition in the path could potentially match several nodes, an
+%% exception is raised, even though only one tree node would match at the time.
+%% If you want to delete multiple nodes at once, use {@link delete_many/3}.
 %%
 %% Example:
 %% ```
