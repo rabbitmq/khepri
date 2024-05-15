@@ -70,15 +70,23 @@ fold_finds_all_patterns_matching_a_path_test() ->
                    Tree0, Path, TreePayload, #{}, #{}),
                  Tree
              end, #tree{}, [[stock, wood, <<"oak">>],
-                            [stock, wood, <<"birch">>]]),
+                            [stock, wood, <<"birch">>],
+                            [stock, metal, <<"iron">>],
+                            []]),
     PathPatterns =
     [[stock, wood, <<"oak">>],                               %% 1
      [stock, wood, <<"birch">>],                             %% 2
      [stock, wood, <<"oak">>],                               %% 3
      [stock, wood, #if_has_data{}],                          %% 4
      [stock, wood, #if_child_list_length{count = 0}],        %% 5
-     [stock, #if_child_list_length{count = 2}],              %% 6
-     [stock, wood, #if_name_matches{regex = "^b"}]],         %% 7
+     [stock, wood, #if_name_matches{regex = "^b"}],          %% 6
+     [stock, #if_name_matches{regex = any}],                 %% 7
+     [stock, #if_name_matches{regex = any}, <<"oak">>],      %% 8
+     [stock, #if_path_matches{regex = any}],                 %% 9
+     [stock, #if_path_matches{regex = any}, <<"oak">>],      %% 10
+     [stock, #if_path_matches{regex = "o"}],                 %% 11
+     [stock, #if_child_list_length{count = 1}],              %% 12
+     []],                                                    %% 13
     PatternTree0 = lists:foldl(
                      fun({Index, PathPattern}, Acc) ->
                              khepri_pattern_tree:update(
@@ -100,14 +108,23 @@ fold_finds_all_patterns_matching_a_path_test() ->
                                 end, [])
                       end,
     ?assertListsEqual(
-      [1, 3, 4, 5, 6],
+      [1, 3, 4, 5, 8, 9, 10, 11],
       MatchingIndices([stock, wood, <<"oak">>])),
     ?assertListsEqual(
-      [2, 4, 5, 6, 7],
+      [2, 4, 5, 6, 9],
       MatchingIndices([stock, wood, <<"birch">>])),
     ?assertListsEqual(
-      [6],
+      [],
       MatchingIndices([stock, wood, <<"maple">>])),
+    ?assertListsEqual(
+      [7, 9, 11],
+      MatchingIndices([stock, wood])),
+    ?assertListsEqual(
+      [7, 9, 12],
+      MatchingIndices([stock, metal])),
+    ?assertListsEqual(
+      [13],
+      MatchingIndices([])),
     ok.
 
 %% Helper functions.

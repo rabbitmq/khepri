@@ -80,6 +80,38 @@ trigger_simple_projection_on_pattern_test_() ->
           end}]
       }]}.
 
+dont_trigger_simple_projection_on_unrelated_pattern_test_() ->
+    ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
+    PathPattern = [stock, wood, ?KHEPRI_WILDCARD_STAR],
+    Path1 = [stock, metal, <<"iron">>],
+    Path2 = [stock, wood, <<"oak">>, by_origin],
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Register the projection",
+          ?_test(
+              begin
+                  Projection = khepri_projection:new(?MODULE, ProjectFun),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)},
+
+         {"Trigger the projection",
+          fun() ->
+                  ?assertEqual(ok, khepri:put(?FUNCTION_NAME, Path1, 80)),
+                  ?assertEqual(ok, khepri:put(?FUNCTION_NAME, Path2, 50))
+          end},
+
+         {"The projection contains the triggered changes",
+          fun() ->
+                  ?assertError(badarg, ets:lookup_element(?MODULE, Path1, 2)),
+                  ?assertError(badarg, ets:lookup_element(?MODULE, Path2, 2))
+          end}]
+      }]}.
+
 trigger_simple_projection_on_compiled_pattern_test_() ->
     ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
     Path = [stock, wood, <<"oak">>],
