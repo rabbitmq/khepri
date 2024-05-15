@@ -1938,12 +1938,11 @@ returned.</p>
   <p>The <code>PathPattern</code> can be provided as a native path pattern (a list of tree
   node names and conditions) or as a string. See <a docgen-rel="seemfa" docgen-href="khepri_path#from_string/1" href="khepri_path.html#from_string-1"><code>khepri_path:from_string/1</code></a>.</p>
  
-  <p>The <code>PathPattern</code> must target a specific tree node. In other words,
-  updating many nodes with the same payload is denied. That fact is checked
-  before the tree node is looked up: so if a condition in the path could
-  potentially match several nodes, an exception is raised, even though only
-  one tree node would match at the time. If you want to delete multiple nodes
-  at once, use <a docgen-rel="seemfa" docgen-href="#delete_many/3" href="#delete_many-3"><code>delete_many/3</code></a>.</p>
+  <p>The <code>PathPattern</code> must target a specific tree node. In other words, deleting
+  many nodes is denied. That fact is checked before the tree node is looked
+  up: so if a condition in the path could potentially match several nodes, an
+  exception is raised, even though only one tree node would match at the time.
+  If you want to delete multiple nodes at once, use <a docgen-rel="seemfa" docgen-href="#delete_many/3" href="#delete_many-3"><code>delete_many/3</code></a>.</p>
  
   Example:
   <pre><code>%% Delete the tree node at `/:foo/:bar'.
