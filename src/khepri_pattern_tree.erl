@@ -149,9 +149,14 @@ update_payload(#pattern_node{payload = Payload} = PatternTree, UpdateFun) ->
 %% @see fold_acc().
 
 fold(PatternTree, Tree, Path, FoldFun, Acc) ->
-    Acc1 = fold_data(PatternTree, [], FoldFun, Acc),
-    Root = Tree#tree.root,
-    fold1(PatternTree, Root, Path, FoldFun, Acc1, []).
+    Path1 = khepri_path:realpath(Path),
+    case Path1 of
+        [] ->
+            fold_data(PatternTree, [], FoldFun, Acc);
+        _ ->
+            Root = Tree#tree.root,
+            fold1(PatternTree, Root, Path, FoldFun, Acc, [])
+    end.
 
 -spec fold1(PatternTree, Node, Path, FoldFun, Acc, ReversedPath) -> Ret when
       PatternTree :: khepri_pattern_tree:tree(Payload),
@@ -164,40 +169,69 @@ fold(PatternTree, Tree, Path, FoldFun, Acc) ->
       Payload :: payload().
 %% @private
 
-fold1(_PatternTree, _Node, [], _FoldFun, Acc, _ReversedPath) ->
+fold1(
+  _PatternTree, _Node, [], _FoldFun, Acc, _ReversedPath) ->
     Acc;
-fold1(PatternTree, Parent, [Component | Rest], FoldFun, Acc0, ReversedPath) ->
+fold1(
+  PatternTree, Parent, [Component | Rest], FoldFun, Acc, ReversedPath) ->
     case Parent of
         #node{child_nodes = #{Component := Node}} ->
             ReversedPath1 = [Component | ReversedPath],
-            CurrentPath = lists:reverse(ReversedPath1),
             maps:fold(
-              fun(Condition, PatternSubtree, Acc) ->
-                      case khepri_condition:is_met(Condition, Component, Node) of
-                          true ->
-                              Acc1 = fold_data(
-                                       PatternSubtree, CurrentPath,
-                                       FoldFun, Acc),
+              fun(Condition, PatternSubtree, Acc0) ->
+                      CondMet = khepri_condition:is_met(
+                                  Condition, Component, Node),
+                      AppliesToGrandchildren = (
+                        khepri_condition:applies_to_grandchildren(
+                          Condition)),
+                      case CondMet of
+                          true when Rest =:= [] ->
+                              %% The pattern node matches the whole path
+                              %% (there is no component left after). We can
+                              %% apply the `FoldFun' and return.
+                              CurrentPath = lists:reverse(ReversedPath1),
+                              fold_data(
+                                PatternSubtree, CurrentPath,
+                                FoldFun, Acc0);
+                          true when not AppliesToGrandchildren ->
+                              %% The pattern node matches the path so far but
+                              %% there are still components left after (we are
+                              %% not at the end of the path).
+                              %%
+                              %% We continue with the next component.
+                              fold1(
+                                PatternSubtree, Node, Rest,
+                                FoldFun, Acc0, ReversedPath1);
+                          true when AppliesToGrandchildren ->
+                              %% Same as above, but because this condition can
+                              %% be used on grand children, we two scenarios:
+                              %%   1. The condition may still match grand
+                              %%      children, so we keep it and continue down
+                              %%      the tree. This is `Acc1' below.
+                              %%   2. The condition won't match any grand
+                              %%      children (but it matched so far). We
+                              %%      evaluate the grand children with the
+                              %%      pattern sub tree. This is `Acc2' below.
+                              %%
+                              %% For scenario 1, we prepare a special pattern
+                              %% tree with only that condition because we don't
+                              %% want to evaluate siblings on grand children.
+                              PatternTree1 = PatternTree#pattern_node{
+                                               child_nodes =
+                                               #{Condition => PatternSubtree}},
+                              Acc1 = fold1(
+                                       PatternTree1, Node, Rest,
+                                       FoldFun, Acc0, ReversedPath1),
                               Acc2 = fold1(
                                        PatternSubtree, Node, Rest,
                                        FoldFun, Acc1, ReversedPath1),
-                              AppliesToGrandchildren =
-                              khepri_condition:applies_to_grandchildren(
-                                Condition),
-                              case AppliesToGrandchildren of
-                                  true ->
-                                      fold1(
-                                        PatternTree, Node, Rest,
-                                        FoldFun, Acc2, ReversedPath1);
-                                  false ->
-                                      Acc2
-                              end;
+                              Acc2;
                           {false, _} ->
-                              Acc
+                              Acc0
                       end
-              end, Acc0, PatternTree#pattern_node.child_nodes);
+              end, Acc, PatternTree#pattern_node.child_nodes);
         _ChildNotFound ->
-            Acc0
+            Acc
     end.
 
 -spec fold_data(PatternTreeNode, CurrentPath, FoldFun, Acc) -> Ret when
