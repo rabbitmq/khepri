@@ -2,7 +2,8 @@
 %% License, v. 2.0. If a copy of the MPL was not distributed with this
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
-%% Copyright © 2021-2024 Broadcom. All Rights Reserved. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+%% Copyright © 2021-2024 Broadcom. All Rights Reserved. The term "Broadcom"
+%% refers to Broadcom Inc. and/or its subsidiaries.
 %%
 
 -module(advanced_tx_put).
@@ -164,7 +165,8 @@ invalid_put_call_test_() ->
             #{path := _}),
          begin
              Fun = fun() ->
-                           khepri_tx_adv:put([?KHEPRI_WILDCARD_STAR], foo_value)
+                           khepri_tx_adv:put(
+                             [?KHEPRI_WILDCARD_STAR], foo_value)
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.

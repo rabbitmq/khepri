@@ -127,7 +127,8 @@ Path = [stock, wood, <<"oak">>].
 
 It is possible to target multiple tree nodes at once by using a <em>path
 pattern</em> ({@link khepri_path:pattern()}). In addition to node IDs, path
-patterns have conditions ({@link khepri_condition:condition()}). Conditions allow things like:
+patterns have conditions ({@link khepri_condition:condition()}). Conditions
+allow things like:
 <ul>
 <li>checking the existence of a tree node</li>
 <li>targeting all child nodes of a tree node</li>

@@ -2,7 +2,8 @@
 %% License, v. 2.0. If a copy of the MPL was not distributed with this
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
-%% Copyright © 2022-2024 Broadcom. All Rights Reserved. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+%% Copyright © 2022-2024 Broadcom. All Rights Reserved. The term "Broadcom"
+%% refers to Broadcom Inc. and/or its subsidiaries.
 %%
 
 %% @doc Khepri projections
@@ -17,8 +18,8 @@
 %% Projections provide a way to query the store as fast as possible and are
 %% appropriate for lookups which require low latency and/or high throughput.
 %% Projection tables contain all records matching the pattern, though, so the
-%% memory footprint of a projection table grows with the number of tree nodes in
-%% the store matching the pattern.
+%% memory footprint of a projection table grows with the number of tree nodes
+%% in the store matching the pattern.
 %%
 %% Projection ETS tables are owned by the Khepri cluster and are deleted when
 %% the cluster stops.

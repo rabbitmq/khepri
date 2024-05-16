@@ -2,7 +2,8 @@
 %% License, v. 2.0. If a copy of the MPL was not distributed with this
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
-%% Copyright © 2022-2024 Broadcom. All Rights Reserved. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+%% Copyright © 2022-2024 Broadcom. All Rights Reserved. The term "Broadcom"
+%% refers to Broadcom Inc. and/or its subsidiaries.
 %%
 
 -module(async_option).
@@ -62,7 +63,8 @@ async_true_in_put_test_() ->
                            khepri:exists(?FUNCTION_NAME, [foo]);
                        (_, true = Ret) ->
                            Ret
-                   end, khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
+                   end,
+                   khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
              ?assertEqual(
                 {ok, #{payload_version => 1}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
@@ -108,7 +110,8 @@ async_with_priority_in_put_test_() ->
                            khepri:exists(?FUNCTION_NAME, [foo]);
                        (_, true = Ret) ->
                            Ret
-                   end, khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
+                   end,
+                   khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
              ?assertEqual(
                 {ok, #{payload_version => 1}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
@@ -200,7 +203,8 @@ async_true_in_delete_test_() ->
                            khepri:exists(?FUNCTION_NAME, [foo]);
                        (_, false = Ret) ->
                            Ret
-                   end, khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
+                   end,
+                   khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
              ?assertEqual(
                 {error,
                  ?khepri_error(node_not_found, #{node_name => foo,
@@ -257,7 +261,8 @@ async_with_priority_in_delete_test_() ->
                            khepri:exists(?FUNCTION_NAME, [foo]);
                        (_, false = Ret) ->
                            Ret
-                   end, khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
+                   end,
+                   khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
              ?assertEqual(
                 {error,
                  ?khepri_error(node_not_found, #{node_name => foo,
@@ -346,7 +351,8 @@ async_true_in_transaction_test_() ->
                            khepri:exists(?FUNCTION_NAME, [foo]);
                        (_, true = Ret) ->
                            Ret
-                   end, khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
+                   end,
+                   khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
              ?assertEqual(
                 {ok, #{payload_version => 1}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
@@ -423,7 +429,8 @@ async_with_priority_in_transaction_test_() ->
                            khepri:exists(?FUNCTION_NAME, [foo]);
                        (_, true = Ret) ->
                            Ret
-                   end, khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
+                   end,
+                   khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
              ?assertEqual(
                 {ok, #{payload_version => 1}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
