@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Repository Dispatch
-        uses: peter-evans/repository-dispatch@v1
+        uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.KHEPRI_BENCHMARK_REPO_ACCESS_TOKEN }}
           repository: rabbitmq/khepri-benchmark

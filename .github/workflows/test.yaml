@@ -30,7 +30,7 @@ jobs:
           rebar3-version: '3.22.1'
 
       - name: Restore Dialyzer PLT files from cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         if: ${{ matrix.otp_version == env.RUN_DIALYZER_ON_OTP_RELEASE && matrix.os == 'ubuntu-latest' }}
         with:
           path: _build/*/rebar3_*_plt
