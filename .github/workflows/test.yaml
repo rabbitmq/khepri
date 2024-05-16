@@ -22,7 +22,7 @@ jobs:
       RUN_DIALYZER_ON_OTP_RELEASE: 26
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: erlef/setup-beam@v1
         id: install-erlang
         with:
@@ -56,7 +56,7 @@ jobs:
         run: rebar3 as test covertool generate
 
       - name: Upload code coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: _build/test/covertool/khepri.covertool.xml
