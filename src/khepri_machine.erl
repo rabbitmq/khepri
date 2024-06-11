@@ -70,6 +70,7 @@
          handle_aux/6,
          apply/3,
          state_enter/2,
+         snapshot_installed/2,
          overview/1,
          version/0,
          which_module/1]).
@@ -1501,6 +1502,12 @@ state_enter(recovered, _State) ->
     [SideEffect];
 state_enter(_StateName, _State) ->
     [].
+
+%% @private
+
+snapshot_installed(_Meta, _State) ->
+    SideEffect = {aux, restore_projections},
+    [SideEffect].
 
 %% @private
 
