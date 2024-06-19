@@ -1591,6 +1591,11 @@ can_set_snapshot_interval(Config) ->
        {ok, StoreId},
        khepri:start(RaSystem, RaServerConfig)),
 
+    RaServer = khepri_cluster:node_to_member(StoreId, Node),
+    ?assertMatch(
+      {ok, #{log := #{snapshot_index := undefined}}, RaServer},
+      ra:member_overview(RaServer)),
+
     ct:pal("Verify applied command count is 1 (`machine_version` command)"),
     ?assertEqual(
        #{applied_command_count => 1},
@@ -1599,7 +1604,7 @@ can_set_snapshot_interval(Config) ->
          fun khepri_machine:get_metrics/1,
          #{})),
 
-    ct:pal("Use database after starting it"),
+    ct:pal("Submit command 2 (`put`)"),
     ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
 
     ct:pal("Verify applied command count is 2"),
@@ -1610,7 +1615,7 @@ can_set_snapshot_interval(Config) ->
          fun khepri_machine:get_metrics/1,
          #{})),
 
-    ct:pal("Use database after starting it"),
+    ct:pal("Submit command 3 (`put`)"),
     ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
 
     ct:pal("Verify applied command count is 3"),
@@ -1621,8 +1626,14 @@ can_set_snapshot_interval(Config) ->
          fun khepri_machine:get_metrics/1,
          #{})),
 
-    ct:pal("Use database after starting it"),
+    ?assertMatch(
+      {ok, #{log := #{snapshot_index := undefined}}, RaServer},
+      ra:member_overview(RaServer)),
+
+    ct:pal("Submit command 4 (`put`)"),
     ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
+
+    await_snapshot_index(RaServer, 4),
 
     ct:pal("Verify applied command count is 0"),
     ?assertEqual(
@@ -1638,6 +1649,27 @@ can_set_snapshot_interval(Config) ->
        khepri:stop(StoreId)),
 
     ok.
+
+await_snapshot_index(RaServer, ExpectedIndex) ->
+    await_snapshot_index(RaServer, ExpectedIndex, 10).
+
+await_snapshot_index(RaServer, ExpectedIndex, Retries) ->
+    {ok, #{log := #{snapshot_index := ActualIndex}}, RaServer} =
+      ra:member_overview(RaServer),
+    case ActualIndex of
+       ExpectedIndex ->
+          ok;
+       _ ->
+          case Retries of
+              0 ->
+                 erlang:error({await_snapshot_index,
+                               [{expected, ExpectedIndex},
+                                {value, ActualIndex}]});
+              _ ->
+                 timer:sleep(10),
+                 await_snapshot_index(RaServer, ExpectedIndex, Retries - 1)
+          end
+    end.
 
 projections_are_consistent_on_three_node_cluster(Config) ->
     ProjectionName = ?MODULE,
