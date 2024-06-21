@@ -290,27 +290,29 @@
 %% except for R/W transactions.</li>
 %% </ul>
 
--type favor_option() :: consistency | compromise | low_latency.
+-type favor_option() :: consistency | low_latency.
 %% Option to indicate where to put the cursor between freshness of the
 %% returned data and low latency of queries.
 %%
 %% Values are:
 %% <ul>
-%% <li>`consistent' means that a "consistent query" will be used in Ra. It
-%% will return the most up-to-date piece of data the cluster agreed on. Note
-%% that it could block and eventually time out if there is no quorum in the Ra
-%% cluster.</li>
-%% <li>`compromise' performs "leader queries" most of the time to reduce
-%% latency, but uses "consistent queries" every 10 seconds to verify that the
-%% cluster is healthy on a regular basis. It should be faster but may block
-%% and time out like `consistent' and still return slightly out-of-date
-%% data.</li>
-%% <li>`low_latency' means that "local queries" are used exclusively. They are
-%% the fastest and have the lowest latency. However, the returned data is
-%% whatever the local Ra server has. It could be out-of-date if it has
-%% troubles keeping up with the Ra cluster. The chance of blocking and timing
-%% out is very small.</li>
+%% <li>`low_latency' means that a local query is used. It is the fastest and
+%% have the lowest latency. However, the returned data is whatever the local Ra
+%% server has. It could be out-of-date if the local Ra server did not get or
+%% applied the latest updates yet. The chance of blocking and timing out is
+%% very small.</li>
+%% <li>`consistency' means that a local query is used. However the query uses
+%% the fence mechanism to ensure that the previous updates from the calling
+%% process are applied locally before the query is evaluated. It will return
+%% the most up-to-date piece of data the cluster agreed on. Note that it could
+%% block and eventually time out if there is no quorum in the Ra cluster.</li>
 %% </ul>
+%%
+%% As described above, queries are always evaluated locally by the cluster
+%% member that gets the call. The reason Ra's leader and consistent queries
+%% are not exposed is that the remote execution of the query function may fail
+%% in subtle on non-subtle ways. For instance, the remote node might run a
+%% different version of Erlang or Khepri.
 
 -type query_options() :: #{condition => ra:query_condition(),
                            timeout => timeout(),
@@ -324,6 +326,9 @@
 %% <li>`favor' indicates where to put the cursor between freshness of the
 %% returned data and low latency of queries; see {@link favor_option()}.</li>
 %% </ul>
+%%
+%% `favor' computes a `condition' internally. Therefore if both options are
+%% set, `condition' takes precedence and `favor' is ignored.
 
 -type tree_options() :: #{expect_specific_node => boolean(),
                           props_to_return => [payload_version |
