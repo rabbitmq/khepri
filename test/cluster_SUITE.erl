@@ -1445,7 +1445,7 @@ can_use_default_store_on_single_node(_Config) ->
     ?assertEqual(false, khepri:has_projection(ProjectionName1)),
     ?assertEqual(
        false,
-       khepri:has_projection(ProjectionName1, #{favor => consistency})),
+       khepri:has_projection(ProjectionName1, #{type => consistent})),
     Projection1 = khepri_projection:new(ProjectionName1, copy),
     ?assertEqual(ok, khepri:register_projection("/**", Projection1)),
     ?assertEqual(
@@ -1455,7 +1455,7 @@ can_use_default_store_on_single_node(_Config) ->
        khepri:register_projection("/**", Projection1)),
     ?assertEqual(
        true,
-       khepri:has_projection(ProjectionName1, #{favor => consistency})),
+       khepri:has_projection(ProjectionName1, #{type => consistent})),
 
     ProjectionName2 = projection2,
     ?assertEqual(false, khepri:has_projection(ProjectionName2)),

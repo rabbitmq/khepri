@@ -288,36 +288,38 @@
 %% except for R/W transactions.</li>
 %% </ul>
 
--type favor_option() :: consistency | compromise | low_latency.
-%% Option to indicate where to put the cursor between freshness of the
-%% returned data and low latency of queries.
+-type query_type_option() :: local | leader | consistent.
+%% Option to indicate which Ra query type and thus which Ra query function to
+%% use underneath.
 %%
 %% Values are:
 %% <ul>
-%% <li>`consistent' means that a "consistent query" will be used in Ra. It
-%% will return the most up-to-date piece of data the cluster agreed on. Note
-%% that it could block and eventually time out if there is no quorum in the Ra
-%% cluster.</li>
-%% <li>`compromise' performs "leader queries" most of the time to reduce
-%% latency, but uses "consistent queries" every 10 seconds to verify that the
-%% cluster is healthy on a regular basis. It should be faster but may block
-%% and time out like `consistent' and still return slightly out-of-date
-%% data.</li>
-%% <li>`low_latency' means that "local queries" are used exclusively. They are
-%% the fastest and have the lowest latency. However, the returned data is
-%% whatever the local Ra server has. It could be out-of-date if it has
-%% troubles keeping up with the Ra cluster. The chance of blocking and timing
-%% out is very small.</li>
+%% <li>`local' to use {@link ra:local_query/3}. The query is evaluated by the
+%% local Ra server. It is the fastest but may work on out-of-date data if the
+%% local Ra server lags behind the leader. This is also the safest if you are
+%% not sure that the given query function can be executed by a remote node
+%% (e.g. is the remote module available or compatible?). `local' is the default
+%% and recommended setting.</li>
+%% <li>`leader' to use {@link ra:leader_query/3}. The query is evaluated by the
+%% leading Ra server. It has more latency and may fail if the leader is
+%% currently unreachable, but it works on the latest data. The query can crash
+%% if the remote node lacks the query function's module or if the query
+%% function's remote copy is incompatible.</li>
+%% <li>`consistent' to use {@link ra:consistent_query/3}. The query is also
+%% evaluated by the leading Ra server like `leader'. However, it is only
+%% evaluated after a check that the Ra server is still the leader after a
+%% heartbeat. The benefits and constraints are the same as `leader'
+%% otherwise.</li>
 %% </ul>
 
 -type query_options() :: #{timeout => timeout(),
-                           favor => favor_option()}.
+                           type => query_type_option()}.
 %% Options used in queries.
 %%
 %% <ul>
 %% <li>`timeout' is passed to Ra query processing function.</li>
-%% <li>`favor' indicates where to put the cursor between freshness of the
-%% returned data and low latency of queries; see {@link favor_option()}.</li>
+%% <li>`type' indicates which Ra query function to use; see {@link
+%% query_type_option()}.</li>
 %% </ul>
 
 -type tree_options() :: #{expect_specific_node => boolean(),
@@ -458,7 +460,7 @@
               async_option/0,
               reply_from_option/0,
               command_options/0,
-              favor_option/0,
+              query_type_option/0,
               query_options/0,
               tree_options/0,
               put_options/0,
@@ -651,7 +653,7 @@ is_empty(Options) when is_map(Options) ->
 %% @doc Indicates if the store is empty or not.
 %%
 %% @param StoreId the name of the Khepri store.
-%% @param Options query options such as `favor'.
+%% @param Options query options such as `type'.
 %%
 %% @returns `true' if the store is empty, `false' if it is not, or an `{error,
 %% Reason}' tuple.
@@ -1159,7 +1161,7 @@ exists(PathPattern, Options) when is_map(Options) ->
 %%
 %% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the nodes to check.
-%% @param Options query options such as `favor'.
+%% @param Options query options such as `type'.
 %%
 %% @returns `true' if the tree node exists, `false' if it does not, or an
 %% `{error, Reason}' tuple.
@@ -1253,7 +1255,7 @@ has_data(PathPattern, Options) when is_map(Options) ->
 %%
 %% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the nodes to check.
-%% @param Options query options such as `favor'.
+%% @param Options query options such as `type'.
 %%
 %% @returns `true' if tree the node holds data, `false' if it does not exist,
 %% has no payload or holds a stored procedure, or an `{error, Reason}' tuple.
@@ -1348,7 +1350,7 @@ is_sproc(PathPattern, Options) when is_map(Options) ->
 %%
 %% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the nodes to check.
-%% @param Options query options such as `favor'.
+%% @param Options query options such as `type'.
 %%
 %% @returns `true' if the tree node holds a stored procedure, `false' if it
 %% does not exist, has no payload or holds data, or an `{error, Reason}'
@@ -1443,7 +1445,7 @@ count(PathPattern, Options) when is_map(Options) ->
 %%
 %% @param StoreId the name of the Khepri store.
 %% @param PathPattern the path (or path pattern) to the nodes to count.
-%% @param Options query options such as `favor'.
+%% @param Options query options such as `type'.
 %%
 %% @returns an `{ok, Count}' tuple with the number of matching tree nodes, or
 %% an `{error, Reason}' tuple.

@@ -104,8 +104,7 @@
 -ifdef(TEST).
 -export([make_virgin_state/1,
          convert_state/3,
-         set_tree/2,
-         get_last_consistent_call_atomics/1]).
+         set_tree/2]).
 -endif.
 
 -compile({no_auto_import, [apply/3]}).
@@ -229,7 +228,7 @@
 %%
 %% @param StoreId the name of the Ra cluster.
 %% @param PathPattern the path (or path pattern) to the nodes to get.
-%% @param Options query options such as `favor'.
+%% @param Options query options such as `type'.
 %%
 %% @returns an `{ok, NodePropsMap}' tuple with a map with zero, one or more
 %% entries, or an `{error, Reason}' tuple.
@@ -663,7 +662,7 @@ split_query_options(Options) ->
       fun
           (Option, Value, {Q, T}) when
                 Option =:= timeout orelse
-                Option =:= favor ->
+                Option =:= type ->
               Q1 = Q#{Option => Value},
               {Q1, T};
           (props_to_return, [], {Q, T}) ->
@@ -829,7 +828,6 @@ do_process_sync_command(StoreId, Command, Options) ->
         {ok, Ret, NewLeaderId} ->
             khepri_cluster:cache_leader_if_changed(
               StoreId, LeaderId, NewLeaderId),
-            just_did_consistent_call(StoreId),
             ?raise_exception_if_any(Ret);
         {timeout, _LeaderId} ->
             {error, timeout};
@@ -921,7 +919,7 @@ select_command_type(#{async := {Correlation, Priority}})
 %% @private
 
 process_query(StoreId, QueryFun, Options) ->
-    QueryType = select_query_type(StoreId, Options),
+    QueryType = maps:get(type, Options, local),
     Timeout = get_timeout(Options),
     case QueryType of
         local -> process_local_query(StoreId, QueryFun, Timeout);
@@ -959,9 +957,6 @@ process_non_local_query(StoreId, QueryFun, QueryType, Timeout)
               consistent -> ra:consistent_query(RaServer, QueryFun, Timeout)
           end,
     NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
-    %% TODO: If the consistent query times out in the context of
-    %% `QueryType=compromise`, should we retry with a local query to
-    %% never block the query and let the caller continue?
     process_query_response(
       StoreId, RaServer, LeaderId =/= undefined, QueryFun, QueryType,
       NewTimeout, Ret).
@@ -994,7 +989,6 @@ process_query_response(
         false ->
             khepri_cluster:cache_leader(StoreId, NewLeaderId)
     end,
-    just_did_consistent_call(StoreId),
     ?raise_exception_if_any(Ret);
 process_query_response(
   StoreId, RaServer, IsLeader, _QueryFun, _QueryType, _Timeout,
@@ -1041,84 +1035,6 @@ process_query_response(
   {error, _} = Error) ->
     Error.
 
--spec select_query_type(StoreId, Options) -> QueryType when
-      StoreId :: khepri:store_id(),
-      Options :: khepri:query_options(),
-      QueryType :: local | leader | consistent.
-%% @doc Selects the query type depending on what the caller favors.
-%%
-%% @private
-
-select_query_type(StoreId, #{favor := Favor}) ->
-    do_select_query_type(StoreId, Favor);
-select_query_type(StoreId, _Options) ->
-    do_select_query_type(StoreId, compromise).
-
--define(
-   LAST_CONSISTENT_CALL_TS_REF(StoreId),
-   {khepri, last_consistent_call_ts_ref, StoreId}).
-
-do_select_query_type(StoreId, compromise) ->
-    Key = ?LAST_CONSISTENT_CALL_TS_REF(StoreId),
-    Idx = 1,
-    case persistent_term:get(Key, undefined) of
-        AtomicsRef when AtomicsRef =/= undefined ->
-            %% We verify when was the last time we did a command or a
-            %% consistent query (i.e. we made sure there was an active leader
-            %% in a cluster with a quorum of active members).
-            %%
-            %% If the last one was more than 10 seconds ago, we force a
-            %% consistent query to verify the cluster health at the same time.
-            %% Otherwise, we select a leader query which is a good balance
-            %% between freshness and latency.
-            Last = atomics:get(AtomicsRef, Idx),
-            Now = erlang:monotonic_time(),
-            Elapsed = erlang:convert_time_unit(Now - Last, native, second),
-            ConsistentAgainAfter = application:get_env(
-                                     khepri,
-                                     consistent_query_interval_in_compromise,
-                                     10),
-            if
-                Elapsed < ConsistentAgainAfter -> leader;
-                true                           -> consistent
-            end;
-        undefined ->
-            consistent
-    end;
-do_select_query_type(_StoreId, consistency) ->
-    consistent;
-do_select_query_type(_StoreId, low_latency) ->
-    local.
-
-just_did_consistent_call(StoreId) ->
-    %% We record the timestamp of the successful command or consistent query
-    %% which just returned. This timestamp is used in the `compromise' query
-    %% strategy to perform a consistent query from time to time, and leader
-    %% queries the rest of the time.
-    %%
-    %% We store the system time as seconds in an `atomics' structure. The
-    %% reference of that structure is stored in a persistent term. We don't
-    %% store the timestamp directly in a persistent term because it is not
-    %% suited for frequent writes. This way, we store the `atomics' reference
-    %% once and update the `atomics' afterwards.
-    Idx = 1,
-    AtomicsRef = case get_last_consistent_call_atomics(StoreId) of
-                     Ref when Ref =/= undefined ->
-                         Ref;
-                     undefined ->
-                         Key = ?LAST_CONSISTENT_CALL_TS_REF(StoreId),
-                         Ref = atomics:new(1, []),
-                         persistent_term:put(Key, Ref),
-                         Ref
-                 end,
-    Now = erlang:monotonic_time(),
-    ok = atomics:put(AtomicsRef, Idx, Now),
-    ok.
-
-get_last_consistent_call_atomics(StoreId) ->
-    Key = ?LAST_CONSISTENT_CALL_TS_REF(StoreId),
-    persistent_term:get(Key, undefined).
-
 -spec get_timeout(Options) -> Timeout when
       Options :: khepri:command_options() | khepri:query_options(),
       Timeout :: timeout().
@@ -1140,8 +1056,7 @@ use_leader_or_local_ra_server(StoreId, undefined) ->
 %%
 %% @private
 
-clear_cache(StoreId) ->
-    _ = persistent_term:erase(?LAST_CONSISTENT_CALL_TS_REF(StoreId)),
+clear_cache(_StoreId) ->
     ok.
 
 %% -------------------------------------------------------------------
