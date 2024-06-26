@@ -1600,6 +1600,8 @@ can_set_snapshot_interval(Config) ->
       {ok, #{log := #{snapshot_index := undefined}}, RaServer},
       ra:member_overview(RaServer)),
 
+    ?assertEqual(ok, khepri:fence(StoreId)),
+
     ct:pal("Verify applied command count is 1 (`machine_version` command)"),
     ?assertEqual(
        #{applied_command_count => 1},
