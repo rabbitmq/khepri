@@ -127,6 +127,8 @@
          transaction/1, transaction/2, transaction/3, transaction/4,
          transaction/5,
 
+         fence/0, fence/1, fence/2,
+
          handle_async_ret/1, handle_async_ret/2,
 
          %% Bang functions: they return the value directly or throw an error.
@@ -310,11 +312,14 @@
 %% out is very small.</li>
 %% </ul>
 
--type query_options() :: #{timeout => timeout(),
+-type query_options() :: #{condition => ra:query_condition(),
+                           timeout => timeout(),
                            favor => favor_option()}.
 %% Options used in queries.
 %%
 %% <ul>
+%% <li>`condition' indicates the condition on which the Ra server should wait
+%% for before it executes the query.</li>
 %% <li>`timeout' is passed to Ra query processing function.</li>
 %% <li>`favor' indicates where to put the cursor between freshness of the
 %% returned data and low latency of queries; see {@link favor_option()}.</li>
@@ -3402,6 +3407,77 @@ transaction(FunOrPath, Args, ReadWrite, Options)
 
 transaction(StoreId, FunOrPath, Args, ReadWrite, Options) ->
     khepri_machine:transaction(StoreId, FunOrPath, Args, ReadWrite, Options).
+
+%% -------------------------------------------------------------------
+%% fence().
+%% -------------------------------------------------------------------
+
+-spec fence() -> Ret when
+      Ret :: ok | khepri:error().
+%% @doc Blocks until all updates received by the cluster leader are applied
+%% locally.
+%%
+%% Calling this function is the same as calling `fence(StoreId)' with the
+%% default store ID (see {@link khepri_cluster:get_default_store_id/0}).
+%%
+%% @see fence/1.
+%% @see fence/2.
+
+fence() ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    fence(StoreId).
+
+-spec fence(StoreId | Timeout) -> Ret when
+      StoreId :: khepri:store_id(),
+      Timeout :: timeout(),
+      Ret :: ok | khepri:error().
+%% @doc Blocks until all updates received by the cluster leader are applied
+%% locally.
+%%
+%% This function accepts the following two forms:
+%% <ul>
+%% <li>`fence(StoreId)'. Calling it is the same as calling `fence(StoreId,
+%% Timeout)' with the default timeout (see {@link
+%% khepri_app:get_default_timeout/0}).</li>
+%% <li>`fence(Timeout)'. Calling it is the same as calling `fence(StoreId,
+%% Timeout)' with the default store ID (see {@link
+%% khepri_cluster:get_default_store_id/0}).</li>
+%% </ul>
+%%
+%% @see fence/2.
+
+fence(Timeout) when Timeout =:= infinity orelse is_integer(Timeout) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    fence(StoreId, Timeout);
+fence(StoreId) ->
+    Timeout = khepri_app:get_default_timeout(),
+    fence(StoreId, Timeout).
+
+-spec fence(StoreId, Timeout) -> Ret when
+      StoreId :: khepri:store_id(),
+      Timeout :: timeout(),
+      Ret :: ok | khepri:error().
+%% @doc Blocks until all updates received by the cluster leader are applied
+%% locally.
+%%
+%% This ensures that a subsequent query will see the result of synchronous and
+%% asynchronous updates.
+%%
+%% This can't work however if:
+%% <ul>
+%% <li>Asynchronous updates have a correlation ID, in which case the caller is
+%% responsible for waiting for the replies.</li>
+%% <li>The default `reply_from => local' command option is overridden by
+%% something else.</li>
+%% </ul>
+%%
+%% @param StoreId the name of the Khepri store.
+%% @param Timeout the time limit after which the call returns with an error.
+%%
+%% @returns `ok' or an `{error, Reason}' tuple.
+
+fence(StoreId, Timeout) ->
+    khepri_machine:fence(StoreId, Timeout).
 
 %% -------------------------------------------------------------------
 %% handle_async_ret().

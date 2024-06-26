@@ -583,7 +583,9 @@ can_start_a_three_node_cluster(Config) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
                  {error, timeout},
-                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+                 rpc:call(
+                   Node, khepri, get,
+                   [StoreId, [foo], #{favor => consistency}]))
       end, RunningNodes2),
 
     ok.
@@ -1598,6 +1600,8 @@ can_set_snapshot_interval(Config) ->
     ?assertMatch(
       {ok, #{log := #{snapshot_index := undefined}}, RaServer},
       ra:member_overview(RaServer)),
+
+    ?assertEqual(ok, khepri:fence(StoreId)),
 
     ct:pal("Verify applied command count is 1 (`machine_version` command)"),
     ?assertEqual(

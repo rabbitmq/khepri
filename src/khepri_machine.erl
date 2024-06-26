@@ -55,6 +55,7 @@
 -include("src/khepri_projection.hrl").
 
 -export([fold/5,
+         fence/2,
          put/4,
          delete/3,
          transaction/5,
@@ -260,6 +261,32 @@ fold(StoreId, PathPattern, Fun, Acc, Options)
     case process_query(StoreId, Query, QueryOptions) of
         {exception, _, _, _} = Exception -> handle_tx_exception(Exception);
         Ret                              -> Ret
+    end.
+
+-spec fence(StoreId, Timeout) -> Ret when
+      StoreId :: khepri:store_id(),
+      Timeout :: timeout(),
+      Ret :: ok | khepri:error().
+%% @doc Blocks until all updates received by the cluster leader are applied
+%% locally.
+%%
+%% @param StoreId the name of the Ra cluster
+%% @param Timeout the time limit after which the call returns with an error.
+%%
+%% @returns `ok' or an `{error, Reason}' tuple.
+
+fence(StoreId, Timeout) ->
+    Options = #{timeout => Timeout},
+    case add_applied_condition(StoreId, Options) of
+        {ok, Options1} ->
+            QueryFun = fun erlang:is_tuple/1,
+            Options2 = Options1#{favor => low_latency},
+            case process_query(StoreId, QueryFun, Options2) of
+                true                       -> ok;
+                Other when Other =/= false -> Other
+            end;
+        {error, _} = Error ->
+            Error
     end.
 
 -spec put(StoreId, PathPattern, Payload, Options) -> Ret when
@@ -669,6 +696,7 @@ split_query_options(Options) ->
     maps:fold(
       fun
           (Option, Value, {Q, T}) when
+                Option =:= condition orelse
                 Option =:= timeout orelse
                 Option =:= favor ->
               Q1 = Q#{Option => Value},
@@ -813,9 +841,8 @@ process_sync_command(
 
             %% We acknowledge that we received the reply and all duplicates
             %% can be ignored.
-            LeaderId = khepri_cluster:get_cached_leader(StoreId),
-            RaServer = use_leader_or_local_ra_server(
-                         StoreId, LeaderId),
+            ThisNode = node(),
+            RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
             _ = ra:pipeline_command(RaServer, DedupAck),
             Ret;
         _ ->
@@ -931,51 +958,56 @@ select_command_type(#{async := {Correlation, Priority}})
 process_query(StoreId, QueryFun, Options) ->
     QueryType = select_query_type(StoreId, Options),
     Timeout = get_timeout(Options),
+    Options1 = Options#{timeout => Timeout},
     case QueryType of
-        local -> process_local_query(StoreId, QueryFun, Timeout);
-        _     -> process_non_local_query(StoreId, QueryFun, QueryType, Timeout)
+        local ->
+            process_local_query(StoreId, QueryFun, Options1);
+        _ ->
+            process_non_local_query(StoreId, QueryFun, QueryType, Options1)
     end.
 
--spec process_local_query(StoreId, QueryFun, Timeout) -> Ret when
+-spec process_local_query(StoreId, QueryFun, Options) -> Ret when
       StoreId :: khepri:store_id(),
       QueryFun :: query_fun(),
-      Timeout :: timeout(),
+      Options :: khepri:query_options(),
       Ret :: any().
 
-process_local_query(StoreId, QueryFun, Timeout) ->
+process_local_query(StoreId, QueryFun, Options) ->
     LocalServerId = {StoreId, node()},
-    Ret = ra:local_query(LocalServerId, QueryFun, Timeout),
+    Ret = ra:local_query(LocalServerId, QueryFun, Options),
     process_query_response(
-      StoreId, LocalServerId, false, QueryFun, local, Timeout, Ret).
+      StoreId, LocalServerId, false, QueryFun, local, Options, Ret).
 
--spec process_non_local_query(StoreId, QueryFun, QueryType, Timeout) ->
+-spec process_non_local_query(StoreId, QueryFun, QueryType, Options) ->
     Ret when
       StoreId :: khepri:store_id(),
       QueryFun :: query_fun(),
       QueryType :: leader | consistent,
-      Timeout :: timeout(),
+      Options :: khepri:query_options(),
       Ret :: any().
 
-process_non_local_query(StoreId, QueryFun, QueryType, Timeout)
+process_non_local_query(
+  StoreId, QueryFun, QueryType, #{timeout := Timeout} = Options)
   when QueryType =:= leader orelse
        QueryType =:= consistent ->
     T0 = khepri_utils:start_timeout_window(Timeout),
     LeaderId = khepri_cluster:get_cached_leader(StoreId),
     RaServer = use_leader_or_local_ra_server(StoreId, LeaderId),
     Ret = case QueryType of
-              leader     -> ra:leader_query(RaServer, QueryFun, Timeout);
-              consistent -> ra:consistent_query(RaServer, QueryFun, Timeout)
+              consistent -> ra:consistent_query(RaServer, QueryFun, Timeout);
+              _          -> ra:leader_query(RaServer, QueryFun, Options)
           end,
     NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
     %% TODO: If the consistent query times out in the context of
     %% `QueryType=compromise`, should we retry with a local query to
     %% never block the query and let the caller continue?
+    Options1 = Options#{timeout => NewTimeout},
     process_query_response(
       StoreId, RaServer, LeaderId =/= undefined, QueryFun, QueryType,
-      NewTimeout, Ret).
+      Options1, Ret).
 
 -spec process_query_response(
-        StoreId, RaServer, IsLeader, QueryFun, QueryType, Timeout,
+        StoreId, RaServer, IsLeader, QueryFun, QueryType, Options,
         Response) ->
     Ret when
       StoreId :: khepri:store_id(),
@@ -983,17 +1015,17 @@ process_non_local_query(StoreId, QueryFun, QueryType, Timeout)
       IsLeader :: boolean(),
       QueryFun :: query_fun(),
       QueryType :: local | leader | consistent,
-      Timeout :: timeout(),
-      Response :: {ok, {RaIndex, any()}, NewLeaderId} |
-                  {ok, any(), NewLeaderId} |
+      Options :: khepri:query_options(),
+      Response :: {ok, {RaIdxTerm, Ret}, NewLeaderId} |
+                  {ok, Ret, NewLeaderId} |
                   {error, any()} |
                   {timeout, ra:server_id()},
-      RaIndex :: ra:index(),
+      RaIdxTerm :: ra:idxterm(),
       NewLeaderId :: ra:server_id(),
-      Ret :: any().
+      Ret :: any() | khepri:error(any()).
 
 process_query_response(
-  StoreId, RaServer, IsLeader, _QueryFun, consistent, _Timeout,
+  StoreId, RaServer, IsLeader, _QueryFun, consistent, _Options,
   {ok, Ret, NewLeaderId}) ->
     case IsLeader of
         true ->
@@ -1005,8 +1037,8 @@ process_query_response(
     just_did_consistent_call(StoreId),
     ?raise_exception_if_any(Ret);
 process_query_response(
-  StoreId, RaServer, IsLeader, _QueryFun, _QueryType, _Timeout,
-  {ok, {_RaIndex, Ret}, NewLeaderId}) ->
+  StoreId, RaServer, IsLeader, _QueryFun, _QueryType, _Options,
+  {ok, {_RaIdxTerm, Ret}, NewLeaderId}) ->
     case IsLeader of
         true ->
             khepri_cluster:cache_leader_if_changed(
@@ -1016,21 +1048,22 @@ process_query_response(
     end,
     ?raise_exception_if_any(Ret);
 process_query_response(
-  _StoreId, _RaServer, _IsLeader, _QueryFun, _QueryType, _Timeout,
+  _StoreId, _RaServer, _IsLeader, _QueryFun, _QueryType, _Options,
   {timeout, _LeaderId}) ->
     {error, timeout};
 process_query_response(
-  StoreId, _RaServer, true = _IsLeader, QueryFun, QueryType, Timeout,
-  {error, Reason})
+  StoreId, _RaServer, true = _IsLeader, QueryFun, QueryType,
+  #{timeout := Timeout} = Options, {error, Reason})
   when QueryType =/= local andalso ?HAS_TIME_LEFT(Timeout) andalso
        (Reason == noproc orelse Reason == nodedown orelse
         Reason == shutdown) ->
     %% The cached leader is no more. We simply clear the cache
     %% entry and retry. It may time out eventually.
     khepri_cluster:clear_cached_leader(StoreId),
-    process_non_local_query(StoreId, QueryFun, QueryType, Timeout);
+    process_non_local_query(StoreId, QueryFun, QueryType, Options);
 process_query_response(
-  StoreId, RaServer, false = _IsLeader, QueryFun, QueryType, Timeout,
+  StoreId, RaServer, false = _IsLeader, QueryFun, QueryType,
+  #{timeout := Timeout} = Options,
   {error, Reason} = Error)
   when QueryType =/= local andalso ?HAS_TIME_LEFT(Timeout) andalso
        (Reason == noproc orelse Reason == nodedown orelse
@@ -1040,12 +1073,13 @@ process_query_response(
             %% The follower doesn't know about the new leader yet. Retry again
             %% after waiting a bit.
             NewTimeout = khepri_utils:sleep(?NOPROC_RETRY_INTERVAL, Timeout),
-            process_non_local_query(StoreId, QueryFun, QueryType, NewTimeout);
+            Options1 = Options#{timeout => NewTimeout},
+            process_non_local_query(StoreId, QueryFun, QueryType, Options1);
         false ->
             Error
     end;
 process_query_response(
-  _StoreId, _RaServer, _IsLeader, _QueryFun, _QueryType, _Timeout,
+  _StoreId, _RaServer, _IsLeader, _QueryFun, _QueryType, _Options,
   {error, _} = Error) ->
     Error.
 
@@ -1126,6 +1160,92 @@ just_did_consistent_call(StoreId) ->
 get_last_consistent_call_atomics(StoreId) ->
     Key = ?LAST_CONSISTENT_CALL_TS_REF(StoreId),
     persistent_term:get(Key, undefined).
+
+-spec add_applied_condition(StoreId, Options) -> NewOptions when
+      StoreId :: khepri:store_id(),
+      Options :: khepri:query_options(),
+      NewOptions :: khepri:ok(khepri:query_options()) | khepri:error().
+%% @private
+
+add_applied_condition(StoreId, Options) ->
+    Timeout = get_timeout(Options),
+    add_applied_condition1(StoreId, Options, Timeout).
+
+add_applied_condition1(StoreId, Options, Timeout) ->
+    %% The `applied' condition permits that a query is only evaluated after
+    %% the given index is applied on the local node. This is useful to enforce
+    %% the order of operations between updates and queries. We have to follow
+    %% several steps to prepare that condition.
+    %%
+    %% We first send an arbitrary query to the local Ra server. This is to
+    %% make sure that previously submitted pipelined commands were processed
+    %% by that server.
+    %%
+    %% For instance, if there was a pipelined command without any correlation
+    %% ID, it ensures it was forwarded to the leader. Likewise for a
+    %% synchronous command without the `reply_from => local' option.
+    %%
+    %% We can't have this guaranty for pipelined commands with a correlation
+    %% because the caller is responsible for receiving the rejection from the
+    %% follower and handle the redirect to the leader.
+    T0 = khepri_utils:start_timeout_window(Timeout),
+    QueryFun = fun erlang:is_tuple/1,
+    InternalOptions = #{favor => low_latency,
+                        timeout => Timeout},
+    case process_query(StoreId, QueryFun, InternalOptions) of
+        true ->
+            NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+            add_applied_condition2(StoreId, Options, NewTimeout);
+        Other when Other =/= false ->
+            Other
+    end.
+
+add_applied_condition2(StoreId, Options, Timeout) ->
+    %% After the previous local query, there is a great chance that the leader
+    %% was cached, though not 100% guarantied.
+    case khepri_cluster:get_cached_leader(StoreId) of
+        LeaderId when LeaderId =/= undefined ->
+            add_applied_condition3(StoreId, Options, LeaderId, Timeout);
+        undefined ->
+            add_applied_condition1(StoreId, Options, Timeout)
+    end.
+
+add_applied_condition3(StoreId, Options, LeaderId, Timeout) ->
+    %% We query the leader to know the last index it committed. We also
+    %% double-check it is still the leader; if it is not, we recurse.
+    T0 = khepri_utils:start_timeout_window(Timeout),
+    case ra:member_overview(LeaderId, Timeout) of
+        {ok, Overview, LeaderId} ->
+            NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+
+            %% Now that we know the last committed index of the leader, we can
+            %% perform an arbitrary query on the local server. The query will
+            %% wait for that same index to be applied locally before it is
+            %% executed.
+            %%
+            %% We don't care about the result of that query. We just want to
+            %% block until the latest commands are applied locally.
+            #{log := #{last_index := LastIndex},
+              current_term := CurrentTerm} = Overview,
+            Condition = {applied, {LastIndex, CurrentTerm}},
+            Options1 = Options#{condition => Condition,
+                                timeout => NewTimeout},
+            {ok, Options1};
+        {ok, _Overview, NewLeaderId} ->
+            NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+            add_applied_condition3(StoreId, Options, NewLeaderId, NewTimeout);
+        {timeout, _LeaderId} ->
+            {error, timeout};
+        {error, Reason}
+          when ?HAS_TIME_LEFT(Timeout) andalso
+               (Reason == noproc orelse Reason == nodedown orelse
+                Reason == shutdown) ->
+            timer:sleep(200),
+            NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+            add_applied_condition1(StoreId, Options, NewTimeout);
+        Error ->
+            Error
+    end.
 
 -spec get_timeout(Options) -> Timeout when
       Options :: khepri:command_options() | khepri:query_options(),
