@@ -233,8 +233,8 @@
 %%
 %% Values are:
 %% <ul>
-%% <li>`true' to perform an asynchronous low-priority command without a
-%% correlation ID.</li>
+%% <li>`true' to perform an asynchronous command without a correlation
+%% ID.</li>
 %% <li>`false' to perform a synchronous command.</li>
 %% <li>A correlation ID to perform an asynchronous low-priority command with
 %% that correlation ID.</li>

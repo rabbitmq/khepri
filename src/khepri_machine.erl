@@ -211,7 +211,7 @@
                                      payload]).
 
 -define(DEFAULT_RA_COMMAND_CORRELATION, no_correlation).
--define(DEFAULT_RA_COMMAND_PRIORITY, low).
+-define(DEFAULT_RA_COMMAND_PRIORITY, normal).
 -define(IS_RA_COMMAND_CORRELATION(Correlation),
         (is_integer(Correlation) orelse is_reference(Correlation))).
 -define(IS_RA_COMMAND_PRIORITY(Priority),
