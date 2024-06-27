@@ -47,6 +47,7 @@
          handle_leader_down_on_three_node_cluster_response/1,
          can_set_snapshot_interval/1,
          projections_are_consistent_on_three_node_cluster/1,
+         projections_are_updated_when_a_snapshot_is_installed/1,
          async_command_leader_change_in_three_node_cluster/1,
          spam_txs_during_election/1]).
 
@@ -71,6 +72,7 @@ all() ->
      handle_leader_down_on_three_node_cluster_response,
      can_set_snapshot_interval,
      projections_are_consistent_on_three_node_cluster,
+     projections_are_updated_when_a_snapshot_is_installed,
      async_command_leader_change_in_three_node_cluster,
      spam_txs_during_election].
 
@@ -126,6 +128,7 @@ init_per_testcase(Testcase, Config)
        Testcase =:= handle_leader_down_on_three_node_cluster_command orelse
        Testcase =:= handle_leader_down_on_three_node_cluster_response orelse
        Testcase =:= projections_are_consistent_on_three_node_cluster orelse
+       Testcase =:= projections_are_updated_when_a_snapshot_is_installed orelse
        Testcase =:= async_command_leader_change_in_three_node_cluster ->
     Nodes = start_n_nodes(Testcase, 3),
     PropsPerNode0 = [begin
@@ -1591,6 +1594,11 @@ can_set_snapshot_interval(Config) ->
        {ok, StoreId},
        khepri:start(RaSystem, RaServerConfig)),
 
+    RaServer = khepri_cluster:node_to_member(StoreId, Node),
+    ?assertMatch(
+      {ok, #{log := #{snapshot_index := undefined}}, RaServer},
+      ra:member_overview(RaServer)),
+
     ct:pal("Verify applied command count is 1 (`machine_version` command)"),
     ?assertEqual(
        #{applied_command_count => 1},
@@ -1599,7 +1607,7 @@ can_set_snapshot_interval(Config) ->
          fun khepri_machine:get_metrics/1,
          #{})),
 
-    ct:pal("Use database after starting it"),
+    ct:pal("Submit command 2 (`put`)"),
     ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
 
     ct:pal("Verify applied command count is 2"),
@@ -1610,7 +1618,7 @@ can_set_snapshot_interval(Config) ->
          fun khepri_machine:get_metrics/1,
          #{})),
 
-    ct:pal("Use database after starting it"),
+    ct:pal("Submit command 3 (`put`)"),
     ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
 
     ct:pal("Verify applied command count is 3"),
@@ -1621,8 +1629,14 @@ can_set_snapshot_interval(Config) ->
          fun khepri_machine:get_metrics/1,
          #{})),
 
-    ct:pal("Use database after starting it"),
+    ?assertMatch(
+      {ok, #{log := #{snapshot_index := undefined}}, RaServer},
+      ra:member_overview(RaServer)),
+
+    ct:pal("Submit command 4 (`put`)"),
     ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
+
+    await_snapshot_index(RaServer, 4),
 
     ct:pal("Verify applied command count is 0"),
     ?assertEqual(
@@ -1639,10 +1653,31 @@ can_set_snapshot_interval(Config) ->
 
     ok.
 
+await_snapshot_index(RaServer, ExpectedIndex) ->
+    await_snapshot_index(RaServer, ExpectedIndex, 10).
+
+await_snapshot_index(RaServer, ExpectedIndex, Retries) ->
+    {ok, #{log := #{snapshot_index := ActualIndex}}, RaServer} =
+      ra:member_overview(RaServer),
+    case ActualIndex of
+       ExpectedIndex ->
+          ok;
+       _ ->
+          case Retries of
+              0 ->
+                 erlang:error({await_snapshot_index,
+                               [{expected, ExpectedIndex},
+                                {value, ActualIndex}]});
+              _ ->
+                 timer:sleep(10),
+                 await_snapshot_index(RaServer, ExpectedIndex, Retries - 1)
+          end
+    end.
+
 projections_are_consistent_on_three_node_cluster(Config) ->
     ProjectionName = ?MODULE,
 
-    %% We call `khepri_projection:new/2 on the local node and thus need
+    %% We call `khepri_projection:new/2' on the local node and thus need
     %% Khepri.
     ?assertMatch({ok, _}, application:ensure_all_started(khepri)),
 
@@ -1741,6 +1776,142 @@ wait_for_projection_on_nodes([Node | Rest] = Nodes, ProjectionName) ->
       _Info ->
          ct:pal("- projection ~s exists on node ~s", [ProjectionName, Node]),
          wait_for_projection_on_nodes(Rest, ProjectionName)
+   end.
+
+projections_are_updated_when_a_snapshot_is_installed(Config) ->
+    %% When a cluster member falls behind on log entries, the leader tries to
+    %% catch it up with a snapshot. Specifically: if a cluster member's current
+    %% latest raft index is older than the leader's snapshot index, the leader
+    %% catches up that member by sending it a snapshot and then any log entries
+    %% that follow.
+    %%
+    %% When this happens the member doesn't see the changes as regular
+    %% commands (i.e. handled in `ra_machine:apply/3'). Instead the machine
+    %% state is replaced entirely. So when a snapshot is installed we must
+    %% restore projections the same way we do as when we restart a member.
+    %% In `khepri_machine' this is done in the `snapshot_installed/2` callback
+    %% implementation.
+    %%
+    %% To test this we stop a member, apply enough commands to cause the leader
+    %% to take a snapshot, and then restart the member and assert that the
+    %% projection contents are as expected.
+
+    ProjectionName = ?MODULE,
+
+    %% We call `khepri_projection:new/2' on the local node and thus need
+    %% Khepri.
+    ?assertMatch({ok, _}, application:ensure_all_started(khepri)),
+
+    PropsPerNode = ?config(ra_system_props, Config),
+    [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
+    %% We assume all nodes are using the same Ra system name & store ID.
+    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    StoreId = RaSystem,
+    %% Set the snapshot interval low so that we can trigger a snapshot by
+    %% sending 4 commands.
+    RaServerConfig = #{cluster_name => StoreId,
+                       machine_config => #{snapshot_interval => 4}},
+
+    ct:pal("Start database + cluster nodes"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 rpc:call(Node, khepri, start, [RaSystem, RaServerConfig]))
+      end, Nodes),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:join() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+      end, [Node1, Node2]),
+
+    ct:pal("Register projection on node ~s", [Node1]),
+    Projection = khepri_projection:new(
+                   ProjectionName,
+                   fun(Path, Payload) -> {Path, Payload} end),
+    rpc:call(Node1,
+      khepri, register_projection,
+      [StoreId, [?KHEPRI_WILDCARD_STAR_STAR], Projection]),
+    ok = wait_for_projection_on_nodes([Node2, Node3], ProjectionName),
+
+    ?assertEqual(
+       ok,
+       rpc:call(Node3, khepri, put, [StoreId, [key1], value1v1,
+                                     #{reply_from => local}])),
+    ?assertEqual(
+       value1v1,
+       rpc:call(Node3, ets, lookup_element, [ProjectionName, [key1], 2])),
+
+    ct:pal(
+      "Stop cluster member ~s (quorum is maintained)", [Node1]),
+    ok = rpc:call(Node1, khepri, stop, [StoreId]),
+
+    ?assertMatch(
+      {ok, #{log := #{snapshot_index := undefined}}, _},
+      ra:member_overview(khepri_cluster:node_to_member(StoreId, Node3))),
+
+    ct:pal("Submit enough commands to trigger a snapshot"),
+    ct:pal("- set key1:value1v2"),
+    ok = rpc:call(Node3, khepri, put, [StoreId, [key1], value1v2]),
+    ct:pal("- set key2:value2v1"),
+    ok = rpc:call(Node3, khepri, put, [StoreId, [key2], value2v1]),
+    ct:pal("- set key3:value3v1"),
+    ok = rpc:call(Node3, khepri, put, [StoreId, [key3], value3v1]),
+    ct:pal("- set key4:value4v1"),
+    ok = rpc:call(Node3, khepri, put, [StoreId, [key4], value4v1]),
+
+   {ok, #{log := #{snapshot_index := SnapshotIndex}}, _} =
+      ra:member_overview(khepri_cluster:node_to_member(StoreId, Node3)),
+    ?assert(is_number(SnapshotIndex) andalso SnapshotIndex > 4),
+
+    ct:pal("Restart cluster member ~s", [Node1]),
+    {ok, StoreId} = rpc:call(Node1, khepri, start, [RaSystem, RaServerConfig]),
+
+    %% Execute a command with local-reply from Node1 - this will ensure that
+    %% we block until Node1 has caught up with the latest changes before we
+    %% check its projection table. We have to retry the command a few times
+    %% if it times out to deal with CI runners with few schedulers.
+    ok = put_with_retry(
+           StoreId, Node1,
+           [key5], value5v1, #{reply_from => local}),
+    ?assertEqual(
+      value5v1,
+      rpc:call(Node1, ets, lookup_element, [ProjectionName, [key5], 2])),
+
+    ?assertEqual(
+      value1v2,
+      rpc:call(Node1, ets, lookup_element, [ProjectionName, [key1], 2])),
+    ?assertEqual(
+      value2v1,
+      rpc:call(Node1, ets, lookup_element, [ProjectionName, [key2], 2])),
+    ?assertEqual(
+      value3v1,
+      rpc:call(Node1, ets, lookup_element, [ProjectionName, [key3], 2])),
+    ?assertEqual(
+      value4v1,
+      rpc:call(Node1, ets, lookup_element, [ProjectionName, [key4], 2])),
+
+    ok.
+
+put_with_retry(StoreId, Node, Key, Value, Options) ->
+   put_with_retry(StoreId, Node, Key, Value, Options, 10).
+
+put_with_retry(StoreId, Node, Key, Value, Options, Retries) ->
+   ct:pal("- put (~p) '~p':'~p' (try ~b)", [Node, Key, Value, 10 - Retries]),
+   case rpc:call(Node, khepri, put, [StoreId, Key, Value, Options]) of
+      {error, timeout} = Err ->
+         case Retries of
+            0 ->
+               erlang:error({?FUNCTION_NAME, [{actual, Err}]});
+            _ ->
+               timer:sleep(10),
+               put_with_retry(StoreId, Node, Key, Value, Options, Retries - 1)
+         end;
+      Ret ->
+         Ret
    end.
 
 async_command_leader_change_in_three_node_cluster(Config) ->

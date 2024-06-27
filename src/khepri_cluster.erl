@@ -298,7 +298,7 @@ ensure_ra_server_config_and_start(
        (?IS_KHEPRI_STORE_ID(StoreIdOrRaServerConfig) orelse
         is_map(StoreIdOrRaServerConfig)) ->
     %% If the store ID derived from `StoreIdOrRaServerConfig' is not an atom,
-    %% it will cause a cause clause exception below.
+    %% it will cause a case clause exception below.
     RaServerConfig =
     case StoreIdOrRaServerConfig of
         _ when ?IS_KHEPRI_STORE_ID(StoreIdOrRaServerConfig) ->
@@ -1413,8 +1413,24 @@ complete_ra_server_config(#{cluster_name := StoreId,
     MachineConfig = MachineConfig0#{store_id => StoreId,
                                     member => Member},
     Machine = {module, khepri_machine, MachineConfig},
+
+    LogInitArgs0 = #{uid => UId},
+    LogInitArgs = case MachineConfig0 of
+                      #{snapshot_interval := SnapshotInterval} ->
+                          %% Ra takes a snapshot when the number of applied
+                          %% commands is _greater than_ the interval (not
+                          %% equal), so we need to subtract one from Khepri's
+                          %% configured snapshot interval so that Ra snapshots
+                          %% exactly at the interval.
+                          MinSnapshotInterval = SnapshotInterval - 1,
+                          LogInitArgs0#{min_snapshot_interval =>
+                                        MinSnapshotInterval};
+                      _ ->
+                          LogInitArgs0
+                  end,
+
     RaServerConfig2#{uid => UId,
-                     log_init_args => #{uid => UId},
+                     log_init_args => LogInitArgs,
                      machine => Machine}.
 
 -define(PT_STORE_IDS, {khepri, store_ids}).
