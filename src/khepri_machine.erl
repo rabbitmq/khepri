@@ -819,13 +819,18 @@ process_sync_command(
     do_process_sync_command(StoreId, Command, Options).
 
 do_process_sync_command(StoreId, Command, Options) ->
+    ThisNode = node(),
+    RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
     Timeout = get_timeout(Options),
-    ReplyFrom = maps:get(reply_from, Options, leader),
+    ReplyFrom = maps:get(reply_from, Options, {member, RaServer}),
     CommandOptions = #{timeout => Timeout, reply_from => ReplyFrom},
     T0 = khepri_utils:start_timeout_window(Timeout),
-    LeaderId = khepri_cluster:get_cached_leader(StoreId),
-    RaServer = use_leader_or_local_ra_server(StoreId, LeaderId),
-    case ra:process_command(RaServer, Command, CommandOptions) of
+    LeaderId = ra_leaderboard:lookup_leader(StoreId),
+    Dest = case LeaderId of
+               LeaderId when LeaderId =/= undefined -> LeaderId;
+               undefined                            -> RaServer
+           end,
+    case ra:process_command(Dest, Command, CommandOptions) of
         {ok, Ret, NewLeaderId} ->
             khepri_cluster:cache_leader_if_changed(
               StoreId, LeaderId, NewLeaderId),
@@ -833,21 +838,17 @@ do_process_sync_command(StoreId, Command, Options) ->
             ?raise_exception_if_any(Ret);
         {timeout, _LeaderId} ->
             {error, timeout};
-        {error, Reason}
-          when LeaderId =/= undefined andalso ?HAS_TIME_LEFT(Timeout) andalso
-               (Reason == noproc orelse Reason == nodedown orelse
-                Reason == shutdown) ->
-            %% The cached leader is no more. We simply clear the cache
-            %% entry and retry.
-            khepri_cluster:clear_cached_leader(StoreId),
-            NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
-            Options1 = Options#{timeout => NewTimeout},
-            do_process_sync_command(StoreId, Command, Options1);
         {error, Reason} = Error
-          when LeaderId =:= undefined andalso ?HAS_TIME_LEFT(Timeout) andalso
+          when ?HAS_TIME_LEFT(Timeout) andalso
                (Reason == noproc orelse Reason == nodedown orelse
                 Reason == shutdown) ->
-            case khepri_utils:is_ra_server_alive(RaServer) of
+            %% We retry the command if either:
+            %% - the command was sent directly to a remote server, or
+            %% - the command was sent to the local server and it is still
+            %%   alive.
+            ShouldRetry = (Dest =/= RaServer orelse
+                           khepri_utils:is_ra_server_alive(RaServer)),
+            case ShouldRetry of
                 true ->
                     %% The follower doesn't know about the new leader yet.
                     %% Retry again after waiting a bit.
