@@ -820,7 +820,7 @@ process_sync_command(
 
 do_process_sync_command(StoreId, Command, Options) ->
     Timeout = get_timeout(Options),
-    ReplyFrom = maps:get(reply_from, Options, leader),
+    ReplyFrom = maps:get(reply_from, Options, local),
     CommandOptions = #{timeout => Timeout, reply_from => ReplyFrom},
     T0 = khepri_utils:start_timeout_window(Timeout),
     LeaderId = khepri_cluster:get_cached_leader(StoreId),

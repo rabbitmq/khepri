@@ -583,7 +583,8 @@ can_start_a_three_node_cluster(Config) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
                  {error, timeout},
-                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+                 rpc:call(
+                   Node, khepri, get, [StoreId, [foo], #{type => leader}]))
       end, RunningNodes2),
 
     ok.
