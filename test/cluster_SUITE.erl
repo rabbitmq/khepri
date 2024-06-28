@@ -583,7 +583,8 @@ can_start_a_three_node_cluster(Config) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
                  {error, timeout},
-                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+                 rpc:call(
+                   Node, khepri, get, [StoreId, [foo], #{type => leader}]))
       end, RunningNodes2),
 
     ok.
@@ -1444,7 +1445,7 @@ can_use_default_store_on_single_node(_Config) ->
     ?assertEqual(false, khepri:has_projection(ProjectionName1)),
     ?assertEqual(
        false,
-       khepri:has_projection(ProjectionName1, #{favor => consistency})),
+       khepri:has_projection(ProjectionName1, #{type => consistent})),
     Projection1 = khepri_projection:new(ProjectionName1, copy),
     ?assertEqual(ok, khepri:register_projection("/**", Projection1)),
     ?assertEqual(
@@ -1454,7 +1455,7 @@ can_use_default_store_on_single_node(_Config) ->
        khepri:register_projection("/**", Projection1)),
     ?assertEqual(
        true,
-       khepri:has_projection(ProjectionName1, #{favor => consistency})),
+       khepri:has_projection(ProjectionName1, #{type => consistent})),
 
     ProjectionName2 = projection2,
     ?assertEqual(false, khepri:has_projection(ProjectionName2)),
@@ -1598,6 +1599,8 @@ can_set_snapshot_interval(Config) ->
     ?assertMatch(
       {ok, #{log := #{snapshot_index := undefined}}, RaServer},
       ra:member_overview(RaServer)),
+
+    ?assertEqual(ok, khepri:fence(StoreId)),
 
     ct:pal("Verify applied command count is 1 (`machine_version` command)"),
     ?assertEqual(
