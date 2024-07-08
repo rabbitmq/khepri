@@ -520,14 +520,14 @@ Erlang node name.</p>
 <h3 class="function"><a name="cache_leader-2">cache_leader/2</a></h3>
 <div class="spec">
 <p><code>cache_leader(StoreId, LeaderId) -&gt; ok</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>LeaderId = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>LeaderId = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a> | not_known</code></li></ul></p>
 <p></p>
 </div>
 
 <h3 class="function"><a name="cache_leader_if_changed-3">cache_leader_if_changed/3</a></h3>
 <div class="spec">
 <p><code>cache_leader_if_changed(StoreId, LeaderId, NewLeaderId) -&gt; ok</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>LeaderId = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a></code></li><li><code>NewLeaderId = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>LeaderId = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a> | undefined</code></li><li><code>NewLeaderId = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a> | not_known</code></li></ul></p>
 <p></p>
 </div>
 
