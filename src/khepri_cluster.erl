@@ -141,6 +141,10 @@
                            wait_for_remote_cluster_readiness/3]}).
 
 -define(IS_RA_SYSTEM(RaSystem), is_atom(RaSystem)).
+-define(IS_RA_SERVER(RaServer), (is_tuple(RaServer) andalso
+                                 size(RaServer) =:= 2 andalso
+                                 is_atom(element(1, RaServer)) andalso
+                                 is_atom(element(2, RaServer)))).
 -define(IS_DATA_DIR(DataDir), (is_list(DataDir) orelse is_binary(DataDir))).
 
 -type incomplete_ra_server_config() :: map().
@@ -1527,20 +1531,22 @@ get_cached_leader(StoreId) ->
 
 -spec cache_leader(StoreId, LeaderId) -> ok when
       StoreId :: khepri:store_id(),
-      LeaderId :: ra:server_id().
+      LeaderId :: ra:server_id() | not_known.
 
-cache_leader(StoreId, LeaderId) ->
-    ok = persistent_term:put(?RA_LEADER_CACHE_KEY(StoreId), LeaderId).
+cache_leader(StoreId, LeaderId) when ?IS_RA_SERVER(LeaderId) ->
+    ok = persistent_term:put(?RA_LEADER_CACHE_KEY(StoreId), LeaderId);
+cache_leader(_StoreId, not_known) ->
+    ok.
 
 -spec cache_leader_if_changed(StoreId, LeaderId, NewLeaderId) -> ok when
       StoreId :: khepri:store_id(),
-      LeaderId :: ra:server_id(),
-      NewLeaderId :: ra:server_id().
+      LeaderId :: ra:server_id() | undefined,
+      NewLeaderId :: ra:server_id() | not_known.
 
 cache_leader_if_changed(_StoreId, LeaderId, LeaderId) ->
     ok;
 cache_leader_if_changed(StoreId, undefined, NewLeaderId) ->
-    case persistent_term:get(?RA_LEADER_CACHE_KEY(StoreId), undefined) of
+    case get_cached_leader(StoreId) of
         LeaderId when LeaderId =/= undefined ->
             cache_leader_if_changed(StoreId, LeaderId, NewLeaderId);
         undefined ->
