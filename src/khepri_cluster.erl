@@ -1546,7 +1546,7 @@ cache_leader(_StoreId, not_known) ->
 cache_leader_if_changed(_StoreId, LeaderId, LeaderId) ->
     ok;
 cache_leader_if_changed(StoreId, undefined, NewLeaderId) ->
-    case persistent_term:get(?RA_LEADER_CACHE_KEY(StoreId), undefined) of
+    case get_cached_leader(StoreId) of
         LeaderId when LeaderId =/= undefined ->
             cache_leader_if_changed(StoreId, LeaderId, NewLeaderId);
         undefined ->
