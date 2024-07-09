@@ -801,8 +801,19 @@ process_sync_command(
                                   expiry = Expiry,
                                   command = Command},
             DedupAck = #dedup_ack{ref = CommandRef},
+            Options1 = case EffectiveMacVer > MacVer of
+                           true ->
+                               %% If the effective machine version is higher
+                               %% than the local version, the local machine
+                               %% will not be able to apply the command and
+                               %% issue the reply. Overwrite the `reply_from'
+                               %% to reply from the leader instead.
+                               maps:put(reply_from, leader, Options);
+                           false ->
+                               Options
+                       end,
             Ret = do_process_sync_command(
-                    StoreId, DedupCommand, Options),
+                    StoreId, DedupCommand, Options1),
 
             %% We acknowledge that we received the reply and all duplicates
             %% can be ignored.
