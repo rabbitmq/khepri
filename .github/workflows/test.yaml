@@ -17,6 +17,9 @@ jobs:
           # `ct_slave` fails to start Erlang nodes on Windows with Erlang 24.
           - otp_version: 24
             os: windows-latest
+          # Erlang 26.2.5.2 Windows installer fails to work in CI.
+          - otp_version: 26
+            os: windows-latest
 
     env:
       RUN_DIALYZER_ON_OTP_RELEASE: 26
