@@ -15,7 +15,7 @@ jobs:
       - uses: erlef/setup-beam@v1
         with:
           otp-version: 25
-          rebar3-version: '3.22.1'
+          rebar3-version: '3.23.0'
 
       - name: Change doc version to "Development branch"
         run: sed -E -i -e 's/^@version.*/@version Development branch/' doc/overview.edoc
