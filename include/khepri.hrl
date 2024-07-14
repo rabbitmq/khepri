@@ -27,7 +27,20 @@
 -define(IS_KHEPRI_PATH(Path),
         (Path =:= [] orelse ?IS_KHEPRI_PATH_COMPONENT(hd(Path)))).
 
--define(IS_KHEPRI_CONDITION(Condition), is_tuple(Condition)).
+-define(IS_KHEPRI_CONDITION(Condition),
+        (is_record(Condition, if_child_list_length) orelse
+         is_record(Condition, if_child_list_version) orelse
+         is_record(Condition, if_data_matches) orelse
+         is_record(Condition, if_has_data) orelse
+         is_record(Condition, if_has_payload) orelse
+         is_record(Condition, if_has_sproc) orelse
+         is_record(Condition, if_name_matches) orelse
+         is_record(Condition, if_node_exists) orelse
+         is_record(Condition, if_path_matches) orelse
+         is_record(Condition, if_payload_version) orelse
+         is_record(Condition, if_not) orelse
+         is_record(Condition, if_all) orelse
+         is_record(Condition, if_any))).
 
 -define(IS_KHEPRI_PATH_CONDITION(PathCondition),
         (?IS_KHEPRI_PATH_COMPONENT(PathCondition) orelse
