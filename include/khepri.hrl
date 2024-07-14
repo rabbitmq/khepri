@@ -6,6 +6,9 @@
 %% refers to Broadcom Inc. and/or its subsidiaries.
 %%
 
+-ifndef(KHEPRI_HRL).
+-define(KHEPRI_HRL, true).
+
 -define(IS_KHEPRI_STORE_ID(StoreId), is_atom(StoreId)).
 
 -define(IS_KHEPRI_NODE_ID(PathComponent),
@@ -106,3 +109,17 @@
 
 -record(if_any,
         {conditions = [] :: [khepri_path:pattern_component()]}).
+
+%% -------------------------------------------------------------------
+%% Error tuple format.
+%% -------------------------------------------------------------------
+
+-define(
+   khepri_error(Name, Props),
+   {khepri, Name, Props}).
+
+-define(
+   khepri_exception(Name, Props),
+   {khepri_ex, Name, Props}).
+
+-endif.

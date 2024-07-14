@@ -6,13 +6,7 @@
 %% refers to Broadcom Inc. and/or its subsidiaries.
 %%
 
--define(
-   khepri_error(Name, Props),
-   {khepri, Name, Props}).
-
--define(
-   khepri_exception(Name, Props),
-   {khepri_ex, Name, Props}).
+-include("include/khepri.hrl").
 
 -define(
    khepri_misuse(Exception),
