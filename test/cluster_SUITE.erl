@@ -1992,7 +1992,7 @@ async_command_leader_change_in_three_node_cluster(Config) ->
                                   throw(timeout)
                             end,
                  ?assertEqual(
-                   [{CorrelationId1, {error, not_leader}}],
+                   [{CorrelationId1, {error, {not_leader, LeaderId}}}],
                    khepri:handle_async_ret(StoreId, RaEvent1)),
 
                  %% `khepri:handle_async_ret/2' updated the cached leader so

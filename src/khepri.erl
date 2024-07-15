@@ -433,7 +433,7 @@
 -type async_ret() :: khepri_adv:single_result() |
                      khepri_adv:many_results() |
                      khepri_tx:tx_fun_result() |
-                     khepri:error(not_leader).
+                     khepri:error({not_leader, ra:server_id()}).
 %% The value returned from of a command function which was executed
 %% asynchronously.
 %%
@@ -443,8 +443,8 @@
 %% `ra_event' message. Handling the notification with {@link
 %% khepri:handle_async_ret/2} will return a list of pairs of correlation IDs
 %% ({@link ra_server:command_correlation()}) and the return values of the
-%% commands which were applied, or `{error, not_leader}' if the commands could
-%% not be applied since they were sent to a non-leader member.
+%% commands which were applied, or `{error, {not_leader, LeaderId}}' if the
+%% commands could not be applied since they were sent to a non-leader member.
 %%
 %% Note that when commands are successfully applied, the return values are in
 %% the {@link khepri_adv} formats - {@link khepri_adv:single_result()} or
@@ -3567,10 +3567,11 @@ handle_async_ret(
       end, Correlations0);
 handle_async_ret(
   StoreId,
-  {ra_event, FromId, {rejected, {not_leader, MaybeLeader, CorrelationId}}})
+  {ra_event, RaServer,
+   {rejected, {not_leader, LeaderId, CorrelationId}}})
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
-    ok = khepri_cluster:cache_leader_if_changed(StoreId, FromId, MaybeLeader),
-    [{CorrelationId, {error, not_leader}}].
+    ok = khepri_cluster:cache_leader_if_changed(StoreId, RaServer, LeaderId),
+    [{CorrelationId, {error, {not_leader, LeaderId}}}].
 
 %% -------------------------------------------------------------------
 %% Bang functions.
