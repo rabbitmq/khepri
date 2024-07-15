@@ -871,7 +871,13 @@ do_process_sync_command(StoreId, Command, Options) ->
             Error
     end.
 
-process_async_command(StoreId, Command, Correlation, Priority) ->
+process_async_command(
+  StoreId, Command, ?DEFAULT_RA_COMMAND_CORRELATION = Correlation, Priority) ->
+    ThisNode = node(),
+    RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
+    ra:pipeline_command(RaServer, Command, Correlation, Priority);
+process_async_command(
+  StoreId, Command, Correlation, Priority) ->
     LeaderId = khepri_cluster:get_cached_leader(StoreId),
     RaServer = use_leader_or_local_ra_server(StoreId, LeaderId),
     ra:pipeline_command(RaServer, Command, Correlation, Priority).
