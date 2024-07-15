@@ -3567,10 +3567,9 @@ handle_async_ret(
       end, Correlations0);
 handle_async_ret(
   StoreId,
-  {ra_event, RaServer,
+  {ra_event, _RaServer,
    {rejected, {not_leader, LeaderId, CorrelationId}}})
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
-    ok = khepri_cluster:cache_leader_if_changed(StoreId, RaServer, LeaderId),
     [{CorrelationId, {error, {not_leader, LeaderId}}}].
 
 %% -------------------------------------------------------------------

@@ -853,15 +853,12 @@ do_process_sync_command(StoreId, Command, Options) ->
     ReplyFrom = maps:get(reply_from, Options, {member, RaServer}),
     CommandOptions = #{timeout => Timeout, reply_from => ReplyFrom},
     T0 = khepri_utils:start_timeout_window(Timeout),
-    LeaderId = ra_leaderboard:lookup_leader(StoreId),
-    Dest = case LeaderId of
+    Dest = case ra_leaderboard:lookup_leader(StoreId) of
                LeaderId when LeaderId =/= undefined -> LeaderId;
                undefined                            -> RaServer
            end,
     case ra:process_command(Dest, Command, CommandOptions) of
-        {ok, Ret, NewLeaderId} ->
-            khepri_cluster:cache_leader_if_changed(
-              StoreId, LeaderId, NewLeaderId),
+        {ok, Ret, _LeaderId} ->
             ?raise_exception_if_any(Ret);
         {timeout, _LeaderId} ->
             {error, timeout};
@@ -898,7 +895,7 @@ process_async_command(
     ra:pipeline_command(RaServer, Command, Correlation, Priority);
 process_async_command(
   StoreId, Command, Correlation, Priority) ->
-    case khepri_cluster:get_cached_leader(StoreId) of
+    case ra_leaderboard:lookup_leader(StoreId) of
         LeaderId when LeaderId =/= undefined ->
             ra:pipeline_command(LeaderId, Command, Correlation, Priority);
         undefined ->
@@ -977,8 +974,7 @@ process_query(StoreId, QueryFun, Options) ->
 process_query1(StoreId, QueryFun, Options) ->
     LocalServerId = {StoreId, node()},
     case ra:local_query(LocalServerId, QueryFun, Options) of
-        {ok, {_RaIdxTerm, Ret}, NewLeaderId} ->
-            khepri_cluster:cache_leader(StoreId, NewLeaderId),
+        {ok, {_RaIdxTerm, Ret}, _NewLeaderId} ->
             ?raise_exception_if_any(Ret);
         {timeout, _LeaderId} ->
             {error, timeout};
@@ -1028,7 +1024,7 @@ add_applied_condition1(StoreId, Options, Timeout) ->
 add_applied_condition2(StoreId, Options, Timeout) ->
     %% After the previous local query, there is a great chance that the leader
     %% was cached, though not 100% guarantied.
-    case khepri_cluster:get_cached_leader(StoreId) of
+    case ra_leaderboard:lookup_leader(StoreId) of
         LeaderId when LeaderId =/= undefined ->
             add_applied_condition3(StoreId, Options, LeaderId, Timeout);
         undefined ->
