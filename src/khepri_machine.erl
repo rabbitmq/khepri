@@ -210,6 +210,13 @@
                                      child_names,
                                      payload]).
 
+-define(DEFAULT_RA_COMMAND_CORRELATION, no_correlation).
+-define(DEFAULT_RA_COMMAND_PRIORITY, low).
+-define(IS_RA_COMMAND_CORRELATION(Correlation),
+        (is_integer(Correlation) orelse is_reference(Correlation))).
+-define(IS_RA_COMMAND_PRIORITY(Priority),
+        (Priority =:= normal orelse Priority =:= low)).
+
 %% -------------------------------------------------------------------
 %% Machine protocol.
 %% -------------------------------------------------------------------
@@ -872,18 +879,12 @@ process_async_command(StoreId, Command, Correlation, Priority) ->
 -spec select_command_type(Options) -> CommandType when
       Options :: khepri:command_options(),
       CommandType :: sync | {async, Correlation, Priority},
-      Correlation :: ra_server:command_correlation(),
+      Correlation :: ra_server:command_correlation() |
+                     ?DEFAULT_RA_COMMAND_CORRELATION,
       Priority :: ra_server:command_priority().
 %% @doc Selects the command type depending on what the caller wants.
 %%
 %% @private
-
--define(DEFAULT_RA_COMMAND_CORRELATION, no_correlation).
--define(DEFAULT_RA_COMMAND_PRIORITY, low).
--define(IS_RA_COMMAND_CORRELATION(Correlation),
-        (is_integer(Correlation) orelse is_reference(Correlation))).
--define(IS_RA_COMMAND_PRIORITY(Priority),
-        (Priority =:= normal orelse Priority =:= low)).
 
 select_command_type(Options) when not is_map_key(async, Options) ->
     sync;
