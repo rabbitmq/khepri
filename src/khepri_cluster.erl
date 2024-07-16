@@ -123,11 +123,7 @@
 %% Internal.
 -export([node_to_member/2,
          this_member/1,
-         wait_for_cluster_readiness/2,
-         get_cached_leader/1,
-         cache_leader/2,
-         cache_leader_if_changed/3,
-         clear_cached_leader/1]).
+         wait_for_cluster_readiness/2]).
 
 -ifdef(TEST).
 -export([wait_for_ra_server_exit/1,
@@ -1480,7 +1476,6 @@ get_store_prop(StoreId, PropName) ->
 
 forget_store(StoreId) ->
     ok = khepri_machine:clear_cache(StoreId),
-    ok = clear_cached_leader(StoreId),
     StoreIds = persistent_term:get(?PT_STORE_IDS, #{}),
     StoreIds1 = maps:remove(StoreId, StoreIds),
     case maps:size(StoreIds1) of
@@ -1513,51 +1508,3 @@ is_store_running(StoreId) ->
     Known = maps:is_key(StoreId, StoreIds),
     ?assertEqual(Known, Runs),
     Runs.
-
-%% Cache the Ra leader ID to avoid command/query redirections from a follower
-%% to the leader. The leader ID is returned after each command or query. If we
-%% don't know it yet, wait for a leader election using khepri_event_handler.
-
--define(RA_LEADER_CACHE_KEY(StoreId), {khepri, ra_leader_cache, StoreId}).
-
--spec get_cached_leader(StoreId) -> Ret when
-      StoreId :: khepri:store_id(),
-      Ret :: LeaderId | undefined,
-      LeaderId :: ra:server_id().
-
-get_cached_leader(StoreId) ->
-    Key = ?RA_LEADER_CACHE_KEY(StoreId),
-    persistent_term:get(Key, undefined).
-
--spec cache_leader(StoreId, LeaderId) -> ok when
-      StoreId :: khepri:store_id(),
-      LeaderId :: ra:server_id() | not_known.
-
-cache_leader(StoreId, LeaderId) when ?IS_RA_SERVER(LeaderId) ->
-    ok = persistent_term:put(?RA_LEADER_CACHE_KEY(StoreId), LeaderId);
-cache_leader(_StoreId, not_known) ->
-    ok.
-
--spec cache_leader_if_changed(StoreId, LeaderId, NewLeaderId) -> ok when
-      StoreId :: khepri:store_id(),
-      LeaderId :: ra:server_id() | undefined,
-      NewLeaderId :: ra:server_id() | not_known.
-
-cache_leader_if_changed(_StoreId, LeaderId, LeaderId) ->
-    ok;
-cache_leader_if_changed(StoreId, undefined, NewLeaderId) ->
-    case get_cached_leader(StoreId) of
-        LeaderId when LeaderId =/= undefined ->
-            cache_leader_if_changed(StoreId, LeaderId, NewLeaderId);
-        undefined ->
-            cache_leader(StoreId, NewLeaderId)
-    end;
-cache_leader_if_changed(StoreId, _OldLeaderId, NewLeaderId) ->
-    cache_leader(StoreId, NewLeaderId).
-
--spec clear_cached_leader(StoreId) -> ok when
-      StoreId :: khepri:store_id().
-
-clear_cached_leader(StoreId) ->
-    _ = persistent_term:erase(?RA_LEADER_CACHE_KEY(StoreId)),
-    ok.

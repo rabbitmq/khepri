@@ -583,7 +583,9 @@ can_start_a_three_node_cluster(Config) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
                  {error, timeout},
-                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+                 rpc:call(
+                   Node, khepri, get,
+                   [StoreId, [foo], #{favor => consistency}]))
       end, RunningNodes2),
 
     ok.
@@ -1599,6 +1601,8 @@ can_set_snapshot_interval(Config) ->
       {ok, #{log := #{snapshot_index := undefined}}, RaServer},
       ra:member_overview(RaServer)),
 
+    ?assertEqual(ok, khepri:fence(StoreId)),
+
     ct:pal("Verify applied command count is 1 (`machine_version` command)"),
     ?assertEqual(
        #{applied_command_count => 1},
@@ -1945,12 +1949,8 @@ async_command_leader_change_in_three_node_cluster(Config) ->
     ok = erpc:call(
            LeaderNode,
            fun() ->
-                 %% This member hasn't sent any commands so the leader isn't
-                 %% cached yet. The async call will succeed though because this
-                 %% member is the leader.
-                 ?assertEqual(
-                    undefined,
-                    khepri_cluster:get_cached_leader(StoreId)),
+                 %% The async call will succeed because this member is the
+                 %% leader.
                  CorrelationId = 1,
                  Extra = #{async => CorrelationId},
                  ok = khepri:put(StoreId, [foo], ?NO_PAYLOAD, Extra),
@@ -1971,33 +1971,8 @@ async_command_leader_change_in_three_node_cluster(Config) ->
     ok = erpc:call(
            FollowerNode,
            fun() ->
-                 %% This member hasn't sent any commands so the leader isn't
-                 %% cached yet. This member is not the leader so the async
-                 %% command will fail.
-                 ?assertEqual(
-                    undefined,
-                    khepri_cluster:get_cached_leader(StoreId)),
-                 CorrelationId1 = 1,
-                 Extra1 = #{async => CorrelationId1},
-                 ok = khepri:put(StoreId, [foo], ?NO_PAYLOAD, Extra1),
-                 RaEvent1 = receive
-                               {ra_event, _, _} = Event1 ->
-                                  Event1
-                            after
-                               1_000 ->
-                                  throw(timeout)
-                            end,
-                 ?assertEqual(
-                   [{CorrelationId1, {error, not_leader}}],
-                   khepri:handle_async_ret(StoreId, RaEvent1)),
-
-                 %% `khepri:handle_async_ret/2' updated the cached leader so
-                 %% the async call will now send the command to the leader.
-                 ?assertNotEqual(
-                    undefined,
-                    khepri_cluster:get_cached_leader(StoreId)),
-                 CorrelationId2 = 2,
-                 Extra2 = #{async => CorrelationId2},
+                 CorrelationId = 1,
+                 Extra2 = #{async => CorrelationId},
                  ok = khepri:put(StoreId, [foo], ?NO_PAYLOAD, Extra2),
                  RaEvent2 = receive
                                {ra_event, _, _} = Event2 ->
@@ -2007,7 +1982,7 @@ async_command_leader_change_in_three_node_cluster(Config) ->
                                   throw(timeout)
                             end,
                  ?assertMatch(
-                   [{CorrelationId2, {ok, _}}],
+                   [{CorrelationId, {ok, _}}],
                    khepri:handle_async_ret(StoreId, RaEvent2))
            end),
     ok.
