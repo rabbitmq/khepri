@@ -107,6 +107,8 @@ never be called directly outside of Khepri.</p>
 
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#fold-5">fold/5</a></td><td>Returns all tree nodes matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#fence-2">fence/2</a></td><td>Blocks until all updates received by the cluster leader are applied
+  locally.</td></tr>
 <tr><td valign="top"><a href="#delete-3">delete/3</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#transaction-5">transaction/5</a></td><td>Runs a transaction and returns the result.</td></tr>
 <tr><td valign="top"><a href="#handle_tx_exception-1">handle_tx_exception/1</a></td><td></td></tr>
@@ -131,6 +133,19 @@ never be called directly outside of Khepri.</p>
 <p>returns: an <code>{ok, NodePropsMap}</code> tuple with a map with zero, one or more
   entries, or an <code>{error, Reason}</code> tuple.</p>
 </div><p>Returns all tree nodes matching the given path pattern.
+ </p>
+
+<h3 class="function"><a name="fence-2">fence/2</a></h3>
+<div class="spec">
+<p><code>fence(StoreId, Timeout) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Timeout = timeout()</code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster<br>
+<code>Timeout</code>: the time limit after which the call returns with an error.
+ <br>
+</p>
+<p>returns: <code>ok</code> or an <code>{error, Reason}</code> tuple.</p>
+</div><p>Blocks until all updates received by the cluster leader are applied
+  locally.
  </p>
 
 <h3 class="function"><a name="delete-3">delete/3</a></h3>

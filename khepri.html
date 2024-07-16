@@ -76,8 +76,8 @@ though; other types are unsupported.</p>
  
   Values are:
   <ul>
-  <li><code>true</code> to perform an asynchronous low-priority command without a
-  correlation ID.</li>
+  <li><code>true</code> to perform an asynchronous command without a correlation
+  ID.</li>
   <li><code>false</code> to perform a synchronous command.</li>
   <li>A correlation ID to perform an asynchronous low-priority command with
   that correlation ID.</li>
@@ -88,15 +88,15 @@ though; other types are unsupported.</p>
   </ul></p>
 
 <h3 class="typedecl"><a name="type-async_ret">async_ret()</a></h3>
-<p><code>async_ret() = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error</a>(not_leader)</code></p>
+<p><code>async_ret() = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result">khepri_tx:tx_fun_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error</a>({not_leader, <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a>})</code></p>
 <p><p>  The value returned from of a command function which was executed  
 asynchronously.</p>
  
   <p>When a caller includes a correlation ID (<a docgen-rel="seetype" docgen-href="ra_server#command_correlation/0" href="ra_server.html#type-command_correlation"><code>ra_server:command_correlation()</code></a>) <a docgen-rel="seetype" docgen-href="#async_option/0" href="#type-async_option"><code>async_option()</code></a> in their <a docgen-rel="seetype" docgen-href="khepri#command_options/0" href="khepri.html#type-command_options"><code>khepri:command_options()</code></a> on a command function, the caller will receive a
   <code>ra_event</code> message. Handling the notification with <a docgen-rel="seemfa" docgen-href="khepri#handle_async_ret/2" href="khepri.html#handle_async_ret-2"><code>khepri:handle_async_ret/2</code></a> will return a list of pairs of correlation IDs
   (<a docgen-rel="seetype" docgen-href="ra_server#command_correlation/0" href="ra_server.html#type-command_correlation"><code>ra_server:command_correlation()</code></a>) and the return values of the
-  commands which were applied, or <code>{error, not_leader}</code> if the commands could  
-not be applied since they were sent to a non-leader member.</p>
+  commands which were applied, or <code>{error, {not_leader, LeaderId}}</code> if the  
+commands could not be applied since they were sent to a non-leader member.</p>
  
   <p>Note that when commands are successfully applied, the return values are in
   the <a docgen-rel="seeerl" docgen-href="khepri_adv" href="khepri_adv.html"><code>khepri_adv</code></a> formats - <a docgen-rel="seetype" docgen-href="khepri_adv#single_result/0" href="khepri_adv.html#type-single_result"><code>khepri_adv:single_result()</code></a> or
@@ -150,27 +150,29 @@ nodes added or removed).</p>
 <p>  Return value of a failed command or query.</p>
 
 <h3 class="typedecl"><a name="type-favor_option">favor_option()</a></h3>
-<p><code>favor_option() = consistency | compromise | low_latency</code></p>
+<p><code>favor_option() = consistency | low_latency</code></p>
 <p><p>  Option to indicate where to put the cursor between freshness of the  
 returned data and low latency of queries.</p>
  
   Values are:
   <ul>
-  <li><code>consistent</code> means that a "consistent query" will be used in Ra. It
-  will return the most up-to-date piece of data the cluster agreed on. Note
-  that it could block and eventually time out if there is no quorum in the Ra
-  cluster.</li>
-  <li><code>compromise</code> performs "leader queries" most of the time to reduce
-  latency, but uses "consistent queries" every 10 seconds to verify that the
-  cluster is healthy on a regular basis. It should be faster but may block
-  and time out like <code>consistent</code> and still return slightly out-of-date
-  data.</li>
-  <li><code>low_latency</code> means that "local queries" are used exclusively. They are
-  the fastest and have the lowest latency. However, the returned data is
-  whatever the local Ra server has. It could be out-of-date if it has
-  troubles keeping up with the Ra cluster. The chance of blocking and timing
-  out is very small.</li>
-  </ul></p>
+  <li><code>low_latency</code> means that a local query is used. It is the fastest and
+  have the lowest latency. However, the returned data is whatever the local Ra
+  server has. It could be out-of-date if the local Ra server did not get or
+  applied the latest updates yet. The chance of blocking and timing out is
+  very small.</li>
+  <li><code>consistency</code> means that a local query is used. However the query uses
+  the fence mechanism to ensure that the previous updates from the calling
+  process are applied locally before the query is evaluated. It will return
+  the most up-to-date piece of data the cluster agreed on. Note that it could
+  block and eventually time out if there is no quorum in the Ra cluster.</li>
+  </ul>
+ 
+  As described above, queries are always evaluated locally by the cluster
+  member that gets the call. The reason Ra's leader and consistent queries
+  are not exposed is that the remote execution of the query function may fail
+  in subtle on non-subtle ways. For instance, the remote node might run a
+  different version of Erlang or Khepri.</p>
 
 <h3 class="typedecl"><a name="type-filter_fun">filter_fun()</a></h3>
 <p><code>filter_fun() = fun((<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a>, <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-node_props">khepri:node_props()</a>) -&gt; boolean())</code></p>
@@ -264,14 +266,19 @@ on a single tree node.</p>
   </ul></p>
 
 <h3 class="typedecl"><a name="type-query_options">query_options()</a></h3>
-<p><code>query_options() = #{timeout =&gt; timeout(), favor =&gt; <a href="#type-favor_option">favor_option()</a>}</code></p>
+<p><code>query_options() = #{condition =&gt; <a href="/home/runner/work/khepri/ra/doc/ra.html#type-query_condition">ra:query_condition()</a>, timeout =&gt; timeout(), favor =&gt; <a href="#type-favor_option">favor_option()</a>}</code></p>
 <p><p>  Options used in queries.</p>
  
   <ul>
+  <li><code>condition</code> indicates the condition on which the Ra server should wait
+  for before it executes the query.</li>
   <li><code>timeout</code> is passed to Ra query processing function.</li>
   <li><code>favor</code> indicates where to put the cursor between freshness of the
   returned data and low latency of queries; see <a docgen-rel="seetype" docgen-href="#favor_option/0" href="#type-favor_option"><code>favor_option()</code></a>.</li>
-  </ul></p>
+  </ul>
+ 
+  <code>favor</code> computes a <code>condition</code> internally. Therefore if both options are
+  set, <code>condition</code> takes precedence and <code>favor</code> is ignored.</p>
 
 <h3 class="typedecl"><a name="type-reply_from_option">reply_from_option()</a></h3>
 <p><code>reply_from_option() = leader | local | {member, <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id">ra:server_id()</a>}</code></p>
@@ -482,6 +489,12 @@ name.</td></tr>
 <tr><td valign="top"><a href="#transaction-3">transaction/3</a></td><td>Runs a transaction and returns its result.</td></tr>
 <tr><td valign="top"><a href="#transaction-4">transaction/4</a></td><td>Runs a transaction and returns its result.</td></tr>
 <tr><td valign="top"><a href="#transaction-5">transaction/5</a></td><td>Runs a transaction and returns its result.</td></tr>
+<tr><td valign="top"><a href="#fence-0">fence/0</a></td><td>Blocks until all updates received by the cluster leader are applied  
+locally.</td></tr>
+<tr><td valign="top"><a href="#fence-1">fence/1</a></td><td>Blocks until all updates received by the cluster leader are applied  
+locally.</td></tr>
+<tr><td valign="top"><a href="#fence-2">fence/2</a></td><td>Blocks until all updates received by the cluster leader are applied  
+locally.</td></tr>
 <tr><td valign="top"><a href="#handle_async_ret-1">handle_async_ret/1</a></td><td>Handles the Ra event sent for asynchronous call results.</td></tr>
 <tr><td valign="top"><a href="#handle_async_ret-2">handle_async_ret/2</a></td><td>Handles the Ra event sent for asynchronous call results.</td></tr>
 <tr><td valign="top"><a href="#get%21-1">'get!'/1</a></td><td></td></tr>
@@ -2496,6 +2509,61 @@ options.</p>
   <code>{ok, Result}</code> tuple if the transaction is synchronous. The result is sent
   by message if the transaction is asynchronous and a correlation ID was
   specified.
+ </p>
+
+<h3 class="function"><a name="fence-0">fence/0</a></h3>
+<div class="spec">
+<p><code>fence() -&gt; Ret</code>
+<ul class="definitions"><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Blocks until all updates received by the cluster leader are applied  
+locally.</p>
+ 
+  Calling this function is the same as calling <code>fence(StoreId)</code> with the
+  default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
+ </p>
+<p><b>See also:</b> <a href="#fence-1">fence/1</a>, <a href="#fence-2">fence/2</a>.</p>
+
+<h3 class="function"><a name="fence-1">fence/1</a></h3>
+<div class="spec">
+<p><code>fence(Timeout::StoreId | Timeout) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Timeout = timeout()</code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Blocks until all updates received by the cluster leader are applied  
+locally.</p>
+ 
+  This function accepts the following two forms:
+  <ul>
+  <li><code>fence(StoreId)</code>. Calling it is the same as calling <code>fence(StoreId,
+  Timeout)</code> with the default timeout (see <a docgen-rel="seemfa" docgen-href="khepri_app#get_default_timeout/0" href="khepri_app.html#get_default_timeout-0"><code>khepri_app:get_default_timeout/0</code></a>).</li>
+  <li><code>fence(Timeout)</code>. Calling it is the same as calling <code>fence(StoreId,
+  Timeout)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).</li>
+  </ul>
+ </p>
+<p><b>See also:</b> <a href="#fence-2">fence/2</a>.</p>
+
+<h3 class="function"><a name="fence-2">fence/2</a></h3>
+<div class="spec">
+<p><code>fence(StoreId, Timeout) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>Timeout = timeout()</code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
+<code>Timeout</code>: the time limit after which the call returns with an error.
+ <br>
+</p>
+<p>returns: <code>ok</code> or an <code>{error, Reason}</code> tuple.</p>
+</div><p><p>Blocks until all updates received by the cluster leader are applied  
+locally.</p>
+ 
+  <p>This ensures that a subsequent query will see the result of synchronous and  
+asynchronous updates.</p>
+ 
+  This can't work however if:
+  <ul>
+  <li>Asynchronous updates have a correlation ID, in which case the caller is
+  responsible for waiting for the replies.</li>
+  <li>The default <code>reply_from =&gt; local</code> command option is overridden by
+  something else.</li>
+  </ul>
  </p>
 
 <h3 class="function"><a name="handle_async_ret-1">handle_async_ret/1</a></h3>
