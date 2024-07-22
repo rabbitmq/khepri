@@ -1489,7 +1489,9 @@ forget_store(StoreId) ->
 %% @doc Returns the list of running stores.
 
 get_store_ids() ->
-    maps:keys(persistent_term:get(?PT_STORE_IDS, #{})).
+    StoreIds0 = maps:keys(persistent_term:get(?PT_STORE_IDS, #{})),
+    StoreIds1 = lists:filter(fun is_store_running/1, StoreIds0),
+    StoreIds1.
 
 -spec is_store_running(StoreId) -> IsRunning when
       StoreId :: khepri:store_id(),
