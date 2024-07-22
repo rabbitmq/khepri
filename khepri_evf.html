@@ -19,7 +19,7 @@
 <h2><a name="types">Data Types</a></h2>
 
 <h3 class="typedecl"><a name="type-event_filter">event_filter()</a></h3>
-<p><code>event_filter() = <a href="#type-tree_event_filter">tree_event_filter()</a></code></p>
+<p><code>event_filter() = <a href="#type-tree_event_filter" docgen-rel="seetype" docgen-href="#tree_event_filter/0">tree_event_filter()</a></code></p>
 <p><p>  An event filter.</p>
  
   The following event filters are supported:
@@ -42,13 +42,13 @@ the more it is prioritized. Negative integers are allowed.</p>
   The default priority is 0.</p>
 
 <h3 class="typedecl"><a name="type-tree_event_filter">tree_event_filter()</a></h3>
-<p><code>tree_event_filter() = #evf_tree{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_pattern">khepri_path:native_pattern()</a>, props = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-tree_event_filter_props">khepri_evf:tree_event_filter_props()</a>}</code></p>
+<p><code>tree_event_filter() = #evf_tree{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_pattern/0">khepri_path:native_pattern()</a>, props = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-tree_event_filter_props" docgen-rel="seetype" docgen-href="khepri:khepri_evf#tree_event_filter_props/0">khepri_evf:tree_event_filter_props()</a>}</code></p>
 <p><p>  A tree event filter.</p>
  
   It takes a path pattern to monitor and optionally properties.</p>
 
 <h3 class="typedecl"><a name="type-tree_event_filter_props">tree_event_filter_props()</a></h3>
-<p><code>tree_event_filter_props() = #{on_actions =&gt; [create | update | delete], priority =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-priority">khepri_evf:priority()</a>}</code></p>
+<p><code>tree_event_filter_props() = #{on_actions =&gt; [create | update | delete], priority =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-priority" docgen-rel="seetype" docgen-href="khepri:khepri_evf#priority/0">khepri_evf:priority()</a>}</code></p>
 <p><p>  Tree event filter properties.</p>
  
   The properties are:
@@ -76,25 +76,25 @@ the more it is prioritized. Negative integers are allowed.</p>
 <h3 class="function"><a name="tree-1">tree/1</a></h3>
 <div class="spec">
 <p><code>tree(PathPattern) -&gt; EventFilter</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>EventFilter = <a href="#type-tree_event_filter">tree_event_filter()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a> | string()</code></li><li><code>EventFilter = <a href="#type-tree_event_filter" docgen-rel="seetype" docgen-href="#tree_event_filter/0">tree_event_filter()</a></code></li></ul></p>
 <p></p>
 </div><p>Constructs a tree event filter.
  </p>
-<p><b>See also:</b> <a href="#tree-2">tree/2</a>.</p>
+<p><b>See also:</b> <a href="#tree-2" docgen-rel="seemfa" docgen-href="#tree/2">tree/2</a>.</p>
 
 <h3 class="function"><a name="tree-2">tree/2</a></h3>
 <div class="spec">
 <p><code>tree(PathPattern, Props) -&gt; EventFilter</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>Props = <a href="#type-tree_event_filter_props">tree_event_filter_props()</a></code></li><li><code>EventFilter = <a href="#type-tree_event_filter">tree_event_filter()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a> | string()</code></li><li><code>Props = <a href="#type-tree_event_filter_props" docgen-rel="seetype" docgen-href="#tree_event_filter_props/0">tree_event_filter_props()</a></code></li><li><code>EventFilter = <a href="#type-tree_event_filter" docgen-rel="seetype" docgen-href="#tree_event_filter/0">tree_event_filter()</a></code></li></ul></p>
 <p></p>
 </div><p>Constructs a tree event filter.
  </p>
-<p><b>See also:</b> <a href="#type-tree_event_filter">tree_event_filter()</a>.</p>
+<p><b>See also:</b> <a href="#type-tree_event_filter" docgen-rel="seetype" docgen-href="#tree_event_filter/0">tree_event_filter()</a>.</p>
 
 <h3 class="function"><a name="wrap-1">wrap/1</a></h3>
 <div class="spec">
 <p><code>wrap(Input) -&gt; EventFilter</code>
-<ul class="definitions"><li><code>Input = <a href="#type-event_filter">event_filter()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a> | string()</code></li><li><code>EventFilter = <a href="#type-event_filter">event_filter()</a></code></li></ul></p>
+<ul class="definitions"><li><code>Input = <a href="#type-event_filter" docgen-rel="seetype" docgen-href="#event_filter/0">event_filter()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a> | string()</code></li><li><code>EventFilter = <a href="#type-event_filter" docgen-rel="seetype" docgen-href="#event_filter/0">event_filter()</a></code></li></ul></p>
 <p><code>Input</code>: an already created event filter, or any term which can be
          automatically converted to an event filter.
  <br>
@@ -107,7 +107,7 @@ the more it is prioritized. Negative integers are allowed.</p>
 <h3 class="function"><a name="get_priority-1">get_priority/1</a></h3>
 <div class="spec">
 <p><code>get_priority(EventFilter) -&gt; Priority</code>
-<ul class="definitions"><li><code>EventFilter = <a href="#type-event_filter">event_filter()</a></code></li><li><code>Priority = <a href="#type-priority">priority()</a></code></li></ul></p>
+<ul class="definitions"><li><code>EventFilter = <a href="#type-event_filter" docgen-rel="seetype" docgen-href="#event_filter/0">event_filter()</a></code></li><li><code>Priority = <a href="#type-priority" docgen-rel="seetype" docgen-href="#priority/0">priority()</a></code></li></ul></p>
 <p><code>EventFilter</code>: the event filter to update.
  <br>
 </p>
@@ -118,7 +118,7 @@ the more it is prioritized. Negative integers are allowed.</p>
 <h3 class="function"><a name="set_priority-2">set_priority/2</a></h3>
 <div class="spec">
 <p><code>set_priority(EventFilter, Priority) -&gt; EventFilter</code>
-<ul class="definitions"><li><code>EventFilter = <a href="#type-event_filter">event_filter()</a></code></li><li><code>Priority = <a href="#type-priority">priority()</a></code></li></ul></p>
+<ul class="definitions"><li><code>EventFilter = <a href="#type-event_filter" docgen-rel="seetype" docgen-href="#event_filter/0">event_filter()</a></code></li><li><code>Priority = <a href="#type-priority" docgen-rel="seetype" docgen-href="#priority/0">priority()</a></code></li></ul></p>
 <p><code>EventFilter</code>: the event filter to update.<br>
 <code>Priority</code>: the new priority.
  <br>

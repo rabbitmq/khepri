@@ -33,16 +33,16 @@ examples of what can be achieved with this module:</p>
 <h2><a name="types">Data Types</a></h2>
 
 <h3 class="typedecl"><a name="type-many_results">many_results()</a></h3>
-<p><code>many_results() = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-common_ret">khepri_machine:common_ret()</a></code></p>
+<p><code>many_results() = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-common_ret" docgen-rel="seetype" docgen-href="khepri:khepri_machine#common_ret/0">khepri_machine:common_ret()</a></code></p>
 <p>  Return value of a query or synchronous command targeting many tree nodes.</p>
 
 <h3 class="typedecl"><a name="type-node_props_map">node_props_map()</a></h3>
-<p><code>node_props_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-node_props">khepri:node_props()</a>}</code></p>
+<p><code>node_props_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-node_props" docgen-rel="seetype" docgen-href="khepri:khepri#node_props/0">khepri:node_props()</a>}</code></p>
 <p>  Structure used to return a map of nodes and their associated properties,
   payload and child nodes.</p>
 
 <h3 class="typedecl"><a name="type-single_result">single_result()</a></h3>
-<p><code>single_result() = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok">khepri:ok</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-node_props">khepri:node_props()</a> | #{}) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error">khepri:error()</a></code></p>
+<p><code>single_result() = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok" docgen-rel="seetype" docgen-href="khepri:khepri#ok/0">khepri:ok</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-node_props" docgen-rel="seetype" docgen-href="khepri:khepri#node_props/0">khepri:node_props()</a> | #{}) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error()</a></code></p>
 <p>  Return value of a query or synchronous command targeting one specific tree
   node.</p>
 
@@ -102,7 +102,7 @@ pattern.</td></tr>
 <h3 class="function"><a name="get-1">get/1</a></h3>
 <div class="spec">
 <p><code>get(PathPattern) -&gt; Ret</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Returns the properties and payload of the tree node pointed to by the  
 given path pattern.</p>
@@ -110,13 +110,13 @@ given path pattern.</p>
   Calling this function is the same as calling <code>get(StoreId, PathPattern)</code>
   with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
  </p>
-<p><b>See also:</b> <a href="#get-2">get/2</a>, <a href="#get-3">get/3</a>.</p>
+<p><b>See also:</b> <a href="#get-2" docgen-rel="seemfa" docgen-href="#get/2">get/2</a>, <a href="#get-3" docgen-rel="seemfa" docgen-href="#get/3">get/3</a>.</p>
 
 <h3 class="function"><a name="get-2">get/2</a></h3>
 <div class="spec">
 <p><code>get(StoreId, PathPattern) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p><p><code>get(PathPattern, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a></code></li></ul></p><p><code>get(PathPattern, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options" docgen-rel="seetype" docgen-href="khepri:khepri#query_options/0">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a></code></li></ul></p>
 <p></p>
 <p></p>
 </div><p><p>Returns the properties and payload of the tree node pointed to by the  
@@ -130,12 +130,12 @@ given path pattern.</p>
   <code>get(StoreId, PathPattern, Options)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).</li>
   </ul>
  </p>
-<p><b>See also:</b> <a href="#get-3">get/3</a>.</p>
+<p><b>See also:</b> <a href="#get-3" docgen-rel="seemfa" docgen-href="#get/3">get/3</a>.</p>
 
 <h3 class="function"><a name="get-3">get/3</a></h3>
 <div class="spec">
 <p><code>get(StoreId, PathPattern, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options" docgen-rel="seetype" docgen-href="khepri:khepri#query_options/0">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the tree node to get.<br>
 <code>Options</code>: query options.
@@ -174,12 +174,12 @@ given path pattern.</p>
 {error, ?khepri_error(node_not_found, _)} = khepri_adv:get(
                                               StoreId, [non_existent]).</code></pre>
  </p>
-<p><b>See also:</b> <a href="#get_many-3">get_many/3</a>, <a href="khepri.html#get-3">khepri:get/3</a>.</p>
+<p><b>See also:</b> <a href="#get_many-3" docgen-rel="seemfa" docgen-href="#get_many/3">get_many/3</a>, <a href="khepri.html#get-3" docgen-rel="seemfa" docgen-href="khepri#get/3">khepri:get/3</a>.</p>
 
 <h3 class="function"><a name="get_many-1">get_many/1</a></h3>
 <div class="spec">
 <p><code>get_many(PathPattern) -&gt; Ret</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results" docgen-rel="seetype" docgen-href="khepri:khepri_adv#many_results/0">khepri_adv:many_results()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Returns properties and payloads of all the tree nodes matching the  
 given path pattern.</p>
@@ -187,13 +187,13 @@ given path pattern.</p>
   Calling this function is the same as calling <code>get_many(StoreId,
   PathPattern)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
  </p>
-<p><b>See also:</b> <a href="#get_many-2">get_many/2</a>, <a href="#get_many-3">get_many/3</a>.</p>
+<p><b>See also:</b> <a href="#get_many-2" docgen-rel="seemfa" docgen-href="#get_many/2">get_many/2</a>, <a href="#get_many-3" docgen-rel="seemfa" docgen-href="#get_many/3">get_many/3</a>.</p>
 
 <h3 class="function"><a name="get_many-2">get_many/2</a></h3>
 <div class="spec">
 <p><code>get_many(StoreId, PathPattern) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a></code></li></ul></p><p><code>get_many(PathPattern, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results" docgen-rel="seetype" docgen-href="khepri:khepri_adv#many_results/0">khepri_adv:many_results()</a></code></li></ul></p><p><code>get_many(PathPattern, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options" docgen-rel="seetype" docgen-href="khepri:khepri#query_options/0">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results" docgen-rel="seetype" docgen-href="khepri:khepri_adv#many_results/0">khepri_adv:many_results()</a></code></li></ul></p>
 <p></p>
 <p></p>
 </div><p><p>Returns properties and payloads of all the tree nodes matching the  
@@ -208,12 +208,12 @@ given path pattern.</p>
   <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).</li>
   </ul>
  </p>
-<p><b>See also:</b> <a href="#get_many-3">get_many/3</a>.</p>
+<p><b>See also:</b> <a href="#get_many-3" docgen-rel="seemfa" docgen-href="#get_many/3">get_many/3</a>.</p>
 
 <h3 class="function"><a name="get_many-3">get_many/3</a></h3>
 <div class="spec">
 <p><code>get_many(StoreId, PathPattern, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options" docgen-rel="seetype" docgen-href="khepri:khepri#query_options/0">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results" docgen-rel="seetype" docgen-href="khepri:khepri_adv#many_results/0">khepri_adv:many_results()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the tree nodes to get.<br>
 <code>Options</code>: query options such as <code>favor</code>.
@@ -245,12 +245,12 @@ tree node.</p>
                                      StoreId,
                                      [?KHEPRI_WILDCARD_STAR_STAR]).</code></pre>
  </p>
-<p><b>See also:</b> <a href="#get-3">get/3</a>, <a href="khepri.html#get_many-3">khepri:get_many/3</a>.</p>
+<p><b>See also:</b> <a href="#get-3" docgen-rel="seemfa" docgen-href="#get/3">get/3</a>, <a href="khepri.html#get_many-3" docgen-rel="seemfa" docgen-href="khepri#get_many/3">khepri:get_many/3</a>.</p>
 
 <h3 class="function"><a name="put-2">put/2</a></h3>
 <div class="spec">
 <p><code>put(PathPattern, Data) -&gt; Ret</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload" docgen-rel="seetype" docgen-href="khepri:khepri_payload#payload/0">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret" docgen-rel="seetype" docgen-href="khepri:khepri#minimal_ret/0">khepri:minimal_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Sets the payload of the tree node pointed to by the given path  
 pattern.</p>
@@ -258,12 +258,12 @@ pattern.</p>
   Calling this function is the same as calling <code>put(StoreId, PathPattern,
   Data)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
  </p>
-<p><b>See also:</b> <a href="#put-3">put/3</a>, <a href="#put-4">put/4</a>.</p>
+<p><b>See also:</b> <a href="#put-3" docgen-rel="seemfa" docgen-href="#put/3">put/3</a>, <a href="#put-4" docgen-rel="seemfa" docgen-href="#put/4">put/4</a>.</p>
 
 <h3 class="function"><a name="put-3">put/3</a></h3>
 <div class="spec">
 <p><code>put(StoreId, PathPattern, Data) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload" docgen-rel="seetype" docgen-href="khepri:khepri_payload#payload/0">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret" docgen-rel="seetype" docgen-href="khepri:khepri#minimal_ret/0">khepri:minimal_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Sets the payload of the tree node pointed to by the given path  
 pattern.</p>
@@ -271,12 +271,12 @@ pattern.</p>
   Calling this function is the same as calling <code>put(StoreId, PathPattern,
   Data, #{})</code>.
  </p>
-<p><b>See also:</b> <a href="#put-4">put/4</a>.</p>
+<p><b>See also:</b> <a href="#put-4" docgen-rel="seemfa" docgen-href="#put/4">put/4</a>.</p>
 
 <h3 class="function"><a name="put-4">put/4</a></h3>
 <div class="spec">
 <p><code>put(StoreId, PathPattern, Data, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret">khepri:minimal_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload" docgen-rel="seetype" docgen-href="khepri:khepri_payload#payload/0">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a> | function()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options" docgen-rel="seetype" docgen-href="khepri:khepri#put_options/0">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-minimal_ret" docgen-rel="seetype" docgen-href="khepri:khepri#minimal_ret/0">khepri:minimal_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret" docgen-rel="seetype" docgen-href="khepri:khepri_machine#async_ret/0">khepri_machine:async_ret()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the tree node to create or
          modify.<br>
@@ -346,36 +346,36 @@ payload (if any) of the targeted tree node as they were before the put.</p>
        payload_version := 1}} = khepri_adv:put(
                                   StoreId, [foo, bar], new_value).</code></pre>
  </p>
-<p><b>See also:</b> <a href="#compare_and_swap-5">compare_and_swap/5</a>, <a href="#create-4">create/4</a>, <a href="#update-4">update/4</a>, <a href="khepri.html#put-4">khepri:put/4</a>.</p>
+<p><b>See also:</b> <a href="#compare_and_swap-5" docgen-rel="seemfa" docgen-href="#compare_and_swap/5">compare_and_swap/5</a>, <a href="#create-4" docgen-rel="seemfa" docgen-href="#create/4">create/4</a>, <a href="#update-4" docgen-rel="seemfa" docgen-href="#update/4">update/4</a>, <a href="khepri.html#put-4" docgen-rel="seemfa" docgen-href="khepri#put/4">khepri:put/4</a>.</p>
 
 <h3 class="function"><a name="put_many-2">put_many/2</a></h3>
 <div class="spec">
 <p><code>put_many(PathPattern, Data) -&gt; Ret</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload" docgen-rel="seetype" docgen-href="khepri:khepri_payload#payload/0">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results" docgen-rel="seetype" docgen-href="khepri:khepri_adv#many_results/0">khepri_adv:many_results()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Sets the payload of all the tree nodes matching the given path pattern.</p>
  
   Calling this function is the same as calling <code>put_many(StoreId, PathPattern,
   Data)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
  </p>
-<p><b>See also:</b> <a href="#put_many-3">put_many/3</a>, <a href="#put_many-4">put_many/4</a>.</p>
+<p><b>See also:</b> <a href="#put_many-3" docgen-rel="seemfa" docgen-href="#put_many/3">put_many/3</a>, <a href="#put_many-4" docgen-rel="seemfa" docgen-href="#put_many/4">put_many/4</a>.</p>
 
 <h3 class="function"><a name="put_many-3">put_many/3</a></h3>
 <div class="spec">
 <p><code>put_many(StoreId, PathPattern, Data) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload" docgen-rel="seetype" docgen-href="khepri:khepri_payload#payload/0">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results" docgen-rel="seetype" docgen-href="khepri:khepri_adv#many_results/0">khepri_adv:many_results()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Sets the payload of all the tree nodes matching the given path pattern.</p>
  
   Calling this function is the same as calling <code>put_many(StoreId, PathPattern,
   Data, #{})</code>.
  </p>
-<p><b>See also:</b> <a href="#put_many-4">put_many/4</a>.</p>
+<p><b>See also:</b> <a href="#put_many-4" docgen-rel="seemfa" docgen-href="#put_many/4">put_many/4</a>.</p>
 
 <h3 class="function"><a name="put_many-4">put_many/4</a></h3>
 <div class="spec">
 <p><code>put_many(StoreId, PathPattern, Data, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload" docgen-rel="seetype" docgen-href="khepri:khepri_payload#payload/0">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a> | function()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options" docgen-rel="seetype" docgen-href="khepri:khepri#put_options/0">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results" docgen-rel="seetype" docgen-href="khepri:khepri_adv#many_results/0">khepri_adv:many_results()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret" docgen-rel="seetype" docgen-href="khepri:khepri_machine#async_ret/0">khepri_machine:async_ret()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the tree node to create or
          modify.<br>
@@ -440,36 +440,36 @@ function should be used to handle the message received from Ra.</p>
                                      [?KHEPRI_WILDCARD_STAR, bar],
                                      new_value).</code></pre>
  </p>
-<p><b>See also:</b> <a href="#put-4">put/4</a>, <a href="khepri.html#put_many-4">khepri:put_many/4</a>.</p>
+<p><b>See also:</b> <a href="#put-4" docgen-rel="seemfa" docgen-href="#put/4">put/4</a>, <a href="khepri.html#put_many-4" docgen-rel="seemfa" docgen-href="khepri#put_many/4">khepri:put_many/4</a>.</p>
 
 <h3 class="function"><a name="create-2">create/2</a></h3>
 <div class="spec">
 <p><code>create(PathPattern, Data) -&gt; Ret</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload" docgen-rel="seetype" docgen-href="khepri:khepri_payload#payload/0">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Creates a tree node with the given payload.</p>
  
   Calling this function is the same as calling <code>create(StoreId, PathPattern,
   Data)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
  </p>
-<p><b>See also:</b> <a href="#create-3">create/3</a>, <a href="#create-4">create/4</a>.</p>
+<p><b>See also:</b> <a href="#create-3" docgen-rel="seemfa" docgen-href="#create/3">create/3</a>, <a href="#create-4" docgen-rel="seemfa" docgen-href="#create/4">create/4</a>.</p>
 
 <h3 class="function"><a name="create-3">create/3</a></h3>
 <div class="spec">
 <p><code>create(StoreId, PathPattern, Data) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload" docgen-rel="seetype" docgen-href="khepri:khepri_payload#payload/0">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Creates a tree node with the given payload.</p>
  
   Calling this function is the same as calling <code>create(StoreId, PathPattern,
   Data, #{})</code>.
  </p>
-<p><b>See also:</b> <a href="#create-4">create/4</a>.</p>
+<p><b>See also:</b> <a href="#create-4" docgen-rel="seemfa" docgen-href="#create/4">create/4</a>.</p>
 
 <h3 class="function"><a name="create-4">create/4</a></h3>
 <div class="spec">
 <p><code>create(StoreId, PathPattern, Data, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload" docgen-rel="seetype" docgen-href="khepri:khepri_payload#payload/0">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a> | function()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options" docgen-rel="seetype" docgen-href="khepri:khepri#put_options/0">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret" docgen-rel="seetype" docgen-href="khepri:khepri_machine#async_ret/0">khepri_machine:async_ret()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the tree node to create.<br>
 <code>Data</code>: the Erlang term or function to store, or a <a docgen-rel="seetype" docgen-href="khepri_payload#payload/0" href="khepri_payload.html#type-payload"><code>khepri_payload:payload()</code></a> structure.<br>
@@ -490,36 +490,36 @@ is returned.</p>
   Internally, the <code>PathPattern</code> is modified to include an
   <code>#if_node_exists{exists = false}</code> condition on its last component.
  </p>
-<p><b>See also:</b> <a href="#put-4">put/4</a>, <a href="#update-4">update/4</a>, <a href="khepri.html#create-4">khepri:create/4</a>.</p>
+<p><b>See also:</b> <a href="#put-4" docgen-rel="seemfa" docgen-href="#put/4">put/4</a>, <a href="#update-4" docgen-rel="seemfa" docgen-href="#update/4">update/4</a>, <a href="khepri.html#create-4" docgen-rel="seemfa" docgen-href="khepri#create/4">khepri:create/4</a>.</p>
 
 <h3 class="function"><a name="update-2">update/2</a></h3>
 <div class="spec">
 <p><code>update(PathPattern, Data) -&gt; Ret</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload" docgen-rel="seetype" docgen-href="khepri:khepri_payload#payload/0">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Updates an existing tree node with the given payload.</p>
  
   Calling this function is the same as calling <code>update(StoreId, PathPattern,
   Data)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
  </p>
-<p><b>See also:</b> <a href="#update-3">update/3</a>, <a href="#update-4">update/4</a>.</p>
+<p><b>See also:</b> <a href="#update-3" docgen-rel="seemfa" docgen-href="#update/3">update/3</a>, <a href="#update-4" docgen-rel="seemfa" docgen-href="#update/4">update/4</a>.</p>
 
 <h3 class="function"><a name="update-3">update/3</a></h3>
 <div class="spec">
 <p><code>update(StoreId, PathPattern, Data) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload" docgen-rel="seetype" docgen-href="khepri:khepri_payload#payload/0">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Updates an existing tree node with the given payload.</p>
  
   Calling this function is the same as calling <code>update(StoreId, PathPattern,
   Data, #{})</code>.
  </p>
-<p><b>See also:</b> <a href="#update-4">update/4</a>.</p>
+<p><b>See also:</b> <a href="#update-4" docgen-rel="seemfa" docgen-href="#update/4">update/4</a>.</p>
 
 <h3 class="function"><a name="update-4">update/4</a></h3>
 <div class="spec">
 <p><code>update(StoreId, PathPattern, Data, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload" docgen-rel="seetype" docgen-href="khepri:khepri_payload#payload/0">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a> | function()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options" docgen-rel="seetype" docgen-href="khepri:khepri#put_options/0">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret" docgen-rel="seetype" docgen-href="khepri:khepri_machine#async_ret/0">khepri_machine:async_ret()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the tree node to modify.<br>
 <code>Data</code>: the Erlang term or function to store, or a <a docgen-rel="seetype" docgen-href="khepri_payload#payload/0" href="khepri_payload.html#type-payload"><code>khepri_payload:payload()</code></a> structure.<br>
@@ -540,12 +540,12 @@ is returned.</p>
   Internally, the <code>PathPattern</code> is modified to include an
   <code>#if_node_exists{exists = true}</code> condition on its last component.
  </p>
-<p><b>See also:</b> <a href="#create-4">create/4</a>, <a href="#put-4">put/4</a>, <a href="khepri.html#update-4">khepri:update/4</a>.</p>
+<p><b>See also:</b> <a href="#create-4" docgen-rel="seemfa" docgen-href="#create/4">create/4</a>, <a href="#put-4" docgen-rel="seemfa" docgen-href="#put/4">put/4</a>, <a href="khepri.html#update-4" docgen-rel="seemfa" docgen-href="khepri#update/4">khepri:update/4</a>.</p>
 
 <h3 class="function"><a name="compare_and_swap-3">compare_and_swap/3</a></h3>
 <div class="spec">
 <p><code>compare_and_swap(PathPattern, DataPattern, Data) -&gt; Ret</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern" docgen-rel="seetype" docgen-href="stdlib:ets#match_pattern/0">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload" docgen-rel="seetype" docgen-href="khepri:khepri_payload#payload/0">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Updates an existing tree node with the given payload only if its data  
 matches the given pattern.</p>
@@ -553,12 +553,12 @@ matches the given pattern.</p>
   Calling this function is the same as calling <code>compare_and_swap(StoreId,
   PathPattern, DataPattern, Data)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
  </p>
-<p><b>See also:</b> <a href="#compare_and_swap-4">compare_and_swap/4</a>, <a href="#compare_and_swap-5">compare_and_swap/5</a>.</p>
+<p><b>See also:</b> <a href="#compare_and_swap-4" docgen-rel="seemfa" docgen-href="#compare_and_swap/4">compare_and_swap/4</a>, <a href="#compare_and_swap-5" docgen-rel="seemfa" docgen-href="#compare_and_swap/5">compare_and_swap/5</a>.</p>
 
 <h3 class="function"><a name="compare_and_swap-4">compare_and_swap/4</a></h3>
 <div class="spec">
 <p><code>compare_and_swap(StoreId, PathPattern, DataPattern, Data) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern" docgen-rel="seetype" docgen-href="stdlib:ets#match_pattern/0">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload" docgen-rel="seetype" docgen-href="khepri:khepri_payload#payload/0">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a> | function()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Updates an existing tree node with the given payload only if its data  
 matches the given pattern.</p>
@@ -566,12 +566,12 @@ matches the given pattern.</p>
   Calling this function is the same as calling <code>compare_and_swap(StoreId,
   PathPattern, DataPattern, Data, #{})</code>.
  </p>
-<p><b>See also:</b> <a href="#compare_and_swap-5">compare_and_swap/5</a>.</p>
+<p><b>See also:</b> <a href="#compare_and_swap-5" docgen-rel="seemfa" docgen-href="#compare_and_swap/5">compare_and_swap/5</a>.</p>
 
 <h3 class="function"><a name="compare_and_swap-5">compare_and_swap/5</a></h3>
 <div class="spec">
 <p><code>compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>DataPattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern" docgen-rel="seetype" docgen-href="stdlib:ets#match_pattern/0">ets:match_pattern()</a></code></li><li><code>Data = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload" docgen-rel="seetype" docgen-href="khepri:khepri_payload#payload/0">khepri_payload:payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a> | function()</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options" docgen-rel="seetype" docgen-href="khepri:khepri#put_options/0">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret" docgen-rel="seetype" docgen-href="khepri:khepri_machine#async_ret/0">khepri_machine:async_ret()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the tree node to modify.<br>
 <code>Data</code>: the Erlang term or function to store, or a <a docgen-rel="seetype" docgen-href="khepri_payload#payload/0" href="khepri_payload.html#type-payload"><code>khepri_payload:payload()</code></a> structure.<br>
@@ -593,25 +593,25 @@ is returned.</p>
   Internally, the <code>PathPattern</code> is modified to include an
   <code>#if_data_matches{pattern = DataPattern}</code> condition on its last component.
  </p>
-<p><b>See also:</b> <a href="#put-4">put/4</a>, <a href="khepri.html#compare_and_swap-5">khepri:compare_and_swap/5</a>.</p>
+<p><b>See also:</b> <a href="#put-4" docgen-rel="seemfa" docgen-href="#put/4">put/4</a>, <a href="khepri.html#compare_and_swap-5" docgen-rel="seemfa" docgen-href="khepri#compare_and_swap/5">khepri:compare_and_swap/5</a>.</p>
 
 <h3 class="function"><a name="delete-1">delete/1</a></h3>
 <div class="spec">
 <p><code>delete(PathPattern) -&gt; Ret</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Deletes the tree node pointed to by the given path pattern.</p>
  
   Calling this function is the same as calling <code>delete(StoreId, PathPattern)</code>
   with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
  </p>
-<p><b>See also:</b> <a href="#delete-2">delete/2</a>, <a href="#delete-3">delete/3</a>.</p>
+<p><b>See also:</b> <a href="#delete-2" docgen-rel="seemfa" docgen-href="#delete/2">delete/2</a>, <a href="#delete-3" docgen-rel="seemfa" docgen-href="#delete/3">delete/3</a>.</p>
 
 <h3 class="function"><a name="delete-2">delete/2</a></h3>
 <div class="spec">
 <p><code>delete(StoreId, PathPattern) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p><p><code>delete(PathPattern, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a></code></li></ul></p><p><code>delete(PathPattern, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a></code></li></ul></p>
 <p></p>
 <p></p>
 </div><p><p>Deletes the tree node pointed to by the given path pattern.</p>
@@ -625,12 +625,12 @@ is returned.</p>
   <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).</li>
   </ul>
  </p>
-<p><b>See also:</b> <a href="#delete-3">delete/3</a>.</p>
+<p><b>See also:</b> <a href="#delete-3" docgen-rel="seemfa" docgen-href="#delete/3">delete/3</a>.</p>
 
 <h3 class="function"><a name="delete-3">delete/3</a></h3>
 <div class="spec">
 <p><code>delete(StoreId, PathPattern, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret" docgen-rel="seetype" docgen-href="khepri:khepri_machine#async_ret/0">khepri_machine:async_ret()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to delete.<br>
 <code>Options</code>: command options such as the command type.
@@ -665,25 +665,25 @@ function should be used to handle the message received from Ra.</p>
 {ok, #{data := value,
        payload_version := 1}} = khepri_adv:delete(StoreId, [foo, bar]).</code></pre>
  </p>
-<p><b>See also:</b> <a href="#delete_many-3">delete_many/3</a>, <a href="khepri.html#delete-3">khepri:delete/3</a>.</p>
+<p><b>See also:</b> <a href="#delete_many-3" docgen-rel="seemfa" docgen-href="#delete_many/3">delete_many/3</a>, <a href="khepri.html#delete-3" docgen-rel="seemfa" docgen-href="khepri#delete/3">khepri:delete/3</a>.</p>
 
 <h3 class="function"><a name="delete_many-1">delete_many/1</a></h3>
 <div class="spec">
 <p><code>delete_many(PathPattern) -&gt; Ret</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results" docgen-rel="seetype" docgen-href="khepri:khepri_adv#many_results/0">khepri_adv:many_results()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Deletes all tree nodes matching the given path pattern.</p>
  
   Calling this function is the same as calling <code>delete_many(StoreId,
   PathPattern)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
  </p>
-<p><b>See also:</b> <a href="#delete_many-2">delete_many/2</a>, <a href="#delete_many-3">delete_many/3</a>.</p>
+<p><b>See also:</b> <a href="#delete_many-2" docgen-rel="seemfa" docgen-href="#delete_many/2">delete_many/2</a>, <a href="#delete_many-3" docgen-rel="seemfa" docgen-href="#delete_many/3">delete_many/3</a>.</p>
 
 <h3 class="function"><a name="delete_many-2">delete_many/2</a></h3>
 <div class="spec">
 <p><code>delete_many(StoreId, PathPattern) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a></code></li></ul></p><p><code>delete_many(PathPattern, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results" docgen-rel="seetype" docgen-href="khepri:khepri_adv#many_results/0">khepri_adv:many_results()</a></code></li></ul></p><p><code>delete_many(PathPattern, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results" docgen-rel="seetype" docgen-href="khepri:khepri_adv#many_results/0">khepri_adv:many_results()</a></code></li></ul></p>
 <p></p>
 <p></p>
 </div><p><p>Deletes all tree nodes matching the given path pattern.</p>
@@ -697,12 +697,12 @@ function should be used to handle the message received from Ra.</p>
   <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).</li>
   </ul>
  </p>
-<p><b>See also:</b> <a href="#delete_many-3">delete_many/3</a>.</p>
+<p><b>See also:</b> <a href="#delete_many-3" docgen-rel="seemfa" docgen-href="#delete_many/3">delete_many/3</a>.</p>
 
 <h3 class="function"><a name="delete_many-3">delete_many/3</a></h3>
 <div class="spec">
 <p><code>delete_many(StoreId, PathPattern, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results" docgen-rel="seetype" docgen-href="khepri:khepri_adv#many_results/0">khepri_adv:many_results()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret" docgen-rel="seetype" docgen-href="khepri:khepri_machine#async_ret/0">khepri_machine:async_ret()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the nodes to delete.<br>
 <code>Options</code>: command options such as the command type.
@@ -733,12 +733,12 @@ function should be used to handle the message received from Ra.</p>
        [baz, bar] := #{payload_version := 1}}} = khepri_adv:delete_many(
                                                    StoreId, [foo, bar]).</code></pre>
  </p>
-<p><b>See also:</b> <a href="#delete-3">delete/3</a>, <a href="khepri.html#delete-3">khepri:delete/3</a>.</p>
+<p><b>See also:</b> <a href="#delete-3" docgen-rel="seemfa" docgen-href="#delete/3">delete/3</a>, <a href="khepri.html#delete-3" docgen-rel="seemfa" docgen-href="khepri#delete/3">khepri:delete/3</a>.</p>
 
 <h3 class="function"><a name="clear_payload-1">clear_payload/1</a></h3>
 <div class="spec">
 <p><code>clear_payload(PathPattern) -&gt; Ret</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Deletes the payload of the tree node pointed to by the given path  
 pattern.</p>
@@ -746,12 +746,12 @@ pattern.</p>
   Calling this function is the same as calling <code>clear_payload(StoreId,
   PathPattern)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
  </p>
-<p><b>See also:</b> <a href="#clear_payload-2">clear_payload/2</a>, <a href="#clear_payload-3">clear_payload/3</a>.</p>
+<p><b>See also:</b> <a href="#clear_payload-2" docgen-rel="seemfa" docgen-href="#clear_payload/2">clear_payload/2</a>, <a href="#clear_payload-3" docgen-rel="seemfa" docgen-href="#clear_payload/3">clear_payload/3</a>.</p>
 
 <h3 class="function"><a name="clear_payload-2">clear_payload/2</a></h3>
 <div class="spec">
 <p><code>clear_payload(StoreId, PathPattern) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Deletes the payload of the tree node pointed to by the given path  
 pattern.</p>
@@ -759,12 +759,12 @@ pattern.</p>
   Calling this function is the same as calling <code>clear_payload(StoreId,
   PathPattern, #{})</code>.
  </p>
-<p><b>See also:</b> <a href="#clear_payload-3">clear_payload/3</a>.</p>
+<p><b>See also:</b> <a href="#clear_payload-3" docgen-rel="seemfa" docgen-href="#clear_payload/3">clear_payload/3</a>.</p>
 
 <h3 class="function"><a name="clear_payload-3">clear_payload/3</a></h3>
 <div class="spec">
 <p><code>clear_payload(StoreId, PathPattern, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options" docgen-rel="seetype" docgen-href="khepri:khepri#put_options/0">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret" docgen-rel="seetype" docgen-href="khepri:khepri_machine#async_ret/0">khepri_machine:async_ret()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the tree node to modify.<br>
 <code>Options</code>: command options.
@@ -781,36 +781,36 @@ pattern.</p>
   In other words, the payload is set to <a docgen-rel="seetype" docgen-href="khepri_payload#no_payload/0" href="khepri_payload.html#type-no_payload"><code>khepri_payload:no_payload()</code></a>.
   Otherwise, the behavior is that of <a docgen-rel="seemfa" docgen-href="#update/4" href="#update-4"><code>update/4</code></a>.
  </p>
-<p><b>See also:</b> <a href="#update-4">update/4</a>, <a href="khepri.html#clear_payload-3">khepri:clear_payload/3</a>.</p>
+<p><b>See also:</b> <a href="#update-4" docgen-rel="seemfa" docgen-href="#update/4">update/4</a>, <a href="khepri.html#clear_payload-3" docgen-rel="seemfa" docgen-href="khepri#clear_payload/3">khepri:clear_payload/3</a>.</p>
 
 <h3 class="function"><a name="clear_many_payloads-1">clear_many_payloads/1</a></h3>
 <div class="spec">
 <p><code>clear_many_payloads(PathPattern) -&gt; Ret</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results" docgen-rel="seetype" docgen-href="khepri:khepri_adv#many_results/0">khepri_adv:many_results()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Deletes the payload of all tree nodes matching the given path pattern.</p>
  
   Calling this function is the same as calling <code>clear_many_payloads(StoreId,
   PathPattern)</code> with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
  </p>
-<p><b>See also:</b> <a href="#clear_many_payloads-2">clear_many_payloads/2</a>, <a href="#clear_many_payloads-3">clear_many_payloads/3</a>.</p>
+<p><b>See also:</b> <a href="#clear_many_payloads-2" docgen-rel="seemfa" docgen-href="#clear_many_payloads/2">clear_many_payloads/2</a>, <a href="#clear_many_payloads-3" docgen-rel="seemfa" docgen-href="#clear_many_payloads/3">clear_many_payloads/3</a>.</p>
 
 <h3 class="function"><a name="clear_many_payloads-2">clear_many_payloads/2</a></h3>
 <div class="spec">
 <p><code>clear_many_payloads(StoreId, PathPattern) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results" docgen-rel="seetype" docgen-href="khepri:khepri_adv#many_results/0">khepri_adv:many_results()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Deletes the payload of all tree nodes matching the given path pattern.</p>
  
   Calling this function is the same as calling <code>clear_many_payloads(StoreId,
   PathPattern, #{})</code>.
  </p>
-<p><b>See also:</b> <a href="#clear_many_payloads-3">clear_many_payloads/3</a>.</p>
+<p><b>See also:</b> <a href="#clear_many_payloads-3" docgen-rel="seemfa" docgen-href="#clear_many_payloads/3">clear_many_payloads/3</a>.</p>
 
 <h3 class="function"><a name="clear_many_payloads-3">clear_many_payloads/3</a></h3>
 <div class="spec">
 <p><code>clear_many_payloads(StoreId, PathPattern, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results">khepri_adv:many_results()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret">khepri_machine:async_ret()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options" docgen-rel="seetype" docgen-href="khepri:khepri#put_options/0">khepri:put_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results" docgen-rel="seetype" docgen-href="khepri:khepri_adv#many_results/0">khepri_adv:many_results()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret" docgen-rel="seetype" docgen-href="khepri:khepri_machine#async_ret/0">khepri_machine:async_ret()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>PathPattern</code>: the path (or path pattern) to the tree nodes to modify.<br>
 <code>Options</code>: command options.
@@ -826,7 +826,7 @@ pattern.</p>
   In other words, the payload is set to <a docgen-rel="seetype" docgen-href="khepri_payload#no_payload/0" href="khepri_payload.html#type-no_payload"><code>khepri_payload:no_payload()</code></a>.
   Otherwise, the behavior is that of <a docgen-rel="seemfa" docgen-href="#put/4" href="#put-4"><code>put/4</code></a>.
  </p>
-<p><b>See also:</b> <a href="#delete_many-3">delete_many/3</a>, <a href="#put-4">put/4</a>, <a href="khepri.html#clear_many_payloads-3">khepri:clear_many_payloads/3</a>.</p>
+<p><b>See also:</b> <a href="#delete_many-3" docgen-rel="seemfa" docgen-href="#delete_many/3">delete_many/3</a>, <a href="#put-4" docgen-rel="seemfa" docgen-href="#put/4">put/4</a>, <a href="khepri.html#clear_many_payloads-3" docgen-rel="seemfa" docgen-href="khepri#clear_many_payloads/3">khepri:clear_many_payloads/3</a>.</p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>

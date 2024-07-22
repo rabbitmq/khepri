@@ -31,7 +31,7 @@
 <h2><a name="types">Data Types</a></h2>
 
 <h3 class="typedecl"><a name="type-data">data()</a></h3>
-<p><code>data() = #p_data{data = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a>}</code></p>
+<p><code>data() = #p_data{data = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a>}</code></p>
 <p><p>  Internal structure to wrap any Erlang term before it can be stored in a  
 tree node.</p>
  
@@ -43,13 +43,13 @@ tree node.</p>
 <p>  Internal value used to mark that a tree node has no payload attached.</p>
 
 <h3 class="typedecl"><a name="type-payload">payload()</a></h3>
-<p><code>payload() = <a href="#type-no_payload">no_payload()</a> | <a href="#type-data">data()</a> | <a href="#type-sproc">sproc()</a></code></p>
+<p><code>payload() = <a href="#type-no_payload" docgen-rel="seetype" docgen-href="#no_payload/0">no_payload()</a> | <a href="#type-data" docgen-rel="seetype" docgen-href="#data/0">data()</a> | <a href="#type-sproc" docgen-rel="seetype" docgen-href="#sproc/0">sproc()</a></code></p>
 <p><p>  All types of payload stored in the nodes of the tree structure.</p>
  
   Beside the absence of payload, the only type of payload supported is data.</p>
 
 <h3 class="typedecl"><a name="type-sproc">sproc()</a></h3>
-<p><code>sproc() = #p_sproc{sproc = <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun">horus:horus_fun()</a>, is_valid_as_tx_fun = ro | rw | false}</code></p>
+<p><code>sproc() = #p_sproc{sproc = <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun" docgen-rel="seetype" docgen-href="horus:horus#horus_fun/0">horus:horus_fun()</a>, is_valid_as_tx_fun = ro | rw | false}</code></p>
 <p>  Internal structure to wrap an anonymous function before it can be stored in
   a tree node and later executed.</p>
 
@@ -68,37 +68,37 @@ one of the internal types.</td></tr>
 
 <h3 class="function"><a name="none-0">none/0</a></h3>
 <div class="spec">
-<p><code>none() -&gt; <a href="#type-no_payload">no_payload()</a></code><br></p>
+<p><code>none() -&gt; <a href="#type-no_payload" docgen-rel="seetype" docgen-href="#no_payload/0">no_payload()</a></code><br></p>
 <p></p>
 </div><p>Returns the internal value used to mark that a tree node has no
   payload attached.
  </p>
-<p><b>See also:</b> <a href="#type-no_payload">no_payload()</a>.</p>
+<p><b>See also:</b> <a href="#type-no_payload" docgen-rel="seetype" docgen-href="#no_payload/0">no_payload()</a>.</p>
 
 <h3 class="function"><a name="data-1">data/1</a></h3>
 <div class="spec">
 <p><code>data(Term) -&gt; Payload</code>
-<ul class="definitions"><li><code>Term = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a></code></li><li><code>Payload = <a href="#type-data">data()</a></code></li></ul></p>
+<ul class="definitions"><li><code>Term = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a></code></li><li><code>Payload = <a href="#type-data" docgen-rel="seetype" docgen-href="#data/0">data()</a></code></li></ul></p>
 <p></p>
 </div><p>Returns the same term wrapped into an internal structure ready to be
   stored in the tree.
  </p>
-<p><b>See also:</b> <a href="#type-data">data()</a>.</p>
+<p><b>See also:</b> <a href="#type-data" docgen-rel="seetype" docgen-href="#data/0">data()</a>.</p>
 
 <h3 class="function"><a name="sproc-1">sproc/1</a></h3>
 <div class="spec">
 <p><code>sproc(Fun) -&gt; Payload</code>
-<ul class="definitions"><li><code>Fun = <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun">horus:horus_fun()</a> | function()</code></li><li><code>Payload = <a href="#type-sproc">sproc()</a></code></li></ul></p>
+<ul class="definitions"><li><code>Fun = <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun" docgen-rel="seetype" docgen-href="horus:horus#horus_fun/0">horus:horus_fun()</a> | function()</code></li><li><code>Payload = <a href="#type-sproc" docgen-rel="seetype" docgen-href="#sproc/0">sproc()</a></code></li></ul></p>
 <p></p>
 </div><p>Returns the same function wrapped into an internal structure ready to
   be stored in the tree.
  </p>
-<p><b>See also:</b> <a href="#type-sproc">sproc()</a>.</p>
+<p><b>See also:</b> <a href="#type-sproc" docgen-rel="seetype" docgen-href="#sproc/0">sproc()</a>.</p>
 
 <h3 class="function"><a name="wrap-1">wrap/1</a></h3>
 <div class="spec">
 <p><code>wrap(Payload) -&gt; WrappedPayload</code>
-<ul class="definitions"><li><code>Payload = <a href="#type-payload">payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data">khepri:data()</a> | function()</code></li><li><code>WrappedPayload = <a href="#type-payload">payload()</a></code></li></ul></p>
+<ul class="definitions"><li><code>Payload = <a href="#type-payload" docgen-rel="seetype" docgen-href="#payload/0">payload()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a> | function()</code></li><li><code>WrappedPayload = <a href="#type-payload" docgen-rel="seetype" docgen-href="#payload/0">payload()</a></code></li></ul></p>
 <p><code>Payload</code>: an already wrapped payload, or any term which needs to be
          wrapped.
  <br>

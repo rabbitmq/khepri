@@ -43,11 +43,11 @@ have arguments to further define the condition.</p>
 <p>  Comparison operator in some <a docgen-rel="seetype" docgen-href="#condition/0" href="#type-condition"><code>condition()</code></a>.</p>
 
 <h3 class="typedecl"><a name="type-condition">condition()</a></h3>
-<p><code>condition() = <a href="#type-if_name_matches">if_name_matches()</a> | <a href="#type-if_path_matches">if_path_matches()</a> | <a href="#type-if_has_payload">if_has_payload()</a> | <a href="#type-if_has_data">if_has_data()</a> | <a href="#type-if_has_sproc">if_has_sproc()</a> | <a href="#type-if_data_matches">if_data_matches()</a> | <a href="#type-if_node_exists">if_node_exists()</a> | <a href="#type-if_payload_version">if_payload_version()</a> | <a href="#type-if_child_list_version">if_child_list_version()</a> | <a href="#type-if_child_list_length">if_child_list_length()</a> | <a href="#type-if_not">if_not()</a> | <a href="#type-if_all">if_all()</a> | <a href="#type-if_any">if_any()</a></code></p>
+<p><code>condition() = <a href="#type-if_name_matches" docgen-rel="seetype" docgen-href="#if_name_matches/0">if_name_matches()</a> | <a href="#type-if_path_matches" docgen-rel="seetype" docgen-href="#if_path_matches/0">if_path_matches()</a> | <a href="#type-if_has_payload" docgen-rel="seetype" docgen-href="#if_has_payload/0">if_has_payload()</a> | <a href="#type-if_has_data" docgen-rel="seetype" docgen-href="#if_has_data/0">if_has_data()</a> | <a href="#type-if_has_sproc" docgen-rel="seetype" docgen-href="#if_has_sproc/0">if_has_sproc()</a> | <a href="#type-if_data_matches" docgen-rel="seetype" docgen-href="#if_data_matches/0">if_data_matches()</a> | <a href="#type-if_node_exists" docgen-rel="seetype" docgen-href="#if_node_exists/0">if_node_exists()</a> | <a href="#type-if_payload_version" docgen-rel="seetype" docgen-href="#if_payload_version/0">if_payload_version()</a> | <a href="#type-if_child_list_version" docgen-rel="seetype" docgen-href="#if_child_list_version/0">if_child_list_version()</a> | <a href="#type-if_child_list_length" docgen-rel="seetype" docgen-href="#if_child_list_length/0">if_child_list_length()</a> | <a href="#type-if_not" docgen-rel="seetype" docgen-href="#if_not/0">if_not()</a> | <a href="#type-if_all" docgen-rel="seetype" docgen-href="#if_all/0">if_all()</a> | <a href="#type-if_any" docgen-rel="seetype" docgen-href="#if_any/0">if_any()</a></code></p>
 <p>  All supported conditions.</p>
 
 <h3 class="typedecl"><a name="type-if_all">if_all()</a></h3>
-<p><code>if_all() = #if_all{conditions = [<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a>]}</code></p>
+<p><code>if_all() = #if_all{conditions = [<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern_component/0">khepri_path:pattern_component()</a>]}</code></p>
 <p><p>  Condition. Evaluates to true if all inner conditions evaluate to true.</p>
  
   Record fields:
@@ -60,7 +60,7 @@ have arguments to further define the condition.</p>
                       #if_has_data{has_data = true}]}.</code></pre></p>
 
 <h3 class="typedecl"><a name="type-if_any">if_any()</a></h3>
-<p><code>if_any() = #if_any{conditions = [<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a>]}</code></p>
+<p><code>if_any() = #if_any{conditions = [<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern_component/0">khepri_path:pattern_component()</a>]}</code></p>
 <p><p>  Condition. Evaluates to true if any of the inner conditions evaluate to  
 true.</p>
  
@@ -74,7 +74,7 @@ true.</p>
                       #if_has_data{has_data = true}]}.</code></pre></p>
 
 <h3 class="typedecl"><a name="type-if_child_list_length">if_child_list_length()</a></h3>
-<p><code>if_child_list_length() = #if_child_list_length{count = non_neg_integer() | <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-comparison_op">khepri_condition:comparison_op</a>(non_neg_integer())}</code></p>
+<p><code>if_child_list_length() = #if_child_list_length{count = non_neg_integer() | <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-comparison_op" docgen-rel="seetype" docgen-href="khepri:khepri_condition#comparison_op/0">khepri_condition:comparison_op</a>(non_neg_integer())}</code></p>
 <p><p>  Condition. Evaluates to true if the tested node's child list size  
 corresponds to the expected value.</p>
  
@@ -89,7 +89,7 @@ corresponds to the expected value.</p>
 #if_child_list_length{count = {gt, 10}}.</code></pre></p>
 
 <h3 class="typedecl"><a name="type-if_child_list_version">if_child_list_version()</a></h3>
-<p><code>if_child_list_version() = #if_child_list_version{version = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_version">khepri:child_list_version()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-comparison_op">khepri_condition:comparison_op</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_version">khepri:child_list_version()</a>)}</code></p>
+<p><code>if_child_list_version() = #if_child_list_version{version = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_version" docgen-rel="seetype" docgen-href="khepri:khepri#child_list_version/0">khepri:child_list_version()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-comparison_op" docgen-rel="seetype" docgen-href="khepri:khepri_condition#comparison_op/0">khepri_condition:comparison_op</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_version" docgen-rel="seetype" docgen-href="khepri:khepri#child_list_version/0">khepri:child_list_version()</a>)}</code></p>
 <p><p>  Condition. Evaluates to true if the tested node's child list version  
 corresponds to the expected value.</p>
  
@@ -104,7 +104,7 @@ corresponds to the expected value.</p>
 #if_child_list_version{version = {gt, 10}}.</code></pre></p>
 
 <h3 class="typedecl"><a name="type-if_data_matches">if_data_matches()</a></h3>
-<p><code>if_data_matches() = #if_data_matches{pattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern">ets:match_pattern()</a> | term(), conditions = [any()], compiled = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-comp_match_spec">ets:comp_match_spec()</a> | undefined}</code></p>
+<p><code>if_data_matches() = #if_data_matches{pattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern" docgen-rel="seetype" docgen-href="stdlib:ets#match_pattern/0">ets:match_pattern()</a> | term(), conditions = [any()], compiled = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-comp_match_spec" docgen-rel="seetype" docgen-href="stdlib:ets#comp_match_spec/0">ets:comp_match_spec()</a> | undefined}</code></p>
 <p><p>  Condition. Evaluates to true if the tested node has a data payload and the
   data payload term matches the given <code>pattern</code> and all <code>conditions</code> evaluates  
 to true.</p>
@@ -179,7 +179,7 @@ payload.</p>
   <pre><code>#if_has_sproc{has_sproc = false}.</code></pre></p>
 
 <h3 class="typedecl"><a name="type-if_name_matches">if_name_matches()</a></h3>
-<p><code>if_name_matches() = #if_name_matches{regex = any | iodata() | <a href="/home/runner/work/khepri/stdlib/doc/unicode.html#type-charlist">unicode:charlist()</a>, compiled = <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-re_compile_ret">khepri_condition:re_compile_ret()</a> | undefined}</code></p>
+<p><code>if_name_matches() = #if_name_matches{regex = any | iodata() | <a href="/home/runner/work/khepri/stdlib/doc/unicode.html#type-charlist" docgen-rel="seetype" docgen-href="stdlib:unicode#charlist/0">unicode:charlist()</a>, compiled = <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-re_compile_ret" docgen-rel="seetype" docgen-href="khepri:khepri_condition#re_compile_ret/0">khepri_condition:re_compile_ret()</a> | undefined}</code></p>
 <p><p>  Condition. Evaluates to true if the name of the tested node matches the  
 condition pattern.</p>
  
@@ -211,7 +211,7 @@ the expected state.</p>
   <pre><code>#if_node_exists{exists = false}.</code></pre></p>
 
 <h3 class="typedecl"><a name="type-if_not">if_not()</a></h3>
-<p><code>if_not() = #if_not{condition = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component">khepri_path:pattern_component()</a>}</code></p>
+<p><code>if_not() = #if_not{condition = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern_component" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern_component/0">khepri_path:pattern_component()</a>}</code></p>
 <p><p>  Condition. Evaluates to true if the inner condition evaluates to false.</p>
  
   Record fields:
@@ -223,7 +223,7 @@ the expected state.</p>
   <pre><code>#if_not{condition = #if_name_matches{regex = "^a"}}.</code></pre></p>
 
 <h3 class="typedecl"><a name="type-if_path_matches">if_path_matches()</a></h3>
-<p><code>if_path_matches() = #if_path_matches{regex = any | iodata() | <a href="/home/runner/work/khepri/stdlib/doc/unicode.html#type-charlist">unicode:charlist()</a>, compiled = <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-re_compile_ret">khepri_condition:re_compile_ret()</a> | undefined}</code></p>
+<p><code>if_path_matches() = #if_path_matches{regex = any | iodata() | <a href="/home/runner/work/khepri/stdlib/doc/unicode.html#type-charlist" docgen-rel="seetype" docgen-href="stdlib:unicode#charlist/0">unicode:charlist()</a>, compiled = <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-re_compile_ret" docgen-rel="seetype" docgen-href="khepri:khepri_condition#re_compile_ret/0">khepri_condition:re_compile_ret()</a> | undefined}</code></p>
 <p><p>  Condition. Evaluates to true if the name of the tested node matches the  
 condition pattern. If it does not match, child node names are tested  
 recursively.</p>
@@ -243,7 +243,7 @@ recursively.</p>
 #if_path_matches{regex = any}.</code></pre></p>
 
 <h3 class="typedecl"><a name="type-if_payload_version">if_payload_version()</a></h3>
-<p><code>if_payload_version() = #if_payload_version{version = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_version">khepri:payload_version()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-comparison_op">khepri_condition:comparison_op</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_version">khepri:payload_version()</a>)}</code></p>
+<p><code>if_payload_version() = #if_payload_version{version = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_version" docgen-rel="seetype" docgen-href="khepri:khepri#payload_version/0">khepri:payload_version()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_condition.html#type-comparison_op" docgen-rel="seetype" docgen-href="khepri:khepri_condition#comparison_op/0">khepri_condition:comparison_op</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_version" docgen-rel="seetype" docgen-href="khepri:khepri#payload_version/0">khepri:payload_version()</a>)}</code></p>
 <p><p>  Condition. Evaluates to true if the tested node's payload version  
 corresponds to the expected value.</p>
  
@@ -258,7 +258,7 @@ corresponds to the expected value.</p>
 #if_payload_version{version = {gt, 10}}.</code></pre></p>
 
 <h3 class="typedecl"><a name="type-keep_while">keep_while()</a></h3>
-<p><code>keep_while() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path">khepri_path:path()</a> =&gt; <a href="#type-condition">condition()</a>}</code></p>
+<p><code>keep_while() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path" docgen-rel="seetype" docgen-href="khepri:khepri_path#path/0">khepri_path:path()</a> =&gt; <a href="#type-condition" docgen-rel="seetype" docgen-href="#condition/0">condition()</a>}</code></p>
 <p><p>  An association between a path and a condition. As long as the condition  
 evaluates to true, the tree node is kept. Once the condition evaluates to  
 false, the tree node is deleted.</p>
@@ -286,7 +286,7 @@ overwrite the other.</p>
 ).</code></pre></p>
 
 <h3 class="typedecl"><a name="type-native_keep_while">native_keep_while()</a></h3>
-<p><code>native_keep_while() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a> =&gt; <a href="#type-condition">condition()</a>}</code></p>
+<p><code>native_keep_while() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a> =&gt; <a href="#type-condition" docgen-rel="seetype" docgen-href="#condition/0">condition()</a>}</code></p>
 <p><p>  An association between a native path and a condition.</p>
  
   This is the same as <a docgen-rel="seetype" docgen-href="#keep_while/0" href="#type-keep_while"><code>keep_while()</code></a> but the paths in the map keys were
@@ -309,7 +309,7 @@ overwrite the other.</p>
 <h3 class="function"><a name="ensure_native_keep_while-1">ensure_native_keep_while/1</a></h3>
 <div class="spec">
 <p><code>ensure_native_keep_while(KeepWhile) -&gt; NativeKeepWhile</code>
-<ul class="definitions"><li><code>KeepWhile = <a href="#type-keep_while">keep_while()</a></code></li><li><code>NativeKeepWhile = <a href="#type-native_keep_while">native_keep_while()</a></code></li></ul></p>
+<ul class="definitions"><li><code>KeepWhile = <a href="#type-keep_while" docgen-rel="seetype" docgen-href="#keep_while/0">keep_while()</a></code></li><li><code>NativeKeepWhile = <a href="#type-native_keep_while" docgen-rel="seetype" docgen-href="#native_keep_while/0">native_keep_while()</a></code></li></ul></p>
 <p></p>
 </div>
 <hr>
