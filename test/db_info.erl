@@ -26,6 +26,32 @@ get_store_ids_with_running_store_test_() ->
          [?FUNCTION_NAME],
          khepri:get_store_ids())]}.
 
+get_store_ids_after_killing_ra_server_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         [?FUNCTION_NAME],
+         khepri:get_store_ids()),
+      ?_assertEqual(
+         true,
+         khepri_cluster:is_store_running(?FUNCTION_NAME)),
+
+      ?_test(terminate_ra_server(?FUNCTION_NAME)),
+
+      ?_assertEqual(
+         [],
+         khepri:get_store_ids()),
+      ?_assertEqual(
+         false,
+         khepri_cluster:is_store_running(?FUNCTION_NAME))]}.
+
+terminate_ra_server(ClusterName) ->
+    RaSystem = ClusterName,
+    Member = {ClusterName, node()},
+    _ = ra:stop_server(RaSystem, Member),
+    khepri_cluster:wait_for_ra_server_exit(Member).
+
 is_store_running_with_no_running_stores_test_() ->
     [?_assertEqual(
         false,
