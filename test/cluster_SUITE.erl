@@ -961,17 +961,26 @@ handle_leader_down_on_three_node_cluster_response(Config) ->
       end, [Node1, Node2]),
 
     ct:pal("Use database after starting it"),
-    ?assertEqual(ok, rpc:call(Node1, khepri, put, [StoreId, [foo], value1])),
+    LeaderId1 = get_leader_in_store(StoreId, Nodes),
+    {StoreId, LeaderNode} = LeaderId1,
+    [FollowerNode | _] = Nodes -- [LeaderNode],
+    ct:pal("- khepri:put() from node ~s", [FollowerNode]),
+    ?assertEqual(ok, rpc:call(FollowerNode, khepri, put, [StoreId, [foo], value1])),
     lists:foreach(
       fun(Node) ->
-              ct:pal("- khepri:get() from node ~s", [Node]),
+              Options = case Node of
+                            LeaderNode -> #{};
+                            FollowerNode -> #{};
+                            _            -> #{favor => consistency}
+                        end,
+              ct:pal(
+                "- khepri:get() from node ~s; options: ~0p", [Node, Options]),
               ?assertEqual(
                  {ok, value1},
-                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+                 rpc:call(Node, khepri, get, [StoreId, [foo], Options]))
       end, Nodes),
 
     %% Stop the current leader.
-    LeaderId1 = get_leader_in_store(StoreId, Nodes),
     {StoreId, StoppedLeaderNode1} = LeaderId1,
     RunningNodes1 = Nodes -- [StoppedLeaderNode1],
     Peer = proplists:get_value(StoppedLeaderNode1, PeerPerNode),
