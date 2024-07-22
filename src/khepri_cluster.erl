@@ -1504,7 +1504,21 @@ is_store_running(StoreId) ->
                {error, _} -> false;
                timeout    -> false
            end,
+
+    %% We know the real state of the Ra server. In the case the Ra server
+    %% stopped behind the back of Khepri, we update the cached list of running
+    %% stores as a side effect here.
     StoreIds = persistent_term:get(?PT_STORE_IDS, #{}),
-    Known = maps:is_key(StoreId, StoreIds),
-    ?assertEqual(Known, Runs),
+    case maps:is_key(StoreId, StoreIds) of
+        true when Runs ->
+            ok;
+        false when not Runs ->
+            ok;
+        true when not Runs ->
+            ?LOG_DEBUG(
+               "Ra server for store ~s stopped behind the back of Khepri",
+               [StoreId]),
+            forget_store(StoreId)
+    end,
+
     Runs.
