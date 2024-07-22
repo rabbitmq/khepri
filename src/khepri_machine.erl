@@ -582,12 +582,11 @@ register_projection(
   #khepri_projection{name = Name,
                      projection_fun = ProjectionFun,
                      ets_options = EtsOptions} = Projection,
-  Options0)
+  Options)
   when is_atom(Name) andalso
        is_list(EtsOptions) andalso
        (?IS_HORUS_STANDALONE_FUN(ProjectionFun) orelse
         ProjectionFun =:= copy) ->
-    Options = Options0#{reply_from => local},
     PathPattern = khepri_path:from_string(PathPattern0),
     khepri_path:ensure_is_valid(PathPattern),
     Command = #register_projection{pattern = PathPattern,
@@ -608,9 +607,8 @@ register_projection(
 %% @returns `ok' if the projection existed and was unregistered, an `{error,
 %% Reason}' tuple otherwise.
 
-unregister_projection(StoreId, ProjectionName, Options0)
+unregister_projection(StoreId, ProjectionName, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(ProjectionName) ->
-    Options = Options0#{reply_from => local},
     Command = #unregister_projection{name = ProjectionName},
     process_command(StoreId, Command, Options).
 
