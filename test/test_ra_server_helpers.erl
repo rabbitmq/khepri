@@ -16,10 +16,6 @@
 setup(Testcase) ->
     _ = logger:set_primary_config(level, warning),
     {ok, _} = application:ensure_all_started(khepri),
-    ok = application:set_env(
-           khepri,
-           consistent_query_interval_in_compromise,
-           2),
     khepri_utils:init_list_of_modules_to_skip(),
 
     #{ra_system := RaSystem} = Props = helpers:start_ra_system(Testcase),
