@@ -35,6 +35,38 @@ export_import_empty_store_to_file_test_() ->
       ?_assertEqual(ok, khepri:import(?FUNCTION_NAME, Module, Filename)),
       ?_assertEqual({ok, #{}}, khepri:get_many(?FUNCTION_NAME, "**"))]}.
 
+export_import_empty_store_to_file_using_atom_filename_test_() ->
+    Module = khepri_export_erlang,
+    Filename = list_to_atom(?FILENAME),
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) ->
+             test_ra_server_helpers:cleanup(Priv),
+             ok = file:delete(Filename)
+     end,
+     [?_assertEqual({ok, #{}}, khepri:get_many(?FUNCTION_NAME, "**")),
+      ?_assertEqual(ok, khepri:export(?FUNCTION_NAME, Module, Filename)),
+      ?_assertEqual({ok, []}, file:consult(Filename)),
+
+      ?_assertEqual(ok, khepri:import(?FUNCTION_NAME, Module, Filename)),
+      ?_assertEqual({ok, #{}}, khepri:get_many(?FUNCTION_NAME, "**"))]}.
+
+export_import_empty_store_to_file_using_binary_filename_test_() ->
+    Module = khepri_export_erlang,
+    Filename = list_to_binary(?FILENAME),
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) ->
+             test_ra_server_helpers:cleanup(Priv),
+             ok = file:delete(Filename)
+     end,
+     [?_assertEqual({ok, #{}}, khepri:get_many(?FUNCTION_NAME, "**")),
+      ?_assertEqual(ok, khepri:export(?FUNCTION_NAME, Module, Filename)),
+      ?_assertEqual({ok, []}, file:consult(Filename)),
+
+      ?_assertEqual(ok, khepri:import(?FUNCTION_NAME, Module, Filename)),
+      ?_assertEqual({ok, #{}}, khepri:get_many(?FUNCTION_NAME, "**"))]}.
+
 export_import_full_store_to_file_test_() ->
     Module = khepri_export_erlang,
     Filename = ?FILENAME,
