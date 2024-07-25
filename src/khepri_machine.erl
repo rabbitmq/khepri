@@ -1022,9 +1022,7 @@ add_applied_condition1(StoreId, Options, Timeout) ->
     %% follower and handle the redirect to the leader.
     T0 = khepri_utils:start_timeout_window(Timeout),
     QueryFun = fun erlang:is_tuple/1,
-    InternalOptions = #{favor => low_latency,
-                        timeout => Timeout},
-    case process_query(StoreId, QueryFun, InternalOptions) of
+    case process_query1(StoreId, QueryFun, Timeout) of
         true ->
             NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
             add_applied_condition2(StoreId, Options, NewTimeout);
