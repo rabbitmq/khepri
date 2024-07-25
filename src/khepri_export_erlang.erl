@@ -39,6 +39,12 @@
 %% read the next batch.
 -define(IMPORT_APPROX_LIMIT_PER_CALL, 100 * 1024). %% In bytes.
 
+%% This macro should match all the types that are accepted for
+%% `file:name_all/0'.
+-define(IS_FILENAME(Filename), (is_list(Filename) orelse
+                                is_atom(Filename) orelse
+                                is_binary(Filename))).
+
 -export([open_write/1,
          write/2,
          commit_write/1,
@@ -64,7 +70,7 @@
       WriteState :: write_state().
 %% @private
 
-open_write(Filename) when is_list(Filename) ->
+open_write(Filename) when ?IS_FILENAME(Filename) ->
     ?LOG_DEBUG(
        "~s: opening file \"~ts\" for export",
        [?MODULE, Filename],
@@ -156,7 +162,7 @@ abort_write(#{fd := Fd}) ->
       ReadState :: read_state().
 %% @private
 
-open_read(Filename) when is_list(Filename) ->
+open_read(Filename) when ?IS_FILENAME(Filename) ->
     ?LOG_DEBUG(
        "~s: opening file \"~ts\" for import",
        [?MODULE, Filename],
