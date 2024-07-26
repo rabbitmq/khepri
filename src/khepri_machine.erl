@@ -855,6 +855,7 @@ do_process_sync_command(StoreId, Command, Options) ->
                LeaderId when LeaderId =/= undefined -> LeaderId;
                undefined                            -> RaServer
            end,
+    last_message_was_sync(StoreId),
     case ra:process_command(Dest, Command, CommandOptions) of
         {ok, Ret, _LeaderId} ->
             ?raise_exception_if_any(Ret);
@@ -890,9 +891,11 @@ process_async_command(
   StoreId, Command, ?DEFAULT_RA_COMMAND_CORRELATION = Correlation, Priority) ->
     ThisNode = node(),
     RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
+    last_message_was_async(StoreId),
     ra:pipeline_command(RaServer, Command, Correlation, Priority);
 process_async_command(
   StoreId, Command, Correlation, Priority) ->
+    last_message_was_async(StoreId),
     case ra_leaderboard:lookup_leader(StoreId) of
         LeaderId when LeaderId =/= undefined ->
             ra:pipeline_command(LeaderId, Command, Correlation, Priority);
@@ -959,6 +962,7 @@ process_query(StoreId, QueryFun, Options) ->
     Options2 = Options1#{timeout => Timeout},
     case Favor of
         low_latency ->
+            last_message_was_sync(StoreId),
             process_query1(StoreId, QueryFun, Options2);
         consistency ->
             case add_applied_condition(StoreId, Options2) of
@@ -1007,14 +1011,19 @@ add_applied_condition1(StoreId, Options, Timeout) ->
     %% We can't have this guaranty for pipelined commands with a correlation
     %% because the caller is responsible for receiving the rejection from the
     %% follower and handle the redirect to the leader.
-    T0 = khepri_utils:start_timeout_window(Timeout),
-    QueryFun = fun erlang:is_tuple/1,
-    case process_query1(StoreId, QueryFun, Timeout) of
+    case was_last_message_async(StoreId) of
+        false ->
+            add_applied_condition2(StoreId, Options, Timeout);
         true ->
-            NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
-            add_applied_condition2(StoreId, Options, NewTimeout);
-        Other when Other =/= false ->
-            Other
+            T0 = khepri_utils:start_timeout_window(Timeout),
+            QueryFun = fun erlang:is_tuple/1,
+            case process_query1(StoreId, QueryFun, Timeout) of
+                true ->
+                    NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+                    add_applied_condition2(StoreId, Options, NewTimeout);
+                Other when Other =/= false ->
+                    Other
+            end
     end.
 
 add_applied_condition2(StoreId, Options, Timeout) ->
@@ -1076,6 +1085,26 @@ get_timeout(_)                     -> khepri_app:get_default_timeout().
 
 clear_cache(_StoreId) ->
     ok.
+
+-define(LAST_MSG_WAS_ASYNC_KEY(StoreId),
+        {?MODULE, last_message_was_async, StoreId}).
+
+last_message_was_sync(StoreId) ->
+    Key = ?LAST_MSG_WAS_ASYNC_KEY(StoreId),
+    _ = erlang:erase(Key),
+    ok.
+
+last_message_was_async(StoreId) ->
+    Key = ?LAST_MSG_WAS_ASYNC_KEY(StoreId),
+    _ = erlang:put(Key, true),
+    ok.
+
+was_last_message_async(StoreId) ->
+    Key = ?LAST_MSG_WAS_ASYNC_KEY(StoreId),
+    case erlang:erase(Key) of
+        undefined -> false;
+        true      -> true
+    end.
 
 %% -------------------------------------------------------------------
 %% ra_machine callbacks.
