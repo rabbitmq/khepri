@@ -43,7 +43,10 @@
          delete_many/1, delete_many/2, delete_many/3,
          clear_payload/1, clear_payload/2, clear_payload/3,
          clear_many_payloads/1, clear_many_payloads/2,
-         clear_many_payloads/3]).
+         clear_many_payloads/3,
+
+         unregister_projections/1, unregister_projections/2,
+         unregister_projections/3]).
 
 -type node_props_map() :: #{khepri_path:native_path() => khepri:node_props()}.
 %% Structure used to return a map of nodes and their associated properties,
@@ -1114,3 +1117,76 @@ clear_many_payloads(StoreId, PathPattern, Options) ->
     PathPattern2 = khepri_path:combine_with_conditions(
                      PathPattern1, [#if_node_exists{exists = true}]),
     do_put(StoreId, PathPattern2, khepri_payload:none(), Options).
+
+%% -------------------------------------------------------------------
+%% unregister_projections().
+%% -------------------------------------------------------------------
+
+-spec unregister_projections(Names) -> Ret when
+      Names :: all | [khepri_projection:name()],
+      Ret :: khepri:ok(khepri_machine:projection_map()) | khepri:error().
+%% @doc Removes the given projections from the store.
+%%
+%% Calling this function is the same as calling
+%% `unregister_projections(StoreId, Names)' with the default store ID (see
+%% {@link khepri_cluster:get_default_store_id/0}).
+%%
+%% @see unregister_projections/2.
+
+unregister_projections(Names) when Names =:= all orelse is_list(Names) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    unregister_projections(StoreId, Names).
+
+-spec unregister_projections
+(StoreId, Names) -> Ret when
+      StoreId :: khepri:store_id(),
+      Names :: all | [khepri_projection:name()],
+      Ret :: khepri:ok(khepri_machine:projection_map()) | khepri:error();
+(Names, Options) -> Ret when
+      Names :: all | [khepri_projection:name()],
+      Options :: khepri:command_options(),
+      Ret :: khepri:ok(khepri_machine:projection_map()) | khepri:error().
+%% @doc Removes the given projections from the store.
+%%
+%% This function accepts the following two forms:
+%% <ul>
+%% <li>`unregister_projections(StoreId, Names)'. Calling it is the same as
+%% calling `unregister_projections(StoreId, Names, #{})'.</li>
+%% <li>`unregister_projections(Names, Options)'. Calling it is the same as
+%% calling `unregister_projections(StoreId, Names, Options)' with the default
+%% store ID (see {@link khepri_cluster:get_default_store_id/0}).</li>
+%% </ul>
+%%
+%% @see unregister_projections/3.
+
+unregister_projections(StoreId, Names)
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+       (Names =:= all orelse is_list(Names)) ->
+    unregister_projections(StoreId, Names, #{});
+unregister_projections(Names, Options)
+  when (Names =:= all orelse is_list(Names)) andalso is_map(Options) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    unregister_projections(StoreId, Names, Options).
+
+-spec unregister_projections(StoreId, Names, Options) -> Ret when
+      StoreId :: khepri:store_id(),
+      Names :: all | [khepri_projection:name()],
+      Options :: khepri:command_options(),
+      Ret :: khepri:ok(khepri_machine:projection_map()) | khepri:error().
+%% @doc Removes the given projections from the store.
+%%
+%% `Names' may either be a list of projection names to remove or the atom
+%% `all'. When `all' is passed, every projection in the store is removed.
+%%
+%% @param StoreId the name of the Khepri store.
+%% @param Names the names of projections to unregister or the atom `all' to
+%%        remove all projections.
+%% @param Options command options for unregistering the projections.
+%% @returns `ok' if the projections were unregistered, an `{error, Reason}'
+%% tuple otherwise.
+
+unregister_projections(StoreId, Names, Options)
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+       (Names =:= all orelse is_list(Names)) andalso
+       is_map(Options) ->
+    khepri_machine:unregister_projections(StoreId, Names, Options).

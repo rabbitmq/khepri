@@ -48,7 +48,7 @@
 -record(register_projection, {pattern :: khepri_path:native_pattern(),
                               projection :: khepri_projection:projection()}).
 
--record(unregister_projection, {name :: khepri_projection:name()}).
+-record(unregister_projections, {names :: all | [khepri_projection:name()]}).
 
 -record(trigger_projection, {path :: khepri_path:native_path(),
                              old_props :: khepri:node_props(),
