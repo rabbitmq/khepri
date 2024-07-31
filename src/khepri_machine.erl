@@ -183,7 +183,7 @@
 -type async_ret() :: ok.
 
 -type projection_tree() :: khepri_pattern_tree:tree(
-                             khepri_projection:projection()).
+                             [khepri_projection:projection()]).
 %% A pattern tree that holds all registered projections in the machine's state.
 
 -export_type([common_ret/0,
