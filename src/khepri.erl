@@ -2978,7 +2978,7 @@ register_projection(StoreId, PathPattern, Projection, Options) ->
 %% -------------------------------------------------------------------
 
 -spec unregister_projection(ProjectionName) -> Ret when
-      ProjectionName :: atom(),
+      ProjectionName :: khepri_projection:name(),
       Ret :: ok | khepri:error().
 %% @doc Removes a projection from the store by name.
 %%
@@ -2995,10 +2995,10 @@ unregister_projection(ProjectionName) when is_atom(ProjectionName) ->
 -spec unregister_projection
 (StoreId, ProjectionName) -> Ret when
       StoreId :: khepri:store_id(),
-      ProjectionName :: atom(),
+      ProjectionName :: khepri_projection:name(),
       Ret :: ok | khepri:error();
 (ProjectionName, Options) -> Ret when
-      ProjectionName :: atom(),
+      ProjectionName :: khepri_projection:name(),
       Options :: khepri:command_options(),
       Ret :: ok | khepri:error().
 %% @doc Removes a projection from the store by name.
@@ -3026,7 +3026,7 @@ unregister_projection(ProjectionName, Options)
 -spec unregister_projection(StoreId, ProjectionName, Options) ->
     Ret when
       StoreId :: khepri:store_id(),
-      ProjectionName :: atom(),
+      ProjectionName :: khepri_projection:name(),
       Options :: khepri:command_options(),
       Ret :: ok | khepri:error().
 %% @doc Removes a projection from the store by name.
@@ -3048,7 +3048,7 @@ unregister_projection(StoreId, ProjectionName, Options)
 %% -------------------------------------------------------------------
 
 -spec has_projection(ProjectionName) -> Ret when
-      ProjectionName :: atom(),
+      ProjectionName :: khepri_projection:name(),
       Ret :: boolean() | khepri:error().
 %% @doc Determines whether the store has a projection registered with the given
 %% name.
@@ -3066,10 +3066,10 @@ has_projection(ProjectionName) when is_atom(ProjectionName) ->
 -spec has_projection
 (StoreId, ProjectionName) -> Ret when
       StoreId :: khepri:store_id(),
-      ProjectionName :: atom(),
+      ProjectionName :: khepri_projection:name(),
       Ret :: boolean() | khepri:error();
 (ProjectionName, Options) -> Ret when
-      ProjectionName :: atom(),
+      ProjectionName :: khepri_projection:name(),
       Options :: khepri:query_options(),
       Ret :: boolean() | khepri:error().
 %% @doc Determines whether the store has a projection registered with the given
@@ -3098,7 +3098,7 @@ has_projection(ProjectionName, Options)
 -spec has_projection(StoreId, ProjectionName, Options) ->
     Ret when
       StoreId :: khepri:store_id(),
-      ProjectionName :: atom(),
+      ProjectionName :: khepri_projection:name(),
       Options :: khepri:query_options(),
       Ret :: boolean() | khepri:error().
 %% @doc Determines whether the store has a projection registered with the given

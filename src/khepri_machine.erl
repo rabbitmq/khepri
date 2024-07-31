@@ -595,7 +595,7 @@ register_projection(
 
 -spec unregister_projection(StoreId, ProjectionName, Options) -> Ret when
       StoreId :: khepri:store_id(),
-      ProjectionName :: atom(),
+      ProjectionName :: khepri_projection:name(),
       Options :: khepri:command_options(),
       Ret :: ok | khepri:error().
 %% @doc Unregisters a projection by name.
@@ -2092,7 +2092,7 @@ get_projections(State) ->
 
 -spec has_projection(ProjectionTree, ProjectionName) -> boolean() when
       ProjectionTree :: khepri_machine:projection_tree(),
-      ProjectionName :: atom().
+      ProjectionName :: khepri_projection:name().
 %% @doc Determines if the given projection tree contains a projection.
 %%
 %% Two projections are considered equal if they have the same name.

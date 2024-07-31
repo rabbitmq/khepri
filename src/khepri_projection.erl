@@ -42,6 +42,11 @@
  %% For internal use only
 -export([init/1, trigger/4, delete/1]).
 
+-type name() :: atom().
+%% The name of a projection.
+%%
+%% @see khepri_projection:new/3.
+
 -type projection() :: #khepri_projection{}.
 %% A projection resource.
 %%
@@ -122,12 +127,13 @@ fun((Table :: ets:tid(),
 %% allowed. {@link extended_projection_fun()}s may use any valid {@link
 %% ets:table_type()}.
 
--export_type([projection/0,
+-export_type([name/0,
+              projection/0,
               projection_fun/0,
               options/0]).
 
 -spec new(Name, ProjectionFun) -> Projection when
-      Name :: atom(),
+      Name :: khepri_projection:name(),
       ProjectionFun :: khepri_projection:projection_fun(),
       Projection :: khepri_projection:projection().
 %% Creates a new projection data structure with default options.
@@ -137,7 +143,7 @@ new(Name, ProjectionFun) ->
     new(Name, ProjectionFun, #{}).
 
 -spec new(Name, ProjectionFun, Options) -> Projection when
-      Name :: atom(),
+      Name :: khepri_projection:name(),
       ProjectionFun :: khepri_projection:projection_fun(),
       Options :: khepri_projection:options(),
       Projection :: khepri_projection:projection().
@@ -235,7 +241,7 @@ to_ets_options(Key, Value, _Acc) ->
 
 -spec name(Projection) -> Name when
       Projection :: projection(),
-      Name :: atom().
+      Name :: khepri_projection:name().
 %% @doc Returns the name of the given `Projection'.
 
 name(#khepri_projection{name = Name}) ->
@@ -293,7 +299,7 @@ trigger(
         Table, Name, StandaloneFun, Path, OldProps, NewProps) ->
     Ret when
       Table :: ets:tid(),
-      Name :: atom(),
+      Name :: khepri_projection:name(),
       StandaloneFun :: horus:horus_fun(),
       Path :: khepri_path:native_path(),
       OldProps :: khepri:node_props(),
@@ -330,7 +336,7 @@ trigger_extended_projection(
         Table, Name, StandaloneFun, Path, OldProps, NewProps) ->
     Ret when
       Table :: ets:tid(),
-      Name :: atom(),
+      Name :: khepri_projection:name(),
       StandaloneFun :: horus:horus_fun(),
       Path :: khepri_path:native_path(),
       OldProps :: khepri:node_props(),
@@ -390,7 +396,7 @@ trigger_simple_projection(
     ok.
 
 -spec trigger_copy_projection(Name, Table, OldProps, NewProps) -> Ret when
-      Name :: atom(),
+      Name :: khepri_projection:name(),
       Table :: ets:tid(),
       OldProps :: khepri:node_props(),
       NewProps :: khepri:node_props(),
@@ -407,7 +413,7 @@ trigger_copy_projection(_Name, _Table, _OldProps, _NewProps) ->
     ok.
 
 -spec try_ets_insert(Name, Table, Record) -> ok when
-      Name :: atom(),
+      Name :: khepri_projection:name(),
       Table :: ets:tid(),
       Record :: term().
 %% @hidden
@@ -431,7 +437,7 @@ try_ets_insert(Name, Table, Record) ->
     ok.
 
 -spec try_ets_delete_object(Name, Table, Record) -> ok when
-      Name :: atom(),
+      Name :: khepri_projection:name(),
       Table :: ets:tid(),
       Record :: term().
 %% @hidden
