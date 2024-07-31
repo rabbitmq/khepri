@@ -61,7 +61,7 @@
          transaction/5,
          register_trigger/5,
          register_projection/4,
-         unregister_projection/3]).
+         unregister_projections/3]).
 -export([get_keep_while_conds_state/2,
          get_projections_state/2]).
 
@@ -122,7 +122,7 @@
                    #register_trigger{} |
                    #ack_triggered{} |
                    #register_projection{} |
-                   #unregister_projection{} |
+                   #unregister_projections{} |
                    #dedup{} |
                    #dedup_ack{}.
 %% Commands specific to this Ra machine.
@@ -186,6 +186,10 @@
                              [khepri_projection:projection()]).
 %% A pattern tree that holds all registered projections in the machine's state.
 
+-type projection_map() :: #{khepri_projection:name() => khepri_path:pattern()}.
+%% A mapping between the names of projections and patterns to which each
+%% projection is registered.
+
 -export_type([common_ret/0,
               tx_ret/0,
               async_ret/0,
@@ -200,6 +204,7 @@
               props/0,
               triggered/0,
               projection_tree/0,
+              projection_map/0,
               command/0]).
 
 -define(HAS_TIME_LEFT(Timeout), (Timeout =:= infinity orelse Timeout > 0)).
@@ -593,23 +598,31 @@ register_projection(
                                    projection = Projection},
     process_command(StoreId, Command, Options).
 
--spec unregister_projection(StoreId, ProjectionName, Options) -> Ret when
+-spec unregister_projections(StoreId, Names, Options) -> Ret when
       StoreId :: khepri:store_id(),
-      ProjectionName :: khepri_projection:name(),
+      Names :: all | [khepri_projection:name()],
       Options :: khepri:command_options(),
-      Ret :: ok | khepri:error().
-%% @doc Unregisters a projection by name.
+      Ret :: khepri:ok(khepri_machine:projection_map()) | khepri:error().
+%% @doc Removes the given projections from the store.
+%%
+%% `Names' may either be a list of projection names to remove or the atom
+%% `all'. When `all' is passed, every projection in the store is removed.
 %%
 %% @param StoreId the name of the Ra cluster.
-%% @param ProjectionName the name of the projection to unregister.
+%% @param Names the names of projections to unregister or the atom `all' to
+%%        remove all projections.
 %% @param Options command options such as the command type.
 %%
-%% @returns `ok' if the projection existed and was unregistered, an `{error,
-%% Reason}' tuple otherwise.
+%% @returns `{ok, ProjectionMap}' if the command succeeds, `{error, Reason}'
+%% otherwise. The `ProjectionMap' is a map with projection names ({@link
+%% khepri_projection:name()} keys associated to the pattern to which each
+%% projection was registered.
 
-unregister_projection(StoreId, ProjectionName, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(ProjectionName) ->
-    Command = #unregister_projection{name = ProjectionName},
+unregister_projections(StoreId, Names, Options)
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+       (Names =:= all orelse is_list(Names)) andalso
+       is_map(Options) ->
+    Command = #unregister_projections{names = Names},
     process_command(StoreId, Command, Options).
 
 -spec ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
@@ -1268,39 +1281,42 @@ apply(
     end;
 apply(
   Meta,
-  #unregister_projection{name = ProjectionName},
+  #unregister_projections{names = Names},
   State) ->
+    RemoveProjection = case Names of
+                           all ->
+                               fun(_Name) -> true end;
+                           _ when is_list(Names) ->
+                               Names1 = sets:from_list(Names, [{version, 2}]),
+                               fun(Name) -> sets:is_element(Name, Names1) end
+                       end,
     ProjectionTree = get_projections(State),
-    ProjectionTree1 =
-    khepri_pattern_tree:filtermap(
-      ProjectionTree,
-      fun (_PathPattern, Projections) ->
-              Projections1 =
-              lists:filter(
-                fun (#khepri_projection{name = Name} = Projection)
-                      when Name =:= ProjectionName ->
-                        khepri_projection:delete(Projection),
-                        false;
-                    (_OtherProjection) ->
-                        true
+    {ProjectionTree1, RemovedProjectionsMap} =
+    khepri_pattern_tree:map_fold(
+      fun(Pattern, Projections, Acc) ->
+              {RemovedProjections, Projections1} =
+              lists:partition(
+                fun(Projection) ->
+                        Name = khepri_projection:name(Projection),
+                        RemoveProjection(Name)
                 end, Projections),
-              case Projections1 of
-                  [] ->
-                      false;
-                  _ ->
-                      {true, Projections1}
-              end
-      end),
-    Reply = case ProjectionTree1 of
-                ProjectionTree ->
-                    Info = #{name => ProjectionName},
-                    Reason = ?khepri_error(projection_not_found, Info),
-                    {error, Reason};
-                _ ->
-                    clear_compiled_projection_tree(),
-                    ok
-            end,
+              Acc2 = lists:foldl(
+                       fun(Projection, Acc1) ->
+                               Name = khepri_projection:name(Projection),
+                               _ = khepri_projection:delete(Projection),
+                               maps:put(Name, Pattern, Acc1)
+                       end, Acc, RemovedProjections),
+              Projections2 = case Projections1 of
+                                 [] ->
+                                     ?NO_PAYLOAD;
+                                 _ ->
+                                     Projections1
+                             end,
+              {Projections2, Acc2}
+      end, #{}, ProjectionTree),
     State1 = set_projections(State, ProjectionTree1),
+    clear_compiled_projection_tree(),
+    Reply = {ok, RemovedProjectionsMap},
     Ret = {State1, Reply},
     post_apply(Ret, Meta);
 apply(

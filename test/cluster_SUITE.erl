@@ -1520,13 +1520,14 @@ can_use_default_store_on_single_node(_Config) ->
     ?assertEqual(ok, khepri:register_projection("/**", Projection2, #{})),
     ?assertEqual(true, khepri:has_projection(ProjectionName2)),
 
-    ?assertEqual(ok, khepri:unregister_projection(ProjectionName1)),
+    ?assertEqual(ok, khepri:unregister_projections([ProjectionName1])),
     ?assertEqual(
-       {error, ?khepri_error(
-                 projection_not_found,
-                 #{name => ProjectionName1})},
-       khepri:unregister_projection(ProjectionName1)),
-    ?assertEqual(ok, khepri:unregister_projection(ProjectionName2, #{})),
+       {ok, #{}},
+       khepri_adv:unregister_projections([ProjectionName1])),
+    ?assertEqual(ok, khepri:unregister_projections([ProjectionName2], #{})),
+    ?assertEqual(
+       {ok, #{}},
+       khepri_adv:unregister_projections([ProjectionName2], #{})),
 
     ?assertEqual({ok, ok}, khepri:transaction(fun() -> ok end)),
     ?assertEqual({ok, ok}, khepri:transaction(fun() -> ok end, ro)),

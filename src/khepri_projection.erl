@@ -263,9 +263,23 @@ init(#khepri_projection{name = Name, ets_options = EtsOptions}) ->
             {error, exists}
     end.
 
+-spec delete(Projection) -> Ret when
+      Projection :: projection(),
+      Ret :: ok | {error, does_not_exist}.
+%% @hidden
+%% Deletes the ETS table for the given projection.
+%%
+%% @returns `ok' if the table is successfully deleted or `{error,
+%% does_not_exist}' if the table does not exist.
+
 delete(#khepri_projection{name = Name}) ->
-    _ = ets:delete(Name),
-    ok.
+    try
+        ets:delete(Name),
+        ok
+    catch
+        error:badarg:_Stacktrace ->
+            {error, does_not_exist}
+    end.
 
 -spec trigger(Projection, Path, OldProps, NewProps) -> Ret when
       Projection :: projection(),
