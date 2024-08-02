@@ -118,8 +118,8 @@
          register_trigger/3, register_trigger/4, register_trigger/5,
 
          register_projection/2, register_projection/3, register_projection/4,
-         unregister_projection/1, unregister_projection/2,
-         unregister_projection/3,
+         unregister_projections/1, unregister_projections/2,
+         unregister_projections/3,
          has_projection/1, has_projection/2, has_projection/3,
 
          %% Transactions; `khepri_tx' provides the API to use inside
@@ -2974,81 +2974,89 @@ register_projection(StoreId, PathPattern, Projection, Options) ->
       StoreId, PathPattern, Projection, Options).
 
 %% -------------------------------------------------------------------
-%% unregister_projection().
+%% unregister_projections().
 %% -------------------------------------------------------------------
 
--spec unregister_projection(ProjectionName) -> Ret when
-      ProjectionName :: atom(),
+-spec unregister_projections(Names) -> Ret when
+      Names :: all | [khepri_projection:name()],
       Ret :: ok | khepri:error().
-%% @doc Removes a projection from the store by name.
+%% @doc Removes the given projections from the store.
 %%
 %% Calling this function is the same as calling
-%% `unregister_projection(StoreId, ProjectionName)' with the default store ID
-%% (see {@link khepri_cluster:get_default_store_id/0}).
+%% `unregister_projections(StoreId, Names)' with the default store ID (see
+%% {@link khepri_cluster:get_default_store_id/0}).
 %%
-%% @see unregister_projection/2.
+%% @see unregister_projections/2.
 
-unregister_projection(ProjectionName) when is_atom(ProjectionName) ->
+unregister_projections(Names) when Names =:= all orelse is_list(Names) ->
     StoreId = khepri_cluster:get_default_store_id(),
-    unregister_projection(StoreId, ProjectionName).
+    unregister_projections(StoreId, Names).
 
--spec unregister_projection
-(StoreId, ProjectionName) -> Ret when
+-spec unregister_projections
+(StoreId, Names) -> Ret when
       StoreId :: khepri:store_id(),
-      ProjectionName :: atom(),
+      Names :: all | [khepri_projection:name()],
       Ret :: ok | khepri:error();
-(ProjectionName, Options) -> Ret when
-      ProjectionName :: atom(),
+(Names, Options) -> Ret when
+      Names :: all | [khepri_projection:name()],
       Options :: khepri:command_options(),
       Ret :: ok | khepri:error().
-%% @doc Removes a projection from the store by name.
+%% @doc Removes the given projections from the store.
 %%
 %% This function accepts the following two forms:
 %% <ul>
-%% <li>`unregister_projection(StoreId, ProjectionName)'. Calling it is the same
-%% as calling `unregister_projection(StoreId, ProjectionName, #{})'.</li>
-%% <li>`unregister_projection(ProjectionName, Options)'. Calling it is the same
-%% as calling `unregister_projection(StoreId, ProjectionName, Options)' with
+%% <li>`unregister_projections(StoreId, Names)'. Calling it is the same as
+%% calling `unregister_projections(StoreId, Names, #{})'.</li>
+%% <li>`unregister_projections(Names, Options)'. Calling it is the same as
+%% calling `unregister_projections(StoreId, Names, Options)' with
 %% the default store ID (see {@link khepri_cluster:get_default_store_id/0}).
 %% </li>
 %% </ul>
 %%
-%% @see unregister_projection/3.
+%% @see unregister_projections/3.
 
-unregister_projection(StoreId, ProjectionName)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(ProjectionName) ->
-    unregister_projection(StoreId, ProjectionName, #{});
-unregister_projection(ProjectionName, Options)
-  when is_atom(ProjectionName) andalso is_map(Options) ->
+unregister_projections(StoreId, Names)
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+       (Names =:= all orelse is_list(Names)) ->
+    unregister_projections(StoreId, Names, #{});
+unregister_projections(Names, Options)
+  when (Names =:= all orelse is_list(Names)) andalso is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
-    unregister_projection(StoreId, ProjectionName, Options).
+    unregister_projections(StoreId, Names, Options).
 
--spec unregister_projection(StoreId, ProjectionName, Options) ->
+-spec unregister_projections(StoreId, Names, Options) ->
     Ret when
       StoreId :: khepri:store_id(),
-      ProjectionName :: atom(),
+      Names :: all | [khepri_projection:name()],
       Options :: khepri:command_options(),
       Ret :: ok | khepri:error().
-%% @doc Removes a projection from the store by name.
+%% @doc Removes the given projections from the store.
+%%
+%% `Names' may either be a list of projection names to remove or the atom
+%% `all'. When `all' is passed, every projection in the store is removed.
 %%
 %% @param StoreId the name of the Khepri store.
-%% @param ProjectionName the name of the projection to unregister as passed to
-%%        {@link khepri_projection:new/3}.
-%% @param Options command options for unregistering the projection.
-%% @returns `ok' if the projection was unregistered, an `{error, Reason}' tuple
-%% otherwise.
+%% @param Names the names of projections to unregister or the atom `all' to
+%%        remove all projections.
+%% @param Options command options for unregistering the projections.
+%% @returns `ok' if the projections were unregistered, an `{error, Reason}'
+%% tuple otherwise.
+%%
+%% @see khepri_adv:unregister_projections/3.
 
-unregister_projection(StoreId, ProjectionName, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(ProjectionName) andalso
+unregister_projections(StoreId, Names, Options)
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+       (Names =:= all orelse is_list(Names)) andalso
        is_map(Options) ->
-    khepri_machine:unregister_projection(StoreId, ProjectionName, Options).
+    Ret = khepri_adv:unregister_projections(StoreId, Names, Options),
+    ?result_ret_to_minimal_ret(Ret).
 
 %% -------------------------------------------------------------------
 %% has_projection().
 %% -------------------------------------------------------------------
 
 -spec has_projection(ProjectionName) -> Ret when
-      ProjectionName :: atom(),
+      ProjectionName :: khepri_projection:name(),
       Ret :: boolean() | khepri:error().
 %% @doc Determines whether the store has a projection registered with the given
 %% name.
@@ -3066,10 +3074,10 @@ has_projection(ProjectionName) when is_atom(ProjectionName) ->
 -spec has_projection
 (StoreId, ProjectionName) -> Ret when
       StoreId :: khepri:store_id(),
-      ProjectionName :: atom(),
+      ProjectionName :: khepri_projection:name(),
       Ret :: boolean() | khepri:error();
 (ProjectionName, Options) -> Ret when
-      ProjectionName :: atom(),
+      ProjectionName :: khepri_projection:name(),
       Options :: khepri:query_options(),
       Ret :: boolean() | khepri:error().
 %% @doc Determines whether the store has a projection registered with the given
@@ -3098,7 +3106,7 @@ has_projection(ProjectionName, Options)
 -spec has_projection(StoreId, ProjectionName, Options) ->
     Ret when
       StoreId :: khepri:store_id(),
-      ProjectionName :: atom(),
+      ProjectionName :: khepri_projection:name(),
       Options :: khepri:query_options(),
       Ret :: boolean() | khepri:error().
 %% @doc Determines whether the store has a projection registered with the given

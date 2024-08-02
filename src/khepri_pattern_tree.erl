@@ -54,7 +54,7 @@
          fold/5,
          foreach/2,
          compile/1,
-         filtermap/2,
+         map_fold/3,
          any/2]).
 
 -spec empty() -> TreeNode when
@@ -308,15 +308,19 @@ compile(#pattern_node{child_nodes = ChildNodes0} = PatternTree) ->
                    end, #{}, ChildNodes0),
     PatternTree#pattern_node{child_nodes = ChildNodes}.
 
--spec filtermap(ProjectionTree, Fun) -> Ret when
-      ProjectionTree :: khepri_pattern_tree:tree(Payload),
-      Fun :: fun((PathPattern, Payload) -> boolean() | {true, NewPayload}),
-      Ret :: khepri_pattern_tree:tree(NewPayload),
-      PathPattern :: khepri_path:native_pattern(),
+-spec map_fold(Fun, Acc, PatternTree) -> Ret when
+      PatternTree :: khepri_pattern_tree:tree(Payload),
+      Fun :: fun((Pattern, Payload, Acc) -> {NewPayload, NewAcc}),
+      Pattern :: khepri_path:native_pattern(),
+      Acc :: fold_acc(),
+      NewAcc :: fold_acc(),
+      NewPatternTree :: khepri_pattern_tree:tree(NewPayload),
+      Ret :: {NewPatternTree, NewAcc},
       Payload :: payload(),
-      NewPayload :: payload().
+      NewPayload :: payload() | ?NO_PAYLOAD.
 
-%% @doc Filters and optionally replaces values in the tree.
+%% @doc Folds over a pattern tree, updating each payload and an accumulator
+%% with the given `Fun'.
 %%
 %% The filter-map `Fun' receives each `PathPattern' and `Payload' pair in the
 %% tree. If the function returns `false', the pair is removed from the tree.
@@ -331,44 +335,62 @@ compile(#pattern_node{child_nodes = ChildNodes0} = PatternTree) ->
 %% @returns A new pattern tree with entries filtered by the filtered and
 %%          updated by the filter-map function.
 
-filtermap(ProjectionTree, Fun) ->
-    filtermap1(ProjectionTree, Fun, []).
+map_fold(Fun, Acc, PatternTree) ->
+    map_fold(Fun, Acc, PatternTree, []).
 
-filtermap1(
-  #pattern_node{child_nodes = ChildNodes0, payload = Payload0},
-  Fun, ReversedPathPattern) ->
-    Payload = case Payload0 of
-                  ?NO_PAYLOAD ->
-                      Payload0;
-                  _ ->
-                      PathPattern = lists:reverse(ReversedPathPattern),
-                      case Fun(PathPattern, Payload0) of
-                          {true, NewPayload} ->
-                              NewPayload;
-                          true ->
-                              Payload0;
-                          false ->
-                              ?NO_PAYLOAD
-                      end
-              end,
-    ChildNodes = maps:filtermap(
-                   fun(PatternComponent, ChildNode) ->
-                           MappedChild = filtermap1(
-                                           ChildNode, Fun,
-                                           [PatternComponent |
-                                            ReversedPathPattern]),
-                           case MappedChild of
-                               #pattern_node{payload = ?NO_PAYLOAD,
-                                             child_nodes = Grandchildren}
-                                 when Grandchildren =:= #{} ->
-                                   %% Trim any children with no children
-                                   %% and no payload
-                                   false;
-                               _ ->
-                                   {true, MappedChild}
-                           end
-                   end, ChildNodes0),
-    #pattern_node{payload = Payload, child_nodes = ChildNodes}.
+map_fold(
+  Fun, Acc,
+  #pattern_node{child_nodes = ChildNodes, payload = Payload},
+  ReversedPattern) ->
+    {Payload1, Acc1} = case Payload of
+                           ?NO_PAYLOAD ->
+                               {Payload, Acc};
+                           _ ->
+                               Pattern = lists:reverse(ReversedPattern),
+                               Fun(Pattern, Payload, Acc)
+                       end,
+    {ChildNodes1, Acc4} =
+    maps_filtermap_fold(
+      fun(PatternComponent, ChildNode, Acc2) ->
+              ReversedPattern1 = [PatternComponent | ReversedPattern],
+              {ChildNode1, Acc3} = map_fold(
+                                     Fun, Acc2, ChildNode,
+                                     ReversedPattern1),
+              MappedChild = case ChildNode1 of
+                                #pattern_node{payload = ?NO_PAYLOAD,
+                                              child_nodes = Grandchildren}
+                                  when Grandchildren =:= #{} ->
+                                    %% Trim any children with no children and
+                                    %% no payload.
+                                    false;
+                                _ ->
+                                    {true, ChildNode1}
+                            end,
+              {MappedChild, Acc3}
+      end, Acc1, ChildNodes),
+    Node = #pattern_node{payload = Payload1, child_nodes = ChildNodes1},
+    {Node, Acc4}.
+
+%% `maps:filtermap/2' modified to collect an accumulator
+maps_filtermap_fold(Fun, Acc, Map) ->
+    maps_filtermap_fold(Fun, Acc, maps:next(maps:iterator(Map)), []).
+
+maps_filtermap_fold(Fun, Acc, {K, V, Iter}, Pairs) ->
+    {Result, Acc1} = Fun(K, V, Acc),
+    Pairs1 = case Result of
+                 %% This branch is unused by the only caller so the dialyzer
+                 %% complains it is unreachable. The dialyzer is correct so
+                 %% we leave this commented out for future use:
+                 %% true ->
+                 %%     [{K, V} | Pairs];
+                 {true, NewV} ->
+                     [{K, NewV} | Pairs];
+                 false ->
+                     Pairs
+             end,
+    maps_filtermap_fold(Fun, Acc1, maps:next(Iter), Pairs1);
+maps_filtermap_fold(_Fun, Acc, none, Pairs) ->
+    {maps:from_list(Pairs), Acc}.
 
 -spec any(PatternTree, FindFun) -> Ret when
       PatternTree :: khepri_pattern_tree:tree(Payload),
