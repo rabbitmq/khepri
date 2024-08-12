@@ -132,6 +132,15 @@ fun((Table :: ets:tid(),
               projection_fun/0,
               options/0]).
 
+-ifdef(TEST).
+%% In testing we will cover failure scenarios like an ETS table being deleted
+%% so we need the table to be public. In normal operation though, the ETS table
+%% is protected and belongs to the Ra server process.
+-define(DEFAULT_ETS_OPTS, [public, named_table]).
+-else.
+-define(DEFAULT_ETS_OPTS, [protected, named_table]).
+-endif.
+
 -spec new(Name, ProjectionFun) -> Projection when
       Name :: khepri_projection:name(),
       ProjectionFun :: khepri_projection:projection_fun(),
@@ -165,7 +174,7 @@ new(Name, ProjectionFun) ->
 %% @returns a {@link projection()} resource.
 
 new(Name, copy, Options) when is_map(Options) ->
-    EtsOptions = maps:fold(fun to_ets_options/3, [named_table], Options),
+    EtsOptions = maps:fold(fun to_ets_options/3, ?DEFAULT_ETS_OPTS, Options),
     #khepri_projection{name = Name,
                        projection_fun = copy,
                        ets_options = EtsOptions};
@@ -180,7 +189,7 @@ new(Name, ProjectionFun, Options)
         {_CustomFunOptions, _EtsOptions} = Value ->
             Value
     end,
-    EtsOptions1 = maps:fold(fun to_ets_options/3, [named_table], EtsOptions),
+    EtsOptions1 = maps:fold(fun to_ets_options/3, ?DEFAULT_ETS_OPTS, EtsOptions),
     ShouldProcessFunction =
     if
         is_function(ProjectionFun, 2) ->

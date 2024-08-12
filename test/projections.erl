@@ -694,7 +694,25 @@ unregister_projection_test_() ->
          {"The store still contains the other projection",
           ?_assertEqual(
             true,
-            khepri:has_projection(?FUNCTION_NAME, ProjectionName2))}]
+            khepri:has_projection(?FUNCTION_NAME, ProjectionName2))},
+
+         {"Unregistering a projection without an ETS table is ok",
+          ?_test(
+              begin
+                  true = ets:delete(ProjectionName2),
+                  ?assertEqual(
+                    {ok, #{ProjectionName2 => PathPattern}},
+                    khepri_adv:unregister_projections(
+                      ?FUNCTION_NAME, [ProjectionName2]))
+              end)},
+
+         {"The store no longer contains that projection",
+          ?_assertEqual(
+            false,
+            khepri:has_projection(?FUNCTION_NAME, ProjectionName1))},
+
+         {"That projection table no longer exists",
+          ?_assertEqual(undefined, ets:info(ProjectionName2))}]
       }]}.
 
 unregister_all_projections_test_() ->
