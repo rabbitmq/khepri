@@ -625,18 +625,28 @@ unregister_projection_test_() ->
     ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
     PathPattern = [stock, wood, <<"oak">>],
     Data = 100,
+    ProjectionName1 = projection_1,
+    ProjectionName2 = projection_2,
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [{inorder,
-        [{"Register the projection",
+        [{"Register projections",
           ?_test(
               begin
-                  Projection = khepri_projection:new(?MODULE, ProjectFun),
+                  Projection1 = khepri_projection:new(
+                                  ProjectionName1, ProjectFun),
                   ?assertEqual(
                     ok,
                     khepri:register_projection(
-                      ?FUNCTION_NAME, PathPattern, Projection))
+                      ?FUNCTION_NAME, PathPattern, Projection1)),
+
+                  Projection2 = khepri_projection:new(
+                                  ProjectionName2, ProjectFun),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection2))
               end)},
 
          {"Trigger the projection",
@@ -645,29 +655,141 @@ unregister_projection_test_() ->
             khepri:put(
               ?FUNCTION_NAME, PathPattern, Data))},
 
-         {"The projection contains the triggered change",
-          ?_assertEqual(Data, ets:lookup_element(?MODULE, PathPattern, 2))},
+         {"The projections contain the triggered change",
+          ?_test(
+              begin
+                  ?assertEqual(
+                    Data,
+                    ets:lookup_element(ProjectionName1, PathPattern, 2)),
+                  ?assertEqual(
+                    Data,
+                    ets:lookup_element(ProjectionName2, PathPattern, 2))
+              end)},
 
          {"Unregister an unknown projection",
           ?_assertEqual(
-            {error, {khepri, projection_not_found, #{name => undefined}}},
-            khepri:unregister_projection(?FUNCTION_NAME, undefined))},
+            {ok, #{}},
+            khepri_adv:unregister_projections(?FUNCTION_NAME, [undefined]))},
 
-         {"Unregister the projection",
+         {"Unregister one of the projections",
           ?_assertEqual(
-            ok,
-            khepri:unregister_projection(?FUNCTION_NAME, ?MODULE))},
+            {ok, #{ProjectionName1 => PathPattern}},
+            khepri_adv:unregister_projections(
+              ?FUNCTION_NAME, [ProjectionName1]))},
 
-         {"The store no longer contains the projection",
+         {"The store no longer contains that projection",
           ?_assertEqual(
             false,
-            khepri:has_projection(?FUNCTION_NAME, ?MODULE))},
+            khepri:has_projection(?FUNCTION_NAME, ProjectionName1))},
 
          {"The projection table no longer exists",
-          ?_assertEqual(undefined, ets:info(?MODULE))},
+          ?_assertEqual(undefined, ets:info(ProjectionName1))},
 
-         {"Unregistering the projection again fails",
-          ?_assertMatch(
-            {error, ?khepri_error(projection_not_found, _Info)},
-            khepri:unregister_projection(?FUNCTION_NAME, ?MODULE))}]
+         {"Unregistering the projection again is a no-op",
+          ?_assertEqual(
+            {ok, #{}},
+            khepri_adv:unregister_projections(
+              ?FUNCTION_NAME, [ProjectionName1]))},
+
+         {"The store still contains the other projection",
+          ?_assertEqual(
+            true,
+            khepri:has_projection(?FUNCTION_NAME, ProjectionName2))},
+
+         {"Unregistering a projection without an ETS table is ok",
+          ?_test(
+              begin
+                  true = ets:delete(ProjectionName2),
+                  ?assertEqual(
+                    {ok, #{ProjectionName2 => PathPattern}},
+                    khepri_adv:unregister_projections(
+                      ?FUNCTION_NAME, [ProjectionName2]))
+              end)},
+
+         {"The store no longer contains that projection",
+          ?_assertEqual(
+            false,
+            khepri:has_projection(?FUNCTION_NAME, ProjectionName1))},
+
+         {"That projection table no longer exists",
+          ?_assertEqual(undefined, ets:info(ProjectionName2))}]
+      }]}.
+
+unregister_all_projections_test_() ->
+    ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
+    PathPattern = [stock, wood, <<"oak">>],
+    Data = 100,
+    ProjectionName1 = projection_1,
+    ProjectionName2 = projection_2,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Unregister all projections",
+          ?_assertEqual(
+            {ok, #{}},
+            khepri_adv:unregister_projections(?FUNCTION_NAME, all))},
+
+         {"Register projections",
+          ?_test(
+              begin
+                  Projection1 = khepri_projection:new(
+                                  ProjectionName1, ProjectFun),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection1)),
+
+                  Projection2 = khepri_projection:new(
+                                  ProjectionName2, ProjectFun),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection2))
+              end)},
+
+         {"Trigger the projections",
+          ?_assertEqual(
+            ok,
+            khepri:put(?FUNCTION_NAME, PathPattern, Data))},
+
+         {"The projections contain the triggered change",
+          ?_test(
+              begin
+                  ?assertEqual(
+                    Data,
+                    ets:lookup_element(ProjectionName1, PathPattern, 2)),
+                  ?assertEqual(
+                    Data,
+                    ets:lookup_element(ProjectionName2, PathPattern, 2))
+              end)},
+
+         {"Unregister the projections",
+          ?_assertEqual(
+            {ok, #{ProjectionName1 => PathPattern,
+                   ProjectionName2 => PathPattern}},
+            khepri_adv:unregister_projections(?FUNCTION_NAME, all))},
+
+         {"The store no longer contains the projections",
+          ?_test(
+              begin
+                  ?assertEqual(
+                      false,
+                      khepri:has_projection(?FUNCTION_NAME, ProjectionName1)),
+                  ?assertEqual(
+                      false,
+                      khepri:has_projection(?FUNCTION_NAME, ProjectionName2))
+              end)},
+
+         {"The projection tables no longer exist",
+          ?_test(
+              begin
+                  ?assertEqual(undefined, ets:info(ProjectionName1)),
+                  ?assertEqual(undefined, ets:info(ProjectionName2))
+              end)},
+
+         {"Unregistering the projections again is ok",
+          ?_assertEqual(
+            {ok, #{}},
+            khepri_adv:unregister_projections(?FUNCTION_NAME, all))}]
       }]}.

@@ -42,6 +42,11 @@
  %% For internal use only
 -export([init/1, trigger/4, delete/1]).
 
+-type name() :: atom().
+%% The name of a projection.
+%%
+%% @see khepri_projection:new/3.
+
 -type projection() :: #khepri_projection{}.
 %% A projection resource.
 %%
@@ -122,12 +127,22 @@ fun((Table :: ets:tid(),
 %% allowed. {@link extended_projection_fun()}s may use any valid {@link
 %% ets:table_type()}.
 
--export_type([projection/0,
+-export_type([name/0,
+              projection/0,
               projection_fun/0,
               options/0]).
 
+-ifdef(TEST).
+%% In testing we will cover failure scenarios like an ETS table being deleted
+%% so we need the table to be public. In normal operation though, the ETS table
+%% is protected and belongs to the Ra server process.
+-define(DEFAULT_ETS_OPTS, [public, named_table]).
+-else.
+-define(DEFAULT_ETS_OPTS, [protected, named_table]).
+-endif.
+
 -spec new(Name, ProjectionFun) -> Projection when
-      Name :: atom(),
+      Name :: khepri_projection:name(),
       ProjectionFun :: khepri_projection:projection_fun(),
       Projection :: khepri_projection:projection().
 %% Creates a new projection data structure with default options.
@@ -137,7 +152,7 @@ new(Name, ProjectionFun) ->
     new(Name, ProjectionFun, #{}).
 
 -spec new(Name, ProjectionFun, Options) -> Projection when
-      Name :: atom(),
+      Name :: khepri_projection:name(),
       ProjectionFun :: khepri_projection:projection_fun(),
       Options :: khepri_projection:options(),
       Projection :: khepri_projection:projection().
@@ -159,7 +174,7 @@ new(Name, ProjectionFun) ->
 %% @returns a {@link projection()} resource.
 
 new(Name, copy, Options) when is_map(Options) ->
-    EtsOptions = maps:fold(fun to_ets_options/3, [named_table], Options),
+    EtsOptions = maps:fold(fun to_ets_options/3, ?DEFAULT_ETS_OPTS, Options),
     #khepri_projection{name = Name,
                        projection_fun = copy,
                        ets_options = EtsOptions};
@@ -174,7 +189,7 @@ new(Name, ProjectionFun, Options)
         {_CustomFunOptions, _EtsOptions} = Value ->
             Value
     end,
-    EtsOptions1 = maps:fold(fun to_ets_options/3, [named_table], EtsOptions),
+    EtsOptions1 = maps:fold(fun to_ets_options/3, ?DEFAULT_ETS_OPTS, EtsOptions),
     ShouldProcessFunction =
     if
         is_function(ProjectionFun, 2) ->
@@ -235,7 +250,7 @@ to_ets_options(Key, Value, _Acc) ->
 
 -spec name(Projection) -> Name when
       Projection :: projection(),
-      Name :: atom().
+      Name :: khepri_projection:name().
 %% @doc Returns the name of the given `Projection'.
 
 name(#khepri_projection{name = Name}) ->
@@ -257,9 +272,23 @@ init(#khepri_projection{name = Name, ets_options = EtsOptions}) ->
             {error, exists}
     end.
 
+-spec delete(Projection) -> Ret when
+      Projection :: projection(),
+      Ret :: ok | {error, does_not_exist}.
+%% @hidden
+%% Deletes the ETS table for the given projection.
+%%
+%% @returns `ok' if the table is successfully deleted or `{error,
+%% does_not_exist}' if the table does not exist.
+
 delete(#khepri_projection{name = Name}) ->
-    _ = ets:delete(Name),
-    ok.
+    try
+        ets:delete(Name),
+        ok
+    catch
+        error:badarg:_Stacktrace ->
+            {error, does_not_exist}
+    end.
 
 -spec trigger(Projection, Path, OldProps, NewProps) -> Ret when
       Projection :: projection(),
@@ -293,7 +322,7 @@ trigger(
         Table, Name, StandaloneFun, Path, OldProps, NewProps) ->
     Ret when
       Table :: ets:tid(),
-      Name :: atom(),
+      Name :: khepri_projection:name(),
       StandaloneFun :: horus:horus_fun(),
       Path :: khepri_path:native_path(),
       OldProps :: khepri:node_props(),
@@ -330,7 +359,7 @@ trigger_extended_projection(
         Table, Name, StandaloneFun, Path, OldProps, NewProps) ->
     Ret when
       Table :: ets:tid(),
-      Name :: atom(),
+      Name :: khepri_projection:name(),
       StandaloneFun :: horus:horus_fun(),
       Path :: khepri_path:native_path(),
       OldProps :: khepri:node_props(),
@@ -390,7 +419,7 @@ trigger_simple_projection(
     ok.
 
 -spec trigger_copy_projection(Name, Table, OldProps, NewProps) -> Ret when
-      Name :: atom(),
+      Name :: khepri_projection:name(),
       Table :: ets:tid(),
       OldProps :: khepri:node_props(),
       NewProps :: khepri:node_props(),
@@ -407,7 +436,7 @@ trigger_copy_projection(_Name, _Table, _OldProps, _NewProps) ->
     ok.
 
 -spec try_ets_insert(Name, Table, Record) -> ok when
-      Name :: atom(),
+      Name :: khepri_projection:name(),
       Table :: ets:tid(),
       Record :: term().
 %% @hidden
@@ -431,7 +460,7 @@ try_ets_insert(Name, Table, Record) ->
     ok.
 
 -spec try_ets_delete_object(Name, Table, Record) -> ok when
-      Name :: atom(),
+      Name :: khepri_projection:name(),
       Table :: ets:tid(),
       Record :: term().
 %% @hidden
