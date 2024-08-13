@@ -55,6 +55,11 @@ functions directly in order to build the projection table.</p>
  
   The return value of this function is ignored.</p>
 
+<h3 class="typedecl"><a name="type-name">name()</a></h3>
+<p><code>name() = atom()</code></p>
+<p>  The name of a projection.
+ </p>
+
 <h3 class="typedecl"><a name="type-options">options()</a></h3>
 <p><code>options() = #{type =&gt; <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-table_type" docgen-rel="seetype" docgen-href="stdlib:ets#table_type/0">ets:table_type()</a>, keypos =&gt; pos_integer(), read_concurrency =&gt; boolean(), write_concurrency =&gt; boolean() | auto, compressed =&gt; boolean(), standalone_fun_options =&gt; <a href="/home/runner/work/khepri/horus/doc/horus.html#type-options" docgen-rel="seetype" docgen-href="horus:horus#options/0">horus:options()</a>}</code></p>
 <p><p>  Options which control the created ETS table.</p>
@@ -110,7 +115,6 @@ delete objects in the ETS table.</p>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#new-2">new/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#new-3">new/3</a></td><td>Creates a new projection data structure.</td></tr>
 <tr><td valign="top"><a href="#name-1">name/1</a></td><td>Returns the name of the given <code>Projection</code>.</td></tr>
-<tr><td valign="top"><a href="#delete-1">delete/1</a></td><td></td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -118,15 +122,15 @@ delete objects in the ETS table.</p>
 <h3 class="function"><a name="new-2">new/2</a></h3>
 <div class="spec">
 <p><code>new(Name, ProjectionFun) -&gt; Projection</code>
-<ul class="definitions"><li><code>Name = atom()</code></li><li><code>ProjectionFun = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection_fun" docgen-rel="seetype" docgen-href="khepri:khepri_projection#projection_fun/0">khepri_projection:projection_fun()</a></code></li><li><code>Projection = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection" docgen-rel="seetype" docgen-href="khepri:khepri_projection#projection/0">khepri_projection:projection()</a></code></li></ul></p>
+<ul class="definitions"><li><code>Name = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-name" docgen-rel="seetype" docgen-href="khepri:khepri_projection#name/0">khepri_projection:name()</a></code></li><li><code>ProjectionFun = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection_fun" docgen-rel="seetype" docgen-href="khepri:khepri_projection#projection_fun/0">khepri_projection:projection_fun()</a></code></li><li><code>Projection = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection" docgen-rel="seetype" docgen-href="khepri:khepri_projection#projection/0">khepri_projection:projection()</a></code></li></ul></p>
 <p></p>
 </div>
-<p><b>See also:</b> <a href="khepri.html#register_projection-4" docgen-rel="seemfa" docgen-href="khepri#register_projection/4">khepri:register_projection/4</a>, <a href="khepri_projection.html#new-3" docgen-rel="seemfa" docgen-href="khepri_projection#new/3">khepri_projection:new/3</a>.</p>
+<p><b>See also:</b> <a href="khepri.html#register_projection-4" docgen-rel="seemfa" docgen-href="khepri#register_projection/4">khepri:register_projection/4</a>, <a href="khepri_projection.html#new-3" docgen-rel="seemfa" docgen-href="khepri_projection#new/3">khepri_projection:new/3</a>, <a href="khepri_projection.html#new-3" docgen-rel="seemfa" docgen-href="khepri_projection#new/3">khepri_projection:new/3</a>.</p>
 
 <h3 class="function"><a name="new-3">new/3</a></h3>
 <div class="spec">
 <p><code>new(Name, ProjectionFun, Options) -&gt; Projection</code>
-<ul class="definitions"><li><code>Name = atom()</code></li><li><code>ProjectionFun = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection_fun" docgen-rel="seetype" docgen-href="khepri:khepri_projection#projection_fun/0">khepri_projection:projection_fun()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-options" docgen-rel="seetype" docgen-href="khepri:khepri_projection#options/0">khepri_projection:options()</a></code></li><li><code>Projection = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection" docgen-rel="seetype" docgen-href="khepri:khepri_projection#projection/0">khepri_projection:projection()</a></code></li></ul></p>
+<ul class="definitions"><li><code>Name = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-name" docgen-rel="seetype" docgen-href="khepri:khepri_projection#name/0">khepri_projection:name()</a></code></li><li><code>ProjectionFun = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection_fun" docgen-rel="seetype" docgen-href="khepri:khepri_projection#projection_fun/0">khepri_projection:projection_fun()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-options" docgen-rel="seetype" docgen-href="khepri:khepri_projection#options/0">khepri_projection:options()</a></code></li><li><code>Projection = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection" docgen-rel="seetype" docgen-href="khepri:khepri_projection#projection/0">khepri_projection:projection()</a></code></li></ul></p>
 <p><code>Name</code>: the name of the projection. This corresponds to the name of
          the ETS table which is created when the projection is registered.<br>
 <code>ProjectionFun</code>: the function which turns paths and data into records
@@ -148,15 +152,9 @@ delete objects in the ETS table.</p>
 <h3 class="function"><a name="name-1">name/1</a></h3>
 <div class="spec">
 <p><code>name(Projection) -&gt; Name</code>
-<ul class="definitions"><li><code>Projection = <a href="#type-projection" docgen-rel="seetype" docgen-href="#projection/0">projection()</a></code></li><li><code>Name = atom()</code></li></ul></p>
+<ul class="definitions"><li><code>Projection = <a href="#type-projection" docgen-rel="seetype" docgen-href="#projection/0">projection()</a></code></li><li><code>Name = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-name" docgen-rel="seetype" docgen-href="khepri:khepri_projection#name/0">khepri_projection:name()</a></code></li></ul></p>
 <p></p>
 </div><p>Returns the name of the given <code>Projection</code>.</p>
-
-<h3 class="function"><a name="delete-1">delete/1</a></h3>
-<div class="spec">
-<p><code>delete(Khepri_projection) -&gt; any()</code></p>
-<p></p>
-</div>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>

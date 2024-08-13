@@ -95,6 +95,9 @@ pattern.</td></tr>
 <tr><td valign="top"><a href="#clear_many_payloads-1">clear_many_payloads/1</a></td><td>Deletes the payload of all tree nodes matching the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#clear_many_payloads-2">clear_many_payloads/2</a></td><td>Deletes the payload of all tree nodes matching the given path pattern.</td></tr>
 <tr><td valign="top"><a href="#clear_many_payloads-3">clear_many_payloads/3</a></td><td>Deletes the payload of all tree nodes matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#unregister_projections-1">unregister_projections/1</a></td><td>Removes the given projections from the store.</td></tr>
+<tr><td valign="top"><a href="#unregister_projections-2">unregister_projections/2</a></td><td>Removes the given projections from the store.</td></tr>
+<tr><td valign="top"><a href="#unregister_projections-3">unregister_projections/3</a></td><td>Removes the given projections from the store.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -827,6 +830,56 @@ pattern.</p>
   Otherwise, the behavior is that of <a docgen-rel="seemfa" docgen-href="#put/4" href="#put-4"><code>put/4</code></a>.
  </p>
 <p><b>See also:</b> <a href="#delete_many-3" docgen-rel="seemfa" docgen-href="#delete_many/3">delete_many/3</a>, <a href="#put-4" docgen-rel="seemfa" docgen-href="#put/4">put/4</a>, <a href="khepri.html#clear_many_payloads-3" docgen-rel="seemfa" docgen-href="khepri#clear_many_payloads/3">khepri:clear_many_payloads/3</a>.</p>
+
+<h3 class="function"><a name="unregister_projections-1">unregister_projections/1</a></h3>
+<div class="spec">
+<p><code>unregister_projections(Names) -&gt; Ret</code>
+<ul class="definitions"><li><code>Names = all | [<a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-name" docgen-rel="seetype" docgen-href="khepri:khepri_projection#name/0">khepri_projection:name()</a>]</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok" docgen-rel="seetype" docgen-href="khepri:khepri#ok/0">khepri:ok</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-projection_map" docgen-rel="seetype" docgen-href="khepri:khepri_machine#projection_map/0">khepri_machine:projection_map()</a>) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Removes the given projections from the store.</p>
+ 
+  Calling this function is the same as calling
+  <code>unregister_projections(StoreId, Names)</code> with the default store ID (see
+  <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
+ </p>
+<p><b>See also:</b> <a href="#unregister_projections-2" docgen-rel="seemfa" docgen-href="#unregister_projections/2">unregister_projections/2</a>.</p>
+
+<h3 class="function"><a name="unregister_projections-2">unregister_projections/2</a></h3>
+<div class="spec">
+<p><code>unregister_projections(StoreId, Names) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>Names = all | [<a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-name" docgen-rel="seetype" docgen-href="khepri:khepri_projection#name/0">khepri_projection:name()</a>]</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok" docgen-rel="seetype" docgen-href="khepri:khepri#ok/0">khepri:ok</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-projection_map" docgen-rel="seetype" docgen-href="khepri:khepri_machine#projection_map/0">khepri_machine:projection_map()</a>) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error()</a></code></li></ul></p><p><code>unregister_projections(Names, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>Names = all | [<a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-name" docgen-rel="seetype" docgen-href="khepri:khepri_projection#name/0">khepri_projection:name()</a>]</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok" docgen-rel="seetype" docgen-href="khepri:khepri#ok/0">khepri:ok</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-projection_map" docgen-rel="seetype" docgen-href="khepri:khepri_machine#projection_map/0">khepri_machine:projection_map()</a>) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error()</a></code></li></ul></p>
+<p></p>
+<p></p>
+</div><p><p>Removes the given projections from the store.</p>
+ 
+  This function accepts the following two forms:
+  <ul>
+  <li><code>unregister_projections(StoreId, Names)</code>. Calling it is the same as
+  calling <code>unregister_projections(StoreId, Names, #{})</code>.</li>
+  <li><code>unregister_projections(Names, Options)</code>. Calling it is the same as
+  calling <code>unregister_projections(StoreId, Names, Options)</code> with the default
+  store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).</li>
+  </ul>
+ </p>
+<p><b>See also:</b> <a href="#unregister_projections-3" docgen-rel="seemfa" docgen-href="#unregister_projections/3">unregister_projections/3</a>.</p>
+
+<h3 class="function"><a name="unregister_projections-3">unregister_projections/3</a></h3>
+<div class="spec">
+<p><code>unregister_projections(StoreId, Names, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>Names = all | [<a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-name" docgen-rel="seetype" docgen-href="khepri:khepri_projection#name/0">khepri_projection:name()</a>]</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok" docgen-rel="seetype" docgen-href="khepri:khepri#ok/0">khepri:ok</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-projection_map" docgen-rel="seetype" docgen-href="khepri:khepri_machine#projection_map/0">khepri_machine:projection_map()</a>) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Khepri store.<br>
+<code>Names</code>: the names of projections to unregister or the atom <code>all</code> to
+         remove all projections.<br>
+<code>Options</code>: command options for unregistering the projections.<br>
+</p>
+<p>returns: <code>ok</code> if the projections were unregistered, an <code>{error, Reason}</code>
+  tuple otherwise.</p>
+</div><p><p>Removes the given projections from the store.</p>
+ 
+  <code>Names</code> may either be a list of projection names to remove or the atom
+  <code>all</code>. When <code>all</code> is passed, every projection in the store is removed.
+ </p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
