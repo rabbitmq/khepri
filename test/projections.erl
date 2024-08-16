@@ -11,6 +11,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("include/khepri.hrl").
+-include("src/khepri_machine.hrl").
 -include("src/khepri_error.hrl").
 -include("test/helpers.hrl").
 
@@ -793,3 +794,10 @@ unregister_all_projections_test_() ->
             {ok, #{}},
             khepri_adv:unregister_projections(?FUNCTION_NAME, all))}]
       }]}.
+
+old_unregister_projection_command_accepted_test() ->
+    S0 = khepri_machine:init(?MACH_PARAMS([])),
+    Command = #unregister_projection{name = ?FUNCTION_NAME},
+    ?assertMatch(
+       {_S1, {ok, #{}}, _SE},
+       khepri_machine:apply(?META, Command, S0)).

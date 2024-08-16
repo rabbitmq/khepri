@@ -28,12 +28,19 @@
 %% </tr>
 %% <tr>
 %% <td style="text-align: right; vertical-align: top;">1</td>
-%% <td>Added deduplication mechanism:
+%% <td>
+%% <ul>
+%% <li>Added deduplication mechanism:
 %% <ul>
 %% <li>new command option `protect_against_dups'</li>
 %% <li>new commands `#dedup{}' and `#dedup_ack{}'</li>
 %% <li>new state field `dedups'</li>
-%% </ul></td>
+%% </ul></li>
+%% <li>Added command `#unregister_projections{}'. The previous
+%% `#unregister_projection{}' is still supported for backward-compatibility but
+%% it is no longer created.</li>
+%% </ul>
+%% </td>
 %% </tr>
 %% </table>
 
@@ -127,6 +134,15 @@
                    #dedup_ack{}.
 %% Commands specific to this Ra machine.
 
+-type old_command() :: #unregister_projection{}.
+%% Old commands that are still accepted by the Ra machine but never created.
+%%
+%% Even though Khepri no longer creates these commands, they may still be
+%% present in existing Ra log files and thus be applied after an ugprade of
+%% Khepri.
+%%
+%% We keep them supported for backward-compatibility.
+
 -type machine_init_args() :: #{store_id := khepri:store_id(),
                                member := ra:server_id(),
                                snapshot_interval => non_neg_integer(),
@@ -205,7 +221,8 @@
               triggered/0,
               projection_tree/0,
               projection_map/0,
-              command/0]).
+              command/0,
+              old_command/0]).
 
 -define(HAS_TIME_LEFT(Timeout), (Timeout =:= infinity orelse Timeout > 0)).
 
@@ -1267,7 +1284,7 @@ restore_projection(Projection, Tree, PathPattern) ->
 
 -spec apply(Meta, Command, State) -> {State, Ret, SideEffects} when
       Meta :: ra_machine:command_meta_data(),
-      Command :: command(),
+      Command :: command() | old_command(),
       State :: state(),
       Ret :: any(),
       SideEffects :: ra_machine:effects().
@@ -1398,6 +1415,16 @@ apply(
     Reply = {ok, RemovedProjectionsMap},
     Ret = {State1, Reply},
     post_apply(Ret, Meta);
+apply(
+  Meta,
+  #unregister_projection{name = Name},
+  State) ->
+    %% This command was replaced by `#unregister_projections{}'. Therefore,
+    %% convert it and recurse.
+    %%
+    %% For backward-compatibility; see {@link old_command()}.
+    NewCommand = #unregister_projections{names = [Name]},
+    apply(Meta, NewCommand, State);
 apply(
   #{machine_version := MacVer} = Meta,
   #dedup{ref = CommandRef, expiry = Expiry, command = Command},
