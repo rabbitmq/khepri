@@ -39,12 +39,19 @@ never be called directly outside of Khepri.</p>
   </tr>
   <tr>
   <td style="text-align: right; vertical-align: top;">1</td>
-  <td>Added deduplication mechanism:
+  <td>
+  <ul>
+  <li>Added deduplication mechanism:
   <ul>
   <li>new command option <code>protect_against_dups</code></li>
   <li>new commands <code>#dedup{}</code> and <code>#dedup_ack{}</code></li>
   <li>new state field <code>dedups</code></li>
-  </ul></td>
+  </ul></li>
+  <li>Added command <code>#unregister_projections{}</code>. The previous
+  <code>#unregister_projection{}</code> is still supported for backward-compatibility but
+  it is no longer created.</li>
+  </ul>
+  </td>
   </tr>
   </table>
 <h2><a name="types">Data Types</a></h2>
@@ -76,6 +83,16 @@ never be called directly outside of Khepri.</p>
 <h3 class="typedecl"><a name="type-metrics">metrics()</a></h3>
 <p><code>metrics() = #{applied_command_count =&gt; non_neg_integer()}</code></p>
 <p>  Internal state machine metrics.</p>
+
+<h3 class="typedecl"><a name="type-old_command">old_command()</a></h3>
+<p><code>old_command() = #unregister_projection{name = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-name" docgen-rel="seetype" docgen-href="khepri:khepri_projection#name/0">khepri_projection:name()</a>}</code></p>
+<p><p>  Old commands that are still accepted by the Ra machine but never created.</p>
+ 
+  <p>Even though Khepri no longer creates these commands, they may still be  
+present in existing Ra log files and thus be applied after an ugprade of  
+Khepri.</p>
+ 
+  We keep them supported for backward-compatibility.</p>
 
 <h3 class="typedecl"><a name="type-projection_map">projection_map()</a></h3>
 <p><code>projection_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-name" docgen-rel="seetype" docgen-href="khepri:khepri_projection#name/0">khepri_projection:name()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a>}</code></p>
