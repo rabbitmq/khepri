@@ -63,3 +63,7 @@
                 command :: khepri_machine:command()}).
 
 -record(dedup_ack, {ref :: reference()}).
+
+%% Old commands, kept for backward-compatibility.
+
+-record(unregister_projection, {name :: khepri_projection:name()}).
