@@ -28,12 +28,19 @@
 %% </tr>
 %% <tr>
 %% <td style="text-align: right; vertical-align: top;">1</td>
-%% <td>Added deduplication mechanism:
+%% <td>
+%% <ul>
+%% <li>Added deduplication mechanism:
 %% <ul>
 %% <li>new command option `protect_against_dups'</li>
 %% <li>new commands `#dedup{}' and `#dedup_ack{}'</li>
 %% <li>new state field `dedups'</li>
-%% </ul></td>
+%% </ul></li>
+%% <li>Added command `#unregister_projections{}'. The previous
+%% `#unregister_projection{}' is still supported for backward-compatibility but
+%% it is no longer created.</li>
+%% </ul>
+%% </td>
 %% </tr>
 %% </table>
 
