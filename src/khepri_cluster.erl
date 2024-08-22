@@ -1235,6 +1235,11 @@ do_query_members(StoreId, RaServer, QueryType, Timeout) ->
                        [StoreId]),
                     Error
             end;
+        {timeout, _} ->
+            ?LOG_WARNING(
+               "Timeout while querying members in store \"~s\"",
+               [StoreId]),
+            {error, timeout};
         Error ->
             ?LOG_WARNING(
                "Failed to query members in store \"~s\": ~p",
