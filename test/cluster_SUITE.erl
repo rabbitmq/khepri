@@ -1112,6 +1112,7 @@ can_reset_a_cluster_member(Config) ->
 
 can_query_members_with_a_three_node_cluster(Config) ->
     PropsPerNode = ?config(ra_system_props, Config),
+    PeerPerNode = ?config(peer_nodes, Config),
     [Node1, Node2, Node3] = Nodes = lists:sort(maps:keys(PropsPerNode)),
 
     %% We assume all nodes are using the same Ra system name & store ID.
@@ -1218,54 +1219,82 @@ can_query_members_with_a_three_node_cluster(Config) ->
                    khepri_cluster, locally_known_nodes, [StoreId, 10000]))
       end, Nodes),
 
-    ct:pal("Stop database"),
-    lists:foreach(
-      fun(Node) ->
-              ct:pal("- khepri:stop() from node ~s", [Node]),
-              ?assertEqual(ok, rpc:call(Node, khepri, stop, [StoreId]))
-      end, Nodes),
+    LeaderId1 = get_leader_in_store(StoreId, Nodes),
+    {StoreId, LeaderNode1} = LeaderId1,
+    ct:pal("Stop node ~s", [LeaderNode1]),
+    LeaderPeer1 = proplists:get_value(LeaderNode1, PeerPerNode),
+    ?assertEqual(ok, stop_erlang_node(LeaderNode1, LeaderPeer1)),
 
-    ct:pal("Query members after stopping database"),
+    ct:pal("Query members after stopping node ~s", [LeaderNode1]),
+    LeftNodes1 = Nodes -- [LeaderNode1],
     lists:foreach(
       fun(Node) ->
               ?assertEqual(
-                 {error, noproc},
-                 erpc:call(Node, khepri_cluster, members, [StoreId])),
-              ?assertEqual(
-                 {error, noproc},
-                 erpc:call(Node, khepri_cluster, members, [StoreId, 10000])),
-              ?assertEqual(
-                 {error, noproc},
-                 erpc:call(
-                   Node,
-                   khepri_cluster, locally_known_members, [StoreId])),
-              ?assertEqual(
-                 {error, noproc},
-                 erpc:call(
-                   Node,
-                   khepri_cluster, locally_known_members, [StoreId, 10000]))
-      end, Nodes),
-
-    ct:pal("Query nodes after stopping database"),
-    lists:foreach(
-      fun(Node) ->
-              ?assertEqual(
-                 {error, noproc},
+                 {ok, Nodes},
                  erpc:call(Node, khepri_cluster, nodes, [StoreId])),
               ?assertEqual(
-                 {error, noproc},
+                 {ok, Nodes},
                  erpc:call(Node, khepri_cluster, nodes, [StoreId, 10000])),
               ?assertEqual(
-                 {error, noproc},
+                 {ok, Nodes},
                  erpc:call(
                    Node,
                    khepri_cluster, locally_known_nodes, [StoreId])),
               ?assertEqual(
-                 {error, noproc},
+                 {ok, Nodes},
                  erpc:call(
                    Node,
                    khepri_cluster, locally_known_nodes, [StoreId, 10000]))
-      end, Nodes),
+      end, LeftNodes1),
+
+    LeaderId2 = get_leader_in_store(StoreId, LeftNodes1),
+    {StoreId, LeaderNode2} = LeaderId2,
+    ct:pal("Stop node ~s", [LeaderNode2]),
+    LeaderPeer2 = proplists:get_value(LeaderNode2, PeerPerNode),
+    ?assertEqual(ok, stop_erlang_node(LeaderNode2, LeaderPeer2)),
+
+    ct:pal("Query members after stopping node ~s", [LeaderNode2]),
+    LeftNodes2 = LeftNodes1 -- [LeaderNode2],
+    lists:foreach(
+      fun(Node) ->
+              ?assertEqual(
+                 {error, timeout},
+                 erpc:call(Node, khepri_cluster, members, [StoreId])),
+              ?assertEqual(
+                 {error, timeout},
+                 erpc:call(Node, khepri_cluster, members, [StoreId, 10000])),
+              ?assertEqual(
+                 {ok, [{StoreId, N} || N <- Nodes]},
+                 erpc:call(
+                   Node,
+                   khepri_cluster, locally_known_members, [StoreId])),
+              ?assertEqual(
+                 {ok, [{StoreId, N} || N <- Nodes]},
+                 erpc:call(
+                   Node,
+                   khepri_cluster, locally_known_members, [StoreId, 10000]))
+      end, LeftNodes2),
+
+    ct:pal("Query nodes after stopping node ~s", [LeaderNode2]),
+    lists:foreach(
+      fun(Node) ->
+              ?assertEqual(
+                 {error, timeout},
+                 erpc:call(Node, khepri_cluster, nodes, [StoreId])),
+              ?assertEqual(
+                 {error, timeout},
+                 erpc:call(Node, khepri_cluster, nodes, [StoreId, 10000])),
+              ?assertEqual(
+                 {ok, Nodes},
+                 erpc:call(
+                   Node,
+                   khepri_cluster, locally_known_nodes, [StoreId])),
+              ?assertEqual(
+                 {ok, Nodes},
+                 erpc:call(
+                   Node,
+                   khepri_cluster, locally_known_nodes, [StoreId, 10000]))
+      end, LeftNodes2),
 
     ok.
 
