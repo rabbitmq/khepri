@@ -15,3 +15,5 @@
 
 -define(IS_TIMEOUT(Timeout), (Timeout =:= infinity orelse
                               (is_integer(Timeout) andalso Timeout >= 0))).
+
+-define(HAS_TIME_LEFT(Timeout), (Timeout =:= infinity orelse Timeout > 0)).

@@ -224,8 +224,6 @@
               command/0,
               old_command/0]).
 
--define(HAS_TIME_LEFT(Timeout), (Timeout =:= infinity orelse Timeout > 0)).
-
 -define(PROJECTION_PROPS_TO_RETURN, [payload_version,
                                      child_list_version,
                                      child_list_length,

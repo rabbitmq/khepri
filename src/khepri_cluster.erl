@@ -1220,7 +1220,8 @@ do_query_members(StoreId, RaServer, QueryType, Timeout) ->
     case ra:members(Arg, Timeout) of
         {ok, Members, _} ->
             {ok, lists:sort(Members)};
-        {error, noproc} = Error ->
+        {error, noproc} = Error
+          when ?HAS_TIME_LEFT(Timeout) ->
             case khepri_utils:is_ra_server_alive(RaServer) of
                 true ->
                     NewTimeout0 = khepri_utils:end_timeout_window(Timeout, T0),
