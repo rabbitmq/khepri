@@ -1236,6 +1236,16 @@ do_query_members(StoreId, RaServer, QueryType, Timeout) ->
                        [StoreId]),
                     Error
             end;
+        {error, Reason}
+          when ?HAS_TIME_LEFT(Timeout) andalso
+               (Reason == noconnection orelse
+                Reason == nodedown orelse
+                Reason == shutdown) ->
+            NewTimeout0 = khepri_utils:end_timeout_window(Timeout, T0),
+            NewTimeout = khepri_utils:sleep(
+                           ?NOPROC_RETRY_INTERVAL, NewTimeout0),
+            do_query_members(
+              StoreId, RaServer, QueryType, NewTimeout);
         {timeout, _} ->
             ?LOG_WARNING(
                "Timeout while querying members in store \"~s\"",
