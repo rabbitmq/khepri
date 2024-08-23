@@ -115,6 +115,7 @@
          locally_known_nodes/0,
          locally_known_nodes/1,
          locally_known_nodes/2,
+         wait_for_leader/0, wait_for_leader/1, wait_for_leader/2,
          get_default_ra_system_or_data_dir/0,
          get_default_store_id/0,
          get_store_ids/0,
@@ -1365,6 +1366,74 @@ locally_known_nodes(StoreId, Timeout) ->
     case locally_known_members(StoreId, Timeout) of
         {ok, Members} -> {ok, [Node || {_, Node} <- Members]};
         Error         -> Error
+    end.
+
+-spec wait_for_leader() -> Ret when
+      Ret :: ok | khepri:error().
+%% @doc Waits for a leader to be elected.
+%%
+%% Calling this function is the same as calling `wait_for_leader(StoreId)'
+%% with the default store ID (see {@link
+%% khepri_cluster:get_default_store_id/0}).
+%%
+%% @see wait_for_leader/1.
+%% @see wait_for_leader/2.
+
+wait_for_leader() ->
+    StoreId = get_default_store_id(),
+    wait_for_leader(StoreId).
+
+-spec wait_for_leader(StoreId) -> Ret when
+      StoreId :: khepri:store_id(),
+      Ret :: ok | khepri:error().
+%% @doc Waits for a leader to be elected.
+%%
+%% Calling this function is the same as calling `wait_for_leader(StoreId,
+%% DefaultTimeout)' where `DefaultTimeout' is returned by {@link
+%% khepri_app:get_default_timeout/0}.
+%%
+%% @see wait_for_leader/2.
+
+wait_for_leader(StoreId) ->
+    Timeout = khepri_app:get_default_timeout(),
+    wait_for_leader(StoreId, Timeout).
+
+-spec wait_for_leader(StoreId, Timeout) -> Ret when
+      StoreId :: khepri:store_id(),
+      Timeout :: timeout(),
+      Ret :: ok | khepri:error().
+%% @doc Waits for a leader to be elected.
+%%
+%% This is useful if you want to be sure the clustered store is ready before
+%% issueing writes and queries. Note that there are obviously no guaranties
+%% that the Raft quorum will be lost just after this call.
+%%
+%% @param StoreId the ID of the store that should elect a leader before this
+%%        call can return successfully.
+%% @param Timeout the timeout.
+%%
+%% @returns `ok' if a leader was elected or an `{error, Reason}' tuple.
+
+wait_for_leader(StoreId, Timeout) ->
+    T0 = khepri_utils:start_timeout_window(Timeout),
+    ThisMember = this_member(StoreId),
+    case ra:members(ThisMember, Timeout) of
+        {ok, _Members, _LeaderId} ->
+            ok;
+        {error, Reason}
+          when ?HAS_TIME_LEFT(Timeout) andalso
+               (Reason == noproc orelse
+                Reason == noconnection orelse
+                Reason == nodedown orelse
+                Reason == shutdown) ->
+            NewTimeout0 = khepri_utils:end_timeout_window(Timeout, T0),
+            NewTimeout = khepri_utils:sleep(
+                           ?TRANSIENT_ERROR_RETRY_INTERVAL, NewTimeout0),
+            wait_for_leader(StoreId, NewTimeout);
+        {timeout, _} ->
+            {error, timeout};
+        {error, _} = Error ->
+            Error
     end.
 
 -spec node_to_member(StoreId, Node) -> Member when
