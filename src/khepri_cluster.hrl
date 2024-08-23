@@ -9,9 +9,9 @@
 -define(DEFAULT_RA_SYSTEM_NAME, khepri).
 -define(DEFAULT_STORE_ID, khepri).
 
-%% timer:sleep/1 time used as a retry interval when the local Ra server is
-%% unaware of a leader exit.
--define(NOPROC_RETRY_INTERVAL, 200).
+%% timer:sleep/1 time used as a retry interval when we get errors such as
+%% `noproc' or `noconnection'.
+-define(TRANSIENT_ERROR_RETRY_INTERVAL, 200).
 
 -define(IS_TIMEOUT(Timeout), (Timeout =:= infinity orelse
                               (is_integer(Timeout) andalso Timeout >= 0))).

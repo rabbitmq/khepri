@@ -1226,7 +1226,8 @@ do_query_members(StoreId, RaServer, QueryType, Timeout) ->
                 true ->
                     NewTimeout0 = khepri_utils:end_timeout_window(Timeout, T0),
                     NewTimeout = khepri_utils:sleep(
-                                   ?NOPROC_RETRY_INTERVAL, NewTimeout0),
+                                   ?TRANSIENT_ERROR_RETRY_INTERVAL,
+                                   NewTimeout0),
                     do_query_members(
                       StoreId, RaServer, QueryType, NewTimeout);
                 false ->
@@ -1243,7 +1244,7 @@ do_query_members(StoreId, RaServer, QueryType, Timeout) ->
                 Reason == shutdown) ->
             NewTimeout0 = khepri_utils:end_timeout_window(Timeout, T0),
             NewTimeout = khepri_utils:sleep(
-                           ?NOPROC_RETRY_INTERVAL, NewTimeout0),
+                           ?TRANSIENT_ERROR_RETRY_INTERVAL, NewTimeout0),
             do_query_members(
               StoreId, RaServer, QueryType, NewTimeout);
         {timeout, _} ->

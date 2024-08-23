@@ -908,7 +908,8 @@ do_process_sync_command(StoreId, Command, Options) ->
                     %% Retry again after waiting a bit.
                     NewTimeout0 = khepri_utils:end_timeout_window(Timeout, T0),
                     NewTimeout = khepri_utils:sleep(
-                                   ?NOPROC_RETRY_INTERVAL, NewTimeout0),
+                                   ?TRANSIENT_ERROR_RETRY_INTERVAL,
+                                   NewTimeout0),
                     Options1 = Options#{timeout => NewTimeout},
                     do_process_sync_command(StoreId, Command, Options1);
                 false ->
