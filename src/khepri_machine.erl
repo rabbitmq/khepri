@@ -78,7 +78,7 @@
          handle_aux/6,
          apply/3,
          state_enter/2,
-         snapshot_installed/2,
+         snapshot_installed/4,
          overview/1,
          version/0,
          which_module/1]).
@@ -1565,9 +1565,23 @@ state_enter(_StateName, _State) ->
 
 %% @private
 
-snapshot_installed(_Meta, _State) ->
-    SideEffect = {aux, restore_projections},
-    [SideEffect].
+snapshot_installed(
+  #{machine_version := NewMacVer}, NewState,
+  #{machine_version := OldMacVer}, OldState) ->
+    %% A snapshot might be installed on a follower member who has fallen
+    %% sufficiently far behind in replication of the log from the leader. When
+    %% a member installs a snapshot it needs to update its projections: new
+    %% projections may have been registered since the snapshot or old ones
+    %% unregistered. Projections which did not change need to be triggered
+    %% with the new changes to state, similar to the `restore_projections' aux
+    %% effect. Also see `update_projections/2'.
+    %%
+    %% Note that the snapshot installation might bump the effective machine
+    %% version so we need to convert the old state to the new machine version.
+    OldState1 = convert_state(OldState, OldMacVer, NewMacVer),
+    ok = update_projections(OldState1, NewState),
+    ok = clear_compiled_projection_tree(),
+    [].
 
 %% @private
 
@@ -2331,3 +2345,129 @@ convert_state(State, 0, 1) ->
     State1 = list_to_tuple(Fields1),
     ?assert(is_state(State1)),
     State1.
+
+-spec update_projections(OldState, NewState) -> ok when
+      OldState :: khepri_machine:state(),
+      NewState :: khepri_machine:state().
+%% @doc Updates the machine's projections to account for changes between two
+%% states.
+%%
+%% This is used when installing a projection - the state will jump from the
+%% given `OldState' before the snapshot was installed to the given `NewState'
+%% after. When we swap states we need to update the projections: the records
+%% in the projection tables themselves but also which projection tables exist.
+%% The changes glossed over by the snapshot may include projection
+%% registrations and unregistrations so we need to initialize new projections
+%% and delete unregistered ones, and we need to ensure that the projection
+%% tables are up to date for any projections which didn't change.
+%%
+%% @private
+
+update_projections(OldState, NewState) ->
+    OldTree = get_tree(OldState),
+    OldProjections = set_of_projections(get_projections(OldState)),
+    NewTree = get_tree(NewState),
+    NewProjections = set_of_projections(get_projections(NewState)),
+
+    CommonProjections = sets:intersection(OldProjections, NewProjections),
+    DeletedProjections = sets:subtract(OldProjections, CommonProjections),
+    CreatedProjections = sets:subtract(NewProjections, CommonProjections),
+
+    %% Tear down any projections which were unregistered.
+    sets:fold(
+      fun({_Pattern, Projection}, _Acc) ->
+              _ = khepri_projection:delete(Projection),
+              ok
+      end, ok, DeletedProjections),
+
+    %% Initialize any new projections which were registered.
+    sets:fold(
+      fun({Pattern, Projection}, _Acc) ->
+              ok = restore_projection(Projection, NewTree, Pattern)
+      end, ok, CreatedProjections),
+
+    %% Update in-place any projections which were not changed themselves (i.e.
+    %% the projection name, function and pattern) between old and new states.
+    %% To do this we will find the matching nodes in the old and new tree for
+    %% the projection's pattern and trigger the projection based on each
+    %% matching path's old and new properties.
+    sets:fold(
+      fun({Pattern, Projection}, _Acc) ->
+              ok = update_projection(Pattern, Projection, OldTree, NewTree)
+      end, ok, CommonProjections),
+
+    ok.
+
+-spec set_of_projections(ProjectionTree) -> Projections when
+      ProjectionTree :: khepri_machine:projection_tree(),
+      Element :: {khepri_path:native_pattern(),
+                     khepri_projection:projection()},
+      Projections :: sets:set(Element).
+%% Folds the set of projections in a projection tree into a version 2 {@link
+%% sets:set()}.
+%%
+%% @private
+
+set_of_projections(ProjectionTree) ->
+    khepri_pattern_tree:fold(
+      ProjectionTree,
+      fun(Pattern, Projections, Acc) ->
+              lists:foldl(
+                fun(Projection, Acc1) ->
+                        Entry = {Pattern, Projection},
+                        sets:add_element(Entry, Acc1)
+                end, Acc, Projections)
+      end, sets:new([{version, 2}])).
+
+update_projection(Pattern, Projection, OldTree, NewTree) ->
+    TreeOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
+                    include_root_props => true},
+    case khepri_tree:find_matching_nodes(OldTree, Pattern, TreeOptions) of
+        {ok, OldMatchingNodes} ->
+            Result = khepri_tree:find_matching_nodes(
+                       NewTree, Pattern, TreeOptions),
+            case Result of
+                {ok, NewMatchingNodes} ->
+                    Updates = diff_matching_nodes(
+                                OldMatchingNodes, NewMatchingNodes),
+                    maps:foreach(
+                      fun(Path, {OldProps, NewProps}) ->
+                              khepri_projection:trigger(
+                                Projection, Path, OldProps, NewProps)
+                      end, Updates);
+                Error ->
+                    ?LOG_DEBUG(
+                       "Failed to refresh projection ~s due to an error "
+                       "finding matching nodes in the new tree: ~p",
+                       [khepri_projection:name(Projection), Error],
+                       #{domain => [khepri, ra_machine]})
+            end;
+        Error ->
+            ?LOG_DEBUG(
+               "Failed to refresh projection ~s due to an error finding "
+               "matching nodes in the old tree: ~p",
+               [khepri_projection:name(Projection), Error],
+               #{domain => [khepri, ra_machine]})
+    end.
+
+-spec diff_matching_nodes(OldNodeProps, NewNodeProps) -> Changes when
+      OldNodeProps :: khepri_adv:node_props_map(),
+      NewNodeProps :: khepri_adv:node_props_map(),
+      OldProps :: khepri:node_props(),
+      NewProps :: khepri:node_props(),
+      Changes :: #{khepri_path:native_path() => {OldProps, NewProps}}.
+%% @private
+
+diff_matching_nodes(OldNodeProps, NewNodeProps) ->
+    CommonProps = maps:intersect_with(
+                    fun(_Path, OldProps, NewProps) -> {OldProps, NewProps} end,
+                    OldNodeProps, NewNodeProps),
+    CommonPaths = maps:keys(CommonProps),
+    AllProps = maps:fold(
+                 fun(Path, OldProps, Acc) ->
+                        Acc#{Path => {OldProps, #{}}}
+                 end, CommonProps, maps:without(CommonPaths, OldNodeProps)),
+    maps:fold(
+      fun(Path, NewProps, Acc) ->
+              Acc#{Path => {#{}, NewProps}}
+      end, AllProps, maps:without(CommonPaths, NewNodeProps)).

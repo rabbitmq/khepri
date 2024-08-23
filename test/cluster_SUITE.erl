@@ -2021,15 +2021,16 @@ projections_are_updated_when_a_snapshot_is_installed(Config) ->
     %% When this happens the member doesn't see the changes as regular
     %% commands (i.e. handled in `ra_machine:apply/3'). Instead the machine
     %% state is replaced entirely. So when a snapshot is installed we must
-    %% restore projections the same way we do as when we restart a member.
-    %% In `khepri_machine' this is done in the `snapshot_installed/2` callback
-    %% implementation.
+    %% restore projections. The machine is alive at this point though so we
+    %% can't restore projections the same way as when we restart a member
+    %% though. We need to diff the old and new state first to handle any newly
+    %% registered or unregistered projections and then to update any existing
+    %% projections with updated or deleted records. In `khepri_machine' this is
+    %% done in the `snapshot_installed/3' callback implementation.
     %%
     %% To test this we stop a member, apply enough commands to cause the leader
     %% to take a snapshot, and then restart the member and assert that the
     %% projection contents are as expected.
-
-    ProjectionName = ?MODULE,
 
     %% We call `khepri_projection:new/2' on the local node and thus need
     %% Khepri.
@@ -2041,9 +2042,9 @@ projections_are_updated_when_a_snapshot_is_installed(Config) ->
     #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
     StoreId = RaSystem,
     %% Set the snapshot interval low so that we can trigger a snapshot by
-    %% sending 4 commands.
+    %% sending a few commands.
     RaServerConfig = #{cluster_name => StoreId,
-                       machine_config => #{snapshot_interval => 4}},
+                       machine_config => #{snapshot_interval => 20}},
 
     ct:pal("Start database + cluster nodes"),
     lists:foreach(
@@ -2061,14 +2062,30 @@ projections_are_updated_when_a_snapshot_is_installed(Config) ->
                  rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
       end, [Node1, Node2]),
 
-    ct:pal("Register projection on node ~s", [Node1]),
-    Projection = khepri_projection:new(
-                   ProjectionName,
-                   fun(Path, Payload) -> {Path, Payload} end),
+    ProjectionName1 = projection_1,
+    Projection1 = khepri_projection:new(
+                    ProjectionName1,
+                    fun(Path, Payload) -> {Path, Payload} end),
+    ProjectionName2 = projection_2,
+    Projection2 = khepri_projection:new(
+                    ProjectionName2,
+                    fun(Path, Payload) -> {Path, Payload} end),
+    ProjectionName3 = projection_3,
+    Projection3 = khepri_projection:new(
+                    ProjectionName3,
+                    fun(Path, Payload) -> {Path, Payload} end),
+
+    ct:pal("Register projection ~ts on node ~s", [ProjectionName1, Node1]),
     rpc:call(Node1,
       khepri, register_projection,
-      [StoreId, [?KHEPRI_WILDCARD_STAR_STAR], Projection]),
-    ok = wait_for_projection_on_nodes([Node2, Node3], ProjectionName),
+      [StoreId, [?KHEPRI_WILDCARD_STAR_STAR], Projection1]),
+    ok = wait_for_projection_on_nodes([Node2, Node3], ProjectionName1),
+
+    ct:pal("Register projection ~ts on node ~s", [ProjectionName2, Node1]),
+    rpc:call(Node1,
+      khepri, register_projection,
+      [StoreId, [?KHEPRI_WILDCARD_STAR_STAR], Projection2]),
+    ok = wait_for_projection_on_nodes([Node2, Node3], ProjectionName2),
 
     ?assertEqual(
        ok,
@@ -2076,29 +2093,47 @@ projections_are_updated_when_a_snapshot_is_installed(Config) ->
                                      #{reply_from => local}])),
     ?assertEqual(
        value1v1,
-       rpc:call(Node3, ets, lookup_element, [ProjectionName, [key1], 2])),
+       rpc:call(Node3, ets, lookup_element, [ProjectionName1, [key1], 2])),
+    %% This key will be deleted.
+    ?assertEqual(
+       ok,
+       rpc:call(Node3, khepri, put, [StoreId, [key2], value2v1,
+                                     #{reply_from => local}])),
+    %% So far there isn't a snapshot.
+    ?assertMatch(
+      {ok, #{log := #{snapshot_index := undefined}}, _},
+      ra:member_overview(khepri_cluster:node_to_member(StoreId, Node3))),
 
     ct:pal(
       "Stop cluster member ~s (quorum is maintained)", [Node1]),
     ok = rpc:call(Node1, khepri, stop, [StoreId]),
 
-    ?assertMatch(
-      {ok, #{log := #{snapshot_index := undefined}}, _},
-      ra:member_overview(khepri_cluster:node_to_member(StoreId, Node3))),
-
-    ct:pal("Submit enough commands to trigger a snapshot"),
+    ct:pal("Modify paths which are watched by projections"),
     ct:pal("- set key1:value1v2"),
     ok = rpc:call(Node3, khepri, put, [StoreId, [key1], value1v2]),
-    ct:pal("- set key2:value2v1"),
-    ok = rpc:call(Node3, khepri, put, [StoreId, [key2], value2v1]),
+    ct:pal("- delete key2"),
+    ok = rpc:call(Node3, khepri, delete, [StoreId, [key2]]),
     ct:pal("- set key3:value3v1"),
     ok = rpc:call(Node3, khepri, put, [StoreId, [key3], value3v1]),
     ct:pal("- set key4:value4v1"),
     ok = rpc:call(Node3, khepri, put, [StoreId, [key4], value4v1]),
 
-   {ok, #{log := #{snapshot_index := SnapshotIndex}}, _} =
-      ra:member_overview(khepri_cluster:node_to_member(StoreId, Node3)),
-    ?assert(is_number(SnapshotIndex) andalso SnapshotIndex > 4),
+    ct:pal("Register projection ~ts on node ~s", [ProjectionName3, Node3]),
+    rpc:call(Node3,
+      khepri, register_projection,
+      [StoreId, [?KHEPRI_WILDCARD_STAR_STAR], Projection3]),
+    ct:pal("Unregister projection ~ts on node ~s", [ProjectionName2, Node3]),
+    rpc:call(Node3,
+      khepri, unregister_projections, [StoreId, [ProjectionName2]]),
+
+    ct:pal("Send many commands to ensure a snapshot is triggered"),
+    [ok = rpc:call(Node3, khepri, put, [StoreId, [key5], value5v1])
+     || _ <- lists:seq(1, 20)],
+
+    {ok, #{log := #{snapshot_index := SnapshotIndex}}, _} =
+       ra:member_overview(khepri_cluster:node_to_member(StoreId, Node3)),
+    ct:pal("New snapshot index: ~p", [SnapshotIndex]),
+    ?assert(is_number(SnapshotIndex) andalso SnapshotIndex > 20),
 
     ct:pal("Restart cluster member ~s", [Node1]),
     {ok, StoreId} = rpc:call(Node1, khepri, start, [RaSystem, RaServerConfig]),
@@ -2112,20 +2147,37 @@ projections_are_updated_when_a_snapshot_is_installed(Config) ->
            [key5], value5v1, #{reply_from => local}),
     ?assertEqual(
       value5v1,
-      rpc:call(Node1, ets, lookup_element, [ProjectionName, [key5], 2])),
+      rpc:call(Node1, ets, lookup_element, [ProjectionName1, [key5], 2])),
 
+    ct:pal("Contents of projection table '~ts'", [ProjectionName1]),
+    [begin
+         Contents = rpc:call(Node, ets, tab2list, [ProjectionName1]),
+         ct:pal("- node ~ts:~n~p", [Node, Contents])
+     end || Node <- Nodes],
+
+    [begin
+         ?assertEqual(
+           value1v2,
+           rpc:call(Node, ets, lookup_element, [ProjectionName1, [key1], 2])),
+         ?assertEqual(
+           false,
+           rpc:call(Node, ets, member, [ProjectionName1, [key2]])),
+         ?assertEqual(
+           value3v1,
+           rpc:call(Node, ets, lookup_element, [ProjectionName1, [key3], 2])),
+         ?assertEqual(
+           value4v1,
+           rpc:call(Node, ets, lookup_element, [ProjectionName1, [key4], 2]))
+     end || Node <- Nodes],
+
+    %% Ensure that the projections themselves are also updated on Node1.
+    %% ProjectionName2 was unregistered and ProjectionName3 was registered.
+    ?assertEqual(
+      undefined,
+      rpc:call(Node1, ets, info, [ProjectionName2])),
     ?assertEqual(
       value1v2,
-      rpc:call(Node1, ets, lookup_element, [ProjectionName, [key1], 2])),
-    ?assertEqual(
-      value2v1,
-      rpc:call(Node1, ets, lookup_element, [ProjectionName, [key2], 2])),
-    ?assertEqual(
-      value3v1,
-      rpc:call(Node1, ets, lookup_element, [ProjectionName, [key3], 2])),
-    ?assertEqual(
-      value4v1,
-      rpc:call(Node1, ets, lookup_element, [ProjectionName, [key4], 2])),
+      rpc:call(Node1, ets, lookup_element, [ProjectionName3, [key1], 2])),
 
     ok.
 
