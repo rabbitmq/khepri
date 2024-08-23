@@ -1828,7 +1828,7 @@ create_projection_side_effects2(
                               delete ->
                                   InitialTree
                           end,
-    khepri_pattern_tree:fold(
+    khepri_pattern_tree:fold_matching(
       ProjectionTree,
       PatternMatchingTree,
       Path,
