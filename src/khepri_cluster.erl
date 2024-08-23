@@ -123,8 +123,7 @@
 
 %% Internal.
 -export([node_to_member/2,
-         this_member/1,
-         wait_for_cluster_readiness/2]).
+         this_member/1]).
 
 -ifdef(TEST).
 -export([wait_for_ra_server_exit/1,
@@ -134,8 +133,7 @@
 -dialyzer({no_underspecs, [start/1,
                            stop/0, stop/1,
                            stop_locked/1,
-                           join/2,
-                           wait_for_remote_cluster_readiness/3]}).
+                           join/2]}).
 
 -define(IS_RA_SYSTEM(RaSystem), is_atom(RaSystem)).
 -define(IS_RA_SERVER(RaServer), (is_tuple(RaServer) andalso
@@ -757,7 +755,7 @@ reset_remotely_and_join_locked(
             ?LOG_DEBUG(
                "Remote cluster (reached through node ~0p) is not ready "
                "for a membership change yet; waiting...", [RemoteNode]),
-            Ret2 = wait_for_cluster_readiness(StoreId, Timeout1),
+            Ret2 = wait_for_leader(StoreId, Timeout1),
             Timeout2 = khepri_utils:end_timeout_window(Timeout1, T2),
             case Ret2 of
                 ok ->
@@ -849,8 +847,7 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
             ?LOG_DEBUG(
                "Remote cluster (reached through node ~0p) is not ready "
                "for a membership change yet; waiting...", [RemoteNode]),
-            Ret2 = wait_for_remote_cluster_readiness(
-                     StoreId, RemoteNode, Timeout1),
+            Ret2 = wait_for_leader(RemoteMember, Timeout1),
             Timeout2 = khepri_utils:end_timeout_window(Timeout1, T2),
             case Ret2 of
                 ok ->
@@ -873,36 +870,6 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
                 {error, _}   -> Error
             end
     end.
-
--spec wait_for_cluster_readiness(StoreId, Timeout) ->
-    Ret when
-      StoreId :: khepri:store_id(),
-      Timeout :: timeout(),
-      Ret :: ok | khepri:error(?khepri_error(
-                                  timeout_waiting_for_cluster_readiness,
-                                  #{store_id := StoreId})).
-%% @private
-
-wait_for_cluster_readiness(StoreId, Timeout) ->
-    %% If querying the cluster members succeeds, we must have a quorum, right?
-    case members(StoreId, Timeout) of
-        {ok, _} -> ok;
-        Error   -> Error
-    end.
-
--spec wait_for_remote_cluster_readiness(StoreId, RemoteNode, Timeout) ->
-    Ret when
-      StoreId :: khepri:store_id(),
-      RemoteNode :: node(),
-      Timeout :: timeout(),
-      Ret :: ok | khepri:error().
-%% @private
-
-wait_for_remote_cluster_readiness(StoreId, RemoteNode, Timeout) ->
-    erpc:call(
-      RemoteNode,
-      khepri_cluster, wait_for_cluster_readiness, [StoreId, Timeout],
-      Timeout).
 
 -spec reset() -> Ret when
       Ret :: ok | khepri:error().
@@ -979,7 +946,7 @@ do_reset(RaSystem, StoreId, ThisMember, Timeout) ->
                "Cluster is not ready for a membership change yet; waiting",
                []),
             try
-                Ret2 = wait_for_cluster_readiness(StoreId, Timeout1),
+                Ret2 = wait_for_leader(StoreId, Timeout1),
                 Timeout2 = khepri_utils:end_timeout_window(Timeout1, T2),
                 case Ret2 of
                     ok    -> do_reset(RaSystem, StoreId, ThisMember, Timeout2);
@@ -1383,8 +1350,10 @@ wait_for_leader() ->
     StoreId = get_default_store_id(),
     wait_for_leader(StoreId).
 
--spec wait_for_leader(StoreId) -> Ret when
+-spec wait_for_leader(StoreIdOrRaServer) -> Ret when
+      StoreIdOrRaServer :: StoreId | RaServer,
       StoreId :: khepri:store_id(),
+      RaServer :: ra:server_id(),
       Ret :: ok | khepri:error().
 %% @doc Waits for a leader to be elected.
 %%
@@ -1394,12 +1363,14 @@ wait_for_leader() ->
 %%
 %% @see wait_for_leader/2.
 
-wait_for_leader(StoreId) ->
+wait_for_leader(StoreIdOrRaServer) ->
     Timeout = khepri_app:get_default_timeout(),
-    wait_for_leader(StoreId, Timeout).
+    wait_for_leader(StoreIdOrRaServer, Timeout).
 
--spec wait_for_leader(StoreId, Timeout) -> Ret when
+-spec wait_for_leader(StoreIdOrRaServer, Timeout) -> Ret when
+      StoreIdOrRaServer :: StoreId | RaServer,
       StoreId :: khepri:store_id(),
+      RaServer :: ra:server_id(),
       Timeout :: timeout(),
       Ret :: ok | khepri:error().
 %% @doc Waits for a leader to be elected.
@@ -1414,10 +1385,12 @@ wait_for_leader(StoreId) ->
 %%
 %% @returns `ok' if a leader was elected or an `{error, Reason}' tuple.
 
-wait_for_leader(StoreId, Timeout) ->
-    T0 = khepri_utils:start_timeout_window(Timeout),
+wait_for_leader(StoreId, Timeout) when is_atom(StoreId) ->
     ThisMember = this_member(StoreId),
-    case ra:members(ThisMember, Timeout) of
+    wait_for_leader(ThisMember, Timeout);
+wait_for_leader(RaServer, Timeout) ->
+    T0 = khepri_utils:start_timeout_window(Timeout),
+    case ra:members(RaServer, Timeout) of
         {ok, _Members, _LeaderId} ->
             ok;
         {error, Reason}
@@ -1429,7 +1402,7 @@ wait_for_leader(StoreId, Timeout) ->
             NewTimeout0 = khepri_utils:end_timeout_window(Timeout, T0),
             NewTimeout = khepri_utils:sleep(
                            ?TRANSIENT_ERROR_RETRY_INTERVAL, NewTimeout0),
-            wait_for_leader(StoreId, NewTimeout);
+            wait_for_leader(RaServer, NewTimeout);
         {timeout, _} ->
             {error, timeout};
         {error, _} = Error ->
