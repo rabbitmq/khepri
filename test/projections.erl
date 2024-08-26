@@ -801,3 +801,55 @@ old_unregister_projection_command_accepted_test() ->
     ?assertMatch(
        {_S1, {ok, #{}}, _SE},
        khepri_machine:apply(?META, Command, S0)).
+
+trigger_projection_via_a_transaction_test_() ->
+    ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
+    PathPattern = [stock, wood, <<"oak">>],
+    Data1 = 100,
+    Data2 = 200,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Register the projection",
+          ?_test(
+              begin
+                  Projection = khepri_projection:new(?MODULE, ProjectFun),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)},
+
+         {"Trigger the projection with a non-transaction command",
+          ?_assertEqual(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, PathPattern, Data1))},
+
+         {"The projection contains the triggered change",
+          ?_assertEqual(Data1, ets:lookup_element(?MODULE, PathPattern, 2))},
+
+         {"Trigger the projection with a transaction",
+          ?_assertEqual(
+            {ok, ok},
+            khepri:transaction(
+              ?FUNCTION_NAME,
+              fun() ->
+                      %% Issue a delete and then a put with the new data. This
+                      %% case checks that the side effects which trigger
+                      %% projections are accrued in the correct order within a
+                      %% transaction.
+                      %%
+                      %% If the effects were accrued in the wrong order, the
+                      %% next assertion would fail: if the effect(s) for delete
+                      %% were processed after the put, the record would not
+                      %% exist in the table. Instead it should exist and be
+                      %% updated to `Data2'.
+                      ok = khepri_tx:delete(PathPattern),
+                      ok = khepri_tx:put(PathPattern, Data2)
+              end))},
+
+         {"The projection contains the triggered change",
+          ?_assertEqual(Data2, ets:lookup_element(?MODULE, PathPattern, 2))}]
+      }]}.
