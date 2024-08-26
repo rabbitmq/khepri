@@ -132,6 +132,9 @@ ok = khepri_cluster:reset().</code></pre>
 <tr><td valign="top"><a href="#locally_known_nodes-0">locally_known_nodes/0</a></td><td>Returns the list of Erlang nodes that are part of the cluster.</td></tr>
 <tr><td valign="top"><a href="#locally_known_nodes-1">locally_known_nodes/1</a></td><td>Returns the list of Erlang nodes that are part of the cluster.</td></tr>
 <tr><td valign="top"><a href="#locally_known_nodes-2">locally_known_nodes/2</a></td><td>Returns the list of Erlang nodes that are part of the cluster.</td></tr>
+<tr><td valign="top"><a href="#wait_for_leader-0">wait_for_leader/0</a></td><td>Waits for a leader to be elected.</td></tr>
+<tr><td valign="top"><a href="#wait_for_leader-1">wait_for_leader/1</a></td><td>Waits for a leader to be elected.</td></tr>
+<tr><td valign="top"><a href="#wait_for_leader-2">wait_for_leader/2</a></td><td>Waits for a leader to be elected.</td></tr>
 <tr><td valign="top"><a href="#get_store_ids-0">get_store_ids/0</a></td><td>Returns the list of running stores.</td></tr>
 <tr><td valign="top"><a href="#is_store_running-1">is_store_running/1</a></td><td>Indicates if <code>StoreId</code> is running or not.</td></tr>
 </table>
@@ -491,6 +494,45 @@ Erlang node name.</p>
   the current membership known by the Ra leader.
  </p>
 <p><b>See also:</b> <a href="#locally_known_members-2" docgen-rel="seemfa" docgen-href="#locally_known_members/2">locally_known_members/2</a>.</p>
+
+<h3 class="function"><a name="wait_for_leader-0">wait_for_leader/0</a></h3>
+<div class="spec">
+<p><code>wait_for_leader() -&gt; Ret</code>
+<ul class="definitions"><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Waits for a leader to be elected.</p>
+ 
+  Calling this function is the same as calling <code>wait_for_leader(StoreId)</code>
+  with the default store ID (see <a docgen-rel="seemfa" docgen-href="khepri_cluster#get_default_store_id/0" href="khepri_cluster.html#get_default_store_id-0"><code>khepri_cluster:get_default_store_id/0</code></a>).
+ </p>
+<p><b>See also:</b> <a href="#wait_for_leader-1" docgen-rel="seemfa" docgen-href="#wait_for_leader/1">wait_for_leader/1</a>, <a href="#wait_for_leader-2" docgen-rel="seemfa" docgen-href="#wait_for_leader/2">wait_for_leader/2</a>.</p>
+
+<h3 class="function"><a name="wait_for_leader-1">wait_for_leader/1</a></h3>
+<div class="spec">
+<p><code>wait_for_leader(StoreIdOrRaServer) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreIdOrRaServer = StoreId | RaServer</code></li><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>RaServer = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id" docgen-rel="seetype" docgen-href="ra:ra#server_id/0">ra:server_id()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error()</a></code></li></ul></p>
+<p></p>
+</div><p><p>Waits for a leader to be elected.</p>
+ 
+  Calling this function is the same as calling <code>wait_for_leader(StoreId,
+  DefaultTimeout)</code> where <code>DefaultTimeout</code> is returned by <a docgen-rel="seemfa" docgen-href="khepri_app#get_default_timeout/0" href="khepri_app.html#get_default_timeout-0"><code>khepri_app:get_default_timeout/0</code></a>.
+ </p>
+<p><b>See also:</b> <a href="#wait_for_leader-2" docgen-rel="seemfa" docgen-href="#wait_for_leader/2">wait_for_leader/2</a>.</p>
+
+<h3 class="function"><a name="wait_for_leader-2">wait_for_leader/2</a></h3>
+<div class="spec">
+<p><code>wait_for_leader(StoreIdOrRaServer, Timeout) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreIdOrRaServer = StoreId | RaServer</code></li><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>RaServer = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id" docgen-rel="seetype" docgen-href="ra:ra#server_id/0">ra:server_id()</a></code></li><li><code>Timeout = timeout()</code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error()</a></code></li></ul></p>
+<p><code>Timeout</code>: the timeout.
+ <br>
+</p>
+<p>returns: <code>ok</code> if a leader was elected or an <code>{error, Reason}</code> tuple.</p>
+</div><p><p>Waits for a leader to be elected.</p>
+ 
+  This is useful if you want to be sure the clustered store is ready before
+  issueing writes and queries. Note that there are obviously no guaranties
+  that the Raft quorum will be lost just after this call.
+ </p>
 
 <h3 class="function"><a name="get_store_ids-0">get_store_ids/0</a></h3>
 <div class="spec">
