@@ -30,6 +30,7 @@
          can_start_a_single_node/1,
          can_restart_a_single_node_with_ra_server_config/1,
          can_query_members_with_a_single_node/1,
+         can_wait_for_leader_with_a_single_node/1,
          fail_to_start_with_bad_ra_server_config/1,
          initial_members_are_ignored/1,
          can_start_a_three_node_cluster/1,
@@ -38,6 +39,7 @@
          can_restart_nodes_in_a_three_node_cluster/1,
          can_reset_a_cluster_member/1,
          can_query_members_with_a_three_node_cluster/1,
+         can_wait_for_leader_with_a_three_node_cluster/1,
          fail_to_join_if_not_started/1,
          fail_to_join_non_existing_node/1,
          fail_to_join_non_existing_store/1,
@@ -55,6 +57,7 @@ all() ->
     [can_start_a_single_node,
      can_restart_a_single_node_with_ra_server_config,
      can_query_members_with_a_single_node,
+     can_wait_for_leader_with_a_single_node,
      fail_to_start_with_bad_ra_server_config,
      initial_members_are_ignored,
      can_start_a_three_node_cluster,
@@ -63,6 +66,7 @@ all() ->
      can_restart_nodes_in_a_three_node_cluster,
      can_reset_a_cluster_member,
      can_query_members_with_a_three_node_cluster,
+     can_wait_for_leader_with_a_three_node_cluster,
      fail_to_join_if_not_started,
      fail_to_join_non_existing_node,
      fail_to_join_non_existing_store,
@@ -108,6 +112,7 @@ init_per_testcase(Testcase, Config)
   when Testcase =:= can_start_a_single_node orelse
        Testcase =:= can_restart_a_single_node_with_ra_server_config orelse
        Testcase =:= can_query_members_with_a_single_node orelse
+       Testcase =:= can_wait_for_leader_with_a_single_node orelse
        Testcase =:= fail_to_start_with_bad_ra_server_config orelse
        Testcase =:= initial_members_are_ignored orelse
        Testcase =:= fail_to_join_non_existing_node orelse
@@ -123,6 +128,7 @@ init_per_testcase(Testcase, Config)
        Testcase =:= can_restart_nodes_in_a_three_node_cluster orelse
        Testcase =:= can_reset_a_cluster_member orelse
        Testcase =:= can_query_members_with_a_three_node_cluster orelse
+       Testcase =:= can_wait_for_leader_with_a_three_node_cluster orelse
        Testcase =:= fail_to_join_if_not_started orelse
        Testcase =:= fail_to_join_non_existing_store orelse
        Testcase =:= handle_leader_down_on_three_node_cluster_command orelse
@@ -358,6 +364,47 @@ can_query_members_with_a_single_node(Config) ->
     ?assertEqual(
        {error, noproc},
        khepri_cluster:locally_known_nodes(StoreId, 10000)),
+
+    ok.
+
+can_wait_for_leader_with_a_single_node(Config) ->
+    Node = node(),
+    #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
+    StoreId = RaSystem,
+
+    ct:pal("Wait for leader before starting database"),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:wait_for_leader(StoreId)),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:wait_for_leader(StoreId, 2000)),
+
+    ct:pal("Start database and wait for it in parallel"),
+    Parent = self(),
+    _ = spawn_link(fun() ->
+                           timer:sleep(2000),
+                           ?assertEqual(
+                              {ok, StoreId},
+                              khepri:start(RaSystem, StoreId)),
+                           erlang:unlink(Parent)
+                   end),
+    ?assertEqual(
+       ok,
+       khepri_cluster:wait_for_leader(StoreId, 40000)),
+
+    ct:pal("Stop database"),
+    ?assertEqual(
+       ok,
+       khepri:stop(StoreId)),
+
+    ct:pal("Wait for leader after stopping database"),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:wait_for_leader(StoreId)),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:wait_for_leader(StoreId, 2000)),
 
     ok.
 
@@ -1298,6 +1345,100 @@ can_query_members_with_a_three_node_cluster(Config) ->
 
     ok.
 
+can_wait_for_leader_with_a_three_node_cluster(Config) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    PeerPerNode = ?config(peer_nodes, Config),
+    [Node1, Node2, Node3] = Nodes = lists:sort(maps:keys(PropsPerNode)),
+
+    %% We assume all nodes are using the same Ra system name & store ID.
+    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    StoreId = RaSystem,
+
+    ct:pal("Wait for leader before starting database"),
+    lists:foreach(
+      fun(Node) ->
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(
+                   Node, khepri_cluster, wait_for_leader, [StoreId])),
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(
+                   Node, khepri_cluster, wait_for_leader, [StoreId, 2000]))
+      end, Nodes),
+
+    ct:pal("Start database + cluster nodes"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
+      end, Nodes),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:join() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+      end, [Node1, Node2]),
+
+    ct:pal("Wait for leader after starting database"),
+    lists:foreach(
+      fun(Node) ->
+              ?assertEqual(
+                 ok,
+                 erpc:call(
+                   Node, khepri_cluster, wait_for_leader, [StoreId])),
+              ?assertEqual(
+                 ok,
+                 erpc:call(
+                   Node, khepri_cluster, wait_for_leader, [StoreId, 2000]))
+      end, Nodes),
+
+    LeaderId1 = get_leader_in_store(StoreId, Nodes),
+    {StoreId, LeaderNode1} = LeaderId1,
+    ct:pal("Stop node ~s", [LeaderNode1]),
+    LeaderPeer1 = proplists:get_value(LeaderNode1, PeerPerNode),
+    ?assertEqual(ok, stop_erlang_node(LeaderNode1, LeaderPeer1)),
+
+    ct:pal("Wait for leader after stopping leader"),
+    LeftNodes1 = Nodes -- [LeaderNode1],
+    lists:foreach(
+      fun(Node) ->
+              ?assertEqual(
+                 ok,
+                 erpc:call(
+                   Node, khepri_cluster, wait_for_leader, [StoreId])),
+              ?assertEqual(
+                 ok,
+                 erpc:call(
+                   Node, khepri_cluster, wait_for_leader, [StoreId, 2000]))
+      end, LeftNodes1),
+
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("Stop node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 rpc:call(Node, khepri, stop, [StoreId]))
+      end, LeftNodes1),
+
+    ct:pal("Wait for leader after stopping database"),
+    lists:foreach(
+      fun(Node) ->
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(
+                   Node, khepri_cluster, wait_for_leader, [StoreId])),
+              ?assertEqual(
+                 {error, noproc},
+                 erpc:call(
+                   Node, khepri_cluster, wait_for_leader, [StoreId, 2000]))
+      end, LeftNodes1),
+
+    ok.
+
 fail_to_join_if_not_started(Config) ->
     PropsPerNode = ?config(ra_system_props, Config),
     [Node1, Node2, _Node3] = maps:keys(PropsPerNode),
@@ -1396,6 +1537,8 @@ can_use_default_store_on_single_node(_Config) ->
     ?assertEqual({error, noproc}, khepri_cluster:nodes()),
     ?assertEqual({error, noproc}, khepri_cluster:locally_known_nodes()),
 
+    ?assertEqual({error, noproc}, khepri_cluster:wait_for_leader()),
+
     {ok, StoreId} = khepri:start(),
     ?assert(filelib:is_dir(DataDir)),
 
@@ -1492,6 +1635,8 @@ can_use_default_store_on_single_node(_Config) ->
        khepri_cluster:locally_known_members()),
     ?assertEqual({ok, [Node]}, khepri_cluster:nodes()),
     ?assertEqual({ok, [Node]}, khepri_cluster:locally_known_nodes()),
+
+    ?assertEqual(ok, khepri_cluster:wait_for_leader()),
 
     ?assertEqual(ok, khepri:stop()),
     ?assertEqual({error, noproc}, khepri:get([foo])),
