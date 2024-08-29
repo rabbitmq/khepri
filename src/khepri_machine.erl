@@ -89,8 +89,8 @@
          split_query_options/1,
          split_command_options/1,
          split_put_options/1,
-         insert_or_update_node/5,
-         delete_matching_nodes/3,
+         insert_or_update_node/6,
+         delete_matching_nodes/4,
          handle_tx_exception/1,
          process_query/3,
          process_command/3]).
@@ -1295,13 +1295,13 @@ apply(
   State) ->
     {TreeOptions, PutOptions} = split_put_options(TreeAndPutOptions),
     Ret = insert_or_update_node(
-            State, PathPattern, Payload, PutOptions, TreeOptions),
+            State, PathPattern, Payload, PutOptions, TreeOptions, []),
     post_apply(Ret, Meta);
 apply(
   Meta,
   #delete{path = PathPattern, options = TreeOptions},
   State) ->
-    Ret = delete_matching_nodes(State, PathPattern, TreeOptions),
+    Ret = delete_matching_nodes(State, PathPattern, TreeOptions, []),
     post_apply(Ret, Meta);
 apply(
   Meta,
@@ -1709,54 +1709,61 @@ failed_to_locate_sproc(Reason) ->
     khepri_tx:abort(Reason).
 
 -spec insert_or_update_node(
-    State, PathPattern, Payload, PutOptions, TreeOptions) -> Ret when
+    State, PathPattern, Payload, PutOptions, TreeOptions, SideEffects) ->
+    Ret when
       State :: state(),
       PathPattern :: khepri_path:native_pattern(),
       Payload :: khepri_payload:payload(),
       PutOptions :: khepri:put_options(),
       TreeOptions :: khepri:tree_options(),
-      Ret :: {State, Result} | {State, Result, ra_machine:effects()},
+      SideEffects :: ra_machine:effects(),
+      Ret :: {State, Result, ra_machine:effects()},
       Result :: khepri_machine:common_ret().
 %% @private
 
-insert_or_update_node(State, PathPattern, Payload, PutOptions, TreeOptions) ->
+insert_or_update_node(
+  State, PathPattern, Payload, PutOptions, TreeOptions, SideEffects) ->
     Tree = get_tree(State),
     Ret1 = khepri_tree:insert_or_update_node(
              Tree, PathPattern, Payload, PutOptions, TreeOptions),
     case Ret1 of
         {ok, Tree1, AppliedChanges, Ret2} ->
             State1 = set_tree(State, Tree1),
-            {State2, SideEffects} = create_tree_change_side_effects(
-                                      State, State1, Ret2, AppliedChanges),
-            {State2, {ok, Ret2}, SideEffects};
+            {State2, SideEffects1} = add_tree_change_side_effects(
+                                       State, State1, Ret2, AppliedChanges,
+                                       SideEffects),
+            {State2, {ok, Ret2}, SideEffects1};
         Error ->
-            {State, Error}
+            {State, Error, SideEffects}
     end.
 
--spec delete_matching_nodes(State, PathPattern, TreeOptions) -> Ret when
+-spec delete_matching_nodes(State, PathPattern, TreeOptions, SideEffects) ->
+    Ret when
       State :: state(),
       PathPattern :: khepri_path:native_pattern(),
       TreeOptions :: khepri:tree_options(),
-      Ret :: {State, Result} | {State, Result, ra_machine:effects()},
+      SideEffects :: ra_machine:effects(),
+      Ret :: {State, Result, ra_machine:effects()},
       Result :: khepri_machine:common_ret().
 %% @private
 
-delete_matching_nodes(State, PathPattern, TreeOptions) ->
+delete_matching_nodes(State, PathPattern, TreeOptions, SideEffects) ->
     Tree = get_tree(State),
     Ret = khepri_tree:delete_matching_nodes(
             Tree, PathPattern, #{}, TreeOptions),
     case Ret of
         {ok, Tree1, AppliedChanges, Ret2} ->
             State1 = set_tree(State, Tree1),
-            {State2, SideEffects} = create_tree_change_side_effects(
-                                      State, State1, Ret2, AppliedChanges),
-            {State2, {ok, Ret2}, SideEffects};
+            {State2, SideEffects1} = add_tree_change_side_effects(
+                                       State, State1, Ret2, AppliedChanges,
+                                       SideEffects),
+            {State2, {ok, Ret2}, SideEffects1};
         Error ->
-            {State, Error}
+            {State, Error, SideEffects}
     end.
 
-create_tree_change_side_effects(
-  InitialState, NewState, Ret, KeepWhileAftermath) ->
+add_tree_change_side_effects(
+  InitialState, NewState, Ret, KeepWhileAftermath, SideEffects) ->
     %% We make a map where for each affected tree node, we indicate the type
     %% of change.
     Changes0 = maps:merge(Ret, KeepWhileAftermath),
@@ -1766,11 +1773,13 @@ create_tree_change_side_effects(
                     (_, #{} = _NodeProps)                 -> update;
                     (_, delete)                           -> delete
                 end, Changes0),
-    ProjectionEffects = create_projection_side_effects(
-                          InitialState, NewState, Changes),
-    {NewState1, TriggerEffects} = create_trigger_side_effects(
-                                    InitialState, NewState, Changes),
-    {NewState1, ProjectionEffects ++ TriggerEffects}.
+    NewSideEffects = create_projection_side_effects(
+                       InitialState, NewState, Changes),
+    {NewState1, NewSideEffects1} = add_trigger_side_effects(
+                                     InitialState, NewState, Changes,
+                                     NewSideEffects),
+    SideEffects1 = lists:reverse(NewSideEffects1, SideEffects),
+    {NewState1, SideEffects1}.
 
 create_projection_side_effects(InitialState, NewState, Changes) ->
     InitialTree = get_tree(InitialState),
@@ -1869,7 +1878,7 @@ evaluate_projection(
     Effect = {aux, Trigger},
     [Effect | Effects].
 
-create_trigger_side_effects(InitialState, NewState, Changes) ->
+add_trigger_side_effects(InitialState, NewState, Changes, SideEffects) ->
     %% We want to consider the new state (with the updated tree), but we want
     %% to use triggers from the initial state, in case they were updated too.
     %% In other words, we want to evaluate triggers in the state they were at
@@ -1877,7 +1886,7 @@ create_trigger_side_effects(InitialState, NewState, Changes) ->
     Triggers = get_triggers(InitialState),
     case Triggers =:= #{} of
         true ->
-            {NewState, []};
+            {NewState, SideEffects};
         false ->
             EmittedTriggers = get_emitted_triggers(InitialState),
             #config{store_id = StoreId} = get_config(NewState),
@@ -1903,7 +1912,7 @@ create_trigger_side_effects(InitialState, NewState, Changes) ->
                           khepri_event_handler,
                           handle_triggered_sprocs,
                           [StoreId, TriggeredStoredProcs]},
-            {NewState1, [SideEffect]}
+            {NewState1, [SideEffect | SideEffects]}
     end.
 
 list_triggered_sprocs(Tree, Changes, Triggers) ->

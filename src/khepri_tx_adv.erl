@@ -217,9 +217,10 @@ put_many(PathPattern, Data, Options) ->
     {TreeOptions, PutOptions} =
     khepri_machine:split_put_options(TreeAndPutOptions),
     %% TODO: Ensure `CommandOptions' is unset.
-    Fun = fun(State) ->
+    Fun = fun(State, SideEffects) ->
                   khepri_machine:insert_or_update_node(
-                    State, PathPattern1, Payload1, PutOptions, TreeOptions)
+                    State, PathPattern1, Payload1, PutOptions, TreeOptions,
+                    SideEffects)
           end,
     handle_state_for_call(Fun).
 
@@ -421,9 +422,9 @@ delete_many(PathPattern, Options) ->
     khepri_machine:split_command_options(Options),
     %% TODO: Ensure `CommandOptions' is empty and `TreeOptions' doesn't
     %% contains put options.
-    Fun = fun(State) ->
+    Fun = fun(State, SideEffects) ->
                   khepri_machine:delete_matching_nodes(
-                    State, PathPattern1, TreeOptions)
+                    State, PathPattern1, TreeOptions, SideEffects)
           end,
     handle_state_for_call(Fun).
 
@@ -985,7 +986,10 @@ run(State, StandaloneFun, Args, AllowUpdates)
         NewTxProps = erlang:erase(?TX_PROPS),
         khepri_machine:ensure_is_state(NewState),
         ?assertEqual(TxProps, NewTxProps),
-        {NewState, Ret, NewSideEffects}
+        %% The side effect list is built using prepends so the list needs to
+        %% be reversed to process the effects in order.
+        NewSideEffects1 = lists:reverse(NewSideEffects),
+        {NewState, Ret, NewSideEffects1}
     catch
         Class:Reason:Stacktrace ->
             _ = erlang:erase(?TX_STATE_KEY),
@@ -996,14 +1000,9 @@ run(State, StandaloneFun, Args, AllowUpdates)
 
 handle_state_for_call(Fun) ->
     {State, SideEffects} = get_tx_state(),
-    case Fun(State) of
-        {NewState, Ret, NewSideEffects} ->
-            set_tx_state(NewState, SideEffects ++ NewSideEffects),
-            ?raise_exception_if_any(Ret);
-        {NewState, Ret} ->
-            set_tx_state(NewState, SideEffects),
-            ?raise_exception_if_any(Ret)
-    end.
+    {NewState, Ret, SideEffects1} = Fun(State, SideEffects),
+    set_tx_state(NewState, SideEffects1),
+    ?raise_exception_if_any(Ret).
 
 -spec get_tx_state() -> {State, SideEffects} when
       State :: khepri_machine:state(),
