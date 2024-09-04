@@ -51,7 +51,8 @@
 -export([empty/0,
          is_empty/1,
          update/3,
-         fold/5,
+         fold/3,
+         fold_matching/5,
          foreach/2,
          compile/1,
          map_fold/3,
@@ -131,7 +132,37 @@ update_payload(#pattern_node{payload = Payload} = PatternTree, UpdateFun) ->
     Payload1 = UpdateFun(Payload),
     PatternTree#pattern_node{payload = Payload1}.
 
--spec fold(PatternTree, Tree, Path, FoldFun, Acc) -> Ret when
+-spec fold(PatternTree, Fun, Acc) -> Ret when
+      PatternTree :: khepri_pattern_tree:tree(Payload),
+      Fun :: fold_fun(Payload),
+      Acc :: fold_acc(),
+      Ret :: fold_acc(),
+      Payload :: payload().
+%% @doc Folds over the pattern tree passing each pattern, payload and the
+%% accumulator to the fold function.
+%%
+%% Unlike {@link fold_matching/5} all payloads are passed to the fold function.
+
+fold(#pattern_node{} = PatternTree, Fun, Acc) ->
+    fold(PatternTree, Fun, [], Acc).
+
+fold(
+  #pattern_node{payload = Payload, child_nodes = ChildNodes},
+  Fun, ReversedPath, Acc) ->
+    Acc1 = case Payload of
+               ?NO_PAYLOAD ->
+                   Acc;
+               _ ->
+                   Pattern = lists:reverse(ReversedPath),
+                   Fun(Pattern, Payload, Acc)
+           end,
+    maps:fold(
+      fun(PatternComponent, Child, Acc2) ->
+              ReversedPath1 = [PatternComponent | ReversedPath],
+              fold(Child, Fun, ReversedPath1, Acc2)
+      end, Acc1, ChildNodes).
+
+-spec fold_matching(PatternTree, Tree, Path, FoldFun, Acc) -> Ret when
       PatternTree :: khepri_pattern_tree:tree(Payload),
       Tree :: khepri_tree:tree(),
       Path :: khepri_path:native_path(),
@@ -149,17 +180,18 @@ update_payload(#pattern_node{payload = Payload} = PatternTree, UpdateFun) ->
 %% @see fold_fun().
 %% @see fold_acc().
 
-fold(PatternTree, Tree, Path, FoldFun, Acc) ->
+fold_matching(PatternTree, Tree, Path, FoldFun, Acc) ->
     Path1 = khepri_path:realpath(Path),
     case Path1 of
         [] ->
             fold_data(PatternTree, [], FoldFun, Acc);
         _ ->
             Root = Tree#tree.root,
-            fold1(PatternTree, Root, Path, FoldFun, Acc, [])
+            fold_matching1(PatternTree, Root, Path, FoldFun, Acc, [])
     end.
 
--spec fold1(PatternTree, Node, Path, FoldFun, Acc, ReversedPath) -> Ret when
+-spec fold_matching1(PatternTree, Node, Path, FoldFun, Acc, ReversedPath) ->
+    Ret when
       PatternTree :: khepri_pattern_tree:tree(Payload),
       Node :: khepri_tree:tree_node(),
       Path :: khepri_path:native_path(),
@@ -170,10 +202,10 @@ fold(PatternTree, Tree, Path, FoldFun, Acc) ->
       Payload :: payload().
 %% @private
 
-fold1(
+fold_matching1(
   _PatternTree, _Node, [], _FoldFun, Acc, _ReversedPath) ->
     Acc;
-fold1(
+fold_matching1(
   PatternTree, Parent, [Component | Rest], FoldFun, Acc, ReversedPath) ->
     case Parent of
         #node{child_nodes = #{Component := Node}} ->
@@ -200,7 +232,7 @@ fold1(
                               %% not at the end of the path).
                               %%
                               %% We continue with the next component.
-                              fold1(
+                              fold_matching1(
                                 PatternSubtree, Node, Rest,
                                 FoldFun, Acc0, ReversedPath1);
                           true when AppliesToGrandchildren ->
@@ -220,10 +252,10 @@ fold1(
                               PatternTree1 = PatternTree#pattern_node{
                                                child_nodes =
                                                #{Condition => PatternSubtree}},
-                              Acc1 = fold1(
+                              Acc1 = fold_matching1(
                                        PatternTree1, Node, Rest,
                                        FoldFun, Acc0, ReversedPath1),
-                              Acc2 = fold1(
+                              Acc2 = fold_matching1(
                                        PatternSubtree, Node, Rest,
                                        FoldFun, Acc1, ReversedPath1),
                               Acc2;

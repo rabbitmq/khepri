@@ -102,7 +102,7 @@ fold_finds_all_patterns_matching_a_path_test() ->
                      lists_enumerate(PathPatterns)),
     PatternTree = khepri_pattern_tree:compile(PatternTree0),
     MatchingIndices = fun(Path) ->
-                              khepri_pattern_tree:fold(
+                              khepri_pattern_tree:fold_matching(
                                 PatternTree, Tree, Path,
                                 fun(_PathPattern, Indices, Acc) ->
                                     Acc ++ Indices
