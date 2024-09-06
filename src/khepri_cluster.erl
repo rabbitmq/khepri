@@ -1560,11 +1560,9 @@ get_store_ids() ->
 is_store_running(StoreId) ->
     ThisNode = node(),
     RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
-    Runs = case ra:ping(RaServer, khepri_app:get_default_timeout()) of
-               {pong, _}  -> true;
-               {error, _} -> false;
-               timeout    -> false
-           end,
+    Timeout = khepri_app:get_default_timeout(),
+    KeyMetrics = ra:key_metrics(RaServer, Timeout),
+    Runs = maps:get(state, KeyMetrics) =/= noproc,
 
     %% We know the real state of the Ra server. In the case the Ra server
     %% stopped behind the back of Khepri, we update the cached list of running
@@ -1574,6 +1572,10 @@ is_store_running(StoreId) ->
         true when Runs ->
             ok;
         false when not Runs ->
+            ok;
+        false when Runs ->
+            %% This function was called between the start of the Ra server and
+            %% the record of its configuration. This is a race, but that's ok.
             ok;
         true when not Runs ->
             ?LOG_DEBUG(
