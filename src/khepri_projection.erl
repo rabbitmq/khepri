@@ -303,18 +303,28 @@ delete(#khepri_projection{name = Name}) ->
 trigger(
   #khepri_projection{name = Name, projection_fun = ProjectionFun},
   Path, OldProps, NewProps) ->
-    Table = ets:whereis(Name),
-    case ProjectionFun of
-        copy ->
-            trigger_copy_projection(Name, Table, OldProps, NewProps);
-        StandaloneFun ->
-            case ?HORUS_STANDALONE_FUN_ARITY(StandaloneFun) of
-                2 ->
-                    trigger_simple_projection(
-                      Table, Name, StandaloneFun, Path, OldProps, NewProps);
-                4 ->
-                    trigger_extended_projection(
-                      Table, Name, StandaloneFun, Path, OldProps, NewProps)
+    case ets:whereis(Name) of
+        undefined ->
+            %% A table might have been deleted by an `unregister_projections'
+            %% effect in between when a `trigger_projection' effect is created
+            %% and when it is handled in `khepri_machine:handle_aux/6`. In this
+            %% case we should no-op the trigger effect.
+            ok;
+        Table ->
+            case ProjectionFun of
+                copy ->
+                    trigger_copy_projection(Name, Table, OldProps, NewProps);
+                StandaloneFun ->
+                    case ?HORUS_STANDALONE_FUN_ARITY(StandaloneFun) of
+                        2 ->
+                            trigger_simple_projection(
+                              Table, Name, StandaloneFun, Path,
+                              OldProps, NewProps);
+                        4 ->
+                            trigger_extended_projection(
+                              Table, Name, StandaloneFun, Path,
+                              OldProps, NewProps)
+                    end
             end
     end.
 

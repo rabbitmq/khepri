@@ -51,7 +51,8 @@
          projections_are_consistent_on_three_node_cluster/1,
          projections_are_updated_when_a_snapshot_is_installed/1,
          async_command_leader_change_in_three_node_cluster/1,
-         spam_txs_during_election/1]).
+         spam_txs_during_election/1,
+         spam_changes_during_unregister_projections/1]).
 
 all() ->
     [can_start_a_single_node,
@@ -78,7 +79,8 @@ all() ->
      projections_are_consistent_on_three_node_cluster,
      projections_are_updated_when_a_snapshot_is_installed,
      async_command_leader_change_in_three_node_cluster,
-     spam_txs_during_election].
+     spam_txs_during_election,
+     spam_changes_during_unregister_projections].
 
 groups() ->
     [].
@@ -135,7 +137,8 @@ init_per_testcase(Testcase, Config)
        Testcase =:= handle_leader_down_on_three_node_cluster_response orelse
        Testcase =:= projections_are_consistent_on_three_node_cluster orelse
        Testcase =:= projections_are_updated_when_a_snapshot_is_installed orelse
-       Testcase =:= async_command_leader_change_in_three_node_cluster ->
+       Testcase =:= async_command_leader_change_in_three_node_cluster orelse
+       Testcase =:= spam_changes_during_unregister_projections ->
     Nodes = start_n_nodes(Testcase, 3),
     PropsPerNode0 = [begin
                          {ok, _} = rpc:call(
@@ -2388,6 +2391,89 @@ bump_counter_tx() ->
     NewCounter = Counter + 1,
     ok = khepri_tx:put(Path, NewCounter),
     {counter, NewCounter}.
+
+spam_changes_during_unregister_projections(Config) ->
+    %% We call `khepri_projection:new/2' on the local node and thus need
+    %% Khepri.
+    ?assertMatch({ok, _}, application:ensure_all_started(khepri)),
+    ProjectionName = ?MODULE,
+
+    PropsPerNode = ?config(ra_system_props, Config),
+    [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
+
+    %% We assume all nodes are using the same Ra system name & store ID.
+    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    StoreId = RaSystem,
+
+    ct:pal("Start database + cluster nodes"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 erpc:call(Node, khepri, start, [RaSystem, StoreId]))
+      end, Nodes),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:join() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 erpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+      end, [Node1, Node2]),
+
+    ct:pal("Register projection on node ~s", [Node1]),
+    Projection = khepri_projection:new(
+                   ProjectionName, fun(Path, Payload) -> {Path, Payload} end),
+    erpc:call(Node1,
+      khepri, register_projection,
+      [StoreId, [?KHEPRI_WILDCARD_STAR_STAR], Projection]),
+
+    ct:pal("Start the spammer process"),
+    Path = [key],
+    Parent = self(),
+    {Pid, MRef} = spawn_monitor(
+                    fun() ->
+                          spam_async_changes(Parent, Node1, StoreId, Path, 0)
+                    end),
+    timer:sleep(50),
+
+    ct:pal("Unregistering the projection"),
+    erpc:call(
+      Node1, khepri, unregister_projections, [StoreId, [ProjectionName]]),
+
+    ?assertEqual(
+      undefined,
+      erpc:call(Node1, ets, info, [ProjectionName])),
+
+    timer:sleep(50),
+
+    ct:pal("Asking spammer process ~0p to stop", [Pid]),
+    Pid ! stop,
+    Runs = receive
+               {'DOWN', MRef, _, Pid, Reason1} ->
+                   ?assertEqual(normal, Reason1),
+                   receive {runs, R} -> R end
+           end,
+    ct:pal("Spammer process ~0p sent ~b async commands", [Pid, Runs]),
+
+    ok.
+
+spam_async_changes(Parent, Node, StoreId, Path, Runs) ->
+    receive
+        stop ->
+            ct:pal(
+              "Spammer process ~0p exiting after ~b runs",
+              [self(), Runs]),
+            Parent ! {runs, Runs},
+            ok
+    after 0 ->
+              NewRuns = Runs + 1,
+              ?LOG_INFO("Update run #~b on node ~0p", [NewRuns, Node]),
+              ok = erpc:call(
+                     Node, khepri, put,
+                     [StoreId, Path, NewRuns, #{async => true}]),
+              spam_async_changes(Parent, Node, StoreId, Path, NewRuns)
+    end.
 
 %% -------------------------------------------------------------------
 %% Internal functions
