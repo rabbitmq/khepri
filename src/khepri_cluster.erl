@@ -755,7 +755,7 @@ reset_remotely_and_join_locked(
             ?LOG_DEBUG(
                "Remote cluster (reached through node ~0p) is not ready "
                "for a membership change yet; waiting...", [RemoteNode]),
-            Ret2 = wait_for_leader(StoreId, Timeout1),
+            Ret2 = wait_for_cluster_change_permitted(StoreId, Timeout1),
             Timeout2 = khepri_utils:end_timeout_window(Timeout1, T2),
             case Ret2 of
                 ok ->
@@ -847,7 +847,7 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
             ?LOG_DEBUG(
                "Remote cluster (reached through node ~0p) is not ready "
                "for a membership change yet; waiting...", [RemoteNode]),
-            Ret2 = wait_for_leader(RemoteMember, Timeout1),
+            Ret2 = wait_for_cluster_change_permitted(RemoteMember, Timeout1),
             Timeout2 = khepri_utils:end_timeout_window(Timeout1, T2),
             case Ret2 of
                 ok ->
@@ -870,6 +870,17 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
                 {error, _}   -> Error
             end
     end.
+
+wait_for_cluster_change_permitted(RaMemberOrStoreId, Timeout) ->
+    Ret = wait_for_leader(RaMemberOrStoreId, Timeout),
+
+    %% We wait for an additional fixed amount of time because the
+    %% cluster could have a leader and still not be ready to accept
+    %% a cluster change. This avoids too many retries that will
+    %% just eat resources.
+    timer:sleep(200),
+
+    Ret.
 
 -spec reset() -> Ret when
       Ret :: ok | khepri:error().
@@ -946,7 +957,7 @@ do_reset(RaSystem, StoreId, ThisMember, Timeout) ->
                "Cluster is not ready for a membership change yet; waiting",
                []),
             try
-                Ret2 = wait_for_leader(StoreId, Timeout1),
+                Ret2 = wait_for_cluster_change_permitted(StoreId, Timeout1),
                 Timeout2 = khepri_utils:end_timeout_window(Timeout1, T2),
                 case Ret2 of
                     ok    -> do_reset(RaSystem, StoreId, ThisMember, Timeout2);
