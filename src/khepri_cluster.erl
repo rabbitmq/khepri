@@ -957,13 +957,20 @@ do_reset(RaSystem, StoreId, ThisMember, Timeout) ->
                     ?LOG_DEBUG(
                        "The local Ra server exited while we were waiting "
                        "for it to be ready for a membership change. It "
-                       "means it was removed from the cluster by the remote "
-                       "cluster; we can proceed with the reset."),
+                       "means it was removed from the cluster by another "
+                       "member; we can proceed with the reset."),
                     forget_store(StoreId),
                     ok
             end;
         {timeout, _} ->
             {error, timeout};
+        {error, noproc} ->
+            ?LOG_DEBUG(
+               "The local Ra server exited while we tried to detach it from "
+               "its cluster. It means it was removed from the cluster by "
+               "another member; we can proceed with the reset."),
+            forget_store(StoreId),
+            ok;
         {error, _} = Error ->
             Error
     end.
