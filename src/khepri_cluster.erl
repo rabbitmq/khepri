@@ -1576,11 +1576,12 @@ get_store_ids() ->
 %% @doc Indicates if `StoreId' is running or not.
 
 is_store_running(StoreId) ->
-    ThisNode = node(),
-    RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
-    Timeout = khepri_app:get_default_timeout(),
-    KeyMetrics = ra:key_metrics(RaServer, Timeout),
-    Runs = maps:get(state, KeyMetrics) =/= noproc,
+    %% FIXME: Ra has no API to know if a Ra server is running or not. We could
+    %% use a public API such as `ra:key_metrics/2', but unfortunately, it is
+    %% not as efficient as querying the process directly. Therefore, we bypass
+    %% Ra and rely on the fact that the server ID is internally a registered
+    %% process name and resolve it to determine if it is running.
+    Runs = erlang:whereis(StoreId) =/= undefined,
 
     %% We know the real state of the Ra server. In the case the Ra server
     %% stopped behind the back of Khepri, we update the cached list of running
