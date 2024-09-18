@@ -24,5 +24,5 @@
 
 -record(tree, {root = #node{} :: khepri_tree:tree_node(),
                keep_while_conds = #{} :: khepri_tree:keep_while_conds_map(),
-               keep_while_conds_revidx = #{} ::
+               keep_while_conds_revidx = khepri_prefix_tree:new() ::
                khepri_tree:keep_while_conds_revidx()}).

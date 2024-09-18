@@ -40,8 +40,8 @@
                                   khepri_condition:native_keep_while()}.
 %% Per-node `keep_while' conditions.
 
--type keep_while_conds_revidx() :: #{khepri_path:native_path() =>
-                                     #{khepri_path:native_path() => ok}}.
+-type keep_while_conds_revidx() :: khepri_prefix_tree:tree(
+                                     #{khepri_path:native_path() => ok}).
 %% Internal reverse index of the keep_while conditions. If node A depends on a
 %% condition on node B, then this reverse index will have a "node B => node A"
 %% entry.
@@ -315,19 +315,25 @@ update_keep_while_conds_revidx(
     OldWatcheds = maps:get(Watcher, KeepWhileConds, #{}),
     KeepWhileCondsRevIdx1 = maps:fold(
                           fun(Watched, _, KWRevIdx) ->
-                                  Watchers = maps:get(Watched, KWRevIdx),
-                                  Watchers1 = maps:remove(Watcher, Watchers),
-                                  case maps:size(Watchers1) of
-                                      0 -> maps:remove(Watched, KWRevIdx);
-                                      _ -> KWRevIdx#{Watched => Watchers1}
-                                  end
+                                  khepri_prefix_tree:update(
+                                    fun(Watchers) ->
+                                            Watchers1 = maps:remove(
+                                                          Watcher, Watchers),
+                                            case maps:size(Watchers1) of
+                                                0 -> ?NO_PAYLOAD;
+                                                _ -> Watchers1
+                                            end
+                                    end, Watched, KWRevIdx)
                           end, KeepWhileCondsRevIdx, OldWatcheds),
     %% Then, record the watched paths.
     KeepWhileCondsRevIdx2 = maps:fold(
                           fun(Watched, _, KWRevIdx) ->
-                                  Watchers = maps:get(Watched, KWRevIdx, #{}),
-                                  Watchers1 = Watchers#{Watcher => ok},
-                                  KWRevIdx#{Watched => Watchers1}
+                                  khepri_prefix_tree:update(
+                                    fun (?NO_PAYLOAD) ->
+                                            #{Watcher => ok};
+                                        (Watchers) ->
+                                            Watchers#{Watcher => ok}
+                                    end, Watched, KWRevIdx)
                           end, KeepWhileCondsRevIdx1, KeepWhile),
     Tree#tree{keep_while_conds_revidx = KeepWhileCondsRevIdx2}.
 
@@ -1290,22 +1296,17 @@ eval_keep_while_conditions(
     maps:fold(
       fun
           (RemovedPath, delete, ToDelete) ->
-              maps:fold(
-                fun(Path, Watchers, ToDelete1) ->
-                        case lists:prefix(RemovedPath, Path) of
-                            true ->
-                                eval_keep_while_conditions_after_removal(
-                                  Tree, Watchers, ToDelete1);
-                            false ->
-                                ToDelete1
-                        end
-                end, ToDelete, KeepWhileCondsRevIdx);
+              khepri_prefix_tree:fold_prefixes_of(
+                fun(Watchers, ToDelete1) ->
+                        eval_keep_while_conditions_after_removal(
+                          Tree, Watchers, ToDelete1)
+                end, ToDelete, RemovedPath, KeepWhileCondsRevIdx);
           (UpdatedPath, NodeProps, ToDelete) ->
-              case KeepWhileCondsRevIdx of
-                  #{UpdatedPath := Watchers} ->
+              case khepri_prefix_tree:find_path(UpdatedPath, KeepWhileCondsRevIdx) of
+                  {ok, Watchers} ->
                       eval_keep_while_conditions_after_update(
                         Tree, UpdatedPath, NodeProps, Watchers, ToDelete);
-                  _ ->
+                  error ->
                       ToDelete
               end
       end, #{}, AppliedChanges).
