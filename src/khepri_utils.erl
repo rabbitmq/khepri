@@ -12,6 +12,8 @@
 
 -include_lib("stdlib/include/assert.hrl").
 
+-include_lib("horus/include/horus.hrl").
+
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
 
@@ -226,6 +228,9 @@ data_prefix(#{child_nodes := _}, _Options)          -> "│ ";
 data_prefix(_, #{lines := false})                   -> "  ";
 data_prefix(_, _Options)                            -> "  ".
 
+format_data(SProc, _Options) when ?IS_HORUS_FUN(SProc) ->
+    Fun = horus:to_fun(SProc),
+    lists:flatten(io_lib:format("SProc: ~tp", [Fun]));
 format_data(Data, _Options) ->
     lists:flatten(io_lib:format("Data: ~tp", [Data])).
 
