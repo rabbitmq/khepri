@@ -1260,6 +1260,19 @@ handle_aux(
     Tree = get_tree(State),
     ok = restore_projection(Projection, Tree, PathPattern),
     {no_reply, AuxState, IntState};
+handle_aux(_RaState, cast, tick, AuxState, IntState) ->
+    State = ra_aux:machine_state(IntState),
+    Ts = erlang:system_time(millisecond),
+    Dedups = get_dedups(State),
+    CanExpire = fun(_CommandRef, {_Reply, Expiry}) -> Expiry =< Ts end,
+    Effs = case khepri_utils:maps_any(CanExpire, Dedups) of
+               true ->
+                   ExpireDedups = #expire_dedups{},
+                   [{append, ExpireDedups}];
+               false ->
+                   []
+           end,
+    {no_reply, AuxState, IntState, Effs};
 handle_aux(_RaState, _Type, _Command, AuxState, IntState) ->
     {no_reply, AuxState, IntState}.
 
@@ -1458,6 +1471,19 @@ apply(
              end,
     Ret = {State1, ok},
     post_apply(Ret, Meta);
+apply(
+  #{machine_version := MacVer,
+    system_time := Timestamp} = Meta,
+  #expire_dedups{},
+  State) when MacVer >= 1 ->
+    Dedups = get_dedups(State),
+    Dedups1 = maps:filter(
+                fun(_CommandRef, {_Reply, Expiry}) ->
+                        Expiry > Timestamp
+                end, Dedups),
+    State1 = set_dedups(State, Dedups1),
+    Ret = {State1, ok},
+    post_apply(Ret, Meta);
 apply(Meta, {machine_version, OldMacVer, NewMacVer}, OldState) ->
     NewState = convert_state(OldState, OldMacVer, NewMacVer),
     Ret = {NewState, ok},
@@ -1490,9 +1516,7 @@ apply(#{machine_version := MacVer} = Meta, UnknownCommand, State) ->
 post_apply({State, Result}, Meta) ->
     post_apply({State, Result, []}, Meta);
 post_apply({_State, _Result, _SideEffects} = Ret, Meta) ->
-    Ret1 = bump_applied_command_count(Ret, Meta),
-    Ret2 = drop_expired_dedups(Ret1, Meta),
-    Ret2.
+    bump_applied_command_count(Ret, Meta).
 
 -spec bump_applied_command_count(ApplyRet, Meta) ->
     {State, Result, SideEffects} when
@@ -1531,34 +1555,6 @@ reset_applied_command_count(State) ->
     Metrics = get_metrics(State),
     Metrics1 = maps:remove(applied_command_count, Metrics),
     set_metrics(State, Metrics1).
-
--spec drop_expired_dedups(ApplyRet, Meta) ->
-    {State, Result, SideEffects} when
-      ApplyRet :: {State, Result, SideEffects},
-      State :: state(),
-      Result :: any(),
-      Meta :: ra_machine:command_meta_data(),
-      SideEffects :: ra_machine:effects().
-%% @private
-
-drop_expired_dedups(
-  {State, Result, SideEffects},
-  #{system_time := Timestamp}) ->
-    Dedups = get_dedups(State),
-    %% This would look cleaner written with `maps:filter/2' but it turns out
-    %% that function is very inefficient.
-    %% TODO: explain why.
-    Dedups1 = maps:fold(
-                fun(CommandRef, {_Reply, Expiry}, Acc) ->
-                        case Expiry >= Timestamp of
-                            true ->
-                                maps:remove(CommandRef, Acc);
-                            false ->
-                                Acc
-                        end
-                end, Dedups, Dedups),
-    State1 = set_dedups(State, Dedups1),
-    {State1, Result, SideEffects}.
 
 %% @private
 

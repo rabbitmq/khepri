@@ -20,6 +20,7 @@
 -export([start_timeout_window/1,
          end_timeout_window/2,
          sleep/2,
+         maps_any/2,
          is_ra_server_alive/1,
 
          node_props_to_payload/2,
@@ -84,6 +85,25 @@ sleep(Time, Timeout) when Time =< Timeout ->
 sleep(Time, Timeout) when Time > Timeout ->
     timer:sleep(Timeout),
     0.
+
+-spec maps_any(Predicate, Map) -> boolean() when
+      Predicate :: fun((Key, Value) -> boolean()),
+      Map :: #{Key => Value},
+      Key :: term(),
+      Value :: term().
+
+maps_any(Fun, Map) when is_map(Map) ->
+    do_maps_any(Fun, maps:next(maps:iterator(Map))).
+
+do_maps_any(Fun, {Key, Value, Iterator}) ->
+    case Fun(Key, Value) of
+        true ->
+            true;
+        false ->
+            do_maps_any(Fun, maps:next(Iterator))
+    end;
+do_maps_any(_Fun, none) ->
+    false.
 
 -spec is_ra_server_alive(RaServer) -> IsAlive when
       RaServer :: ra:server_id(),
