@@ -1545,10 +1545,18 @@ drop_expired_dedups(
   {State, Result, SideEffects},
   #{system_time := Timestamp}) ->
     Dedups = get_dedups(State),
-    Dedups1 = maps:filter(
-                fun(_CommandRef, {_Reply, Expiry}) ->
-                        Expiry >= Timestamp
-                end, Dedups),
+    %% This would look cleaner written with `maps:filter/2' but it turns out
+    %% that function is very inefficient.
+    %% TODO: explain why.
+    Dedups1 = maps:fold(
+                fun(CommandRef, {_Reply, Expiry}, Acc) ->
+                        case Expiry >= Timestamp of
+                            true ->
+                                maps:remove(CommandRef, Acc);
+                            false ->
+                                Acc
+                        end
+                end, Dedups, Dedups),
     State1 = set_dedups(State, Dedups1),
     {State1, Result, SideEffects}.
 
