@@ -3369,7 +3369,7 @@ transaction(FunOrPath, Args, ReadWrite, Options)
 %% as its arguments. In other words, the length of `Args' must correspond to
 %% the arity of `Fun'.
 %%
-%% Instead of `Fun', `PathPattern` can be passed. It must point to an existing
+%% Instead of `Fun', `PathPattern' can be passed. It must point to an existing
 %% stored procedure. The length to `Args' must correspond to the arity of that
 %% stored procedure.
 %%
