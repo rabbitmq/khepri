@@ -85,7 +85,7 @@
 %% ra_machine callbacks.
 -export([init/1,
          init_aux/1,
-         handle_aux/6,
+         handle_aux/5,
          apply/3,
          state_enter/2,
          snapshot_installed/4,
@@ -1236,14 +1236,16 @@ init(Params) ->
 init_aux(StoreId) ->
     #khepri_machine_aux{store_id = StoreId}.
 
--spec handle_aux(RaState, Type, Command, AuxState, LogState, MachineState) ->
-    {no_reply, AuxState, LogState} when
+-spec handle_aux(RaState, Type, Command, AuxState, IntState) ->
+    Ret when
       RaState :: ra_server:ra_state(),
       Type :: {call, ra:from()} | cast,
       Command :: term(),
       AuxState :: aux_state(),
-      LogState :: ra_log:state(),
-      MachineState :: state().
+      IntState :: ra_aux:internal_state(),
+      Ret :: {no_reply, AuxState, IntState} |
+             {no_reply, AuxState, IntState, Effects},
+      Effects :: ra_machine:effects().
 %% @private
 
 handle_aux(
@@ -1252,12 +1254,12 @@ handle_aux(
                       old_props = OldProps,
                       new_props = NewProps,
                       projection = Projection},
-  AuxState, LogState, _MachineState) ->
+  AuxState, IntState) ->
     khepri_projection:trigger(Projection, Path, OldProps, NewProps),
-    {no_reply, AuxState, LogState};
+    {no_reply, AuxState, IntState};
 handle_aux(
-  _RaState, cast, restore_projections, AuxState, LogState,
-  State) ->
+  _RaState, cast, restore_projections, AuxState, IntState) ->
+    State = ra_aux:machine_state(IntState),
     Tree = get_tree(State),
     ProjectionTree = get_projections(State),
     khepri_pattern_tree:foreach(
@@ -1266,16 +1268,17 @@ handle_aux(
               [restore_projection(Projection, Tree, PathPattern) ||
                Projection <- Projections]
       end),
-    {no_reply, AuxState, LogState};
+    {no_reply, AuxState, IntState};
 handle_aux(
   _RaState, cast,
   #restore_projection{projection = Projection, pattern = PathPattern},
-  AuxState, LogState, State) ->
+  AuxState, IntState) ->
+    State = ra_aux:machine_state(IntState),
     Tree = get_tree(State),
     ok = restore_projection(Projection, Tree, PathPattern),
-    {no_reply, AuxState, LogState};
-handle_aux(_RaState, _Type, _Command, AuxState, LogState, _MachineState) ->
-    {no_reply, AuxState, LogState}.
+    {no_reply, AuxState, IntState};
+handle_aux(_RaState, _Type, _Command, AuxState, IntState) ->
+    {no_reply, AuxState, IntState}.
 
 restore_projection(Projection, Tree, PathPattern) ->
     _ = khepri_projection:init(Projection),
