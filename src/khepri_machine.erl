@@ -2334,9 +2334,17 @@ make_virgin_state(Params) ->
 %%
 %% @private
 
-convert_state(State, MacVer, MacVer) ->
+convert_state(State, OldMacVer, NewMacVer) ->
+    lists:foldl(
+      fun(N, State1) ->
+              OldMacVer1 = N,
+              NewMacVer1 = erlang:min(N + 1, NewMacVer),
+              convert_state1(State1, OldMacVer1, NewMacVer1)
+      end, State, lists:seq(OldMacVer, NewMacVer)).
+
+convert_state1(State, MacVer, MacVer) ->
     State;
-convert_state(State, 0, 1) ->
+convert_state1(State, 0, 1) ->
     %% To go from version 0 to version 1, we add the `dedups' fields at the
     %% end of the record. The default value is an empty map.
     ?assert(khepri_machine_v0:is_state(State)),
