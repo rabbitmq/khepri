@@ -18,7 +18,6 @@
 %% khepri:get_root/1 is unexported when compiled without `-DTEST'. Likewise
 %% for:
 %%   - `khepri_machine:get_keep_while_conds/1'
-%%   - `khepri_machine:get_keep_while_conds_revidx/1'
 -dialyzer(no_missing_calls).
 
 are_keep_while_conditions_met_test() ->
@@ -70,7 +69,6 @@ insert_when_keep_while_true_test() ->
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
     KeepWhileConds = khepri_machine:get_keep_while_conds(S1),
-    KeepWhileCondsRevIdx = khepri_machine:get_keep_while_conds_revidx(S1),
 
     ?assertEqual(
        #node{
@@ -90,9 +88,6 @@ insert_when_keep_while_true_test() ->
     ?assertEqual(
        #{[baz] => KeepWhile},
        KeepWhileConds),
-    ?assertEqual(
-       #{[foo] => #{[baz] => ok}},
-       KeepWhileCondsRevIdx),
     ?assertEqual({ok, #{[baz] => #{}}}, Ret),
     ?assertEqual([], SE).
 

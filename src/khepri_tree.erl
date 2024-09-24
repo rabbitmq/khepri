@@ -67,7 +67,6 @@
 -export_type([tree_node/0,
               tree/0,
               keep_while_conds_map/0,
-              keep_while_conds_revidx/0,
               applied_changes/0]).
 
 %% -------------------------------------------------------------------
