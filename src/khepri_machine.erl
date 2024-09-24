@@ -42,6 +42,16 @@
 %% </ul>
 %% </td>
 %% </tr>
+%% <tr>
+%% <td style="text-align: right; vertical-align: top;">2</td>
+%% <td>
+%% <ul>
+%% <li>Changed the data structure for the reverse index used to track
+%% keep-while conditions to be a prefix tree (see {@link khepri_prefix_tree}).
+%% </li>
+%% </ul>
+%% </td>
+%% </tr>
 %% </table>
 
 -module(khepri_machine).
@@ -168,7 +178,12 @@
 -opaque state_v1() :: #khepri_machine{}.
 %% State of this Ra state machine, version 1.
 
--type state() :: state_v1() | khepri_machine_v0:state().
+-opaque state_v2() :: #khepri_machine{}.
+%% State of this Ra state machine, version 2.
+
+-type state() :: state_v2() |
+                 state_v1() |
+                 khepri_machine_v0:state().
 %% State of this Ra state machine.
 
 -type triggers_map() :: #{khepri:trigger_id() =>
@@ -212,6 +227,7 @@
               machine_init_args/0,
               state/0,
               state_v1/0,
+              state_v2/0,
               machine_config/0,
               triggers_map/0,
               metrics/0,
@@ -1635,17 +1651,18 @@ overview(State) ->
       keep_while_conds => KeepWhileConds}.
 
 -spec version() -> MacVer when
-      MacVer :: 1.
+      MacVer :: 2.
 %% @doc Returns the state machine version.
 
 version() ->
-    1.
+    2.
 
 -spec which_module(MacVer) -> Module when
-      MacVer :: 1 | 0,
+      MacVer :: 2 | 1 | 0,
       Module :: ?MODULE.
 %% @doc Returns the state machine module corresponding to the given version.
 
+which_module(2) -> ?MODULE;
 which_module(1) -> ?MODULE;
 which_module(0) -> ?MODULE.
 
@@ -2313,7 +2330,7 @@ make_virgin_state(Params) ->
 -endif.
 
 -spec convert_state(OldState, OldMacVer, NewMacVer) -> NewState when
-      OldState :: khepri_machine_v0:state(),
+      OldState :: khepri_machine:state(),
       OldMacVer :: ra_machine:version(),
       NewMacVer :: ra_machine:version(),
       NewState :: khepri_machine:state().
@@ -2327,7 +2344,7 @@ convert_state(State, OldMacVer, NewMacVer) ->
               OldMacVer1 = N,
               NewMacVer1 = erlang:min(N + 1, NewMacVer),
               convert_state1(State1, OldMacVer1, NewMacVer1)
-      end, State, lists:seq(OldMacVer, NewMacVer).
+      end, State, lists:seq(OldMacVer, NewMacVer)).
 
 convert_state1(State, MacVer, MacVer) ->
     State;
@@ -2339,7 +2356,11 @@ convert_state1(State, 0, 1) ->
     Fields1 = Fields0 ++ [#{}],
     State1 = list_to_tuple(Fields1),
     ?assert(is_state(State1)),
-    State1.
+    State1;
+convert_state1(State, 1, 2) ->
+    Tree = get_tree(State),
+    Tree1 = khepri_tree:convert_tree(Tree, 1, 2),
+    set_tree(State, Tree1).
 
 -spec update_projections(OldState, NewState) -> ok when
       OldState :: khepri_machine:state(),
