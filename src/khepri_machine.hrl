@@ -64,6 +64,8 @@
 
 -record(dedup_ack, {ref :: reference()}).
 
+-record(drop_dedups, {refs :: [reference()]}).
+
 %% Old commands, kept for backward-compatibility.
 
 -record(unregister_projection, {name :: khepri_projection:name()}).
