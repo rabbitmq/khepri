@@ -101,7 +101,6 @@
          get_tree/1,
          get_root/1,
          get_keep_while_conds/1,
-         get_keep_while_conds_revidx/1,
          get_triggers/1,
          get_emitted_triggers/1,
          get_projections/1,
@@ -156,7 +155,7 @@
 %% State machine's internal state record.
 -record(khepri_machine,
         {config = #config{} :: khepri_machine:machine_config(),
-         tree = #tree{} :: khepri_tree:tree(),
+         tree = khepri_tree:new() :: khepri_tree:tree(),
          triggers = #{} :: khepri_machine:triggers_map(),
          emitted_triggers = [] :: [khepri_machine:triggered()],
          projections = khepri_pattern_tree:empty() ::
@@ -2159,18 +2158,6 @@ get_root(State) ->
 get_keep_while_conds(State) ->
     #tree{keep_while_conds = KeepWhileConds} = get_tree(State),
     KeepWhileConds.
-
--spec get_keep_while_conds_revidx(State) -> KeepWhileCondsRevIdx when
-      State :: khepri_machine:state(),
-      KeepWhileCondsRevIdx :: khepri_tree:keep_while_conds_revidx().
-%% @doc Returns the `keep_while' conditions reverse index in the tree from the
-%% given state.
-%%
-%% @private
-
-get_keep_while_conds_revidx(State) ->
-    #tree{keep_while_conds_revidx = KeepWhileCondsRevIdx} = get_tree(State),
-    KeepWhileCondsRevIdx.
 
 -spec get_triggers(State) -> Triggers when
       State :: khepri_machine:state(),

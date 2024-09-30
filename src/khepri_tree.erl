@@ -19,7 +19,9 @@
 -include("src/khepri_error.hrl").
 -include("src/khepri_tree.hrl").
 
--export([are_keep_while_conditions_met/2,
+-export([new/0,
+
+         are_keep_while_conditions_met/2,
 
          collect_node_props_cb/3,
          count_node_cb/3,
@@ -73,6 +75,11 @@
 %% -------------------------------------------------------------------
 %% Tree node functions.
 %% -------------------------------------------------------------------
+
+-spec new() -> tree().
+
+new() ->
+    #tree{}.
 
 -spec create_node_record(Payload) -> Node when
       Payload :: khepri_payload:payload(),
