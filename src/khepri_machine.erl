@@ -357,7 +357,9 @@ put(_StoreId, PathPattern, Payload, _Options) ->
 -spec delete(StoreId, PathPattern, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Options :: khepri:command_options() | khepri:tree_options(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:delete_options(),
       Ret :: khepri_machine:common_ret() | khepri_machine:async_ret().
 %% @doc Deletes all tree nodes matching the path pattern.
 %%
@@ -746,37 +748,40 @@ split_query_options(Options) ->
       end, {#{}, #{}}, Options1).
 
 -spec split_command_options(Options) ->
-    {CommandOptions, TreeAndPutOptions} when
-      Options :: CommandOptions | TreeAndPutOptions,
+    {CommandOptions, OtherOptions} when
+      Options :: CommandOptions | OtherOptions,
       CommandOptions :: khepri:command_options(),
-      TreeAndPutOptions :: khepri:tree_options() | khepri:put_options().
+      OtherOptions :: khepri:tree_options() |
+                     khepri:put_options() |
+                     khepri:delete_options().
 %% @private
 
 split_command_options(Options) ->
     Options1 = set_default_options(Options),
     maps:fold(
       fun
-          (Option, Value, {C, TP}) when
+          (Option, Value, {C, O}) when
                 Option =:= reply_from orelse
                 Option =:= timeout orelse
                 Option =:= async ->
               C1 = C#{Option => Value},
-              {C1, TP};
+              {C1, O};
           (props_to_return, [], Acc) ->
               Acc;
-          (Option, Value, {C, TP}) when
+          (Option, Value, {C, O}) when
                 Option =:= expect_specific_node orelse
                 Option =:= props_to_return orelse
-                Option =:= include_root_props ->
-              TP1 = TP#{Option => Value},
-              {C, TP1};
-          (keep_while, KeepWhile, {C, TP}) ->
-              %% `keep_while' is kept in `TreeAndPutOptions' here. The state
+                Option =:= include_root_props orelse
+                Option =:= return_keep_while_expirations ->
+              O1 = O#{Option => Value},
+              {C, O1};
+          (keep_while, KeepWhile, {C, O}) ->
+              %% `keep_while' is kept in `OtherOptions' here. The state
               %% machine will extract it in `apply()'.
               KeepWhile1 = khepri_condition:ensure_native_keep_while(
                              KeepWhile),
-              TP1 = TP#{keep_while => KeepWhile1},
-              {C, TP1}
+              O1 = O#{keep_while => KeepWhile1},
+              {C, O1}
       end, {#{}, #{}}, Options1).
 
 -spec split_put_options(TreeAndPutOptions) -> {TreeOptions, PutOptions} when

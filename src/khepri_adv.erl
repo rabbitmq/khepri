@@ -917,7 +917,9 @@ delete_many(PathPattern) ->
       Ret :: khepri_adv:many_results();
 (PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Options :: khepri:command_options() | khepri:tree_options(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:delete_options(),
       Ret :: khepri_adv:many_results().
 
 %% @doc Deletes all tree nodes matching the given path pattern.
@@ -942,7 +944,9 @@ delete_many(PathPattern, Options) when is_map(Options) ->
 -spec delete_many(StoreId, PathPattern, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Options :: khepri:command_options() | khepri:tree_options(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:delete_options(),
       Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
 %% @doc Deletes all tree nodes matching the given path pattern.
 %%
@@ -957,6 +961,9 @@ delete_many(PathPattern, Options) when is_map(Options) ->
 %%
 %% When doing an asynchronous update, the {@link handle_async_ret/1}
 %% function should be used to handle the message received from Ra.
+%%
+%% The `return_keep_while_expirations' option may be used with this command to
+%% return all tree nodes which were removed by expired keep-while conditions.
 %%
 %% Example:
 %% ```

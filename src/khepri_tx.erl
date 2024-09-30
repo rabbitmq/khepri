@@ -884,7 +884,7 @@ delete_many(PathPattern) ->
 
 -spec delete_many(PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Options :: khepri:tree_options(),
+      Options :: khepri:tree_options() | khepri:delete_options(),
       Ret :: khepri:minimal_ret().
 %% @doc Deletes all tree nodes matching the given path pattern.
 %%
