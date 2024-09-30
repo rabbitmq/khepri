@@ -732,10 +732,12 @@ split_query_options(Options) ->
       end, {#{}, #{}}, Options1).
 
 -spec split_command_options(Options) ->
-    {CommandOptions, TreeAndPutOptions} when
-      Options :: CommandOptions | TreeAndPutOptions,
+    {CommandOptions, TreeOptions} when
+      Options :: CommandOptions | TreeOptions,
       CommandOptions :: khepri:command_options(),
-      TreeAndPutOptions :: khepri:tree_options() | khepri:put_options().
+      TreeOptions :: khepri:tree_options() |
+                     khepri:put_options() |
+                     khepri:delete_options().
 %% @private
 
 split_command_options(Options) ->
@@ -753,7 +755,8 @@ split_command_options(Options) ->
           (Option, Value, {C, TP}) when
                 Option =:= expect_specific_node orelse
                 Option =:= props_to_return orelse
-                Option =:= include_root_props ->
+                Option =:= include_root_props orelse
+                Option =:= accumulate_keep_while_expirations ->
               TP1 = TP#{Option => Value},
               {C, TP1};
           (keep_while, KeepWhile, {C, TP}) ->

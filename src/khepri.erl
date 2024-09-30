@@ -362,6 +362,8 @@
 %% created/updated tree node.</li>
 %% </ul>
 
+-type delete_options() :: #{accumulate_keep_while_expirations => boolean()}.
+
 -type fold_fun() :: fun((khepri_path:native_path(),
                          khepri:node_props(),
                          khepri:fold_acc()) -> khepri:fold_acc()).
@@ -472,6 +474,7 @@
               query_options/0,
               tree_options/0,
               put_options/0,
+              delete_options/0,
 
               fold_fun/0,
               fold_acc/0,

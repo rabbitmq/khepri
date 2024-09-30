@@ -1383,6 +1383,26 @@ remove_expired_nodes([], Walk) ->
     {ok, Walk};
 remove_expired_nodes(
   [PathToDelete | Rest],
+  #walk{tree = Tree,
+        applied_changes = AppliedChanges,
+        'fun' = Fun,
+        fun_acc = Acc,
+        tree_options =
+        #{accumulate_keep_while_expirations := true} = TreeOptions} = Walk) ->
+    Result = walk_down_the_tree(
+               Tree, PathToDelete, TreeOptions, AppliedChanges, Fun, Acc),
+    case Result of
+        {ok, Tree1, AppliedChanges1, Acc1} ->
+            AppliedChanges2 = merge_applied_changes(
+                                AppliedChanges, AppliedChanges1),
+            Walk1 = Walk#walk{tree = Tree1,
+                              node = Tree1#tree.root,
+                              applied_changes = AppliedChanges2,
+                              fun_acc = Acc1},
+            remove_expired_nodes(Rest, Walk1)
+    end;
+remove_expired_nodes(
+  [PathToDelete | Rest],
   #walk{tree = Tree, applied_changes = AppliedChanges} = Walk) ->
     case delete_matching_nodes(Tree, PathToDelete, AppliedChanges, #{}) of
         {ok, Tree1, AppliedChanges1, _Acc} ->

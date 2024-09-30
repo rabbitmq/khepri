@@ -27,6 +27,26 @@ delete_non_existing_node_test_() ->
                                                  node_is_target => true})},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
+%% TODO: find a place for this test
+accumulate_keep_while_expirations_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [a, b, c], val1)),
+      ?_assertEqual(
+         ok,
+         khepri:create(
+           ?FUNCTION_NAME, [d, e], val2,
+           #{keep_while => #{[a, b, c] => #if_node_exists{exists = true}}})),
+      ?_assertMatch(
+         {ok, #{[a, b, c] := #{data := val1},
+                [d, e] := #{data := val2}}},
+         khepri_adv:delete_many(
+           ?FUNCTION_NAME, [a, b, c],
+           #{accumulate_keep_while_expirations => true}))]}.
+
 delete_existing_node_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
