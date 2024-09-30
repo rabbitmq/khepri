@@ -31,22 +31,42 @@
          delete_matching_nodes/4,
          insert_or_update_node/5,
          does_path_match/3,
-         walk_down_the_tree/5]).
+         walk_down_the_tree/5,
+
+         convert_tree/3]).
 
 -type tree_node() :: #node{}.
 %% A node in the tree structure.
 
--type tree() :: #tree{}.
+-type tree_v0() :: #tree{keep_while_conds_revidx ::
+                         khepri_tree:keep_while_conds_revidx_v0()}.
+-type tree_v1() :: #tree{keep_while_conds_revidx ::
+                         khepri_tree:keep_while_conds_revidx_v1()}.
+
+-type tree() :: tree_v0() | tree_v1().
 
 -type keep_while_conds_map() :: #{khepri_path:native_path() =>
                                   khepri_condition:native_keep_while()}.
 %% Per-node `keep_while' conditions.
 
--type keep_while_conds_revidx() :: #{khepri_path:native_path() =>
-                                     #{khepri_path:native_path() => ok}}.
-%% Internal reverse index of the keep_while conditions. If node A depends on a
-%% condition on node B, then this reverse index will have a "node B => node A"
-%% entry.
+-type keep_while_conds_revidx_v0() :: #{khepri_path:native_path() =>
+                                        #{khepri_path:native_path() => ok}}.
+
+-type keep_while_conds_revidx_v1() :: khepri_prefix_tree:tree(
+                                        #{khepri_path:native_path() => ok}).
+
+-type keep_while_conds_revidx() :: keep_while_conds_revidx_v0() |
+                                   keep_while_conds_revidx_v1().
+%% Internal reverse index of the keep_while conditions.
+%%
+%% If node A depends on a condition on node B, then this reverse index will
+%% have a "node B => node A" association. The version 0 of this type used a map
+%% and folded over the entries in the map using `lists:prefix/2' to find
+%% matching conditions. In version 1 this type was replaced with a prefix tree
+%% which improves lookup time when the reverse index contains many entries.
+%%
+%% This type should be treated as opaque. It is not marked as such because of
+%% limitations in the dialyzer.
 
 -type applied_changes() :: #{khepri_path:native_path() =>
                              khepri:node_props() | delete}.
@@ -67,8 +87,12 @@
 -type ok(Type1, Type2, Type3) :: {ok, Type1, Type2, Type3}.
 
 -export_type([tree_node/0,
+              tree_v0/0,
+              tree_v1/0,
               tree/0,
               keep_while_conds_map/0,
+              keep_while_conds_revidx_v0/0,
+              keep_while_conds_revidx_v1/0,
               keep_while_conds_revidx/0,
               applied_changes/0]).
 
@@ -314,6 +338,19 @@ update_keep_while_conds(Tree, Watcher, KeepWhile) ->
       KeepWhile :: khepri_condition:native_keep_while().
 
 update_keep_while_conds_revidx(
+  #tree{keep_while_conds_revidx = KeepWhileCondsRevIdx} = Tree,
+  Watcher, KeepWhile) ->
+    case is_v1_keep_while_conds_revidx(KeepWhileCondsRevIdx) of
+        true ->
+            update_keep_while_conds_revidx_v1(Tree, Watcher, KeepWhile);
+        false ->
+            update_keep_while_conds_revidx_v0(Tree, Watcher, KeepWhile)
+    end.
+
+is_v1_keep_while_conds_revidx(KeepWhileCondsRevIdx) ->
+    khepri_prefix_tree:is_prefix_tree(KeepWhileCondsRevIdx).
+
+update_keep_while_conds_revidx_v0(
   #tree{keep_while_conds = KeepWhileConds,
         keep_while_conds_revidx = KeepWhileCondsRevIdx} = Tree,
   Watcher, KeepWhile) ->
@@ -335,6 +372,37 @@ update_keep_while_conds_revidx(
                                   Watchers = maps:get(Watched, KWRevIdx, #{}),
                                   Watchers1 = Watchers#{Watcher => ok},
                                   KWRevIdx#{Watched => Watchers1}
+                          end, KeepWhileCondsRevIdx1, KeepWhile),
+    Tree#tree{keep_while_conds_revidx = KeepWhileCondsRevIdx2}.
+
+update_keep_while_conds_revidx_v1(
+  #tree{keep_while_conds = KeepWhileConds,
+        keep_while_conds_revidx = KeepWhileCondsRevIdx} = Tree,
+  Watcher, KeepWhile) ->
+    %% First, clean up reversed index where a watched path isn't watched
+    %% anymore in the new keep_while.
+    OldWatcheds = maps:get(Watcher, KeepWhileConds, #{}),
+    KeepWhileCondsRevIdx1 = maps:fold(
+                          fun(Watched, _, KWRevIdx) ->
+                                  khepri_prefix_tree:update(
+                                    fun(Watchers) ->
+                                            Watchers1 = maps:remove(
+                                                          Watcher, Watchers),
+                                            case maps:size(Watchers1) of
+                                                0 -> ?NO_PAYLOAD;
+                                                _ -> Watchers1
+                                            end
+                                    end, Watched, KWRevIdx)
+                          end, KeepWhileCondsRevIdx, OldWatcheds),
+    %% Then, record the watched paths.
+    KeepWhileCondsRevIdx2 = maps:fold(
+                          fun(Watched, _, KWRevIdx) ->
+                                  khepri_prefix_tree:update(
+                                    fun (?NO_PAYLOAD) ->
+                                            #{Watcher => ok};
+                                        (Watchers) ->
+                                            Watchers#{Watcher => ok}
+                                    end, Watched, KWRevIdx)
                           end, KeepWhileCondsRevIdx1, KeepWhile),
     Tree#tree{keep_while_conds_revidx = KeepWhileCondsRevIdx2}.
 
@@ -1294,6 +1362,16 @@ eval_keep_while_conditions(
     %%
     %% Those modified in AppliedChanges must be evaluated again to decide
     %% if they should be removed.
+    case is_v1_keep_while_conds_revidx(KeepWhileCondsRevIdx) of
+        true ->
+            eval_keep_while_conditions_v1(Tree, AppliedChanges);
+        false ->
+            eval_keep_while_conditions_v0(Tree, AppliedChanges)
+    end.
+
+eval_keep_while_conditions_v0(
+  #tree{keep_while_conds_revidx = KeepWhileCondsRevIdx} = Tree,
+  AppliedChanges) ->
     maps:fold(
       fun
           (RemovedPath, delete, ToDelete) ->
@@ -1313,6 +1391,29 @@ eval_keep_while_conditions(
                       eval_keep_while_conditions_after_update(
                         Tree, UpdatedPath, NodeProps, Watchers, ToDelete);
                   _ ->
+                      ToDelete
+              end
+      end, #{}, AppliedChanges).
+
+eval_keep_while_conditions_v1(
+  #tree{keep_while_conds_revidx = KeepWhileCondsRevIdx} = Tree,
+  AppliedChanges) ->
+    maps:fold(
+      fun
+          (RemovedPath, delete, ToDelete) ->
+              khepri_prefix_tree:fold_prefixes_of(
+                fun(Watchers, ToDelete1) ->
+                        eval_keep_while_conditions_after_removal(
+                          Tree, Watchers, ToDelete1)
+                end, ToDelete, RemovedPath, KeepWhileCondsRevIdx);
+          (UpdatedPath, NodeProps, ToDelete) ->
+              Result = khepri_prefix_tree:find_path(
+                         UpdatedPath, KeepWhileCondsRevIdx),
+              case Result of
+                  {ok, Watchers} ->
+                      eval_keep_while_conditions_after_update(
+                        Tree, UpdatedPath, NodeProps, Watchers, ToDelete);
+                  error ->
                       ToDelete
               end
       end, #{}, AppliedChanges).
@@ -1399,3 +1500,20 @@ remove_expired_nodes(
                               applied_changes = AppliedChanges2},
             remove_expired_nodes(Rest, Walk1)
     end.
+
+%% -------------------------------------------------------------------
+%% Conversion between tree versions.
+%% -------------------------------------------------------------------
+
+convert_tree(Tree, MacVer, MacVer) ->
+    Tree;
+convert_tree(Tree, 0, 1) ->
+    Tree;
+convert_tree(Tree, 1, 2) ->
+    %% In version 2 the reverse index for keep while conditions was converted
+    %% into a prefix tree. See the `keep_while_conds_revidx_v0()' and
+    %% `keep_while_conds_revidx_v1()` types.
+    #tree{keep_while_conds_revidx = KeepWhileCondsRevIdxV0} = Tree,
+    KeepWhileCondsRevIdxV1 = khepri_prefix_tree:from_map(
+                               KeepWhileCondsRevIdxV0),
+    Tree#tree{keep_while_conds_revidx = KeepWhileCondsRevIdxV1}.

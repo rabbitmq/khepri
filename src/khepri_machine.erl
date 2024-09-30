@@ -42,6 +42,16 @@
 %% </ul>
 %% </td>
 %% </tr>
+%% <tr>
+%% <td style="text-align: right; vertical-align: top;">2</td>
+%% <td>
+%% <ul>
+%% <li>Changed the data structure for the reverse index used to track
+%% keep-while conditions to be a prefix tree (see {@link khepri_prefix_tree}).
+%% </li>
+%% </ul>
+%% </td>
+%% </tr>
 %% </table>
 
 -module(khepri_machine).
@@ -167,6 +177,11 @@
 
 -opaque state_v1() :: #khepri_machine{}.
 %% State of this Ra state machine, version 1.
+%%
+%% Note that this type is used also for machine version 2. Machine version 2
+%% changes the type of an opaque member of the {@link khepri_tree} record and
+%% doesn't need any changes to the `khepri_machine' type. See the moduledoc of
+%% this module for more information about version 2.
 
 -type state() :: state_v1() | khepri_machine_v0:state().
 %% State of this Ra state machine.
@@ -1635,17 +1650,18 @@ overview(State) ->
       keep_while_conds => KeepWhileConds}.
 
 -spec version() -> MacVer when
-      MacVer :: 1.
+      MacVer :: 2.
 %% @doc Returns the state machine version.
 
 version() ->
-    1.
+    2.
 
 -spec which_module(MacVer) -> Module when
-      MacVer :: 1 | 0,
+      MacVer :: 0..2,
       Module :: ?MODULE.
 %% @doc Returns the state machine module corresponding to the given version.
 
+which_module(2) -> ?MODULE;
 which_module(1) -> ?MODULE;
 which_module(0) -> ?MODULE.
 
@@ -2313,7 +2329,7 @@ make_virgin_state(Params) ->
 -endif.
 
 -spec convert_state(OldState, OldMacVer, NewMacVer) -> NewState when
-      OldState :: khepri_machine_v0:state(),
+      OldState :: khepri_machine:state(),
       OldMacVer :: ra_machine:version(),
       NewMacVer :: ra_machine:version(),
       NewState :: khepri_machine:state().
@@ -2339,7 +2355,11 @@ convert_state1(State, 0, 1) ->
     Fields1 = Fields0 ++ [#{}],
     State1 = list_to_tuple(Fields1),
     ?assert(is_state(State1)),
-    State1.
+    State1;
+convert_state1(State, 1, 2) ->
+    Tree = get_tree(State),
+    Tree1 = khepri_tree:convert_tree(Tree, 1, 2),
+    set_tree(State, Tree1).
 
 -spec update_projections(OldState, NewState) -> ok when
       OldState :: khepri_machine:state(),
