@@ -11,7 +11,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("include/khepri.hrl").
--include("src/khepri_tree.hrl").
+-include("src/khepri_node.hrl").
 -include("test/helpers.hrl").
 
 is_empty_test() ->

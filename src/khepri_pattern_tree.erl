@@ -21,7 +21,7 @@
 
 -module(khepri_pattern_tree).
 
--include("src/khepri_tree.hrl").
+-include("src/khepri_node.hrl").
 
 -record(pattern_node, {child_nodes = #{},
                        payload = ?NO_PAYLOAD}).

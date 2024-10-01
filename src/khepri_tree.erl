@@ -17,7 +17,7 @@
 
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
--include("src/khepri_tree.hrl").
+-include("src/khepri_node.hrl").
 
 -export([new/0,
          get_root/1,
