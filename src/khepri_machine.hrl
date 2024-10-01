@@ -6,7 +6,7 @@
 %% refers to Broadcom Inc. and/or its subsidiaries.
 %%
 
--include("src/khepri_tree.hrl").
+-include("src/khepri_node.hrl").
 
 %% TODO: Query this value from Ra itself.
 -define(SNAPSHOT_INTERVAL, 4096).

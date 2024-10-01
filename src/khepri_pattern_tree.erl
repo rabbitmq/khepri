@@ -21,7 +21,7 @@
 
 -module(khepri_pattern_tree).
 
--include("src/khepri_tree.hrl").
+-include("src/khepri_node.hrl").
 
 -record(pattern_node, {child_nodes = #{},
                        payload = ?NO_PAYLOAD}).
@@ -186,7 +186,7 @@ fold_matching(PatternTree, Tree, Path, FoldFun, Acc) ->
         [] ->
             fold_data(PatternTree, [], FoldFun, Acc);
         _ ->
-            Root = Tree#tree.root,
+            Root = khepri_tree:get_root(Tree),
             fold_matching1(PatternTree, Root, Path, FoldFun, Acc, [])
     end.
 

@@ -21,8 +21,3 @@
 -record(node, {props = ?INIT_NODE_PROPS :: khepri_machine:props(),
                payload = ?NO_PAYLOAD :: khepri_payload:payload(),
                child_nodes = #{} :: #{khepri_path:component() := #node{}}}).
-
--record(tree, {root = #node{} :: khepri_tree:tree_node(),
-               keep_while_conds = #{} :: khepri_tree:keep_while_conds_map(),
-               keep_while_conds_revidx = #{} ::
-               khepri_tree:keep_while_conds_revidx()}).

@@ -17,9 +17,11 @@
 
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
--include("src/khepri_tree.hrl").
+-include("src/khepri_node.hrl").
 
 -export([new/0,
+         get_root/1,
+         get_keep_while_conds/1,
 
          are_keep_while_conditions_met/2,
 
@@ -35,13 +37,18 @@
 
          convert_tree/3]).
 
+-record(tree, {root = #node{} :: khepri_tree:tree_node(),
+               keep_while_conds = #{} :: khepri_tree:keep_while_conds_map(),
+               keep_while_conds_revidx = #{} ::
+               khepri_tree:keep_while_conds_revidx()}).
+
 -type tree_node() :: #node{}.
 %% A node in the tree structure.
 
--type tree_v0() :: #tree{keep_while_conds_revidx ::
-                         khepri_tree:keep_while_conds_revidx_v0()}.
--type tree_v1() :: #tree{keep_while_conds_revidx ::
-                         khepri_tree:keep_while_conds_revidx_v1()}.
+-opaque tree_v0() :: #tree{keep_while_conds_revidx ::
+                           khepri_tree:keep_while_conds_revidx_v0()}.
+-opaque tree_v1() :: #tree{keep_while_conds_revidx ::
+                           khepri_tree:keep_while_conds_revidx_v1()}.
 
 -type tree() :: tree_v0() | tree_v1().
 
@@ -49,11 +56,11 @@
                                   khepri_condition:native_keep_while()}.
 %% Per-node `keep_while' conditions.
 
--type keep_while_conds_revidx_v0() :: #{khepri_path:native_path() =>
-                                        #{khepri_path:native_path() => ok}}.
+-opaque keep_while_conds_revidx_v0() :: #{khepri_path:native_path() =>
+                                          #{khepri_path:native_path() => ok}}.
 
--type keep_while_conds_revidx_v1() :: khepri_prefix_tree:tree(
-                                        #{khepri_path:native_path() => ok}).
+-opaque keep_while_conds_revidx_v1() :: khepri_prefix_tree:tree(
+                                          #{khepri_path:native_path() => ok}).
 
 -type keep_while_conds_revidx() :: keep_while_conds_revidx_v0() |
                                    keep_while_conds_revidx_v1().
@@ -64,9 +71,6 @@
 %% and folded over the entries in the map using `lists:prefix/2' to find
 %% matching conditions. In version 1 this type was replaced with a prefix tree
 %% which improves lookup time when the reverse index contains many entries.
-%%
-%% This type should be treated as opaque. It is not marked as such because of
-%% limitations in the dialyzer.
 
 -type applied_changes() :: #{khepri_path:native_path() =>
                              khepri:node_props() | delete}.
@@ -104,6 +108,20 @@
 
 new() ->
     #tree{}.
+
+-spec get_root(Tree) -> Root when
+      Tree :: khepri_tree:tree(),
+      Root :: khepri_tree:tree_node().
+
+get_root(#tree{root = Root}) ->
+    Root.
+
+-spec get_keep_while_conds(Tree) -> KeepWhileConds when
+      Tree :: khepri_tree:tree(),
+      KeepWhileConds :: khepri_tree:keep_while_conds_map().
+
+get_keep_while_conds(#tree{keep_while_conds = KeepWhileConds}) ->
+    KeepWhileConds.
 
 -spec create_node_record(Payload) -> Node when
       Payload :: khepri_payload:payload(),
@@ -496,6 +514,17 @@ find_matching_nodes_cb(_, {interrupted, _, _}, _, Acc, _) ->
 %% -------------------------------------------------------------------
 %% Delete matching nodes.
 %% -------------------------------------------------------------------
+
+-spec delete_matching_nodes(Tree, PathPattern, AppliedChanges, TreeOptions) ->
+    Ret when
+      Tree :: khepri_tree:tree(),
+      PathPattern :: khepri_path:pattern(),
+      AppliedChanges :: applied_changes(),
+      TreeOptions :: khepri:tree_options(),
+      Ret :: {ok, NewTree, NewAppliedChanges, Result} | khepri:error(),
+      NewTree :: khepri_tree:tree(),
+      NewAppliedChanges :: applied_changes(),
+      Result :: any().
 
 delete_matching_nodes(Tree, PathPattern, AppliedChanges, TreeOptions) ->
     Fun = fun(Path, Node, Result) ->
