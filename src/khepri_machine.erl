@@ -49,6 +49,8 @@
 %% <li>Changed the data structure for the reverse index used to track
 %% keep-while conditions to be a prefix tree (see {@link khepri_prefix_tree}).
 %% </li>
+%% <li>Moved the expiration of dedups to the `tick' aux effect (see {@link
+%% handle_aux/5}). This also introduces a new command `#drop_dedups{}'.</li>
 %% </ul>
 %% </td>
 %% </tr>
@@ -119,7 +121,8 @@
          get_dedups/1]).
 
 -ifdef(TEST).
--export([make_virgin_state/1,
+-export([do_process_sync_command/3,
+         make_virgin_state/1,
          convert_state/3,
          set_tree/2]).
 -endif.
@@ -1277,6 +1280,37 @@ handle_aux(
     Tree = get_tree(State),
     ok = restore_projection(Projection, Tree, PathPattern),
     {no_reply, AuxState, IntState};
+handle_aux(leader, cast, tick, AuxState, IntState) ->
+    %% Expiring dedups in the tick handler is only available on versions 2
+    %% and greater. In versions 0 and 1, expiration of dedups is done in
+    %% `drop_expired_dedups/2'. This proved to be quite expensive when handling
+    %% a very large batch of transactions at once, so this expiration step was
+    %% moved to the `tick' handler in version 2.
+    case ra_aux:effective_machine_version(IntState) of
+        EffectiveMacVer when EffectiveMacVer >= 2 ->
+            State = ra_aux:machine_state(IntState),
+            Timestamp = erlang:system_time(millisecond),
+            Dedups = get_dedups(State),
+            RefsToDrop = maps:fold(
+                           fun(CommandRef, {_Reply, Expiry}, Acc) ->
+                                   case Expiry =< Timestamp of
+                                       true ->
+                                           [CommandRef | Acc];
+                                       false ->
+                                           Acc
+                                   end
+                           end, [], Dedups),
+            Effects = case RefsToDrop of
+                          [] ->
+                              [];
+                          _ ->
+                              DropDedups = #drop_dedups{refs = RefsToDrop},
+                              [{append, DropDedups}]
+                      end,
+            {no_reply, AuxState, IntState, Effects};
+        _ ->
+            {no_reply, AuxState, IntState}
+    end;
 handle_aux(_RaState, _Type, _Command, AuxState, IntState) ->
     {no_reply, AuxState, IntState}.
 
@@ -1475,6 +1509,20 @@ apply(
              end,
     Ret = {State1, ok},
     post_apply(Ret, Meta);
+apply(
+  #{machine_version := MacVer} = Meta,
+  #drop_dedups{refs = RefsToDrop},
+  State) when MacVer >= 2 ->
+    %% `#drop_dedups{}' is emitted by the `handle_aux/5' clause for the `tick'
+    %% effect to periodically drop dedups that have expired. This expiration
+    %% was originally done in `post_apply/2' via `drop_expired_dedups/2' until
+    %% machine version 2. Note that `drop_expired_dedups/2' is used until a
+    %% cluster reaches an effective machine version of 2 or higher.
+    Dedups = get_dedups(State),
+    Dedups1 = maps:without(RefsToDrop, Dedups),
+    State1 = set_dedups(State, Dedups1),
+    Ret = {State1, ok},
+    post_apply(Ret, Meta);
 apply(Meta, {machine_version, OldMacVer, NewMacVer}, OldState) ->
     NewState = convert_state(OldState, OldMacVer, NewMacVer),
     Ret = {NewState, ok},
@@ -1556,18 +1604,38 @@ reset_applied_command_count(State) ->
       Result :: any(),
       Meta :: ra_machine:command_meta_data(),
       SideEffects :: ra_machine:effects().
+%% Removes any dedups from the `dedups' field in state that have expired
+%% according to the timestamp in the handled command.
+%%
+%% This function is a no-op in any other version than version 1. This proved to
+%% be expensive to execute as part of `apply/3' so dedup expiration moved to
+%% the `handle_aux/5' for `tick' which is executed periodically. See that
+%% function clause above for more information.
+%%
 %% @private
 
 drop_expired_dedups(
   {State, Result, SideEffects},
-  #{system_time := Timestamp}) ->
+  #{system_time := Timestamp,
+    machine_version := MacVer}) when MacVer =< 1 ->
     Dedups = get_dedups(State),
+    %% Historical note: `maps:filter/2' can be surprisingly expensive when
+    %% used in a tight loop like `apply/3' depending on how many elements are
+    %% retained. As of Erlang/OTP 27, the BIF which implements `maps:filter/2'
+    %% collects any key-value pairs for which the predicate returns `true' into
+    %% a list, sorts/dedups the list and then creates a new map. This is slow
+    %% if the filter function always returns `true'. In cases like this where
+    %% the common usage is to retain most elements, `maps:fold/3' plus a `case'
+    %% expression and `maps:remove/2' is likely to be less expensive.
     Dedups1 = maps:filter(
                 fun(_CommandRef, {_Reply, Expiry}) ->
                         Expiry >= Timestamp
                 end, Dedups),
     State1 = set_dedups(State, Dedups1),
-    {State1, Result, SideEffects}.
+    {State1, Result, SideEffects};
+drop_expired_dedups({State, Result, SideEffects}, _Meta) ->
+    %% No-op on versions 2 and higher.
+    {State, Result, SideEffects}.
 
 %% @private
 
