@@ -2161,7 +2161,8 @@ set_tree(State, Tree) ->
 %% @private
 
 get_root(State) ->
-    #tree{root = Root} = get_tree(State),
+    Tree = get_tree(State),
+    Root = khepri_tree:get_root(Tree),
     Root.
 
 -spec get_keep_while_conds(State) -> KeepWhileConds when
@@ -2172,7 +2173,8 @@ get_root(State) ->
 %% @private
 
 get_keep_while_conds(State) ->
-    #tree{keep_while_conds = KeepWhileConds} = get_tree(State),
+    Tree = get_tree(State),
+    KeepWhileConds = khepri_tree:get_keep_while_conds(Tree),
     KeepWhileConds.
 
 -spec get_triggers(State) -> Triggers when

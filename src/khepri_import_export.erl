@@ -275,7 +275,7 @@ open_write(Module, ModulePriv) ->
 %% @private
 
 write(State, Path, #node{payload = Payload}, Module, ModulePriv) ->
-    #tree{keep_while_conds = KeepWhileConds} = khepri_machine:get_tree(State),
+    KeepWhileConds = khepri_machine:get_keep_while_conds(State),
     PutOptions = case KeepWhileConds of
                      #{Path := KeepWhile} -> #{keep_while => KeepWhile};
                      _                    -> #{}
