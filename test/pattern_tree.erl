@@ -70,10 +70,10 @@ fold_finds_all_patterns_matching_a_path_test() ->
                  khepri_tree:insert_or_update_node(
                    Tree0, Path, TreePayload, #{}, #{}),
                  Tree
-             end, #tree{}, [[stock, wood, <<"oak">>],
-                            [stock, wood, <<"birch">>],
-                            [stock, metal, <<"iron">>],
-                            []]),
+             end, khepri_tree:new(), [[stock, wood, <<"oak">>],
+                                      [stock, wood, <<"birch">>],
+                                      [stock, metal, <<"iron">>],
+                                      []]),
     PathPatterns =
     [[stock, wood, <<"oak">>],                               %% 1
      [stock, wood, <<"birch">>],                             %% 2

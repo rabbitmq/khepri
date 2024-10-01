@@ -29,7 +29,7 @@
 
 -record(khepri_machine,
         {config = #config{} :: khepri_machine:machine_config(),
-         tree = #tree{} :: khepri_tree:tree(),
+         tree = khepri_tree:new() :: khepri_tree:tree_v0(),
          triggers = #{} ::
            #{khepri:trigger_id() =>
              #{sproc := khepri_path:native_path(),
