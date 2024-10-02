@@ -280,13 +280,10 @@ can_query_members_with_a_single_node(Config) ->
        khepri_cluster:members(StoreId)),
     ?assertEqual(
        {error, noproc},
-       khepri_cluster:members(StoreId, 10000)),
+       khepri_cluster:members(StoreId, #{timeout => 10000})),
     ?assertEqual(
        {error, noproc},
-       khepri_cluster:locally_known_members(StoreId)),
-    ?assertEqual(
-       {error, noproc},
-       khepri_cluster:locally_known_members(StoreId, 10000)),
+       khepri_cluster:members(StoreId, #{favor => low_latency})),
 
     ct:pal("Query nodes before starting database"),
     ?assertEqual(
@@ -294,13 +291,10 @@ can_query_members_with_a_single_node(Config) ->
        khepri_cluster:nodes(StoreId)),
     ?assertEqual(
        {error, noproc},
-       khepri_cluster:nodes(StoreId, 10000)),
+       khepri_cluster:nodes(StoreId, #{timeout => 10000})),
     ?assertEqual(
        {error, noproc},
-       khepri_cluster:locally_known_nodes(StoreId)),
-    ?assertEqual(
-       {error, noproc},
-       khepri_cluster:locally_known_nodes(StoreId, 10000)),
+       khepri_cluster:nodes(StoreId, #{favor => low_latency})),
 
     ct:pal("Start database"),
     ?assertEqual(
@@ -313,13 +307,10 @@ can_query_members_with_a_single_node(Config) ->
        khepri_cluster:members(StoreId)),
     ?assertEqual(
        {ok, [{StoreId, Node}]},
-       khepri_cluster:members(StoreId, 10000)),
+       khepri_cluster:members(StoreId, #{timeout => 10000})),
     ?assertEqual(
        {ok, [{StoreId, Node}]},
-       khepri_cluster:locally_known_members(StoreId)),
-    ?assertEqual(
-       {ok, [{StoreId, Node}]},
-       khepri_cluster:locally_known_members(StoreId, 10000)),
+       khepri_cluster:members(StoreId, #{favor => low_latency})),
 
     ct:pal("Query nodes after starting database"),
     ?assertEqual(
@@ -327,13 +318,10 @@ can_query_members_with_a_single_node(Config) ->
        khepri_cluster:nodes(StoreId)),
     ?assertEqual(
        {ok, [Node]},
-       khepri_cluster:nodes(StoreId, 10000)),
+       khepri_cluster:nodes(StoreId, #{timeout => 10000})),
     ?assertEqual(
        {ok, [Node]},
-       khepri_cluster:locally_known_nodes(StoreId)),
-    ?assertEqual(
-       {ok, [Node]},
-       khepri_cluster:locally_known_nodes(StoreId, 10000)),
+       khepri_cluster:nodes(StoreId, #{favor => low_latency})),
 
     ct:pal("Stop database"),
     ?assertEqual(
@@ -346,13 +334,10 @@ can_query_members_with_a_single_node(Config) ->
        khepri_cluster:members(StoreId)),
     ?assertEqual(
        {error, noproc},
-       khepri_cluster:members(StoreId, 10000)),
+       khepri_cluster:members(StoreId, #{favor => low_latency})),
     ?assertEqual(
        {error, noproc},
-       khepri_cluster:locally_known_members(StoreId)),
-    ?assertEqual(
-       {error, noproc},
-       khepri_cluster:locally_known_members(StoreId, 10000)),
+       khepri_cluster:members(StoreId, #{favor => low_latency})),
 
     ct:pal("Query nodes after stopping database"),
     ?assertEqual(
@@ -360,13 +345,10 @@ can_query_members_with_a_single_node(Config) ->
        khepri_cluster:nodes(StoreId)),
     ?assertEqual(
        {error, noproc},
-       khepri_cluster:nodes(StoreId, 10000)),
+       khepri_cluster:nodes(StoreId, #{timeout => 10000})),
     ?assertEqual(
        {error, noproc},
-       khepri_cluster:locally_known_nodes(StoreId)),
-    ?assertEqual(
-       {error, noproc},
-       khepri_cluster:locally_known_nodes(StoreId, 10000)),
+       khepri_cluster:nodes(StoreId, #{favor => low_latency})),
 
     ok.
 
@@ -528,8 +510,8 @@ can_start_a_three_node_cluster(Config) ->
                  begin
                      {ok, LKM} = rpc:call(
                                    Node,
-                                   khepri_cluster, locally_known_members,
-                                   [StoreId]),
+                                   khepri_cluster, members,
+                                   [StoreId, #{favor => low_latency}]),
                      lists:sort(LKM)
                  end),
 
@@ -547,8 +529,8 @@ can_start_a_three_node_cluster(Config) ->
                  begin
                      {ok, LKN} = rpc:call(
                                    Node,
-                                   khepri_cluster, locally_known_nodes,
-                                   [StoreId]),
+                                   khepri_cluster, nodes,
+                                   [StoreId, #{favor => low_latency}]),
                      lists:sort(LKN)
                  end)
       end, Nodes),
@@ -1177,17 +1159,14 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  erpc:call(Node, khepri_cluster, members, [StoreId])),
               ?assertEqual(
                  {error, noproc},
-                 erpc:call(Node, khepri_cluster, members, [StoreId, 10000])),
+                 erpc:call(
+                   Node,
+                   khepri_cluster, members, [StoreId, #{timeout => 10000}])),
               ?assertEqual(
                  {error, noproc},
                  erpc:call(
                    Node,
-                   khepri_cluster, locally_known_members, [StoreId])),
-              ?assertEqual(
-                 {error, noproc},
-                 erpc:call(
-                   Node,
-                   khepri_cluster, locally_known_members, [StoreId, 10000]))
+                   khepri_cluster, members, [StoreId, #{favor => low_latency}]))
       end, Nodes),
 
     ct:pal("Query nodes before starting database"),
@@ -1198,17 +1177,14 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  erpc:call(Node, khepri_cluster, nodes, [StoreId])),
               ?assertEqual(
                  {error, noproc},
-                 erpc:call(Node, khepri_cluster, nodes, [StoreId, 10000])),
+                 erpc:call(
+                   Node,
+                   khepri_cluster, nodes, [StoreId, #{timeout => 10000}])),
               ?assertEqual(
                  {error, noproc},
                  erpc:call(
                    Node,
-                   khepri_cluster, locally_known_nodes, [StoreId])),
-              ?assertEqual(
-                 {error, noproc},
-                 erpc:call(
-                   Node,
-                   khepri_cluster, locally_known_nodes, [StoreId, 10000]))
+                   khepri_cluster, nodes, [StoreId, #{favor => low_latency}]))
       end, Nodes),
 
     ct:pal("Start database + cluster nodes"),
@@ -1235,17 +1211,15 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  erpc:call(Node, khepri_cluster, members, [StoreId])),
               ?assertEqual(
                  {ok, [{StoreId, N} || N <- Nodes]},
-                 erpc:call(Node, khepri_cluster, members, [StoreId, 10000])),
+                 erpc:call(
+                   Node,
+                   khepri_cluster, members, [StoreId, #{timeout => 10000}])),
               ?assertEqual(
                  {ok, [{StoreId, N} || N <- Nodes]},
                  erpc:call(
                    Node,
-                   khepri_cluster, locally_known_members, [StoreId])),
-              ?assertEqual(
-                 {ok, [{StoreId, N} || N <- Nodes]},
-                 erpc:call(
-                   Node,
-                   khepri_cluster, locally_known_members, [StoreId, 10000]))
+                   khepri_cluster, members,
+                   [StoreId, #{favor => low_latency}]))
       end, Nodes),
 
     ct:pal("Query nodes after starting database"),
@@ -1256,17 +1230,14 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  erpc:call(Node, khepri_cluster, nodes, [StoreId])),
               ?assertEqual(
                  {ok, Nodes},
-                 erpc:call(Node, khepri_cluster, nodes, [StoreId, 10000])),
+                 erpc:call(
+                   Node,
+                   khepri_cluster, nodes, [StoreId, #{timeout => 10000}])),
               ?assertEqual(
                  {ok, Nodes},
                  erpc:call(
                    Node,
-                   khepri_cluster, locally_known_nodes, [StoreId])),
-              ?assertEqual(
-                 {ok, Nodes},
-                 erpc:call(
-                   Node,
-                   khepri_cluster, locally_known_nodes, [StoreId, 10000]))
+                   khepri_cluster, nodes, [StoreId, #{favor => low_latency}]))
       end, Nodes),
 
     LeaderId1 = get_leader_in_store(StoreId, Nodes),
@@ -1284,17 +1255,14 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  erpc:call(Node, khepri_cluster, nodes, [StoreId])),
               ?assertEqual(
                  {ok, Nodes},
-                 erpc:call(Node, khepri_cluster, nodes, [StoreId, 10000])),
+                 erpc:call(
+                   Node,
+                   khepri_cluster, nodes, [StoreId, #{timeout => 10000}])),
               ?assertEqual(
                  {ok, Nodes},
                  erpc:call(
                    Node,
-                   khepri_cluster, locally_known_nodes, [StoreId])),
-              ?assertEqual(
-                 {ok, Nodes},
-                 erpc:call(
-                   Node,
-                   khepri_cluster, locally_known_nodes, [StoreId, 10000]))
+                   khepri_cluster, nodes, [StoreId, #{favor => low_latency}]))
       end, LeftNodes1),
 
     LeaderId2 = get_leader_in_store(StoreId, LeftNodes1),
@@ -1312,17 +1280,15 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  erpc:call(Node, khepri_cluster, members, [StoreId])),
               ?assertEqual(
                  {error, timeout},
-                 erpc:call(Node, khepri_cluster, members, [StoreId, 10000])),
+                 erpc:call(
+                   Node,
+                   khepri_cluster, members, [StoreId, #{timeout => 10000}])),
               ?assertEqual(
                  {ok, [{StoreId, N} || N <- Nodes]},
                  erpc:call(
                    Node,
-                   khepri_cluster, locally_known_members, [StoreId])),
-              ?assertEqual(
-                 {ok, [{StoreId, N} || N <- Nodes]},
-                 erpc:call(
-                   Node,
-                   khepri_cluster, locally_known_members, [StoreId, 10000]))
+                   khepri_cluster, members,
+                   [StoreId, #{favor => low_latency}]))
       end, LeftNodes2),
 
     ct:pal("Query nodes after stopping node ~s", [LeaderNode2]),
@@ -1333,17 +1299,14 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  erpc:call(Node, khepri_cluster, nodes, [StoreId])),
               ?assertEqual(
                  {error, timeout},
-                 erpc:call(Node, khepri_cluster, nodes, [StoreId, 10000])),
+                 erpc:call(
+                   Node,
+                   khepri_cluster, nodes, [StoreId, #{timeout => 10000}])),
               ?assertEqual(
                  {ok, Nodes},
                  erpc:call(
                    Node,
-                   khepri_cluster, locally_known_nodes, [StoreId])),
-              ?assertEqual(
-                 {ok, Nodes},
-                 erpc:call(
-                   Node,
-                   khepri_cluster, locally_known_nodes, [StoreId, 10000]))
+                   khepri_cluster, nodes, [StoreId, #{favor => low_latency}]))
       end, LeftNodes2),
 
     ok.
@@ -1536,9 +1499,9 @@ can_use_default_store_on_single_node(_Config) ->
     ?assertEqual({error, noproc}, khepri:is_sproc([foo])),
 
     ?assertEqual({error, noproc}, khepri_cluster:members()),
-    ?assertEqual({error, noproc}, khepri_cluster:locally_known_members()),
+    ?assertEqual({error, noproc}, khepri_cluster:members(#{favor => low_latency})),
     ?assertEqual({error, noproc}, khepri_cluster:nodes()),
-    ?assertEqual({error, noproc}, khepri_cluster:locally_known_nodes()),
+    ?assertEqual({error, noproc}, khepri_cluster:nodes(#{favor => low_latency})),
 
     ?assertEqual({error, noproc}, khepri_cluster:wait_for_leader()),
 
@@ -1635,9 +1598,9 @@ can_use_default_store_on_single_node(_Config) ->
     ?assertEqual({ok, [{StoreId, Node}]}, khepri_cluster:members()),
     ?assertEqual(
        {ok, [{StoreId, Node}]},
-       khepri_cluster:locally_known_members()),
+       khepri_cluster:members(#{favor => low_latency})),
     ?assertEqual({ok, [Node]}, khepri_cluster:nodes()),
-    ?assertEqual({ok, [Node]}, khepri_cluster:locally_known_nodes()),
+    ?assertEqual({ok, [Node]}, khepri_cluster:nodes(#{favor => low_latency})),
 
     ?assertEqual(ok, khepri_cluster:wait_for_leader()),
 
