@@ -108,13 +108,7 @@
          reset/0, reset/1, reset/2,
          stop/0, stop/1,
          members/0, members/1, members/2,
-         locally_known_members/0,
-         locally_known_members/1,
-         locally_known_members/2,
          nodes/0, nodes/1, nodes/2,
-         locally_known_nodes/0,
-         locally_known_nodes/1,
-         locally_known_nodes/2,
          wait_for_leader/0, wait_for_leader/1, wait_for_leader/2,
          get_default_ra_system_or_data_dir/0,
          get_default_store_id/0,
@@ -1094,99 +1088,61 @@ members() ->
     StoreId = get_default_store_id(),
     members(StoreId).
 
--spec members(StoreId) -> Ret when
+-spec members(StoreId | Options) -> Ret when
       StoreId :: khepri:store_id(),
+      Options :: khepri:query_options(),
       Ret :: khepri:ok(Members) | khepri:error(),
       Members :: [ra:server_id(), ...].
 %% @doc Returns the list of Ra members that are part of the cluster.
 %%
-%% Calling this function is the same as calling `members(StoreId,
-%% DefaultTimeout)' where `DefaultTimeout' is returned by {@link
-%% khepri_app:get_default_timeout/0}.
+%% This function accepts the following two forms:
+%% <ul>
+%% <li>`members(StoreId)'. Calling it is the same as calling `members(StoreId,
+%% #{})'.</li>
+%% <li>`members(Options)'. Calling it is the same as calling `members(StoreId,
+%% Options)' with the default store ID (see {@link
+%% khepri_cluster:get_default_store_id/0}).</li>
+%% </ul>
 %%
 %% @see members/2.
 
-members(StoreId) ->
-    Timeout = khepri_app:get_default_timeout(),
-    members(StoreId, Timeout).
-
--spec members(StoreId, Timeout) -> Ret when
-      StoreId :: khepri:store_id(),
-      Timeout :: timeout(),
-      Ret :: khepri:ok(Members) | khepri:error(),
-      Members :: [ra:server_id(), ...].
-%% @doc Returns the list of Ra members that are part of the cluster.
-%%
-%% The Ra leader is queried for the list of members, therefore the membership
-%% view is consistent with the rest of the cluster.
-%%
-%% @param StoreId the ID of the store to stop.
-%% @param Timeout the timeout.
-%%
-%% @returns an `{ok, Members}' tuple or an `{error, Reason}' tuple. `Members'
-%% is a non-empty list of Ra server IDs.
-
-members(StoreId, Timeout) ->
-    ThisMember = this_member(StoreId),
-    do_query_members(StoreId, ThisMember, leader, Timeout).
-
--spec locally_known_members() -> Ret when
-      Ret :: khepri:ok(Members) | khepri:error(),
-      Members :: [ra:server_id(), ...].
-%% @doc Returns the list of Ra members that are part of the cluster.
-%%
-%% Calling this function is the same as calling
-%% `locally_known_members(StoreId)' with the default store ID (see {@link
-%% khepri_cluster:get_default_store_id/0}).
-%%
-%% @see locally_known_members/1.
-%% @see locally_known_members/2.
-
-locally_known_members() ->
+members(StoreId) when ?IS_KHEPRI_STORE_ID(StoreId) ->
+    members(StoreId, #{});
+members(Options) when is_map(Options) ->
     StoreId = get_default_store_id(),
-    locally_known_members(StoreId).
+    members(StoreId, Options).
 
--spec locally_known_members(StoreId) -> Ret when
+-spec members(StoreId, Options) -> Ret when
       StoreId :: khepri:store_id(),
+      Options :: khepri:query_options(),
       Ret :: khepri:ok(Members) | khepri:error(),
       Members :: [ra:server_id(), ...].
 %% @doc Returns the list of Ra members that are part of the cluster.
 %%
-%% Calling this function is the same as calling
-%% `locally_known_members(StoreId, DefaultTimeout)' where `DefaultTimeout' is
-%% returned by {@link khepri_app:get_default_timeout/0}.
+%% If the `favor' option is set to `consistency', the Ra leader is queried for
+%% the list of members, therefore the membership view is consistent with the
+%% rest of the cluster.
 %%
-%% @see locally_known_members/2.
-
-locally_known_members(StoreId) ->
-    Timeout = khepri_app:get_default_timeout(),
-    locally_known_members(StoreId, Timeout).
-
--spec locally_known_members(StoreId, Timeout) -> Ret when
-      StoreId :: khepri:store_id(),
-      Timeout :: timeout(),
-      Ret :: khepri:ok(Members) | khepri:error(),
-      Members :: [ra:server_id(), ...].
-%% @doc Returns the list of Ra members that are part of the cluster.
+%% If the `favor' option is set to `low_latency', the local Ra server is
+%% queried. The query will be faster at the cost of returning a possibly
+%% out-of-date result.
 %%
-%% The function queries a locally cached value first, then queries the local
-%% Ra server. Either way, the returned value may be out-of-date compared to
-%% the current membership known by the Ra leader.
+%% The `condition' query option is unsupported.
 %%
 %% @param StoreId the ID of the store to stop.
-%% @param Timeout the timeout.
+%% @param Options query options such as `favor'.
 %%
 %% @returns an `{ok, Members}' tuple or an `{error, Reason}' tuple. `Members'
 %% is a non-empty list of Ra server IDs.
 
-locally_known_members(StoreId, Timeout) ->
-    case ra_leaderboard:lookup_members(StoreId) of
-        Members when is_list(Members) ->
-            {ok, lists:sort(Members)};
-        undefined ->
-            ThisMember = this_member(StoreId),
-            do_query_members(StoreId, ThisMember, local, Timeout)
-    end.
+members(StoreId, Options) when is_map(Options) ->
+    ThisMember = this_member(StoreId),
+    Timeout = maps:get(timeout, Options, khepri_app:get_default_timeout()),
+    QueryType = case maps:get(favor, Options, consistency) of
+                    consistency -> leader;
+                    low_latency -> local
+                end,
+    do_query_members(StoreId, ThisMember, QueryType, Timeout).
 
 -spec do_query_members(StoreId, RaServer, QueryType, Timeout) -> Ret when
       StoreId :: khepri:store_id(),
@@ -1262,93 +1218,51 @@ nodes() ->
         Error         -> Error
     end.
 
--spec nodes(StoreId) -> Ret when
+-spec nodes(StoreId | Options) -> Ret when
       StoreId :: khepri:store_id(),
+      Options :: khepri:query_options(),
       Ret :: khepri:ok(Nodes) | khepri:error(),
       Nodes :: [node(), ...].
 %% @doc Returns the list of Erlang nodes that are part of the cluster.
 %%
-%% Calling this function is the same as calling `nodes(StoreId,
-%% DefaultTimeout)' where `DefaultTimeout' is returned by {@link
-%% khepri_app:get_default_timeout/0}.
+%% This function accepts the following two forms:
+%% <ul>
+%% <li>`nodes(StoreId)'. Calling it is the same as calling `nodes(StoreId,
+%% #{})'.</li>
+%% <li>`nodes(Options)'. Calling it is the same as calling `nodes(StoreId,
+%% Options)' with the default store ID (see {@link
+%% khepri_cluster:get_default_store_id/0}).</li>
+%% </ul>
 %%
 %% @see nodes/2.
 
-nodes(StoreId) ->
-    case members(StoreId) of
+nodes(StoreIdOrOptions) ->
+    case members(StoreIdOrOptions) of
         {ok, Members} -> {ok, [Node || {_, Node} <- Members]};
         Error         -> Error
     end.
 
--spec nodes(StoreId, Timeout) -> Ret when
+-spec nodes(StoreId, Options) -> Ret when
       StoreId :: khepri:store_id(),
-      Timeout :: timeout(),
+      Options :: khepri:query_options(),
       Ret :: khepri:ok(Nodes) | khepri:error(),
       Nodes :: [node(), ...].
 %% @doc Returns the list of Erlang nodes that are part of the cluster.
 %%
-%% The Ra leader is queried for the list of members, therefore the membership
-%% view is consistent with the rest of the cluster.
+%% If the `favor' option is set to `consistency', the Ra leader is queried for
+%% the list of members, therefore the membership view is consistent with the
+%% rest of the cluster.
+%%
+%% If the `favor' option is set to `low_latency', the local Ra server is
+%% queried. The query will be faster at the cost of returning a possibly
+%% out-of-date result.
+%%
+%% The `condition' query option is unsupported.
 %%
 %% @see members/2.
 
-nodes(StoreId, Timeout) ->
-    case members(StoreId, Timeout) of
-        {ok, Members} -> {ok, [Node || {_, Node} <- Members]};
-        Error         -> Error
-    end.
-
--spec locally_known_nodes() -> Ret when
-      Ret :: khepri:ok(Nodes) | khepri:error(),
-      Nodes :: [node(), ...].
-%% @doc Returns the list of Erlang nodes that are part of the cluster.
-%%
-%% Calling this function is the same as calling `locally_known_nodes(StoreId)'
-%% with the default store ID (see {@link
-%% khepri_cluster:get_default_store_id/0}).
-%%
-%% @see locally_known_nodes/1.
-%% @see locally_known_nodes/2.
-
-locally_known_nodes() ->
-    case locally_known_members() of
-        {ok, Members} -> {ok, [Node || {_, Node} <- Members]};
-        Error         -> Error
-    end.
-
--spec locally_known_nodes(StoreId) -> Ret when
-      StoreId :: khepri:store_id(),
-      Ret :: khepri:ok(Nodes) | khepri:error(),
-      Nodes :: [node(), ...].
-%% @doc Returns the list of Erlang nodes that are part of the cluster.
-%%
-%% Calling this function is the same as calling `locally_known_nodes(StoreId,
-%% DefaultTimeout)' where `DefaultTimeout' is returned by {@link
-%% khepri_app:get_default_timeout/0}.
-%%
-%% @see locally_known_nodes/2.
-
-locally_known_nodes(StoreId) ->
-    case locally_known_members(StoreId) of
-        {ok, Members} -> {ok, [Node || {_, Node} <- Members]};
-        Error         -> Error
-    end.
-
--spec locally_known_nodes(StoreId, Timeout) -> Ret when
-      StoreId :: khepri:store_id(),
-      Timeout :: timeout(),
-      Ret :: khepri:ok(Nodes) | khepri:error(),
-      Nodes :: [node(), ...].
-%% @doc Returns the list of Erlang nodes that are part of the cluster.
-%%
-%% The function queries a locally cached value first, then queries the local
-%% Ra server. Either way, the returned value may be out-of-date compared to
-%% the current membership known by the Ra leader.
-%%
-%% @see locally_known_members/2.
-
-locally_known_nodes(StoreId, Timeout) ->
-    case locally_known_members(StoreId, Timeout) of
+nodes(StoreId, Options) ->
+    case members(StoreId, Options) of
         {ok, Members} -> {ok, [Node || {_, Node} <- Members]};
         Error         -> Error
     end.
