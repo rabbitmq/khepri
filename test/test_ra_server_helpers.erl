@@ -11,15 +11,20 @@
 -include_lib("stdlib/include/assert.hrl").
 
 -export([setup/1,
+         setup/2,
          cleanup/1]).
 
 setup(Testcase) ->
+    setup(Testcase, #{}).
+
+setup(Testcase, CustomConfig) ->
     _ = logger:set_primary_config(level, warning),
     {ok, _} = application:ensure_all_started(khepri),
     khepri_utils:init_list_of_modules_to_skip(),
 
     #{ra_system := RaSystem} = Props = helpers:start_ra_system(Testcase),
-    {ok, StoreId} = khepri:start(RaSystem, Testcase),
+    RaServerConfig = maps:put(cluster_name, Testcase, CustomConfig),
+    {ok, StoreId} = khepri:start(RaSystem, RaServerConfig),
     Props#{store_id => StoreId}.
 
 cleanup(#{store_id := StoreId} = Props) ->
