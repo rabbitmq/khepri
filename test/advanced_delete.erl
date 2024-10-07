@@ -102,6 +102,46 @@ delete_many_on_existing_node_with_condition_false_test_() ->
                 payload_version => 1}},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
+delete_many_return_keep_while_expirations_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [a, b, c], val1)),
+      ?_assertEqual(
+         ok,
+         khepri:create(
+           ?FUNCTION_NAME, [d, e], val2,
+           #{keep_while => #{[a, b, c] => #if_node_exists{exists = true}}})),
+      ?_assertEqual(
+         ok,
+         khepri:create(
+           ?FUNCTION_NAME, [f, g], val3,
+           #{keep_while => #{[d, e] => #if_node_exists{exists = true}}})),
+      ?_assertMatch(
+         {ok, #{[a, b, c] := #{data := val1},
+                [d, e] := #{data := val2},
+                [f, g] := #{data := val3}}},
+         khepri_adv:delete_many(
+           ?FUNCTION_NAME, [a, b, c],
+           #{return_keep_while_expirations => true})),
+      ?_assertEqual(
+         {error, ?khepri_error(node_not_found, #{node_name => a,
+                                                 node_path => [a],
+                                                 node_is_target => false})},
+         khepri_adv:get(?FUNCTION_NAME, [a, b, c])),
+      ?_assertEqual(
+         {error, ?khepri_error(node_not_found, #{node_name => d,
+                                                 node_path => [d],
+                                                 node_is_target => false})},
+         khepri_adv:get(?FUNCTION_NAME, [d, e])),
+      ?_assertEqual(
+         {error, ?khepri_error(node_not_found, #{node_name => f,
+                                                 node_path => [f],
+                                                 node_is_target => false})},
+         khepri_adv:get(?FUNCTION_NAME, [f, g]))]}.
+
 clear_payload_from_non_existing_node_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,

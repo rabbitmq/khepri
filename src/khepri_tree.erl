@@ -740,7 +740,7 @@ does_path_match(
         {tree :: #tree{},
          node :: #node{} | delete,
          path_pattern :: khepri_path:native_pattern(),
-         tree_options :: khepri:tree_options(),
+         tree_options :: khepri:tree_options() | khepri:delete_options(),
          %% Used to remember the path of the node the walk is currently on.
          reversed_path = [] :: khepri_path:native_path(),
          %% Used to update parents up in the tree in a tail-recursive function.
@@ -768,7 +768,7 @@ walk_down_the_tree(Tree, PathPattern, TreeOptions, Fun, FunAcc) ->
         AppliedChanges, Fun, FunAcc) -> Ret when
       Tree :: tree(),
       PathPattern :: khepri_path:native_pattern(),
-      TreeOptions :: khepri:tree_options(),
+      TreeOptions :: khepri:tree_options() | khepri:delete_options(),
       AppliedChanges :: applied_changes(),
       Fun :: walk_down_the_tree_fun(),
       FunAcc :: any(),
@@ -1517,6 +1517,29 @@ is_parent_being_removed1([], _) ->
 
 remove_expired_nodes([], Walk) ->
     {ok, Walk};
+remove_expired_nodes(
+  [PathToDelete | Rest],
+  #walk{tree = Tree,
+        applied_changes = AppliedChanges,
+        'fun' = Fun,
+        fun_acc = Acc,
+        tree_options =
+        #{return_keep_while_expirations := true} = TreeOptions} = Walk) ->
+    %% Note that this is essentially the same as the function clause below
+    %% where we call `delete_matching_nodes/4'. The only difference is that
+    %% we pass down the same tree options, walk function and accumulator.
+    Result = walk_down_the_tree(
+               Tree, PathToDelete, TreeOptions, AppliedChanges, Fun, Acc),
+    case Result of
+        {ok, Tree1, AppliedChanges1, Acc1} ->
+            AppliedChanges2 = merge_applied_changes(
+                                AppliedChanges, AppliedChanges1),
+            Walk1 = Walk#walk{tree = Tree1,
+                              node = Tree1#tree.root,
+                              applied_changes = AppliedChanges2,
+                              fun_acc = Acc1},
+            remove_expired_nodes(Rest, Walk1)
+    end;
 remove_expired_nodes(
   [PathToDelete | Rest],
   #walk{tree = Tree, applied_changes = AppliedChanges} = Walk) ->
