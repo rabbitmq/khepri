@@ -1,7 +1,7 @@
 # The Khepri database library
 
 [![Hex.pm](https://img.shields.io/hexpm/v/khepri)](https://hex.pm/packages/khepri/)
-[![Test](https://github.com/rabbitmq/khepri/actions/workflows/test.yaml/badge.svg)](https://github.com/rabbitmq/khepri/actions/workflows/test.yaml)
+[![Test](https://github.com/rabbitmq/khepri/actions/workflows/test-and-release.yaml/badge.svg)](https://github.com/rabbitmq/khepri/actions/workflows/test-and-release.yaml)
 [![Codecov](https://codecov.io/gh/rabbitmq/khepri/branch/main/graph/badge.svg?token=R0OGKZ2RK2)](https://codecov.io/gh/rabbitmq/khepri)
 
 Khepri is a tree-like replicated on-disk database library for Erlang and
