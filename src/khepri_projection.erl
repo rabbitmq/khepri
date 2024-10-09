@@ -189,7 +189,8 @@ new(Name, ProjectionFun, Options)
         {_CustomFunOptions, _EtsOptions} = Value ->
             Value
     end,
-    EtsOptions1 = maps:fold(fun to_ets_options/3, ?DEFAULT_ETS_OPTS, EtsOptions),
+    EtsOptions1 = maps:fold(
+                    fun to_ets_options/3, ?DEFAULT_ETS_OPTS, EtsOptions),
     ShouldProcessFunction =
     if
         is_function(ProjectionFun, 2) ->
