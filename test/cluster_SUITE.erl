@@ -1641,7 +1641,9 @@ can_use_default_store_on_single_node(_Config) ->
     ?assertEqual(
        false,
        khepri:has_projection(ProjectionName1, #{favor => consistency})),
-    Projection1 = khepri_projection:new(ProjectionName1, copy),
+    Projection1 = khepri_projection:new(
+                    ProjectionName1,
+                    fun(Path, Data) -> {Path, Data} end),
     ?assertEqual(ok, khepri:register_projection("/**", Projection1)),
     ?assertEqual(
        {error, ?khepri_error(
@@ -1655,7 +1657,8 @@ can_use_default_store_on_single_node(_Config) ->
     ProjectionName2 = projection2,
     ?assertEqual(false, khepri:has_projection(ProjectionName2)),
     Projection2 = khepri_projection:new(
-                    ProjectionName2, copy,
+                    ProjectionName2,
+                    fun(Path, Data) -> {Data, Path} end,
                     #{read_concurrency => true, keypos => 2}),
     ?assertEqual(ok, khepri:register_projection("/**", Projection2, #{})),
     ?assertEqual(true, khepri:has_projection(ProjectionName2)),
