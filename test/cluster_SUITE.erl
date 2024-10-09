@@ -1522,20 +1522,20 @@ can_use_default_store_on_single_node(_Config) ->
        {error, ?khepri_error(mismatching_node, _)},
         khepri_adv:create([foo], value1)),
     ?assertEqual(
-       {ok, #{data => value4,
-              payload_version => 5}},
+       {ok, #{[foo] => #{data => value4,
+                         payload_version => 5}}},
        khepri_adv:put([foo], value2)),
     ?assertEqual(
        {ok, #{[foo] => #{data => value2,
                          payload_version => 5}}},
        khepri_adv:put_many([foo], value2)),
     ?assertEqual(
-       {ok, #{data => value2,
-              payload_version => 6}},
+       {ok, #{[foo] => #{data => value2,
+                         payload_version => 6}}},
        khepri_adv:update([foo], value3)),
     ?assertEqual(
-       {ok, #{data => value3,
-              payload_version => 7}},
+       {ok, #{[foo] => #{data => value3,
+                         payload_version => 7}}},
        khepri_adv:compare_and_swap([foo], value3, value4)),
 
     ?assertEqual(true, khepri:exists([foo])),
@@ -1579,12 +1579,12 @@ can_use_default_store_on_single_node(_Config) ->
        khepri:filter([foo], fun(_P, _NP) -> true end, #{})),
 
     ?assertEqual(
-       {ok, #{data => value4,
-              payload_version => 7}},
+       {ok, #{[foo] => #{data => value4,
+                         payload_version => 7}}},
        khepri_adv:get([foo])),
     ?assertEqual(
-       {ok, #{data => value4,
-              payload_version => 7}},
+       {ok, #{[foo] => #{data => value4,
+                         payload_version => 7}}},
        khepri_adv:get([foo], #{})),
     ?assertEqual(
        {ok, #{[foo] => #{data => value4,
@@ -1641,7 +1641,9 @@ can_use_default_store_on_single_node(_Config) ->
     ?assertEqual(
        false,
        khepri:has_projection(ProjectionName1, #{favor => consistency})),
-    Projection1 = khepri_projection:new(ProjectionName1, copy),
+    Projection1 = khepri_projection:new(
+                    ProjectionName1,
+                    fun(Path, Data) -> {Path, Data} end),
     ?assertEqual(ok, khepri:register_projection("/**", Projection1)),
     ?assertEqual(
        {error, ?khepri_error(
@@ -1655,7 +1657,8 @@ can_use_default_store_on_single_node(_Config) ->
     ProjectionName2 = projection2,
     ?assertEqual(false, khepri:has_projection(ProjectionName2)),
     Projection2 = khepri_projection:new(
-                    ProjectionName2, copy,
+                    ProjectionName2,
+                    fun(Path, Data) -> {Data, Path} end,
                     #{read_concurrency => true, keypos => 2}),
     ?assertEqual(ok, khepri:register_projection("/**", Projection2, #{})),
     ?assertEqual(true, khepri:has_projection(ProjectionName2)),
@@ -1683,14 +1686,14 @@ can_use_default_store_on_single_node(_Config) ->
 
     ?assertEqual(ok, khepri:create([bar], value1)),
     ?assertEqual(
-       {ok, #{data => value1,
-              payload_version => 2}},
+       {ok, #{[bar] => #{data => value1,
+                         payload_version => 2}}},
        khepri_adv:clear_payload([bar])),
     ?assertEqual(
        {ok, #{[bar] => #{payload_version => 2}}},
        khepri_adv:clear_many_payloads([bar])),
     ?assertEqual(
-       {ok, #{payload_version => 2}},
+       {ok, #{[bar] => #{payload_version => 2}}},
        khepri_adv:delete([bar])),
     ?assertMatch(
        {ok, #{}},
