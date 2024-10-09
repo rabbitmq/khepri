@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Module khepri_prefix_tree</title>
+<link rel="stylesheet" type="text/css" href="edoc-extensions.css" title="EDoc">
+<link rel="icon" href="khepri-favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css" />
+</head>
+<body class="markdown-body language-erlang"><script src="prism.js"></script>
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module khepri_prefix_tree</h1>
+<ul class="index"><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>
+
+
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-tree">tree()</a></h3>
+<p><b>abstract datatype</b>: <code>tree(Payload)</code></p>
+
+
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#empty-0">empty/0</a></td><td>Returns a new empty tree.</td></tr>
+<tr><td valign="top"><a href="#is_prefix_tree-1">is_prefix_tree/1</a></td><td>Determines whether the given term is a prefix tree.</td></tr>
+<tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td>Converts a map of paths to payloads into a prefix tree.</td></tr>
+<tr><td valign="top"><a href="#fold_prefixes_of-4">fold_prefixes_of/4</a></td><td>Folds over all nodes in the tree which are prefixed by the given <code>Path</code>
+  building an accumulated value with the given fold function and initial
+  accumulator.</td></tr>
+<tr><td valign="top"><a href="#find_path-2">find_path/2</a></td><td>Returns the payload associated with a path in the tree.</td></tr>
+<tr><td valign="top"><a href="#update-3">update/3</a></td><td>Updates a given path in the tree.</td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="empty-0">empty/0</a></h3>
+<div class="spec">
+<p><code>empty() -&gt; <a href="#type-tree">tree</a>(term())</code><br></p>
+<p></p>
+</div><p>Returns a new empty tree.
+ </p>
+<p><b>See also:</b> <a href="#type-tree">tree()</a>.</p>
+
+<h3 class="function"><a name="is_prefix_tree-1">is_prefix_tree/1</a></h3>
+<div class="spec">
+<p><code>is_prefix_tree(Prefix_tree::<a href="#type-tree">tree</a>(term())) -&gt; true</code><br></p><p><code>is_prefix_tree(Prefix_tree::term()) -&gt; false</code><br></p>
+<p></p>
+<p></p>
+</div><p>Determines whether the given term is a prefix tree.</p>
+
+<h3 class="function"><a name="from_map-1">from_map/1</a></h3>
+<div class="spec">
+<p><code>from_map(Map) -&gt; Tree</code>
+<ul class="definitions"><li><code>Map = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a> =&gt; Payload}</code></li><li><code>Tree = <a href="/home/runner/work/khepri/khepri/doc/khepri_prefix_tree.html#type-tree">khepri_prefix_tree:tree</a>(Payload)</code></li><li><code>Payload = term()</code></li></ul></p>
+<p></p>
+</div><p>Converts a map of paths to payloads into a prefix tree.</p>
+
+<h3 class="function"><a name="fold_prefixes_of-4">fold_prefixes_of/4</a></h3>
+<div class="spec">
+<p><code>fold_prefixes_of(Fun, Acc, Path, Tree) -&gt; Ret</code>
+<ul class="definitions"><li><code>Fun = fun((Payload, Acc) -&gt; Acc1)</code></li><li><code>Acc = term()</code></li><li><code>Acc1 = term()</code></li><li><code>Path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a></code></li><li><code>Tree = <a href="/home/runner/work/khepri/khepri/doc/khepri_prefix_tree.html#type-tree">khepri_prefix_tree:tree</a>(Payload)</code></li><li><code>Payload = term()</code></li><li><code>Ret = Acc1</code></li></ul></p>
+<p></p>
+</div><p>Folds over all nodes in the tree which are prefixed by the given <code>Path</code>
+  building an accumulated value with the given fold function and initial
+  accumulator.</p>
+
+<h3 class="function"><a name="find_path-2">find_path/2</a></h3>
+<div class="spec">
+<p><code>find_path(Path, Tree) -&gt; Ret</code>
+<ul class="definitions"><li><code>Path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a></code></li><li><code>Tree = <a href="/home/runner/work/khepri/khepri/doc/khepri_prefix_tree.html#type-tree">khepri_prefix_tree:tree</a>(Payload)</code></li><li><code>Payload = term()</code></li><li><code>Ret = {ok, Payload} | error</code></li></ul></p>
+<p></p>
+<p>returns: <code>{ok, Payload}</code> where <code>Payload</code> is associated with the given path
+  or <code>error</code> if the path is not associated with a payload in the given tree.</p>
+</div><p>Returns the payload associated with a path in the tree.
+ </p>
+
+<h3 class="function"><a name="update-3">update/3</a></h3>
+<div class="spec">
+<p><code>update(Fun, Path, Tree) -&gt; Ret</code>
+<ul class="definitions"><li><code>Fun = fun((Payload | '$__NO_PAYLOAD__') -&gt; Payload | '$__NO_PAYLOAD__')</code></li><li><code>Path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path">khepri_path:native_path()</a></code></li><li><code>Tree = <a href="/home/runner/work/khepri/khepri/doc/khepri_prefix_tree.html#type-tree">khepri_prefix_tree:tree</a>(Payload)</code></li><li><code>Payload = term()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_prefix_tree.html#type-tree">khepri_prefix_tree:tree</a>(Payload)</code></li></ul></p>
+<p></p>
+</div><p><p>Updates a given path in the tree.</p>
+ 
+  <p>This function can be used to create, update or delete tree nodes. If the
+  tree node does not exist for the given path, the update function is passed
+  <code>?NO_PAYLOAD</code>. If the update function returns <code>?NO_PAYLOAD</code> then the tree  
+node and all of its ancestors which do not have a payload or children are  
+removed.</p>
+ 
+  The update function is also be passed <code>?NO_PAYLOAD</code> if a tree node exists
+  but does not have a payload: being passed <code>?NO_PAYLOAD</code> is not a reliable
+  sign that a tree node did not exist prior to an update.</p>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc</i></p>
+</body>
+</html>
