@@ -124,6 +124,9 @@ jobs:
           name: docs_dir
           path: ./doc
 
+      - name: Ensure HTML files are there
+        run: ls -l doc && test -f doc/index.html
+
       - name: Publish
         uses: peaceiris/actions-gh-pages@v4
         with:
