@@ -430,8 +430,7 @@
 %%
 %% `undefined' is returned if a tree node has no payload attached to it.
 
--type async_ret() :: khepri_adv:single_result() |
-                     khepri_adv:many_results() |
+-type async_ret() :: khepri_adv:many_results() |
                      khepri_tx:tx_fun_result() |
                      khepri:error({not_leader, ra:server_id()}).
 %% The value returned from of a command function which was executed
@@ -446,11 +445,10 @@
 %% commands which were applied, or `{error, {not_leader, LeaderId}}' if the
 %% commands could not be applied since they were sent to a non-leader member.
 %%
-%% Note that when commands are successfully applied, the return values are in
-%% the {@link khepri_adv} formats - {@link khepri_adv:single_result()} or
-%% {@link khepri_adv:many_results()} - rather than {@link
-%% khepri:minimal_ret()}, even if the command was sent using a function from
-%% the {@link khepri} API such as {@link khepri:put/4}.
+%% Note that when commands are successfully applied, the return values are
+%% {@link khepri_adv:many_results()} rather than {@link khepri:minimal_ret()},
+%% even if the command was sent using a function from the {@link khepri} API
+%% such as {@link khepri:put/4}.
 %%
 %% See {@link khepri:handle_async_ret/2}.
 
@@ -778,10 +776,12 @@ get(PathPattern, Options) when is_map(Options) ->
 
 get(StoreId, PathPattern, Options) ->
     case khepri_adv:get(StoreId, PathPattern, Options) of
-        {ok, #{data := Data}}           -> {ok, Data};
-        {ok, #{sproc := StandaloneFun}} -> {ok, StandaloneFun};
-        {ok, _}                         -> {ok, undefined};
-        Error                           -> Error
+        {ok, NodePropsMap} ->
+            NodeProps = khepri_utils:get_single_node_props(NodePropsMap),
+            Payload = khepri_utils:node_props_to_payload(NodeProps, undefined),
+            {ok, Payload};
+        {error, _} = Error ->
+            Error
     end.
 
 %% -------------------------------------------------------------------
@@ -892,11 +892,14 @@ get_or(PathPattern, Default, Options) when is_map(Options) ->
 
 get_or(StoreId, PathPattern, Default, Options) ->
     case khepri_adv:get(StoreId, PathPattern, Options) of
-        {ok, #{data := Data}}                     -> {ok, Data};
-        {ok, #{sproc := StandaloneFun}}           -> {ok, StandaloneFun};
-        {ok, _}                                   -> {ok, Default};
-        {error, ?khepri_error(node_not_found, _)} -> {ok, Default};
-        Error                                     -> Error
+        {ok, NodePropsMap} ->
+            NodeProps = khepri_utils:get_single_node_props(NodePropsMap),
+            Payload = khepri_utils:node_props_to_payload(NodeProps, Default),
+            {ok, Payload};
+        {error, ?khepri_error(node_not_found, _)} ->
+            {ok, Default};
+        {error, _} = Error ->
+            Error
     end.
 
 %% -------------------------------------------------------------------
@@ -1889,7 +1892,7 @@ filter(StoreId, PathPattern, Pred, Options) when is_function(Pred, 2) ->
     FoldFun = fun(Path, NodeProps, Acc) ->
                       case Pred(Path, NodeProps) of
                           true ->
-                              Payload = node_props_to_payload(
+                              Payload = khepri_utils:node_props_to_payload(
                                           NodeProps, undefined),
                               Acc#{Path => Payload};
                           false ->
@@ -1897,10 +1900,6 @@ filter(StoreId, PathPattern, Pred, Options) when is_function(Pred, 2) ->
                       end
               end,
     fold(StoreId, PathPattern, FoldFun, #{}, Options).
-
-node_props_to_payload(#{data := Data}, _Default)           -> Data;
-node_props_to_payload(#{sproc := StandaloneFun}, _Default) -> StandaloneFun;
-node_props_to_payload(_NodeProps, Default)                 -> Default.
 
 %% -------------------------------------------------------------------
 %% run_sproc().
@@ -1992,14 +1991,18 @@ run_sproc(PathPattern, Args, Options) when is_map(Options) ->
 
 run_sproc(StoreId, PathPattern, Args, Options) ->
     case khepri_adv:get(StoreId, PathPattern, Options) of
-        {ok, #{sproc := StandaloneFun}} ->
-            khepri_sproc:run(StandaloneFun, Args);
-        {ok, NodeProps} ->
-            throw(?khepri_exception(
-                     denied_execution_of_non_sproc_node,
-                     #{path => PathPattern,
-                       args => Args,
-                       node_props => NodeProps}));
+        {ok, NodePropsMap} ->
+            NodeProps = khepri_utils:get_single_node_props(NodePropsMap),
+            case NodeProps of
+                #{sproc := StandaloneFun} ->
+                    khepri_sproc:run(StandaloneFun, Args);
+                _ ->
+                    throw(?khepri_exception(
+                             denied_execution_of_non_sproc_node,
+                             #{path => PathPattern,
+                               args => Args,
+                               node_props => NodeProps}))
+            end;
         {error, Reason} ->
             throw(?khepri_error(
                      failed_to_get_sproc,

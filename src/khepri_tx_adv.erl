@@ -64,7 +64,7 @@
 
 -spec get(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Returns the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -79,7 +79,7 @@ get(PathPattern) ->
 -spec get(PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:tree_options(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Returns the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -90,8 +90,7 @@ get(PathPattern) ->
 
 get(PathPattern, Options) ->
     Options1 = Options#{expect_specific_node => true},
-    Ret = get_many(PathPattern, Options1),
-    ?common_ret_to_single_result_ret(Ret).
+    get_many(PathPattern, Options1).
 
 %% -------------------------------------------------------------------
 %% get_many().
@@ -148,7 +147,7 @@ do_get_many(PathPattern, Fun, Acc, Options) ->
 -spec put(PathPattern, Data) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Sets the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -164,7 +163,7 @@ put(PathPattern, Data) ->
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Options :: khepri:tree_options() | khepri:put_options(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Sets the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -175,8 +174,7 @@ put(PathPattern, Data) ->
 
 put(PathPattern, Data, Options) ->
     Options1 = Options#{expect_specific_node => true},
-    Ret = put_many(PathPattern, Data, Options1),
-    ?common_ret_to_single_result_ret(Ret).
+    put_many(PathPattern, Data, Options1).
 
 %% -------------------------------------------------------------------
 %% put_many().
@@ -231,7 +229,7 @@ put_many(PathPattern, Data, Options) ->
 -spec create(PathPattern, Data) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Creates a tree node with the given payload.
 %%
 %% This is the same as {@link khepri_adv:create/3} but inside the context of a
@@ -246,7 +244,7 @@ create(PathPattern, Data) ->
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Options :: khepri:tree_options() | khepri:put_options(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Creates a tree node with the given payload.
 %%
 %% This is the same as {@link khepri_adv:create/4} but inside the context of a
@@ -259,8 +257,7 @@ create(PathPattern, Data, Options) ->
     PathPattern2 = khepri_path:combine_with_conditions(
                      PathPattern1, [#if_node_exists{exists = false}]),
     Options1 = Options#{expect_specific_node => true},
-    Ret = put_many(PathPattern2, Data, Options1),
-    ?common_ret_to_single_result_ret(Ret).
+    put_many(PathPattern2, Data, Options1).
 
 %% -------------------------------------------------------------------
 %% update().
@@ -269,7 +266,7 @@ create(PathPattern, Data, Options) ->
 -spec update(PathPattern, Data) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Updates an existing tree node with the given payload.
 %%
 %% This is the same as {@link khepri_adv:update/3} but inside the context of a
@@ -284,7 +281,7 @@ update(PathPattern, Data) ->
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Options :: khepri:tree_options() | khepri:put_options(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Updates an existing tree node with the given payload.
 %%
 %% This is the same as {@link khepri_adv:update/4} but inside the context of a
@@ -297,8 +294,7 @@ update(PathPattern, Data, Options) ->
     PathPattern2 = khepri_path:combine_with_conditions(
                      PathPattern1, [#if_node_exists{exists = true}]),
     Options1 = Options#{expect_specific_node => true},
-    Ret = put_many(PathPattern2, Data, Options1),
-    ?common_ret_to_single_result_ret(Ret).
+    put_many(PathPattern2, Data, Options1).
 
 %% -------------------------------------------------------------------
 %% compare_and_swap().
@@ -308,7 +304,7 @@ update(PathPattern, Data, Options) ->
       PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Updates an existing tree node with the given payload only if its data
 %% matches the given pattern.
 %%
@@ -326,7 +322,7 @@ compare_and_swap(PathPattern, DataPattern, Data) ->
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Options :: khepri:tree_options() | khepri:put_options(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Updates an existing tree node with the given payload only if its data
 %% matches the given pattern.
 %%
@@ -340,8 +336,7 @@ compare_and_swap(PathPattern, DataPattern, Data, Options) ->
     PathPattern2 = khepri_path:combine_with_conditions(
                      PathPattern1, [#if_data_matches{pattern = DataPattern}]),
     Options1 = Options#{expect_specific_node => true},
-    Ret = put_many(PathPattern2, Data, Options1),
-    ?common_ret_to_single_result_ret(Ret).
+    put_many(PathPattern2, Data, Options1).
 
 %% -------------------------------------------------------------------
 %% delete().
@@ -349,7 +344,7 @@ compare_and_swap(PathPattern, DataPattern, Data, Options) ->
 
 -spec delete(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Deletes the tree node pointed to by the given path pattern.
 %%
 %% This is the same as {@link khepri_adv:delete/2} but inside the context of a
@@ -363,7 +358,7 @@ delete(PathPattern) ->
 -spec delete(PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:tree_options(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Deletes the tree node pointed to by the given path pattern.
 %%
 %% This is the same as {@link khepri_adv:delete/3} but inside the context of a
@@ -373,19 +368,7 @@ delete(PathPattern) ->
 
 delete(PathPattern, Options) ->
     Options1 = Options#{expect_specific_node => true},
-    case delete_many(PathPattern, Options1) of
-        {ok, NodePropsMap} ->
-            %% It's ok to delete a non-existing tree node. The returned result
-            %% will be an empty map, in which case we return `#{}' as the
-            %% "node properties".
-            NodeProps = case maps:values(NodePropsMap) of
-                            [NP] -> NP;
-                            []   -> #{}
-                        end,
-            {ok, NodeProps};
-        Error ->
-            Error
-    end.
+    delete_many(PathPattern, Options1).
 
 %% -------------------------------------------------------------------
 %% delete_many().
@@ -434,7 +417,7 @@ delete_many(PathPattern, Options) ->
 
 -spec clear_payload(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -449,7 +432,7 @@ clear_payload(PathPattern) ->
 -spec clear_payload(PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:tree_options() | khepri:put_options(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%

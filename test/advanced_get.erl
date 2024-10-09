@@ -31,11 +31,11 @@ get_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
-         {ok, #{data => foo_value,
-                payload_version => 1}},
+         {ok, #{[foo] => #{data => foo_value,
+                           payload_version => 1}}},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
 get_existing_node_with_sproc_test_() ->
@@ -43,11 +43,12 @@ get_existing_node_with_sproc_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo], fun() -> ok end)),
       ?_assertMatch(
-         {ok, #{sproc := Fun,
-                payload_version := 1}} when ?IS_HORUS_STANDALONE_FUN(Fun),
+         {ok, #{[foo] := #{sproc := Fun,
+                           payload_version := 1}}}
+           when ?IS_HORUS_STANDALONE_FUN(Fun),
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
 get_existing_node_with_no_payload_test_() ->
@@ -55,10 +56,10 @@ get_existing_node_with_no_payload_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[foo, bar] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo, bar], bar_value)),
       ?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
 invalid_get_call_test_() ->
@@ -84,10 +85,10 @@ get_many_existing_nodes_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[foo, bar] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo, bar], bar_value)),
       ?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[baz] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [baz], baz_value)),
       ?_assertEqual(
          {ok, #{[foo] => #{payload_version => 1},

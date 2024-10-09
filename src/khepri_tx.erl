@@ -180,10 +180,12 @@ get(PathPattern) ->
 
 get(PathPattern, Options) ->
     case khepri_tx_adv:get(PathPattern, Options) of
-        {ok, #{data := Data}}           -> {ok, Data};
-        {ok, #{sproc := StandaloneFun}} -> {ok, StandaloneFun};
-        {ok, _}                         -> {ok, undefined};
-        Error                           -> Error
+        {ok, NodePropsMap} ->
+            NodeProps = khepri_utils:get_single_node_props(NodePropsMap),
+            Payload = khepri_utils:node_props_to_payload(NodeProps, undefined),
+            {ok, Payload};
+        {error, _} = Error ->
+            Error
     end.
 
 %% -------------------------------------------------------------------
@@ -220,11 +222,14 @@ get_or(PathPattern, Default) ->
 
 get_or(PathPattern, Default, Options) ->
     case khepri_tx_adv:get(PathPattern, Options) of
-        {ok, #{data := Data}}                     -> {ok, Data};
-        {ok, #{sproc := StandaloneFun}}           -> {ok, StandaloneFun};
-        {ok, _}                                   -> {ok, Default};
-        {error, ?khepri_error(node_not_found, _)} -> {ok, Default};
-        Error                                     -> Error
+        {ok, NodePropsMap} ->
+            NodeProps = khepri_utils:get_single_node_props(NodePropsMap),
+            Payload = khepri_utils:node_props_to_payload(NodeProps, Default),
+            {ok, Payload};
+        {error, ?khepri_error(node_not_found, _)} ->
+            {ok, Default};
+        {error, _} = Error ->
+            Error
     end.
 
 %% -------------------------------------------------------------------

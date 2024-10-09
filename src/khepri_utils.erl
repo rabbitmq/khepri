@@ -20,6 +20,7 @@
          sleep/2,
          is_ra_server_alive/1,
 
+         get_single_node_props/1,
          node_props_to_payload/2,
 
          flat_struct_to_tree/1,
@@ -89,6 +90,10 @@ sleep(Time, Timeout) when Time > Timeout ->
 
 is_ra_server_alive({RegName, Node}) when Node =:= node() ->
     is_pid(erlang:whereis(RegName)).
+
+get_single_node_props(NodePropsMap) ->
+    [NodeProps] = maps:values(NodePropsMap),
+    NodeProps.
 
 node_props_to_payload(#{data := Data}, _Default)           -> Data;
 node_props_to_payload(#{sproc := StandaloneFun}, _Default) -> StandaloneFun;

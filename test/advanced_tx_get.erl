@@ -37,12 +37,12 @@ get_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
          {ok,
-          {ok, #{data => foo_value,
-                 payload_version => 1}}},
+          {ok, #{[foo] => #{data => foo_value,
+                            payload_version => 1}}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:get([foo])
@@ -51,8 +51,8 @@ get_existing_node_test_() ->
          end),
       ?_assertEqual(
          {ok,
-          {ok, #{data => foo_value,
-                 payload_version => 1}}},
+          {ok, #{[foo] => #{data => foo_value,
+                            payload_version => 1}}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:get([foo])
@@ -68,8 +68,8 @@ get_existing_node_with_sproc_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [foo], fun() -> ok end)),
       ?_assertMatch(
-         {ok, {ok, #{sproc := StoredFun,
-                     payload_version := 1}}}
+         {ok, {ok, #{[foo] := #{sproc := StoredFun,
+                                payload_version := 1}}}}
            when ?IS_HORUS_STANDALONE_FUN(StoredFun),
          begin
              Fun = fun() ->
@@ -83,11 +83,11 @@ get_existing_node_with_no_payload_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[foo, bar] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo, bar], bar_value)),
       ?_assertEqual(
          {ok,
-          {ok, #{payload_version => 1}}},
+          {ok, #{[foo] => #{payload_version => 1}}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:get([foo])
@@ -128,10 +128,10 @@ get_many_existing_nodes_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[foo, bar] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo, bar], bar_value)),
       ?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[baz] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [baz], baz_value)),
       ?_assertEqual(
          {ok,
