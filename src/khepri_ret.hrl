@@ -6,17 +6,6 @@
 %% refers to Broadcom Inc. and/or its subsidiaries.
 %%
 
--define(common_ret_to_single_result_ret(__Ret),
-        case (__Ret) of
-            {ok, __NodePropsMap} ->
-                [__NodeProps] = maps:values(__NodePropsMap),
-                {ok, __NodeProps};
-            {error, ?khepri_exception(_, _) = __Exception} ->
-                ?khepri_misuse(__Exception);
-            __Error ->
-                __Error
-        end).
-
 -define(result_ret_to_minimal_ret(__Ret),
         case (__Ret) of
             {ok, _} -> ok;
