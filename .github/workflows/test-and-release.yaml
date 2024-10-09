@@ -115,7 +115,7 @@ jobs:
     name: Publish docs
     runs-on: ubuntu-latest
     needs: build_docs
-    if: github.repository == 'rabbitmq/khepri' && github.ref == 'refs/heads/main'
+    #if: github.repository == 'rabbitmq/khepri' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Download docs from previous job
