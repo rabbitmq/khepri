@@ -1,0 +1,147 @@
+name: Test → Docs → Release
+
+on:
+  - pull_request
+  - push
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  REBAR_VERSION: '3.23.0'
+  LATEST_ERLANG_VERSION: '27'
+
+jobs:
+  # `env_to_output` works around a limitation of GitHub Actions that prevents
+  # the use of environment variables in places such as a workflow call's `with`
+  # arguments.
+  #
+  # https://github.com/actions/runner/issues/1189#issuecomment-1832389701
+  env_to_output:
+    name: Env. variable to outputs
+    runs-on: ubuntu-latest
+    outputs:
+      REBAR_VERSION: ${{ steps.from_env.outputs.REBAR_VERSION }}
+    steps:
+      - id: from_env
+        run: |
+          vars="
+          REBAR_VERSION
+          "
+          setOutput() {
+            echo "${1}=${!1}" >> "${GITHUB_OUTPUT}"
+          }
+          for name in $vars; do
+            setOutput $name
+          done
+
+  test:
+    name: Test
+    needs: env_to_output
+    uses: ./.github/workflows/test-job.yaml
+    with:
+      rebar_version: ${{ needs.env_to_output.outputs.REBAR_VERSION }}
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  dialyzer:
+    name: Dialyzer
+    runs-on: ubuntu-latest
+    needs: env_to_output
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        id: install-erlang
+        with:
+          otp-version: ${{ env.LATEST_ERLANG_VERSION }}
+          rebar3-version: ${{ env.REBAR_VERSION }}
+
+      - name: Restore Dialyzer PLT files from cache
+        uses: actions/cache@v4
+        with:
+          path: _build/*/rebar3_*_plt
+          key: dialyzer-plt-cache-${{ steps.install-erlang.outputs.otp-version }}-${{ runner.os }}-${{ hashFiles('rebar.config*') }}-v1
+
+      - name: Dialyzer
+        run: rebar3 clean && rebar3 as test dialyzer
+
+  benchmark:
+    name: Trigger benchmark
+    runs-on: ubuntu-latest
+    needs:
+      - test
+      - dialyzer
+    if: github.repository == 'rabbitmq/khepri' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Repository Dispatch
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.KHEPRI_BENCHMARK_REPO_ACCESS_TOKEN }}
+          repository: rabbitmq/khepri-benchmark
+          event-type: push-in-khepri
+          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
+
+  build_docs:
+    name: Generate docs
+    runs-on: ubuntu-latest
+    needs:
+      - test
+      - dialyzer
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ env.LATEST_ERLANG_VERSION }}
+          rebar3-version: ${{ env.REBAR_VERSION }}
+
+      - name: Change doc version to "Development branch"
+        run: sed -E -i -e 's/^@version.*/@version Development branch/' doc/overview.edoc
+
+      - name: Generate
+        run: rebar3 edoc
+
+      - name: Upload docs for next job
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs_dir
+          path: ./doc
+          if-no-files-found: error
+
+  publish_docs:
+    name: Publish docs
+    runs-on: ubuntu-latest
+    needs: build_docs
+    if: github.repository == 'rabbitmq/khepri' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Download docs from previous job
+        uses: actions/download-artifact@v4
+        with:
+          name: docs_dir
+          path: ./doc
+
+      - name: Publish
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./doc
+
+  publish_release:
+    name: Publish release
+    runs-on: ubuntu-latest
+    needs:
+      - test
+      - dialyzer
+      - build_docs
+    if: github.repository == 'rabbitmq/khepri' && (startsWith(github.ref, 'refs/tags/v0') || startsWith(github.ref, 'refs/tags/v1') || startsWith(github.ref, 'refs/tags/v2') || startsWith(github.ref, 'refs/tags/v3') || startsWith(github.ref, 'refs/tags/v4') || startsWith(github.ref, 'refs/tags/v5') || startsWith(github.ref, 'refs/tags/v6') || startsWith(github.ref, 'refs/tags/v7') || startsWith(github.ref, 'refs/tags/v8') || startsWith(github.ref, 'refs/tags/v9'))
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish to Hex.pm
+        uses: erlangpack/github-action@v3
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
