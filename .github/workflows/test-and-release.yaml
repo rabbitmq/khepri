@@ -104,6 +104,9 @@ jobs:
       - name: Generate
         run: rebar3 edoc
 
+      - name: Ensure HTML files are there
+        run: ls -l doc && test -f doc/index.html
+
       - name: Upload docs for next job
         uses: actions/upload-artifact@v4
         with:
@@ -123,6 +126,9 @@ jobs:
         with:
           name: docs_dir
           path: ./doc
+
+      - name: Ensure HTML files are there
+        run: ls -l doc && test -f doc/index.html
 
       - name: Publish
         uses: peaceiris/actions-gh-pages@v4
