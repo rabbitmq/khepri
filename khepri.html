@@ -88,7 +88,7 @@ though; other types are unsupported.</p>
   </ul></p>
 
 <h3 class="typedecl"><a name="type-async_ret">async_ret()</a></h3>
-<p><code>async_ret() = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-single_result" docgen-rel="seetype" docgen-href="khepri:khepri_adv#single_result/0">khepri_adv:single_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results" docgen-rel="seetype" docgen-href="khepri:khepri_adv#many_results/0">khepri_adv:many_results()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result" docgen-rel="seetype" docgen-href="khepri:khepri_tx#tx_fun_result/0">khepri_tx:tx_fun_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error</a>({not_leader, <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id" docgen-rel="seetype" docgen-href="ra:ra#server_id/0">ra:server_id()</a>})</code></p>
+<p><code>async_ret() = <a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-many_results" docgen-rel="seetype" docgen-href="khepri:khepri_adv#many_results/0">khepri_adv:many_results()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result" docgen-rel="seetype" docgen-href="khepri:khepri_tx#tx_fun_result/0">khepri_tx:tx_fun_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error</a>({not_leader, <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id" docgen-rel="seetype" docgen-href="ra:ra#server_id/0">ra:server_id()</a>})</code></p>
 <p><p>  The value returned from of a command function which was executed  
 asynchronously.</p>
  
@@ -98,10 +98,10 @@ asynchronously.</p>
   commands which were applied, or <code>{error, {not_leader, LeaderId}}</code> if the  
 commands could not be applied since they were sent to a non-leader member.</p>
  
-  <p>Note that when commands are successfully applied, the return values are in
-  the <a docgen-rel="seeerl" docgen-href="khepri_adv" href="khepri_adv.html"><code>khepri_adv</code></a> formats - <a docgen-rel="seetype" docgen-href="khepri_adv#single_result/0" href="khepri_adv.html#type-single_result"><code>khepri_adv:single_result()</code></a> or
-  <a docgen-rel="seetype" docgen-href="khepri_adv#many_results/0" href="khepri_adv.html#type-many_results"><code>khepri_adv:many_results()</code></a> - rather than <a docgen-rel="seetype" docgen-href="khepri#minimal_ret/0" href="khepri.html#type-minimal_ret"><code>khepri:minimal_ret()</code></a>, even if the command was sent using a function from
-  the <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> API such as <a docgen-rel="seemfa" docgen-href="khepri#put/4" href="khepri.html#put-4"><code>khepri:put/4</code></a>.</p>
+  <p>Note that when commands are successfully applied, the return values are
+  <a docgen-rel="seetype" docgen-href="khepri_adv#many_results/0" href="khepri_adv.html#type-many_results"><code>khepri_adv:many_results()</code></a> rather than <a docgen-rel="seetype" docgen-href="khepri#minimal_ret/0" href="khepri.html#type-minimal_ret"><code>khepri:minimal_ret()</code></a>,
+  even if the command was sent using a function from the <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> API
+  such as <a docgen-rel="seemfa" docgen-href="khepri#put/4" href="khepri.html#put-4"><code>khepri:put/4</code></a>.</p>
  
   See <a docgen-rel="seemfa" docgen-href="khepri#handle_async_ret/2" href="khepri.html#handle_async_ret-2"><code>khepri:handle_async_ret/2</code></a>.</p>
 
