@@ -20,11 +20,11 @@ create_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
-         {ok, #{data => foo_value,
-                payload_version => 1}},
+         {ok, #{[foo] => #{data => foo_value,
+                           payload_version => 1}}},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
 create_existing_node_test_() ->
@@ -32,7 +32,7 @@ create_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertEqual(
          {error,
@@ -73,11 +73,11 @@ insert_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:put(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
-         {ok, #{data => foo_value,
-                payload_version => 1}},
+         {ok, #{[foo] => #{data => foo_value,
+                           payload_version => 1}}},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
 insert_existing_node_test_() ->
@@ -85,19 +85,19 @@ insert_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertEqual(
-         {ok, #{data => foo_value1,
-                payload_version => 2}},
+         {ok, #{[foo] => #{data => foo_value1,
+                           payload_version => 2}}},
          khepri_adv:put(?FUNCTION_NAME, [foo], foo_value2)),
       ?_assertEqual(
-         {ok, #{data => foo_value2,
-                payload_version => 2}},
+         {ok, #{[foo] => #{data => foo_value2,
+                           payload_version => 2}}},
          khepri_adv:put(?FUNCTION_NAME, [foo], foo_value2, #{})),
       ?_assertEqual(
-         {ok, #{data => foo_value2,
-                payload_version => 2}},
+         {ok, #{[foo] => #{data => foo_value2,
+                           payload_version => 2}}},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
 invalid_put_call_test_() ->
@@ -115,10 +115,10 @@ insert_many_non_existing_nodes_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[a] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [a], ?NO_PAYLOAD)),
       ?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[b] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [b], ?NO_PAYLOAD)),
       ?_assertEqual(
          {ok, #{[a, foo] => #{payload_version => 1},
@@ -138,10 +138,10 @@ insert_many_existing_nodes_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[a, foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [a, foo], foo_value_a)),
       ?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[b, foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [b, foo], foo_value_b)),
       ?_assertEqual(
          {ok, #{[a, foo] => #{data => foo_value_a,
@@ -196,15 +196,15 @@ update_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertEqual(
-         {ok, #{data => foo_value1,
-                payload_version => 2}},
+         {ok, #{[foo] => #{data => foo_value1,
+                           payload_version => 2}}},
          khepri_adv:update(?FUNCTION_NAME, [foo], foo_value2)),
       ?_assertEqual(
-         {ok, #{data => foo_value2,
-                payload_version => 2}},
+         {ok, #{[foo] => #{data => foo_value2,
+                           payload_version => 2}}},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
 invalid_update_call_test_() ->
@@ -240,16 +240,16 @@ compare_and_swap_matching_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertEqual(
-         {ok, #{data => foo_value1,
-                payload_version => 2}},
+         {ok, #{[foo] => #{data => foo_value1,
+                           payload_version => 2}}},
          khepri_adv:compare_and_swap(
            ?FUNCTION_NAME, [foo], foo_value1, foo_value2)),
       ?_assertEqual(
-         {ok, #{data => foo_value2,
-                payload_version => 2}},
+         {ok, #{[foo] => #{data => foo_value2,
+                           payload_version => 2}}},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
 compare_and_swap_mismatching_node_test_() ->
@@ -257,7 +257,7 @@ compare_and_swap_mismatching_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertMatch(
          {error,
@@ -277,17 +277,17 @@ compare_and_swap_with_options_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, #{payload_version => 1}},
+         {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertEqual(
-         {ok, #{data => foo_value1,
-                payload_version => 2}},
+         {ok, #{[foo] => #{data => foo_value1,
+                           payload_version => 2}}},
          khepri_adv:compare_and_swap(
            ?FUNCTION_NAME, [foo], foo_value1, foo_value2,
            #{async => false})),
       ?_assertEqual(
-         {ok, #{data => foo_value2,
-                payload_version => 2}},
+         {ok, #{[foo] => #{data => foo_value2,
+                           payload_version => 2}}},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
 invalid_compare_and_swap_call_test_() ->

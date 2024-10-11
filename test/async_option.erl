@@ -25,7 +25,7 @@ async_unset_in_put_test_() ->
                 ok,
                 khepri:put(?FUNCTION_NAME, [foo], ?NO_PAYLOAD)),
              ?assertEqual(
-                {ok, #{payload_version => 1}},
+                {ok, #{[foo] => #{payload_version => 1}}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -41,7 +41,7 @@ async_false_in_put_test_() ->
                 khepri:put(
                   ?FUNCTION_NAME, [foo], ?NO_PAYLOAD, #{async => false})),
              ?assertEqual(
-                {ok, #{payload_version => 1}},
+                {ok, #{[foo] => #{payload_version => 1}}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -66,7 +66,7 @@ async_true_in_put_test_() ->
                    end,
                    khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
              ?assertEqual(
-                {ok, #{payload_version => 1}},
+                {ok, #{[foo] => #{payload_version => 1}}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -88,7 +88,7 @@ async_with_correlation_in_put_test_() ->
                [{Correlation, {ok, #{[foo] => #{}}}}],
                khepri:handle_async_ret(?FUNCTION_NAME, RaEvent)),
              ?assertEqual(
-                {ok, #{payload_version => 1}},
+                {ok, #{[foo] => #{payload_version => 1}}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -113,7 +113,7 @@ async_with_priority_in_put_test_() ->
                    end,
                    khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
              ?assertEqual(
-                {ok, #{payload_version => 1}},
+                {ok, #{[foo] => #{payload_version => 1}}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -135,7 +135,7 @@ async_with_correlation_and_priority_in_put_test_() ->
                [{Correlation, {ok, #{[foo] => #{}}}}],
                khepri:handle_async_ret(?FUNCTION_NAME, RaEvent)),
              ?assertEqual(
-                {ok, #{payload_version => 1}},
+                {ok, #{[foo] => #{payload_version => 1}}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -311,7 +311,7 @@ async_unset_in_transaction_test_() ->
                 {ok, ok},
                 khepri:transaction(?FUNCTION_NAME, Fun)),
              ?assertEqual(
-                {ok, #{payload_version => 1}},
+                {ok, #{[foo] => #{payload_version => 1}}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -328,7 +328,7 @@ async_false_in_transaction_test_() ->
                 khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{async => false})),
              ?assertEqual(
-                {ok, #{payload_version => 1}},
+                {ok, #{[foo] => #{payload_version => 1}}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -354,7 +354,7 @@ async_true_in_transaction_test_() ->
                    end,
                    khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
              ?assertEqual(
-                {ok, #{payload_version => 1}},
+                {ok, #{[foo] => #{payload_version => 1}}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -376,7 +376,7 @@ async_with_correlation_in_transaction_test_() ->
                [{Correlation, ok}],
                khepri:handle_async_ret(?FUNCTION_NAME, RaEvent)),
              ?assertEqual(
-                {ok, #{payload_version => 1}},
+                {ok, #{[foo] => #{payload_version => 1}}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -432,7 +432,7 @@ async_with_priority_in_transaction_test_() ->
                    end,
                    khepri:exists(?FUNCTION_NAME, [foo]), lists:seq(1, 60)),
              ?assertEqual(
-                {ok, #{payload_version => 1}},
+                {ok, #{[foo] => #{payload_version => 1}}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.
@@ -455,7 +455,7 @@ async_with_correlation_and_priority_in_transaction_test_() ->
                [{Correlation, ok}],
                khepri:handle_async_ret(?FUNCTION_NAME, RaEvent)),
              ?assertEqual(
-                {ok, #{payload_version => 1}},
+                {ok, #{[foo] => #{payload_version => 1}}},
                 khepri_adv:get(?FUNCTION_NAME, [foo]))
          end)
      ]}.

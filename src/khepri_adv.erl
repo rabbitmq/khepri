@@ -52,16 +52,10 @@
 %% Structure used to return a map of nodes and their associated properties,
 %% payload and child nodes.
 
--type single_result() :: khepri:ok(khepri:node_props() | #{}) |
-                         khepri:error().
-%% Return value of a query or synchronous command targeting one specific tree
-%% node.
-
 -type many_results() :: khepri_machine:common_ret().
 %% Return value of a query or synchronous command targeting many tree nodes.
 
 -export_type([node_props_map/0,
-              single_result/0,
               many_results/0]).
 
 %% -------------------------------------------------------------------
@@ -70,7 +64,7 @@
 
 -spec get(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Returns the properties and payload of the tree node pointed to by the
 %% given path pattern.
 %%
@@ -89,11 +83,11 @@ get(PathPattern) ->
 (StoreId, PathPattern) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:single_result();
+      Ret :: khepri_adv:many_results();
 (PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:query_options() | khepri:tree_options(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Returns the properties and payload of the tree node pointed to by the
 %% given path pattern.
 %%
@@ -118,7 +112,7 @@ get(PathPattern, Options) when is_map(Options) ->
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:query_options() | khepri:tree_options(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Returns the properties and payload of the tree node pointed to by the
 %% given path pattern.
 %%
@@ -161,15 +155,14 @@ get(PathPattern, Options) when is_map(Options) ->
 %% @param PathPattern the path (or path pattern) to the tree node to get.
 %% @param Options query options.
 %%
-%% @returns an `{ok, NodeProps}' tuple or an `{error, Reason}' tuple.
+%% @returns an `{ok, NodePropsMap}' tuple or an `{error, Reason}' tuple.
 %%
 %% @see get_many/3.
 %% @see khepri:get/3.
 
 get(StoreId, PathPattern, Options) ->
     Options1 = Options#{expect_specific_node => true},
-    Ret = get_many(StoreId, PathPattern, Options1),
-    ?common_ret_to_single_result_ret(Ret).
+    get_many(StoreId, PathPattern, Options1).
 
 %% -------------------------------------------------------------------
 %% get_many().
@@ -274,7 +267,7 @@ get_many(StoreId, PathPattern, Options) ->
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Ret :: khepri:minimal_ret() |
-             khepri_adv:single_result().
+             khepri_adv:many_results().
 %% @doc Sets the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -294,7 +287,7 @@ put(PathPattern, Data) ->
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Ret :: khepri:minimal_ret() |
-             khepri_adv:single_result().
+             khepri_adv:many_results().
 %% @doc Sets the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -314,7 +307,7 @@ put(StoreId, PathPattern, Data) ->
                  khepri:tree_options() |
                  khepri:put_options(),
       Ret :: khepri:minimal_ret() |
-             khepri_adv:single_result() |
+             khepri_adv:many_results() |
              khepri_machine:async_ret().
 %% @doc Sets the payload of the tree node pointed to by the given path
 %% pattern.
@@ -385,8 +378,8 @@ put(StoreId, PathPattern, Data) ->
 %%        khepri_payload:payload()} structure.
 %% @param Options command options.
 %%
-%% @returns in the case of a synchronous call, an `{ok, NodeProps}' tuple or
-%% an `{error, Reason}' tuple; in the case of an asynchronous call, always
+%% @returns in the case of a synchronous call, an `{ok, NodePropsMap}' tuple
+%% or an `{error, Reason}' tuple; in the case of an asynchronous call, always
 %% `ok' (the actual return value may be sent by a message if a correlation ID
 %% was specified).
 %%
@@ -397,8 +390,7 @@ put(StoreId, PathPattern, Data) ->
 
 put(StoreId, PathPattern, Data, Options) ->
     Options1 = Options#{expect_specific_node => true},
-    Ret = put_many(StoreId, PathPattern, Data, Options1),
-    ?common_ret_to_single_result_ret(Ret).
+    put_many(StoreId, PathPattern, Data, Options1).
 
 %% -------------------------------------------------------------------
 %% put_many().
@@ -527,7 +519,7 @@ put_many(StoreId, PathPattern, Data, Options) ->
 -spec create(PathPattern, Data) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Creates a tree node with the given payload.
 %%
 %% Calling this function is the same as calling `create(StoreId, PathPattern,
@@ -545,7 +537,7 @@ create(PathPattern, Data) ->
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Creates a tree node with the given payload.
 %%
 %% Calling this function is the same as calling `create(StoreId, PathPattern,
@@ -563,7 +555,7 @@ create(StoreId, PathPattern, Data) ->
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_adv:single_result() | khepri_machine:async_ret().
+      Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
 %% @doc Creates a tree node with the given payload.
 %%
 %% The behavior is the same as {@link put/4} except that if the tree node
@@ -579,8 +571,8 @@ create(StoreId, PathPattern, Data) ->
 %%        khepri_payload:payload()} structure.
 %% @param Options command options.
 %%
-%% @returns in the case of a synchronous call, an `{ok, NodeProps}' tuple or
-%% an `{error, Reason}' tuple; in the case of an asynchronous call, always
+%% @returns in the case of a synchronous call, an `{ok, NodePropsMap}' tuple
+%% or an `{error, Reason}' tuple; in the case of an asynchronous call, always
 %% `ok' (the actual return value may be sent by a message if a correlation ID
 %% was specified).
 %%
@@ -593,13 +585,7 @@ create(StoreId, PathPattern, Data, Options) ->
     PathPattern2 = khepri_path:combine_with_conditions(
                      PathPattern1, [#if_node_exists{exists = false}]),
     Options1 = Options#{expect_specific_node => true},
-    case do_put(StoreId, PathPattern2, Data, Options1) of
-        {ok, NodePropsMaps} ->
-            [NodeProps] = maps:values(NodePropsMaps),
-            {ok, NodeProps};
-        Error ->
-            Error
-    end.
+    do_put(StoreId, PathPattern2, Data, Options1).
 
 %% -------------------------------------------------------------------
 %% update().
@@ -608,7 +594,7 @@ create(StoreId, PathPattern, Data, Options) ->
 -spec update(PathPattern, Data) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Updates an existing tree node with the given payload.
 %%
 %% Calling this function is the same as calling `update(StoreId, PathPattern,
@@ -626,7 +612,7 @@ update(PathPattern, Data) ->
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Updates an existing tree node with the given payload.
 %%
 %% Calling this function is the same as calling `update(StoreId, PathPattern,
@@ -644,7 +630,7 @@ update(StoreId, PathPattern, Data) ->
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_adv:single_result() | khepri_machine:async_ret().
+      Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
 %% @doc Updates an existing tree node with the given payload.
 %%
 %% The behavior is the same as {@link put/4} except that if the tree node
@@ -661,8 +647,8 @@ update(StoreId, PathPattern, Data) ->
 %% @param Extra extra options such as `keep_while' conditions.
 %% @param Options command options.
 %%
-%% @returns in the case of a synchronous call, an `{ok, NodeProps}' tuple or
-%% an `{error, Reason}' tuple; in the case of an asynchronous call, always
+%% @returns in the case of a synchronous call, an `{ok, NodePropsMap}' tuple
+%% or an `{error, Reason}' tuple; in the case of an asynchronous call, always
 %% `ok' (the actual return value may be sent by a message if a correlation ID
 %% was specified).
 %%
@@ -675,8 +661,7 @@ update(StoreId, PathPattern, Data, Options) ->
     PathPattern2 = khepri_path:combine_with_conditions(
                      PathPattern1, [#if_node_exists{exists = true}]),
     Options1 = Options#{expect_specific_node => true},
-    Ret = do_put(StoreId, PathPattern2, Data, Options1),
-    ?common_ret_to_single_result_ret(Ret).
+    do_put(StoreId, PathPattern2, Data, Options1).
 
 %% -------------------------------------------------------------------
 %% compare_and_swap().
@@ -686,7 +671,7 @@ update(StoreId, PathPattern, Data, Options) ->
       PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Updates an existing tree node with the given payload only if its data
 %% matches the given pattern.
 %%
@@ -706,7 +691,7 @@ compare_and_swap(PathPattern, DataPattern, Data) ->
       PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Updates an existing tree node with the given payload only if its data
 %% matches the given pattern.
 %%
@@ -727,7 +712,7 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data) ->
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_adv:single_result() | khepri_machine:async_ret().
+      Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
 %% @doc Updates an existing tree node with the given payload only if its data
 %% matches the given pattern.
 %%
@@ -745,8 +730,8 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data) ->
 %% @param Extra extra options such as `keep_while' conditions.
 %% @param Options command options.
 %%
-%% @returns in the case of a synchronous call, an `{ok, NodeProps}' tuple or
-%% an `{error, Reason}' tuple; in the case of an asynchronous call, always
+%% @returns in the case of a synchronous call, an `{ok, NodePropsMap}' tuple
+%% or an `{error, Reason}' tuple; in the case of an asynchronous call, always
 %% `ok' (the actual return value may be sent by a message if a correlation ID
 %% was specified).
 %%
@@ -758,8 +743,7 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) ->
     PathPattern2 = khepri_path:combine_with_conditions(
                      PathPattern1, [#if_data_matches{pattern = DataPattern}]),
     Options1 = Options#{expect_specific_node => true},
-    Ret = do_put(StoreId, PathPattern2, Data, Options1),
-    ?common_ret_to_single_result_ret(Ret).
+    do_put(StoreId, PathPattern2, Data, Options1).
 
 %% -------------------------------------------------------------------
 %% do_put().
@@ -787,7 +771,7 @@ do_put(StoreId, PathPattern, Payload, Options) ->
 
 -spec delete(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Deletes the tree node pointed to by the given path pattern.
 %%
 %% Calling this function is the same as calling `delete(StoreId, PathPattern)'
@@ -805,11 +789,11 @@ delete(PathPattern) ->
 (StoreId, PathPattern) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:single_result();
+      Ret :: khepri_adv:many_results();
 (PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Deletes the tree node pointed to by the given path pattern.
 %%
 %% This function accepts the following two forms:
@@ -833,7 +817,7 @@ delete(PathPattern, Options) when is_map(Options) ->
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_adv:single_result() | khepri_machine:async_ret().
+      Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
 %% @doc Deletes the tree node pointed to by the given path pattern.
 %%
 %% The `PathPattern' can be provided as a native path pattern (a list of tree
@@ -865,8 +849,8 @@ delete(PathPattern, Options) when is_map(Options) ->
 %% @param PathPattern the path (or path pattern) to the nodes to delete.
 %% @param Options command options such as the command type.
 %%
-%% @returns in the case of a synchronous call, an `{ok, NodeProps}' tuple or
-%% an `{error, Reason}' tuple; in the case of an asynchronous call, always
+%% @returns in the case of a synchronous call, an `{ok, NodePropsMap}' tuple
+%% or an `{error, Reason}' tuple; in the case of an asynchronous call, always
 %% `ok' (the actual return value may be sent by a message if a correlation ID
 %% was specified).
 %%
@@ -876,19 +860,7 @@ delete(PathPattern, Options) when is_map(Options) ->
 delete(StoreId, PathPattern, Options) ->
     %% TODO: Not handled by khepri_machine:delete/3...
     Options1 = Options#{expect_specific_node => true},
-    case khepri_machine:delete(StoreId, PathPattern, Options1) of
-        {ok, NodePropsMap} ->
-            %% It's ok to delete a non-existing tree node. The returned result
-            %% will be an empty map, in which case we return `#{}' as the
-            %% "node properties".
-            NodeProps = case maps:values(NodePropsMap) of
-                            [NP] -> NP;
-                            []   -> #{}
-                        end,
-            {ok, NodeProps};
-        Error ->
-            Error
-    end.
+    khepri_machine:delete(StoreId, PathPattern, Options1).
 
 %% -------------------------------------------------------------------
 %% delete_many().
@@ -988,7 +960,7 @@ delete_many(StoreId, PathPattern, Options) ->
 
 -spec clear_payload(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -1006,7 +978,7 @@ clear_payload(PathPattern) ->
 -spec clear_payload(StoreId, PathPattern) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:single_result().
+      Ret :: khepri_adv:many_results().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -1024,7 +996,7 @@ clear_payload(StoreId, PathPattern) ->
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_adv:single_result() | khepri_machine:async_ret().
+      Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -1036,8 +1008,8 @@ clear_payload(StoreId, PathPattern) ->
 %% @param Extra extra options such as `keep_while' conditions.
 %% @param Options command options.
 %%
-%% @returns in the case of a synchronous call, an `{ok, NodeProps}' tuple or
-%% an `{error, Reason}' tuple; in the case of an asynchronous call, always
+%% @returns in the case of a synchronous call, an `{ok, NodePropsMap}' tuple
+%% or an `{error, Reason}' tuple; in the case of an asynchronous call, always
 %% `ok' (the actual return value may be sent by a message if a correlation ID
 %% was specified).
 %%
