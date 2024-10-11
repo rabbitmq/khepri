@@ -1,4 +1,4 @@
-name: Test → Docs → Release
+name: Single test job
 
 on:
   workflow_call:
