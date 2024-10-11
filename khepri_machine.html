@@ -1,0 +1,299 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Module khepri_machine</title>
+<link rel="stylesheet" type="text/css" href="edoc-extensions.css" title="EDoc">
+<link rel="icon" href="khepri-favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css" />
+</head>
+<body class="markdown-body language-erlang"><script src="prism.js"></script>
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module khepri_machine</h1>
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>  
+Khepri private low-level API.
+
+<p><b>Behaviours:</b> <a href="ra_machine.html"><code>ra_machine</code></a>.</p>
+
+<h2><a name="description">Description</a></h2><p>  
+Khepri private low-level API.</p>
+ 
+  <p>This module exposes the private "low-level" API to the Khepri database and
+  state machine. Main functions correspond to Ra commands implemented by the
+  state machine. All functions in <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> are built on top of this  
+module.</p>
+ 
+  <p>This module is private. The documentation is still visible because it may  
+help understand some implementation details. However, this module should  
+never be called directly outside of Khepri.</p>
+ 
+  <h3><a name="State_machine_history">State machine history</a></h3>
+ 
+  <table>
+  <tr><th>Version</th><th>What changed</th></tr>
+  <tr>
+  <td style="text-align: right; vertical-align: top;">0</td>
+  <td>Initial version</td>
+  </tr>
+  <tr>
+  <td style="text-align: right; vertical-align: top;">1</td>
+  <td>
+  <ul>
+  <li>Added deduplication mechanism:
+  <ul>
+  <li>new command option <code>protect_against_dups</code></li>
+  <li>new commands <code>#dedup{}</code> and <code>#dedup_ack{}</code></li>
+  <li>new state field <code>dedups</code></li>
+  </ul></li>
+  <li>Added command <code>#unregister_projections{}</code>. The previous
+  <code>#unregister_projection{}</code> is still supported for backward-compatibility but
+  it is no longer created.</li>
+  </ul>
+  </td>
+  </tr>
+  <tr>
+  <td style="text-align: right; vertical-align: top;">2</td>
+  <td>
+  <ul>
+  <li>Changed the data structure for the reverse index used to track
+  keep-while conditions to be a prefix tree (see <a docgen-rel="seeerl" docgen-href="khepri_prefix_tree" href="khepri_prefix_tree.html"><code>khepri_prefix_tree</code></a>).
+  </li>
+  </ul>
+  </td>
+  </tr>
+  </table>
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-async_ret">async_ret()</a></h3>
+<p><code>async_ret() = ok</code></p>
+
+
+<h3 class="typedecl"><a name="type-command">command()</a></h3>
+<p><code>command() = #put{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_pattern/0">khepri_path:native_pattern()</a>, payload = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload" docgen-rel="seetype" docgen-href="khepri:khepri_payload#payload/0">khepri_payload:payload()</a>, options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options" docgen-rel="seetype" docgen-href="khepri:khepri#put_options/0">khepri:put_options()</a>} | #delete{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_pattern/0">khepri_path:native_pattern()</a>, options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a>} | #tx{'fun' = <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun" docgen-rel="seetype" docgen-href="horus:horus#horus_fun/0">horus:horus_fun()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a>, args = list()} | #register_trigger{id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id" docgen-rel="seetype" docgen-href="khepri:khepri#trigger_id/0">khepri:trigger_id()</a>, event_filter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter/0">khepri_evf:event_filter()</a>, sproc = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a>} | #ack_triggered{triggered = [<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-triggered" docgen-rel="seetype" docgen-href="khepri:khepri_machine#triggered/0">khepri_machine:triggered()</a>]} | #register_projection{pattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_pattern/0">khepri_path:native_pattern()</a>, projection = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection" docgen-rel="seetype" docgen-href="khepri:khepri_projection#projection/0">khepri_projection:projection()</a>} | #unregister_projections{names = all | [<a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-name" docgen-rel="seetype" docgen-href="khepri:khepri_projection#name/0">khepri_projection:name()</a>]} | #dedup{ref = reference(), expiry = integer(), command = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-command" docgen-rel="seetype" docgen-href="khepri:khepri_machine#command/0">khepri_machine:command()</a>} | #dedup_ack{ref = reference()}</code></p>
+<p>  Commands specific to this Ra machine.</p>
+
+<h3 class="typedecl"><a name="type-common_ret">common_ret()</a></h3>
+<p><code>common_ret() = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok" docgen-rel="seetype" docgen-href="khepri:khepri#ok/0">khepri:ok</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri_adv.html#type-node_props_map" docgen-rel="seetype" docgen-href="khepri:khepri_adv#node_props_map/0">khepri_adv:node_props_map()</a>) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error()</a></code></p>
+
+
+<h3 class="typedecl"><a name="type-dedups_map">dedups_map()</a></h3>
+<p><code>dedups_map() = #{reference() =&gt; {any(), integer()}}</code></p>
+<p>  Map to handle command deduplication.</p>
+
+<h3 class="typedecl"><a name="type-machine_config">machine_config()</a></h3>
+<p><code>machine_config() = #config{store_id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a>, member = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id" docgen-rel="seetype" docgen-href="ra:ra#server_id/0">ra:server_id()</a>, snapshot_interval = non_neg_integer()}</code></p>
+<p>  Configuration record, holding read-only or rarely changing fields.</p>
+
+<h3 class="typedecl"><a name="type-machine_init_args">machine_init_args()</a></h3>
+<p><code>machine_init_args() = #{store_id := <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a>, member := <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id" docgen-rel="seetype" docgen-href="ra:ra#server_id/0">ra:server_id()</a>, snapshot_interval =&gt; non_neg_integer(), commands =&gt; [<a href="#type-command" docgen-rel="seetype" docgen-href="#command/0">command()</a>], atom() =&gt; any()}</code></p>
+<p>  Structure passed to <a docgen-rel="seemfa" docgen-href="#init/1" href="#init-1"><code>init/1</code></a>.</p>
+
+<h3 class="typedecl"><a name="type-metrics">metrics()</a></h3>
+<p><code>metrics() = #{applied_command_count =&gt; non_neg_integer()}</code></p>
+<p>  Internal state machine metrics.</p>
+
+<h3 class="typedecl"><a name="type-old_command">old_command()</a></h3>
+<p><code>old_command() = #unregister_projection{name = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-name" docgen-rel="seetype" docgen-href="khepri:khepri_projection#name/0">khepri_projection:name()</a>}</code></p>
+<p><p>  Old commands that are still accepted by the Ra machine but never created.</p>
+ 
+  <p>Even though Khepri no longer creates these commands, they may still be  
+present in existing Ra log files and thus be applied after an ugprade of  
+Khepri.</p>
+ 
+  We keep them supported for backward-compatibility.</p>
+
+<h3 class="typedecl"><a name="type-projection_map">projection_map()</a></h3>
+<p><code>projection_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-name" docgen-rel="seetype" docgen-href="khepri:khepri_projection#name/0">khepri_projection:name()</a> =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a>}</code></p>
+<p>  A mapping between the names of projections and patterns to which each
+  projection is registered.</p>
+
+<h3 class="typedecl"><a name="type-projection_tree">projection_tree()</a></h3>
+<p><code>projection_tree() = <a href="/home/runner/work/khepri/khepri/doc/khepri_pattern_tree.html#type-tree" docgen-rel="seetype" docgen-href="khepri:khepri_pattern_tree#tree/0">khepri_pattern_tree:tree</a>([<a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection" docgen-rel="seetype" docgen-href="khepri:khepri_projection#projection/0">khepri_projection:projection()</a>])</code></p>
+<p>  A pattern tree that holds all registered projections in the machine's state.</p>
+
+<h3 class="typedecl"><a name="type-props">props()</a></h3>
+<p><code>props() = #{payload_version := <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_version" docgen-rel="seetype" docgen-href="khepri:khepri#payload_version/0">khepri:payload_version()</a>, child_list_version := <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_version" docgen-rel="seetype" docgen-href="khepri:khepri#child_list_version/0">khepri:child_list_version()</a>}</code></p>
+<p>  Properties attached to each node in the tree structure.</p>
+
+<h3 class="typedecl"><a name="type-state">state()</a></h3>
+<p><code>state() = <a href="#type-state_v1" docgen-rel="seetype" docgen-href="#state_v1/0">state_v1()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine_v0.html#type-state" docgen-rel="seetype" docgen-href="khepri:khepri_machine_v0#state/0">khepri_machine_v0:state()</a></code></p>
+<p>  State of this Ra state machine.</p>
+
+<h3 class="typedecl"><a name="type-state_v1">state_v1()</a></h3>
+<p><b>abstract datatype</b>: <code>state_v1()</code></p>
+<p><p>  State of this Ra state machine, version 1.</p>
+ 
+  Note that this type is used also for machine version 2. Machine version 2
+  changes the type of an opaque member of the <a docgen-rel="seeerl" docgen-href="khepri_tree" href="khepri_tree.html"><code>khepri_tree</code></a> record and
+  doesn't need any changes to the <code>khepri_machine</code> type. See the moduledoc of
+  this module for more information about version 2.</p>
+
+<h3 class="typedecl"><a name="type-triggered">triggered()</a></h3>
+<p><code>triggered() = #triggered{id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id" docgen-rel="seetype" docgen-href="khepri:khepri#trigger_id/0">khepri:trigger_id()</a>, event_filter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter/0">khepri_evf:event_filter()</a>, sproc = <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun" docgen-rel="seetype" docgen-href="horus:horus#horus_fun/0">horus:horus_fun()</a>, props = map()}</code></p>
+
+
+<h3 class="typedecl"><a name="type-triggers_map">triggers_map()</a></h3>
+<p><code>triggers_map() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id" docgen-rel="seetype" docgen-href="khepri:khepri#trigger_id/0">khepri:trigger_id()</a> =&gt; #{sproc := <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a>, event_filter := <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter/0">khepri_evf:event_filter()</a>}}</code></p>
+<p>  Internal triggers map in the machine state.</p>
+
+<h3 class="typedecl"><a name="type-tx_ret">tx_ret()</a></h3>
+<p><code>tx_ret() = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok" docgen-rel="seetype" docgen-href="khepri:khepri#ok/0">khepri:ok</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result" docgen-rel="seetype" docgen-href="khepri:khepri_tx#tx_fun_result/0">khepri_tx:tx_fun_result()</a>) | <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort" docgen-rel="seetype" docgen-href="khepri:khepri_tx#tx_abort/0">khepri_tx:tx_abort()</a> | no_return()</code></p>
+
+
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#fold-5">fold/5</a></td><td>Returns all tree nodes matching the given path pattern.</td></tr>
+<tr><td valign="top"><a href="#fence-2">fence/2</a></td><td>Blocks until all updates received by the cluster leader are applied
+  locally.</td></tr>
+<tr><td valign="top"><a href="#delete-3">delete/3</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
+<tr><td valign="top"><a href="#transaction-5">transaction/5</a></td><td>Runs a transaction and returns the result.</td></tr>
+<tr><td valign="top"><a href="#handle_tx_exception-1">handle_tx_exception/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#register_trigger-5">register_trigger/5</a></td><td>Registers a trigger.</td></tr>
+<tr><td valign="top"><a href="#register_projection-4">register_projection/4</a></td><td>Registers a projection.</td></tr>
+<tr><td valign="top"><a href="#unregister_projections-3">unregister_projections/3</a></td><td>Removes the given projections from the store.</td></tr>
+<tr><td valign="top"><a href="#version-0">version/0</a></td><td>Returns the state machine version.</td></tr>
+<tr><td valign="top"><a href="#which_module-1">which_module/1</a></td><td>Returns the state machine module corresponding to the given version.</td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="fold-5">fold/5</a></h3>
+<div class="spec">
+<p><code>fold(StoreId, PathPattern, Fun, Acc, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-fold_fun" docgen-rel="seetype" docgen-href="khepri:khepri#fold_fun/0">khepri:fold_fun()</a></code></li><li><code>Acc = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-fold_acc" docgen-rel="seetype" docgen-href="khepri:khepri#fold_acc/0">khepri:fold_acc()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options" docgen-rel="seetype" docgen-href="khepri:khepri#query_options/0">khepri:query_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok" docgen-rel="seetype" docgen-href="khepri:khepri#ok/0">khepri:ok</a>(NewAcc) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error()</a></code></li><li><code>NewAcc = Acc</code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<code>PathPattern</code>: the path (or path pattern) to the nodes to get.<br>
+<code>Options</code>: query options such as <code>favor</code>.
+ <br>
+</p>
+<p>returns: an <code>{ok, NodePropsMap}</code> tuple with a map with zero, one or more
+  entries, or an <code>{error, Reason}</code> tuple.</p>
+</div><p>Returns all tree nodes matching the given path pattern.
+ </p>
+
+<h3 class="function"><a name="fence-2">fence/2</a></h3>
+<div class="spec">
+<p><code>fence(StoreId, Timeout) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>Timeout = timeout()</code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster<br>
+<code>Timeout</code>: the time limit after which the call returns with an error.
+ <br>
+</p>
+<p>returns: <code>ok</code> or an <code>{error, Reason}</code> tuple.</p>
+</div><p>Blocks until all updates received by the cluster leader are applied
+  locally.
+ </p>
+
+<h3 class="function"><a name="delete-3">delete/3</a></h3>
+<div class="spec">
+<p><code>delete(StoreId, PathPattern, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-common_ret" docgen-rel="seetype" docgen-href="khepri:khepri_machine#common_ret/0">khepri_machine:common_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret" docgen-rel="seetype" docgen-href="khepri:khepri_machine#async_ret/0">khepri_machine:async_ret()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<code>PathPattern</code>: the path (or path pattern) to the nodes to delete.<br>
+<code>Options</code>: command options such as the command type.
+ <br>
+</p>
+<p>returns: in the case of a synchronous delete, an <code>{ok, NodePropsMap}</code> tuple
+  with a map with zero, one or more entries, or an <code>{error, Reason}</code> tuple;
+  in the case of an asynchronous put, always <code>ok</code> (the actual return value
+  may be sent by a message if a correlation ID was specified).</p>
+</div><p>Deletes all tree nodes matching the path pattern.
+ </p>
+
+<h3 class="function"><a name="transaction-5">transaction/5</a></h3>
+<div class="spec">
+<p><code>transaction(StoreId, FunOrPath, Args, ReadWrite, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>FunOrPath = Fun | PathPattern</code></li><li><code>Fun = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun" docgen-rel="seetype" docgen-href="khepri:khepri_tx#tx_fun/0">khepri_tx:tx_fun()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Args = list()</code></li><li><code>ReadWrite = ro | rw | auto</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options" docgen-rel="seetype" docgen-href="khepri:khepri#query_options/0">khepri:query_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-tx_ret" docgen-rel="seetype" docgen-href="khepri:khepri_machine#tx_ret/0">khepri_machine:tx_ret()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-async_ret" docgen-rel="seetype" docgen-href="khepri:khepri_machine#async_ret/0">khepri_machine:async_ret()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<code>FunOrPath</code>: an arbitrary anonymous function or a path pattern pointing
+         to a stored procedure.<br>
+<code>Args</code>: a list of arguments to pass to <code>FunOrPath</code>.<br>
+<code>ReadWrite</code>: the read/write or read-only nature of the transaction.<br>
+<code>Options</code>: command options such as the command type.
+ <br>
+</p>
+<p>returns: in the case of a synchronous transaction, <code>{ok, Result}</code> where
+  <code>Result</code> is the return value of <code>FunOrPath</code>, or <code>{error, Reason}</code> if the
+  anonymous function was aborted; in the case of an asynchronous transaction,
+  always <code>ok</code> (the actual return value may be sent by a message if a
+  correlation ID was specified).</p>
+</div><p>Runs a transaction and returns the result.
+ </p>
+
+<h3 class="function"><a name="handle_tx_exception-1">handle_tx_exception/1</a></h3>
+<div class="spec">
+<p><code>handle_tx_exception(X1) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="register_trigger-5">register_trigger/5</a></h3>
+<div class="spec">
+<p><code>register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>TriggerId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id" docgen-rel="seetype" docgen-href="khepri:khepri#trigger_id/0">khepri:trigger_id()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter/0">khepri_evf:event_filter()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path" docgen-rel="seetype" docgen-href="khepri:khepri_path#path/0">khepri_path:path()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<code>TriggerId</code>: the name of the trigger.<br>
+<code>EventFilter</code>: the event filter used to associate an event with a
+         stored procedure.<br>
+<code>StoredProcPath</code>: the path to the stored procedure to execute when the
+         corresponding event occurs.
+ <br>
+</p>
+<p>returns: <code>ok</code> if the trigger was registered, an <code>{error, Reason}</code> tuple
+  otherwise.</p>
+</div><p>Registers a trigger.
+ </p>
+
+<h3 class="function"><a name="register_projection-4">register_projection/4</a></h3>
+<div class="spec">
+<p><code>register_projection(StoreId, PathPattern, Projection, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Projection = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection" docgen-rel="seetype" docgen-href="khepri:khepri_projection#projection/0">khepri_projection:projection()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a></code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<code>PathPattern</code>: the pattern of tree nodes which should be projected.<br>
+<code>Projection</code>: the projection record created with <a docgen-rel="seemfa" docgen-href="khepri_projection#new/3" href="khepri_projection.html#new-3"><code>khepri_projection:new/3</code></a>.<br>
+<code>Options</code>: command options such as the command type.
+ <br>
+</p>
+<p>returns: <code>ok</code> if the projection was registered, an <code>{error, Reason}</code> tuple
+  otherwise.</p>
+</div><p>Registers a projection.
+ </p>
+
+<h3 class="function"><a name="unregister_projections-3">unregister_projections/3</a></h3>
+<div class="spec">
+<p><code>unregister_projections(StoreId, Names, Options) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>Names = all | [<a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-name" docgen-rel="seetype" docgen-href="khepri:khepri_projection#name/0">khepri_projection:name()</a>]</code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-command_options" docgen-rel="seetype" docgen-href="khepri:khepri#command_options/0">khepri:command_options()</a></code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok" docgen-rel="seetype" docgen-href="khepri:khepri#ok/0">khepri:ok</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-projection_map" docgen-rel="seetype" docgen-href="khepri:khepri_machine#projection_map/0">khepri_machine:projection_map()</a>) | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error()</a></code></li></ul></p>
+<p><code>StoreId</code>: the name of the Ra cluster.<br>
+<code>Names</code>: the names of projections to unregister or the atom <code>all</code> to
+         remove all projections.<br>
+<code>Options</code>: command options such as the command type.
+ <br>
+</p>
+<p>returns: <code>{ok, ProjectionMap}</code> if the command succeeds, <code>{error, Reason}</code>
+  otherwise. The <code>ProjectionMap</code> is a map with projection names (<a docgen-rel="seetype" docgen-href="khepri_projection#name/0" href="khepri_projection.html#type-name"><code>khepri_projection:name()</code></a> keys associated to the pattern to which each
+  projection was registered.</p>
+</div><p><p>Removes the given projections from the store.</p>
+ 
+  <code>Names</code> may either be a list of projection names to remove or the atom
+  <code>all</code>. When <code>all</code> is passed, every projection in the store is removed.
+ </p>
+
+<h3 class="function"><a name="version-0">version/0</a></h3>
+<div class="spec">
+<p><code>version() -&gt; MacVer</code>
+<ul class="definitions"><li><code>MacVer = 2</code></li></ul></p>
+<p></p>
+</div><p>Returns the state machine version.</p>
+
+<h3 class="function"><a name="which_module-1">which_module/1</a></h3>
+<div class="spec">
+<p><code>which_module(MacVer) -&gt; Module</code>
+<ul class="definitions"><li><code>MacVer = 0..2</code></li><li><code>Module = khepri_machine</code></li></ul></p>
+<p></p>
+</div><p>Returns the state machine module corresponding to the given version.</p>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc</i></p>
+</body>
+</html>
