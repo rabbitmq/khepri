@@ -260,7 +260,8 @@ keep_while_now_false_after_command_test() ->
                  #node{props = ?INIT_NODE_PROPS,
                        payload = khepri_payload:data(bar_value)}}}}},
        Root),
-    ?assertEqual({ok, #{[foo, bar] => #{}}}, Ret),
+    ?assertEqual({ok, #{[foo, bar] => #{},
+                        [baz] => #{delete_reason => keep_while}}}, Ret),
     ?assertEqual([], SE).
 
 recursive_automatic_cleanup_test() ->
@@ -292,13 +293,21 @@ recursive_automatic_cleanup_test() ->
             child_list_version => 3},
           child_nodes = #{}},
        Root),
-    ?assertEqual(
-      {ok, #{[foo, bar, baz] => #{data => baz_value,
-                                  payload_version => 1,
-                                  child_list_version => 1,
-                                  child_list_length => 0,
-                                  delete_reason => explicit}}},
-      Ret),
+    ?assertEqual({ok, #{[foo, bar, baz] => #{data => baz_value,
+                                             payload_version => 1,
+                                             child_list_version => 1,
+                                             child_list_length => 0,
+                                             delete_reason => explicit},
+                        [foo, bar] => #{data => bar_value,
+                                        payload_version => 1,
+                                        child_list_version => 3,
+                                        child_list_length => 0,
+                                        delete_reason => keep_while},
+                        [foo] => #{data => foo_value,
+                                   payload_version => 1,
+                                   child_list_version => 3,
+                                   child_list_length => 0,
+                                   delete_reason => keep_while}}}, Ret),
     ?assertEqual([], SE).
 
 keep_while_now_false_after_delete_command_test() ->
@@ -330,7 +339,12 @@ keep_while_now_false_after_delete_command_test() ->
                                    payload_version => 1,
                                    child_list_version => 1,
                                    child_list_length => 0,
-                                   delete_reason => explicit}}}, Ret),
+                                   delete_reason => explicit},
+                        [baz] => #{data => baz_value,
+                                   payload_version => 1,
+                                   child_list_version => 1,
+                                   child_list_length => 0,
+                                   delete_reason => keep_while}}}, Ret),
     ?assertEqual([], SE).
 
 automatic_reclaim_of_useless_nodes_works_test() ->
@@ -349,8 +363,9 @@ automatic_reclaim_of_useless_nodes_works_test() ->
             child_list_version => 3},
           child_nodes = #{}},
        Root),
-    ?assertEqual(
-      {ok, #{[foo, bar, baz] => #{delete_reason => explicit}}}, Ret),
+    ?assertEqual({ok, #{[foo, bar, baz] => #{delete_reason => explicit},
+                        [foo, bar] => #{delete_reason => keep_while},
+                        [foo] => #{delete_reason => keep_while}}}, Ret),
     ?assertEqual([], SE).
 
 automatic_reclaim_keeps_relevant_nodes_1_test() ->
@@ -379,8 +394,8 @@ automatic_reclaim_keeps_relevant_nodes_1_test() ->
                   payload = khepri_payload:data(relevant),
                   child_nodes = #{}}}},
        Root),
-    ?assertEqual(
-      {ok, #{[foo, bar, baz] => #{delete_reason => explicit}}}, Ret),
+    ?assertEqual({ok, #{[foo, bar, baz] => #{delete_reason => explicit},
+                        [foo, bar] => #{delete_reason => keep_while}}}, Ret),
     ?assertEqual([], SE).
 
 automatic_reclaim_keeps_relevant_nodes_2_test() ->
@@ -415,6 +430,7 @@ automatic_reclaim_keeps_relevant_nodes_2_test() ->
                           child_nodes = #{}}}}}},
        Root),
     ?assertEqual(
-      {ok, #{[foo, bar, baz, qux] => #{delete_reason => explicit}}},
+      {ok, #{[foo, bar, baz, qux] => #{delete_reason => explicit},
+             [foo, bar, baz] => #{delete_reason => keep_while}}},
       Ret),
     ?assertEqual([], SE).
