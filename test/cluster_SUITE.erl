@@ -1693,7 +1693,8 @@ can_use_default_store_on_single_node(_Config) ->
        {ok, #{[bar] => #{payload_version => 2}}},
        khepri_adv:clear_many_payloads([bar])),
     ?assertEqual(
-       {ok, #{[bar] => #{payload_version => 2}}},
+       {ok, #{[bar] => #{payload_version => 2,
+                         delete_reason => explicit}}},
        khepri_adv:delete([bar])),
     ?assertMatch(
        {ok, #{}},

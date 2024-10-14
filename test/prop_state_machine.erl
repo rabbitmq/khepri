@@ -102,7 +102,7 @@ postcondition(
   #state{entries = Entries},
   {call, khepri_adv, delete_many, [_StoreId, Path, _Options]},
   Result) ->
-    result_is_ok(Result, Entries, Path, {ok, #{}}).
+    result_is_ok_after_delete(Result, Entries, Path).
 
 add_entry(Entries, Path, Payload) ->
     {Entry1, New} = case Entries of
@@ -182,6 +182,18 @@ result_is_ok(Result, Entries, Path, Default) ->
         _ ->
             Default =:= Result
     end.
+
+result_is_ok_after_delete({ok, NodePropsMap}, Entries, Path) ->
+    case Entries of
+        #{Path := NodeProps} ->
+            DeletedProps = maps:get(Path, NodePropsMap, #{}),
+            DeletedProps1 = maps:remove(delete_reason, DeletedProps),
+            DeletedProps1 =:= NodeProps;
+        _ ->
+            NodePropsMap =:= #{}
+    end;
+result_is_ok_after_delete(_, _Entries, _Path) ->
+    false.
 
 result_is_ok_after_put(Result, Entries, Path, Payload, Default) ->
     case Entries of

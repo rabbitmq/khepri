@@ -289,7 +289,8 @@ async_with_correlation_and_priority_in_delete_test_() ->
              RaEvent = receive {ra_event, _, _} = Event -> Event end,
              ?assertEqual(
                [{Correlation, {ok, #{[foo] =>
-                                     #{payload_version => 1}}}}],
+                                     #{payload_version => 1,
+                                       delete_reason => explicit}}}}],
                khepri:handle_async_ret(?FUNCTION_NAME, RaEvent)),
              ?assertEqual(
                 {error,

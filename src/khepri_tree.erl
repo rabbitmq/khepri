@@ -233,7 +233,9 @@ gather_node_props(#node{props = #{payload_version := PVersion,
                   _                   -> Acc
               end;
           (raw_payload, Acc) ->
-              Acc#{raw_payload => Payload}
+              Acc#{raw_payload => Payload};
+          (delete_reason, Acc) ->
+              Acc
       end, #{}, WantedProps);
 gather_node_props(#node{}, _Options) ->
     #{}.
@@ -528,21 +530,40 @@ find_matching_nodes_cb(_, {interrupted, _, _}, _, Acc, _) ->
 
 delete_matching_nodes(Tree, PathPattern, AppliedChanges, TreeOptions) ->
     Fun = fun(Path, Node, Result) ->
-                  delete_matching_nodes_cb(Path, Node, TreeOptions, Result)
+                  delete_matching_nodes_cb(
+                    Path, Node, TreeOptions, explicit, Result)
           end,
     walk_down_the_tree(
       Tree, PathPattern, TreeOptions, AppliedChanges, Fun, #{}).
 
-delete_matching_nodes_cb([] = Path, #node{} = Node, TreeOptions, Result) ->
+delete_matching_nodes_cb(
+  [] = Path, #node{} = Node, TreeOptions, DeleteReason, Result) ->
     Node1 = remove_node_payload(Node),
     Node2 = remove_node_child_nodes(Node1),
-    NodeProps = gather_node_props(Node, TreeOptions),
-    {ok, Node2, Result#{Path => NodeProps}};
-delete_matching_nodes_cb(Path, #node{} = Node, TreeOptions, Result) ->
-    NodeProps = gather_node_props(Node, TreeOptions),
-    {ok, delete, Result#{Path => NodeProps}};
-delete_matching_nodes_cb(_, {interrupted, _, _}, _Options, Result) ->
+    NodeProps1 = gather_node_props(Node, TreeOptions),
+    NodeProps2 = maybe_add_delete_reason_prop(
+                   NodeProps1, TreeOptions, DeleteReason),
+    {ok, Node2, Result#{Path => NodeProps2}};
+delete_matching_nodes_cb(
+  Path, #node{} = Node, TreeOptions, DeleteReason, Result) ->
+    NodeProps1 = gather_node_props(Node, TreeOptions),
+    NodeProps2 = maybe_add_delete_reason_prop(
+                   NodeProps1, TreeOptions, DeleteReason),
+    {ok, delete, Result#{Path => NodeProps2}};
+delete_matching_nodes_cb(
+  _, {interrupted, _, _}, _Options, _DeleteReason, Result) ->
     {ok, keep, Result}.
+
+maybe_add_delete_reason_prop(
+  NodeProps, #{props_to_return := WantedProps}, DeleteReason) ->
+    case lists:member(delete_reason, WantedProps) of
+        true ->
+            NodeProps#{delete_reason => DeleteReason};
+        false ->
+            NodeProps
+    end;
+maybe_add_delete_reason_prop(NodeProps, _TreeOptions, _DeleteReason) ->
+    NodeProps.
 
 %% -------------------------------------------------------------------
 %% Insert or update a tree node.

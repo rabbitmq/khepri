@@ -127,7 +127,8 @@ delete_a_node_deep_into_the_tree_test() ->
                       options = #{props_to_return => [payload,
                                                       payload_version,
                                                       child_list_version,
-                                                      child_list_length]}},
+                                                      child_list_length,
+                                                      delete_reason]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -138,9 +139,12 @@ delete_a_node_deep_into_the_tree_test() ->
             child_list_version => 3},
           child_nodes = #{}},
        Root),
-    ?assertEqual({ok, #{[foo, bar, baz] => #{payload_version => 1,
-                                             child_list_version => 1,
-                                             child_list_length => 1}}}, Ret),
+    ?assertEqual(
+      {ok, #{[foo, bar, baz] => #{payload_version => 1,
+                                  child_list_version => 1,
+                                  child_list_length => 1,
+                                  delete_reason => explicit}}},
+      Ret),
     ?assertEqual([], SE).
 
 delete_existing_node_with_condition_true_test() ->
@@ -275,7 +279,8 @@ delete_many_nodes_at_once_test() ->
                       options = #{props_to_return => [payload,
                                                       payload_version,
                                                       child_list_version,
-                                                      child_list_length]}},
+                                                      child_list_length,
+                                                      delete_reason]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -292,11 +297,13 @@ delete_many_nodes_at_once_test() ->
     ?assertEqual({ok, #{[bar] => #{data => bar_value,
                                    payload_version => 1,
                                    child_list_version => 1,
-                                   child_list_length => 0},
+                                   child_list_length => 0,
+                                   delete_reason => explicit},
                         [baz] => #{data => baz_value,
                                    payload_version => 1,
                                    child_list_version => 1,
-                                   child_list_length => 0}}}, Ret),
+                                   child_list_length => 0,
+                                   delete_reason => explicit}}}, Ret),
     ?assertEqual([], SE).
 
 delete_command_bumps_applied_command_count_test() ->

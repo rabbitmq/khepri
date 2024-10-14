@@ -50,7 +50,8 @@ delete_existing_node_test_() ->
       ?_assertEqual(
          {ok,
           {ok, #{[foo] => #{data => foo_value,
-                            payload_version => 1}}}},
+                            payload_version => 1,
+                            delete_reason => explicit}}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:delete([foo])
@@ -116,7 +117,8 @@ delete_many_on_existing_node_with_condition_true_test_() ->
       ?_assertEqual(
          {ok,
           {ok, #{[foo] => #{data => foo_value,
-                            payload_version => 1}}}},
+                            payload_version => 1,
+                            delete_reason => explicit}}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:delete_many(
