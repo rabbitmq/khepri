@@ -233,7 +233,9 @@ gather_node_props(#node{props = #{payload_version := PVersion,
                   _                   -> Acc
               end;
           (raw_payload, Acc) ->
-              Acc#{raw_payload => Payload}
+              Acc#{raw_payload => Payload};
+          (delete_reason, Acc) ->
+              Acc
       end, #{}, WantedProps);
 gather_node_props(#node{}, _Options) ->
     #{}.
@@ -528,21 +530,40 @@ find_matching_nodes_cb(_, {interrupted, _, _}, _, Acc, _) ->
 
 delete_matching_nodes(Tree, PathPattern, AppliedChanges, TreeOptions) ->
     Fun = fun(Path, Node, Result) ->
-                  delete_matching_nodes_cb(Path, Node, TreeOptions, Result)
+                  delete_matching_nodes_cb(
+                    Path, Node, TreeOptions, explicit, Result)
           end,
     walk_down_the_tree(
       Tree, PathPattern, TreeOptions, AppliedChanges, Fun, #{}).
 
-delete_matching_nodes_cb([] = Path, #node{} = Node, TreeOptions, Result) ->
+delete_matching_nodes_cb(
+  [] = Path, #node{} = Node, TreeOptions, DeleteReason, Result) ->
     Node1 = remove_node_payload(Node),
     Node2 = remove_node_child_nodes(Node1),
-    NodeProps = gather_node_props(Node, TreeOptions),
-    {ok, Node2, Result#{Path => NodeProps}};
-delete_matching_nodes_cb(Path, #node{} = Node, TreeOptions, Result) ->
-    NodeProps = gather_node_props(Node, TreeOptions),
-    {ok, delete, Result#{Path => NodeProps}};
-delete_matching_nodes_cb(_, {interrupted, _, _}, _Options, Result) ->
+    NodeProps1 = gather_node_props(Node, TreeOptions),
+    NodeProps2 = maybe_add_delete_reason_prop(
+                   NodeProps1, TreeOptions, DeleteReason),
+    {ok, Node2, Result#{Path => NodeProps2}};
+delete_matching_nodes_cb(
+  Path, #node{} = Node, TreeOptions, DeleteReason, Result) ->
+    NodeProps1 = gather_node_props(Node, TreeOptions),
+    NodeProps2 = maybe_add_delete_reason_prop(
+                   NodeProps1, TreeOptions, DeleteReason),
+    {ok, delete, Result#{Path => NodeProps2}};
+delete_matching_nodes_cb(
+  _, {interrupted, _, _}, _Options, _DeleteReason, Result) ->
     {ok, keep, Result}.
+
+maybe_add_delete_reason_prop(
+  NodeProps, #{props_to_return := WantedProps}, DeleteReason) ->
+    case lists:member(delete_reason, WantedProps) of
+        true ->
+            NodeProps#{delete_reason => DeleteReason};
+        false ->
+            NodeProps
+    end;
+maybe_add_delete_reason_prop(NodeProps, _TreeOptions, _DeleteReason) ->
+    NodeProps.
 
 %% -------------------------------------------------------------------
 %% Insert or update a tree node.
@@ -1322,7 +1343,9 @@ handle_keep_while_for_parent_update(
 handle_keep_while_for_parent_update(
   #walk{tree = Tree,
         node = ParentNode,
-        reversed_path = ReversedPath} = Walk,
+        reversed_path = ReversedPath,
+        tree_options = TreeOptions,
+        fun_acc = Acc} = Walk,
   AppliedChangesAcc) ->
     ParentPath = lists:reverse(ReversedPath),
     IsMet = is_keep_while_condition_met_on_self(
@@ -1335,7 +1358,11 @@ handle_keep_while_for_parent_update(
             %% This parent node must be removed because it doesn't meet its
             %% own keep_while condition. keep_while conditions for nodes
             %% depending on this one will be evaluated with the recursion.
-            Walk1 = Walk#walk{node = delete},
+            {ok, delete, Acc1} = delete_matching_nodes_cb(
+                                   ParentPath, ParentNode,
+                                   TreeOptions, keep_while, Acc),
+            Walk1 = Walk#walk{node = delete,
+                              fun_acc = Acc1},
             walk_back_up_the_tree(Walk1, AppliedChangesAcc)
     end.
 
@@ -1519,14 +1546,27 @@ remove_expired_nodes([], Walk) ->
     {ok, Walk};
 remove_expired_nodes(
   [PathToDelete | Rest],
-  #walk{tree = Tree, applied_changes = AppliedChanges} = Walk) ->
-    case delete_matching_nodes(Tree, PathToDelete, AppliedChanges, #{}) of
-        {ok, Tree1, AppliedChanges1, _Acc} ->
+  #walk{tree = Tree,
+        applied_changes = AppliedChanges,
+        tree_options = TreeOptions,
+        fun_acc = Acc} = Walk) ->
+    %% See `delete_matching_nodes/4'. This is the same except that the
+    %% accumulator is passed through and the `DeleteReason' is provided as
+    %% `keep_while'.
+    Fun = fun(Path, Node, Result) ->
+                  delete_matching_nodes_cb(
+                    Path, Node, TreeOptions, keep_while, Result)
+          end,
+    Result = walk_down_the_tree(
+               Tree, PathToDelete, TreeOptions, AppliedChanges, Fun, Acc),
+    case Result of
+        {ok, Tree1, AppliedChanges1, Acc1} ->
             AppliedChanges2 = merge_applied_changes(
                                 AppliedChanges, AppliedChanges1),
             Walk1 = Walk#walk{tree = Tree1,
                               node = Tree1#tree.root,
-                              applied_changes = AppliedChanges2},
+                              applied_changes = AppliedChanges2,
+                              fun_acc = Acc1},
             remove_expired_nodes(Rest, Walk1)
     end.
 

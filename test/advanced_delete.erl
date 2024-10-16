@@ -36,7 +36,8 @@ delete_existing_node_test_() ->
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
          {ok, #{[foo] => #{data => foo_value,
-                           payload_version => 1}}},
+                           payload_version => 1,
+                           delete_reason => explicit}}},
          khepri_adv:delete(?FUNCTION_NAME, [foo])),
       ?_assertEqual(
          {error, ?khepri_error(node_not_found, #{node_name => foo,
@@ -77,7 +78,8 @@ delete_many_on_existing_node_with_condition_true_test_() ->
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
          {ok, #{[foo] => #{data => foo_value,
-                           payload_version => 1}}},
+                           payload_version => 1,
+                           delete_reason => explicit}}},
          khepri_adv:delete_many(
            ?FUNCTION_NAME, [#if_name_matches{regex = "foo"}])),
       ?_assertEqual(

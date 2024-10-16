@@ -202,7 +202,8 @@ keep_while_still_true_after_command_test() ->
                    options = #{props_to_return => [payload,
                                                    payload_version,
                                                    child_list_version,
-                                                   child_list_length]}},
+                                                   child_list_length,
+                                                   delete_reason]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -238,7 +239,8 @@ keep_while_now_false_after_command_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
     Command = #put{path = [foo, bar],
-                   payload = khepri_payload:data(bar_value)},
+                   payload = khepri_payload:data(bar_value),
+                   options = #{props_to_return => [delete_reason]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -258,7 +260,8 @@ keep_while_now_false_after_command_test() ->
                  #node{props = ?INIT_NODE_PROPS,
                        payload = khepri_payload:data(bar_value)}}}}},
        Root),
-    ?assertEqual({ok, #{[foo, bar] => #{}}}, Ret),
+    ?assertEqual({ok, #{[foo, bar] => #{},
+                        [baz] => #{delete_reason => keep_while}}}, Ret),
     ?assertEqual([], SE).
 
 recursive_automatic_cleanup_test() ->
@@ -278,7 +281,8 @@ recursive_automatic_cleanup_test() ->
                       options = #{props_to_return => [payload,
                                                       payload_version,
                                                       child_list_version,
-                                                      child_list_length]}},
+                                                      child_list_length,
+                                                      delete_reason]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -292,7 +296,18 @@ recursive_automatic_cleanup_test() ->
     ?assertEqual({ok, #{[foo, bar, baz] => #{data => baz_value,
                                              payload_version => 1,
                                              child_list_version => 1,
-                                             child_list_length => 0}}}, Ret),
+                                             child_list_length => 0,
+                                             delete_reason => explicit},
+                        [foo, bar] => #{data => bar_value,
+                                        payload_version => 1,
+                                        child_list_version => 3,
+                                        child_list_length => 0,
+                                        delete_reason => keep_while},
+                        [foo] => #{data => foo_value,
+                                   payload_version => 1,
+                                   child_list_version => 3,
+                                   child_list_length => 0,
+                                   delete_reason => keep_while}}}, Ret),
     ?assertEqual([], SE).
 
 keep_while_now_false_after_delete_command_test() ->
@@ -308,7 +323,8 @@ keep_while_now_false_after_delete_command_test() ->
                       options = #{props_to_return => [payload,
                                                       payload_version,
                                                       child_list_version,
-                                                      child_list_length]}},
+                                                      child_list_length,
+                                                      delete_reason]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -322,14 +338,21 @@ keep_while_now_false_after_delete_command_test() ->
     ?assertEqual({ok, #{[foo] => #{data => foo_value,
                                    payload_version => 1,
                                    child_list_version => 1,
-                                   child_list_length => 0}}}, Ret),
+                                   child_list_length => 0,
+                                   delete_reason => explicit},
+                        [baz] => #{data => baz_value,
+                                   payload_version => 1,
+                                   child_list_version => 1,
+                                   child_list_length => 0,
+                                   delete_reason => keep_while}}}, Ret),
     ?assertEqual([], SE).
 
 automatic_reclaim_of_useless_nodes_works_test() ->
     Commands = [#put{path = [foo, bar, baz, qux],
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Command = #delete{path = [foo, bar, baz]},
+    Command = #delete{path = [foo, bar, baz],
+                      options = #{props_to_return => [delete_reason]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -340,7 +363,9 @@ automatic_reclaim_of_useless_nodes_works_test() ->
             child_list_version => 3},
           child_nodes = #{}},
        Root),
-    ?assertEqual({ok, #{[foo, bar, baz] => #{}}}, Ret),
+    ?assertEqual({ok, #{[foo, bar, baz] => #{delete_reason => explicit},
+                        [foo, bar] => #{delete_reason => keep_while},
+                        [foo] => #{delete_reason => keep_while}}}, Ret),
     ?assertEqual([], SE).
 
 automatic_reclaim_keeps_relevant_nodes_1_test() ->
@@ -351,7 +376,8 @@ automatic_reclaim_keeps_relevant_nodes_1_test() ->
                 #put{path = [foo],
                      payload = khepri_payload:data(relevant)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Command = #delete{path = [foo, bar, baz]},
+    Command = #delete{path = [foo, bar, baz],
+                      options = #{props_to_return => [delete_reason]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -368,7 +394,8 @@ automatic_reclaim_keeps_relevant_nodes_1_test() ->
                   payload = khepri_payload:data(relevant),
                   child_nodes = #{}}}},
        Root),
-    ?assertEqual({ok, #{[foo, bar, baz] => #{}}}, Ret),
+    ?assertEqual({ok, #{[foo, bar, baz] => #{delete_reason => explicit},
+                        [foo, bar] => #{delete_reason => keep_while}}}, Ret),
     ?assertEqual([], SE).
 
 automatic_reclaim_keeps_relevant_nodes_2_test() ->
@@ -379,7 +406,8 @@ automatic_reclaim_keeps_relevant_nodes_2_test() ->
                 #put{path = [foo, bar, baz, qux],
                      payload = khepri_payload:data(qux_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
-    Command = #delete{path = [foo, bar, baz, qux]},
+    Command = #delete{path = [foo, bar, baz, qux],
+                      options = #{props_to_return => [delete_reason]}},
     {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
     Root = khepri_machine:get_root(S1),
 
@@ -401,5 +429,8 @@ automatic_reclaim_keeps_relevant_nodes_2_test() ->
                           payload = khepri_payload:data(bar_value),
                           child_nodes = #{}}}}}},
        Root),
-    ?assertEqual({ok, #{[foo, bar, baz, qux] => #{}}}, Ret),
+    ?assertEqual(
+      {ok, #{[foo, bar, baz, qux] => #{delete_reason => explicit},
+             [foo, bar, baz] => #{delete_reason => keep_while}}},
+      Ret),
     ?assertEqual([], SE).

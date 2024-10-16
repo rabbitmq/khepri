@@ -203,6 +203,22 @@
 -type child_list_length() :: non_neg_integer().
 %% Number of direct child nodes under a tree node.
 
+-type delete_reason() :: explicit | keep_while.
+%% The reason why a tree node was removed from the store.
+%%
+%% <ul>
+%% <li>`explicit' means that the tree node was removed from the store because a
+%% deletion command targeted that tree node or its ancestor. This reason is
+%% used when a tree node's path is provided to {@link khepri_adv:delete/3} for
+%% example.</li>
+%% <li>`keep_while': the tree node was removed because the keep-while condition
+%% set when the node was created became unsatisfied. Note that adding or
+%% updating a tree node can cause a keep-while condition to become unsatisfied,
+%% so a put operation may result in a tree node being deleted with this delete
+%% reason. See {@link khepri_condition:keep_while()} and {@link
+%% khepri:put_options()}.</li>
+%% </ul>
+
 -type node_props() ::
     #{data => khepri:data(),
       has_data => boolean(),
@@ -211,7 +227,8 @@
       payload_version => khepri:payload_version(),
       child_list_version => khepri:child_list_version(),
       child_list_length => khepri:child_list_length(),
-      child_names => [khepri_path:node_id()]}.
+      child_names => [khepri_path:node_id()],
+      delete_reason => khepri:delete_reason()}.
 %% Structure used to return properties, payload and child nodes for a specific
 %% tree node.
 %%
@@ -337,7 +354,8 @@
                                               child_names |
                                               payload |
                                               has_payload |
-                                              raw_payload],
+                                              raw_payload |
+                                              delete_reason],
                           include_root_props => boolean()}.
 %% Options used during tree traversal.
 %%
@@ -460,6 +478,7 @@
               payload_version/0,
               child_list_version/0,
               child_list_length/0,
+              delete_reason/0,
               node_props/0,
               trigger_id/0,
 

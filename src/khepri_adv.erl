@@ -332,11 +332,18 @@ put(StoreId, PathPattern, Data) ->
 %% in the path pattern is not met, an error is returned and the tree structure
 %% is not modified.
 %%
-%% The returned `{ok, NodeProps}' tuple contains a map with the properties and
-%% payload (if any) of the targeted tree node: the payload was the one before
-%% the update, other properties like the payload version correspond to the
-%% updated node. If the targeted tree node didn't exist, `NodeProps' will be
-%% an empty map.
+%% The returned `{ok, NodePropsMap}' tuple contains a map where keys correspond
+%% to the path to a node affected by the put operation. Each key points to a
+%% map containing the properties and prior payload (if any) of a tree node
+%% created, updated or deleted by the put operation. If the put results in the
+%% creation of a tree node this props map will be empty. If the put updates an
+%% existing tree node then the props map will contain the payload of the tree
+%% node (if any) before the update while the other properties like the payload
+%% version correspond to the updated node. The `NodePropsMap' map might also
+%% contain deletions if the put operation leads to an existing tree node's
+%% keep-while condition becoming unsatisfied. The props map for any nodes
+%% deleted because of an expired keep-while condition will contain a
+%% `delete_reason' key set to `keep_while'.
 %%
 %% The payload must be one of the following form:
 %% <ul>
@@ -452,11 +459,18 @@ put_many(StoreId, PathPattern, Data) ->
 %% in the path pattern is not met, an error is returned and the tree structure
 %% is not modified.
 %%
-%% The returned `{ok, NodePropsMap}' tuple contains a map where keys
-%% correspond to the path to a tree node matching the path pattern. Each key
-%% then points to a map containing the properties and payload (if any) of the
-%% targeted tree node: the payload was the one before the update, other
-%% properties like the payload version correspond to the updated node.
+%% The returned `{ok, NodePropsMap}' tuple contains a map where keys correspond
+%% to the path to a node affected by the put operation. Each key points to a
+%% map containing the properties and prior payload (if any) of a tree node
+%% created, updated or deleted by the put operation. If the put results in the
+%% creation of a tree node this props map will be empty. If the put updates an
+%% existing tree node then the props map will contain the payload of the tree
+%% node (if any) before the update while the other properties like the payload
+%% version correspond to the updated node. The `NodePropsMap' map might also
+%% contain deletions if the put operation leads to an existing tree node's
+%% keep-while condition becoming unsatisfied. The props map for any nodes
+%% deleted because of an expired keep-while condition will contain a
+%% `delete_reason' key set to `keep_while'.
 %%
 %% The payload must be one of the following form:
 %% <ul>
@@ -831,9 +845,15 @@ delete(PathPattern, Options) when is_map(Options) ->
 %% one tree node would match at the time. If you want to delete multiple nodes
 %% at once, use {@link delete_many/3}.
 %%
-%% The returned `{ok, NodeProps}' tuple contains a map with the properties and
-%% payload (if any) of the targeted tree node as they were before the delete.
-%% If the targeted tree node didn't exist, `NodeProps' will be an empty map.
+%% The returned `{ok, NodePropsMap}' tuple contains a map where keys
+%% correspond to the path to a deleted tree node. Each key then points to a
+%% map containing the properties and payload (if any) of that deleted tree
+%% node as they were before the delete. Tree nodes in this map which were
+%% the target of the delete command will have a `delete_reason' key set to
+%% `explicit' in their associated props map. Any tree nodes deleted because
+%% their keep-while condition became unsatisfied due to the deletion will have
+%% the `delete_reason' key set to `keep_while' instead. (See {@link
+%% khepri_condition:keep_while()}.)
 %%
 %% When doing an asynchronous update, the {@link handle_async_ret/1}
 %% function should be used to handle the message received from Ra.
@@ -842,7 +862,8 @@ delete(PathPattern, Options) when is_map(Options) ->
 %% ```
 %% %% Delete the tree node at `/:foo/:bar'.
 %% {ok, #{data := value,
-%%        payload_version := 1}} = khepri_adv:delete(StoreId, [foo, bar]).
+%%        payload_version := 1,
+%%        delete_reason := explicit}} = khepri_adv:delete(StoreId, [foo, bar]).
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.
@@ -925,18 +946,25 @@ delete_many(PathPattern, Options) when is_map(Options) ->
 %% The returned `{ok, NodePropsMap}' tuple contains a map where keys
 %% correspond to the path to a deleted tree node. Each key then points to a
 %% map containing the properties and payload (if any) of that deleted tree
-%% node as they were before the delete.
+%% node as they were before the delete. Tree nodes in this map which were
+%% the target of the delete command will have a `delete_reason' key set to
+%% `explicit' in their associated props map. Any tree nodes deleted because
+%% their keep-while condition became unsatisfied due to the deletion will have
+%% the `delete_reason' key set to `keep_while' instead. (See {@link
+%% khepri_condition:keep_while()}.)
 %%
 %% When doing an asynchronous update, the {@link handle_async_ret/1}
 %% function should be used to handle the message received from Ra.
 %%
 %% Example:
 %% ```
-%% %% Delete the tree node at `/:foo/:bar'.
+%% %% Delete all tree nodes matching `/*/:bar'.
 %% {ok, #{[foo, bar] := #{data := value,
-%%                        payload_version := 1},
-%%        [baz, bar] := #{payload_version := 1}}} = khepri_adv:delete_many(
-%%                                                    StoreId, [foo, bar]).
+%%                        payload_version := 1,
+%%                        delete_reason := explicit},
+%%        [baz, bar] := #{payload_version := 1,
+%%                        delete_reason := explicit}}} =
+%% khepri_adv:delete_many(StoreId, [?KHEPRI_WILDCARD_STAR, bar]).
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.

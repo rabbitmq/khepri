@@ -16,7 +16,8 @@
                            child_list_version => ?INIT_CHILD_LIST_VERSION}).
 
 -define(DEFAULT_PROPS_TO_RETURN, [payload,
-                                  payload_version]).
+                                  payload_version,
+                                  delete_reason]).
 
 -record(node, {props = ?INIT_NODE_PROPS :: khepri_machine:props(),
                payload = ?NO_PAYLOAD :: khepri_payload:payload(),
