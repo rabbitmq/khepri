@@ -309,11 +309,18 @@ the way.</p>
 in the path pattern is not met, an error is returned and the tree structure  
 is not modified.</p>
  
-  <p>The returned <code>{ok, NodeProps}</code> tuple contains a map with the properties and
-  payload (if any) of the targeted tree node: the payload was the one before
-  the update, other properties like the payload version correspond to the
-  updated node. If the targeted tree node didn't exist, <code>NodeProps</code> will be  
-an empty map.</p>
+  <p>The returned <code>{ok, NodePropsMap}</code> tuple contains a map where keys correspond
+  to the path to a node affected by the put operation. Each key points to a
+  map containing the properties and prior payload (if any) of a tree node
+  created, updated or deleted by the put operation. If the put results in the
+  creation of a tree node this props map will be empty. If the put updates an
+  existing tree node then the props map will contain the payload of the tree
+  node (if any) before the update while the other properties like the payload
+  version correspond to the updated node. The <code>NodePropsMap</code> map might also
+  contain deletions if the put operation leads to an existing tree node's
+  keep-while condition becoming unsatisfied. The props map for any nodes
+  deleted because of an expired keep-while condition will contain a
+  <code>delete_reason</code> key set to <code>keep_while</code>.</p>
  
   The payload must be one of the following form:
   <ul>
@@ -401,11 +408,18 @@ the way.</p>
 in the path pattern is not met, an error is returned and the tree structure  
 is not modified.</p>
  
-  <p>The returned <code>{ok, NodePropsMap}</code> tuple contains a map where keys  
-correspond to the path to a tree node matching the path pattern. Each key  
-then points to a map containing the properties and payload (if any) of the  
-targeted tree node: the payload was the one before the update, other  
-properties like the payload version correspond to the updated node.</p>
+  <p>The returned <code>{ok, NodePropsMap}</code> tuple contains a map where keys correspond
+  to the path to a node affected by the put operation. Each key points to a
+  map containing the properties and prior payload (if any) of a tree node
+  created, updated or deleted by the put operation. If the put results in the
+  creation of a tree node this props map will be empty. If the put updates an
+  existing tree node then the props map will contain the payload of the tree
+  node (if any) before the update while the other properties like the payload
+  version correspond to the updated node. The <code>NodePropsMap</code> map might also
+  contain deletions if the put operation leads to an existing tree node's
+  keep-while condition becoming unsatisfied. The props map for any nodes
+  deleted because of an expired keep-while condition will contain a
+  <code>delete_reason</code> key set to <code>keep_while</code>.</p>
  
   The payload must be one of the following form:
   <ul>
@@ -651,9 +665,14 @@ is returned.</p>
   one tree node would match at the time. If you want to delete multiple nodes
   at once, use <a docgen-rel="seemfa" docgen-href="#delete_many/3" href="#delete_many-3"><code>delete_many/3</code></a>.</p>
  
-  <p>The returned <code>{ok, NodeProps}</code> tuple contains a map with the properties and
-  payload (if any) of the targeted tree node as they were before the delete.
-  If the targeted tree node didn't exist, <code>NodeProps</code> will be an empty map.</p>
+  <p>The returned <code>{ok, NodePropsMap}</code> tuple contains a map where keys
+  correspond to the path to a deleted tree node. Each key then points to a
+  map containing the properties and payload (if any) of that deleted tree
+  node as they were before the delete. Tree nodes in this map which were
+  the target of the delete command will have a <code>delete_reason</code> key set to
+  <code>explicit</code> in their associated props map. Any tree nodes deleted because
+  their keep-while condition became unsatisfied due to the deletion will have
+  the <code>delete_reason</code> key set to <code>keep_while</code> instead. (See <a docgen-rel="seetype" docgen-href="khepri_condition#keep_while/0" href="khepri_condition.html#type-keep_while"><code>khepri_condition:keep_while()</code></a>.)</p>
  
   <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="#handle_async_ret/1" href="#handle_async_ret-1"><code>handle_async_ret/1</code></a>  
 function should be used to handle the message received from Ra.</p>
@@ -661,7 +680,8 @@ function should be used to handle the message received from Ra.</p>
   Example:
   <pre><code>%% Delete the tree node at `/:foo/:bar'.
 {ok, #{data := value,
-       payload_version := 1}} = khepri_adv:delete(StoreId, [foo, bar]).</code></pre>
+       payload_version := 1,
+       delete_reason := explicit}} = khepri_adv:delete(StoreId, [foo, bar]).</code></pre>
  </p>
 <p><b>See also:</b> <a href="#delete_many-3" docgen-rel="seemfa" docgen-href="#delete_many/3">delete_many/3</a>, <a href="khepri.html#delete-3" docgen-rel="seemfa" docgen-href="khepri#delete/3">khepri:delete/3</a>.</p>
 
@@ -716,20 +736,26 @@ function should be used to handle the message received from Ra.</p>
   <p>The <code>PathPattern</code> can be provided as a native path pattern (a list of tree
   node names and conditions) or as a string. See <a docgen-rel="seemfa" docgen-href="khepri_path#from_string/1" href="khepri_path.html#from_string-1"><code>khepri_path:from_string/1</code></a>.</p>
  
-  <p>The returned <code>{ok, NodePropsMap}</code> tuple contains a map where keys  
-correspond to the path to a deleted tree node. Each key then points to a  
-map containing the properties and payload (if any) of that deleted tree  
-node as they were before the delete.</p>
+  <p>The returned <code>{ok, NodePropsMap}</code> tuple contains a map where keys
+  correspond to the path to a deleted tree node. Each key then points to a
+  map containing the properties and payload (if any) of that deleted tree
+  node as they were before the delete. Tree nodes in this map which were
+  the target of the delete command will have a <code>delete_reason</code> key set to
+  <code>explicit</code> in their associated props map. Any tree nodes deleted because
+  their keep-while condition became unsatisfied due to the deletion will have
+  the <code>delete_reason</code> key set to <code>keep_while</code> instead. (See <a docgen-rel="seetype" docgen-href="khepri_condition#keep_while/0" href="khepri_condition.html#type-keep_while"><code>khepri_condition:keep_while()</code></a>.)</p>
  
   <p>When doing an asynchronous update, the <a docgen-rel="seemfa" docgen-href="#handle_async_ret/1" href="#handle_async_ret-1"><code>handle_async_ret/1</code></a>  
 function should be used to handle the message received from Ra.</p>
  
   Example:
-  <pre><code>%% Delete the tree node at `/:foo/:bar'.
+  <pre><code>%% Delete all tree nodes matching `/*/:bar'.
 {ok, #{[foo, bar] := #{data := value,
-                       payload_version := 1},
-       [baz, bar] := #{payload_version := 1}}} = khepri_adv:delete_many(
-                                                   StoreId, [foo, bar]).</code></pre>
+                       payload_version := 1,
+                       delete_reason := explicit},
+       [baz, bar] := #{payload_version := 1,
+                       delete_reason := explicit}}} =
+khepri_adv:delete_many(StoreId, [?KHEPRI_WILDCARD_STAR, bar]).</code></pre>
  </p>
 <p><b>See also:</b> <a href="#delete-3" docgen-rel="seemfa" docgen-href="#delete/3">delete/3</a>, <a href="khepri.html#delete-3" docgen-rel="seemfa" docgen-href="khepri#delete/3">khepri:delete/3</a>.</p>
 

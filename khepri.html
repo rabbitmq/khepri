@@ -141,6 +141,22 @@ nodes added or removed).</p>
 <p><code>data() = any()</code></p>
 <p>  Data stored in a tree node's payload.</p>
 
+<h3 class="typedecl"><a name="type-delete_reason">delete_reason()</a></h3>
+<p><code>delete_reason() = explicit | keep_while</code></p>
+<p><p>  The reason why a tree node was removed from the store.</p>
+ 
+  <ul>
+  <li><code>explicit</code> means that the tree node was removed from the store because a
+  deletion command targeted that tree node or its ancestor. This reason is
+  used when a tree node's path is provided to <a docgen-rel="seemfa" docgen-href="khepri_adv#delete/3" href="khepri_adv.html#delete-3"><code>khepri_adv:delete/3</code></a> for
+  example.</li>
+  <li><code>keep_while</code>: the tree node was removed because the keep-while condition
+  set when the node was created became unsatisfied. Note that adding or
+  updating a tree node can cause a keep-while condition to become unsatisfied,
+  so a put operation may result in a tree node being deleted with this delete
+  reason. See <a docgen-rel="seetype" docgen-href="khepri_condition#keep_while/0" href="khepri_condition.html#type-keep_while"><code>khepri_condition:keep_while()</code></a> and <a docgen-rel="seetype" docgen-href="khepri#put_options/0" href="khepri.html#type-put_options"><code>khepri:put_options()</code></a>.</li>
+  </ul></p>
+
 <h3 class="typedecl"><a name="type-error">error()</a></h3>
 <p><code>error() = <a href="#type-error" docgen-rel="seetype" docgen-href="#error/0">error</a>(any())</code></p>
 <p>  The error tuple returned by a function after a failure.</p>
@@ -218,7 +234,7 @@ on many nodes.</p>
 <p>  The return value of update functions in the <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> module.</p>
 
 <h3 class="typedecl"><a name="type-node_props">node_props()</a></h3>
-<p><code>node_props() = #{data =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a>, has_data =&gt; boolean(), sproc =&gt; <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun" docgen-rel="seetype" docgen-href="horus:horus#horus_fun/0">horus:horus_fun()</a>, is_sproc =&gt; boolean(), payload_version =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_version" docgen-rel="seetype" docgen-href="khepri:khepri#payload_version/0">khepri:payload_version()</a>, child_list_version =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_version" docgen-rel="seetype" docgen-href="khepri:khepri#child_list_version/0">khepri:child_list_version()</a>, child_list_length =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_length" docgen-rel="seetype" docgen-href="khepri:khepri#child_list_length/0">khepri:child_list_length()</a>, child_names =&gt; [<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-node_id" docgen-rel="seetype" docgen-href="khepri:khepri_path#node_id/0">khepri_path:node_id()</a>]}</code></p>
+<p><code>node_props() = #{data =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-data" docgen-rel="seetype" docgen-href="khepri:khepri#data/0">khepri:data()</a>, has_data =&gt; boolean(), sproc =&gt; <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun" docgen-rel="seetype" docgen-href="horus:horus#horus_fun/0">horus:horus_fun()</a>, is_sproc =&gt; boolean(), payload_version =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_version" docgen-rel="seetype" docgen-href="khepri:khepri#payload_version/0">khepri:payload_version()</a>, child_list_version =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_version" docgen-rel="seetype" docgen-href="khepri:khepri#child_list_version/0">khepri:child_list_version()</a>, child_list_length =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_length" docgen-rel="seetype" docgen-href="khepri:khepri#child_list_length/0">khepri:child_list_length()</a>, child_names =&gt; [<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-node_id" docgen-rel="seetype" docgen-href="khepri:khepri_path#node_id/0">khepri_path:node_id()</a>], delete_reason =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-delete_reason" docgen-rel="seetype" docgen-href="khepri:khepri#delete_reason/0">khepri:delete_reason()</a>}</code></p>
 <p><p>  Structure used to return properties, payload and child nodes for a specific  
 tree node.</p>
  
@@ -310,7 +326,7 @@ controls which member of the cluster carries out the reply.</p>
   This is the same as the Ra cluster name hosting the Khepri store.</p>
 
 <h3 class="typedecl"><a name="type-tree_options">tree_options()</a></h3>
-<p><code>tree_options() = #{expect_specific_node =&gt; boolean(), props_to_return =&gt; [payload_version | child_list_version | child_list_length | child_names | payload | has_payload | raw_payload], include_root_props =&gt; boolean()}</code></p>
+<p><code>tree_options() = #{expect_specific_node =&gt; boolean(), props_to_return =&gt; [payload_version | child_list_version | child_list_length | child_names | payload | has_payload | raw_payload | delete_reason], include_root_props =&gt; boolean()}</code></p>
 <p><p>  Options used during tree traversal.</p>
  
   <ul>
