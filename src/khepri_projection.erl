@@ -308,7 +308,7 @@ trigger(
         undefined ->
             %% A table might have been deleted by an `unregister_projections'
             %% effect in between when a `trigger_projection' effect is created
-            %% and when it is handled in `khepri_machine:handle_aux/6`. In this
+            %% and when it is handled in `khepri_machine:handle_aux/5`. In this
             %% case we should no-op the trigger effect.
             ok;
         Table ->

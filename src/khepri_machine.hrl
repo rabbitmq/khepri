@@ -64,6 +64,13 @@
 
 -record(dedup_ack, {ref :: reference()}).
 
+-record(drop_dedups, {refs :: [reference()]}).
+%% A command introduced in machine version 2 which is meant to drop expired
+%% dedups.
+%%
+%% This is emitted internally by the `handle_aux/5' callback clause which
+%% handles the `tick' Ra aux effect.
+
 %% Old commands, kept for backward-compatibility.
 
 -record(unregister_projection, {name :: khepri_projection:name()}).
