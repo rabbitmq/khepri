@@ -862,8 +862,7 @@ delete(PathPattern, Options) when is_map(Options) ->
 %% ```
 %% %% Delete the tree node at `/:foo/:bar'.
 %% {ok, #{data := value,
-%%        payload_version := 1,
-%%        delete_reason := explicit}} = khepri_adv:delete(StoreId, [foo, bar]).
+%%        payload_version := 1}} = khepri_adv:delete(StoreId, [foo, bar]).
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.
@@ -960,10 +959,8 @@ delete_many(PathPattern, Options) when is_map(Options) ->
 %% ```
 %% %% Delete all tree nodes matching `/*/:bar'.
 %% {ok, #{[foo, bar] := #{data := value,
-%%                        payload_version := 1,
-%%                        delete_reason := explicit},
-%%        [baz, bar] := #{payload_version := 1,
-%%                        delete_reason := explicit}}} =
+%%                        payload_version := 1},
+%%        [baz, bar] := #{payload_version := 1}}} =
 %% khepri_adv:delete_many(StoreId, [?KHEPRI_WILDCARD_STAR, bar]).
 %% '''
 %%
