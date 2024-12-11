@@ -206,6 +206,12 @@ returned data and low latency of queries.</p>
 <p><code>foreach_fun() = fun((<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a>, <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-node_props" docgen-rel="seetype" docgen-href="khepri:khepri#node_props/0">khepri:node_props()</a>) -&gt; any())</code></p>
 <p>  Function passed to <a docgen-rel="seemfa" docgen-href="khepri#foreach/4" href="khepri.html#foreach-4"><code>khepri:foreach/4</code></a>.</p>
 
+<h3 class="typedecl"><a name="type-known_prop_to_return">known_prop_to_return()</a></h3>
+<p><code>known_prop_to_return() = payload_version | child_list_version | child_list_length | child_names | payload | has_payload | raw_payload | delete_reason</code></p>
+<p><p>  Name of a known property to return.</p>
+ 
+  To be used in <a docgen-rel="seetype" docgen-href="khepri#tree_options/0" href="khepri.html#type-tree_options"><code>khepri:tree_options()</code></a> <code>props_to_return</code> list.</p>
+
 <h3 class="typedecl"><a name="type-many_payloads_ret">many_payloads_ret()</a></h3>
 <p><code>many_payloads_ret() = <a href="#type-many_payloads_ret" docgen-rel="seetype" docgen-href="#many_payloads_ret/0">many_payloads_ret</a>(undefined)</code></p>
 <p><p>  The return value of query functions in the <a docgen-rel="seeerl" docgen-href="khepri" href="khepri.html"><code>khepri</code></a> module that work  
@@ -326,7 +332,7 @@ controls which member of the cluster carries out the reply.</p>
   This is the same as the Ra cluster name hosting the Khepri store.</p>
 
 <h3 class="typedecl"><a name="type-tree_options">tree_options()</a></h3>
-<p><code>tree_options() = #{expect_specific_node =&gt; boolean(), props_to_return =&gt; [payload_version | child_list_version | child_list_length | child_names | payload | has_payload | raw_payload | delete_reason], include_root_props =&gt; boolean()}</code></p>
+<p><code>tree_options() = #{expect_specific_node =&gt; boolean(), props_to_return =&gt; [<a href="#type-known_prop_to_return" docgen-rel="seetype" docgen-href="#known_prop_to_return/0">known_prop_to_return()</a> | <a href="#type-unknown_prop_to_return" docgen-rel="seetype" docgen-href="#unknown_prop_to_return/0">unknown_prop_to_return()</a>], include_root_props =&gt; boolean()}</code></p>
 <p><p>  Options used during tree traversal.</p>
  
   <ul>
@@ -345,6 +351,15 @@ controls which member of the cluster carries out the reply.</p>
 <h3 class="typedecl"><a name="type-trigger_id">trigger_id()</a></h3>
 <p><code>trigger_id() = atom()</code></p>
 <p>  An ID to identify a registered trigger.</p>
+
+<h3 class="typedecl"><a name="type-unknown_prop_to_return">unknown_prop_to_return()</a></h3>
+<p><code>unknown_prop_to_return() = atom()</code></p>
+<p><p>  Name of a property unknown to this version of Khepri.</p>
+ 
+  <p>This can happen when a query is emitted by a newer version of Khepri that  
+added new properties to return.</p>
+ 
+  Can be seen in <a docgen-rel="seetype" docgen-href="khepri#tree_options/0" href="khepri.html#type-tree_options"><code>khepri:tree_options()</code></a> <code>props_to_return</code> list.</p>
 
 <h3 class="typedecl"><a name="type-unwrapped_many_payloads_ret">unwrapped_many_payloads_ret()</a></h3>
 <p><code>unwrapped_many_payloads_ret() = <a href="#type-unwrapped_many_payloads_ret" docgen-rel="seetype" docgen-href="#unwrapped_many_payloads_ret/0">unwrapped_many_payloads_ret</a>(undefined)</code></p>
