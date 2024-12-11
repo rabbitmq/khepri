@@ -234,7 +234,9 @@ gather_node_props(#node{props = #{payload_version := PVersion,
               end;
           (raw_payload, Acc) ->
               Acc#{raw_payload => Payload};
-          (delete_reason, Acc) ->
+          (_Unknown, Acc) ->
+              %% We ignore props we don't know about. It might be a new one in
+              %% a future version of the machine.
               Acc
       end, #{}, WantedProps);
 gather_node_props(#node{}, _Options) ->
