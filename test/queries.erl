@@ -399,3 +399,17 @@ include_child_names_in_query_response_test() ->
                          child_list_version => 2,
                          child_names => [bar, quux]}}},
        Ret).
+
+use_an_unknown_prop_to_return_test() ->
+    Commands = [#put{path = [foo],
+                     payload = khepri_payload:data(value)}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+    Tree = khepri_machine:get_tree(S0),
+    Ret = khepri_tree:find_matching_nodes(
+            Tree, [foo],
+            #{props_to_return => [payload,
+                                  future_prop_name]}),
+
+    ?assertEqual(
+       {ok, #{[foo] => #{data => value}}},
+       Ret).

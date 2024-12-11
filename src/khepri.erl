@@ -348,14 +348,8 @@
 %% set, `condition' takes precedence and `favor' is ignored.
 
 -type tree_options() :: #{expect_specific_node => boolean(),
-                          props_to_return => [payload_version |
-                                              child_list_version |
-                                              child_list_length |
-                                              child_names |
-                                              payload |
-                                              has_payload |
-                                              raw_payload |
-                                              delete_reason],
+                          props_to_return => [known_prop_to_return() |
+                                              unknown_prop_to_return()],
                           include_root_props => boolean()}.
 %% Options used during tree traversal.
 %%
@@ -371,6 +365,26 @@
 %% <li>`include_root_props' indicates if root properties and payload should be
 %% returned as well.</li>
 %% </ul>
+
+-type known_prop_to_return() :: payload_version |
+                                child_list_version |
+                                child_list_length |
+                                child_names |
+                                payload |
+                                has_payload |
+                                raw_payload |
+                                delete_reason.
+%% Name of a known property to return.
+%%
+%% To be used in {@link khepri:tree_options()} `props_to_return' list.
+
+-type unknown_prop_to_return() :: atom().
+%% Name of a property unknown to this version of Khepri.
+%%
+%% This can happen when a query is emitted by a newer version of Khepri that
+%% added new properties to return.
+%%
+%% Can be seen in {@link khepri:tree_options()} `props_to_return' list.
 
 -type put_options() :: #{keep_while => khepri_condition:keep_while()}.
 %% Options specific to updates.
