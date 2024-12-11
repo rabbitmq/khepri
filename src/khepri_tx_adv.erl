@@ -129,9 +129,11 @@ get_many(PathPattern, Options) ->
 
 do_get_many(PathPattern, Fun, Acc, Options) ->
     PathPattern1 = path_from_string(PathPattern),
-    {_QueryOptions, TreeOptions} = khepri_machine:split_query_options(Options),
     {State, _SideEffects} = get_tx_state(),
+    StoreId = khepri_machine:get_store_id(State),
     Tree = khepri_machine:get_tree(State),
+    {_QueryOptions, TreeOptions} =
+    khepri_machine:split_query_options(StoreId, Options),
     Ret = khepri_tree:fold(Tree, PathPattern1, Fun, Acc, TreeOptions),
     case Ret of
         {error, ?khepri_exception(_, _) = Exception} ->
@@ -210,14 +212,16 @@ put_many(PathPattern, Data, Options) ->
     ensure_updates_are_allowed(),
     PathPattern1 = path_from_string(PathPattern),
     Payload1 = khepri_payload:wrap(Data),
+    {State, _SideEffects} = get_tx_state(),
+    StoreId = khepri_machine:get_store_id(State),
     {_CommandOptions, TreeAndPutOptions} =
-    khepri_machine:split_command_options(Options),
+    khepri_machine:split_command_options(StoreId, Options),
     {TreeOptions, PutOptions} =
     khepri_machine:split_put_options(TreeAndPutOptions),
     %% TODO: Ensure `CommandOptions' is unset.
-    Fun = fun(State, SideEffects) ->
+    Fun = fun(State1, SideEffects) ->
                   khepri_machine:insert_or_update_node(
-                    State, PathPattern1, Payload1, PutOptions, TreeOptions,
+                    State1, PathPattern1, Payload1, PutOptions, TreeOptions,
                     SideEffects)
           end,
     handle_state_for_call(Fun).
@@ -401,13 +405,15 @@ delete_many(PathPattern) ->
 delete_many(PathPattern, Options) ->
     ensure_updates_are_allowed(),
     PathPattern1 = path_from_string(PathPattern),
+    {State, _SideEffects} = get_tx_state(),
+    StoreId = khepri_machine:get_store_id(State),
     {_CommandOptions, TreeOptions} =
-    khepri_machine:split_command_options(Options),
+    khepri_machine:split_command_options(StoreId, Options),
     %% TODO: Ensure `CommandOptions' is empty and `TreeOptions' doesn't
     %% contains put options.
-    Fun = fun(State, SideEffects) ->
+    Fun = fun(State1, SideEffects) ->
                   khepri_machine:delete_matching_nodes(
-                    State, PathPattern1, TreeOptions, SideEffects)
+                    State1, PathPattern1, TreeOptions, SideEffects)
           end,
     handle_state_for_call(Fun).
 
