@@ -206,8 +206,8 @@
 -type query_fun() :: fun((state()) -> any()).
 %% Function representing a query and used {@link process_query/3}.
 
--type common_ret() :: khepri:ok(khepri_adv:node_props_map()) |
-                      khepri:error().
+-type write_ret() :: khepri:ok(khepri:node_props_map()) |
+                     khepri:error().
 
 -type tx_ret() :: khepri:ok(khepri_tx:tx_fun_result()) |
                   khepri_tx:tx_abort() |
@@ -223,7 +223,7 @@
 %% A mapping between the names of projections and patterns to which each
 %% projection is registered.
 
--export_type([common_ret/0,
+-export_type([write_ret/0,
               tx_ret/0,
               async_ret/0,
 
@@ -327,7 +327,7 @@ fence(StoreId, Timeout) ->
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_machine:common_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
 %% @doc Creates or modifies a specific tree node in the tree structure.
 %%
 %% @param StoreId the name of the Ra cluster.
@@ -361,7 +361,7 @@ put(_StoreId, PathPattern, Payload, _Options) ->
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_machine:common_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
 %% @doc Deletes all tree nodes matching the path pattern.
 %%
 %% @param StoreId the name of the Ra cluster.
@@ -1818,7 +1818,7 @@ failed_to_locate_sproc(Reason) ->
       TreeOptions :: khepri:tree_options(),
       SideEffects :: ra_machine:effects(),
       Ret :: {State, Result, ra_machine:effects()},
-      Result :: khepri_machine:common_ret().
+      Result :: khepri_machine:write_ret().
 %% @private
 
 insert_or_update_node(
@@ -1844,7 +1844,7 @@ insert_or_update_node(
       TreeOptions :: khepri:tree_options(),
       SideEffects :: ra_machine:effects(),
       Ret :: {State, Result, ra_machine:effects()},
-      Result :: khepri_machine:common_ret().
+      Result :: khepri_machine:write_ret().
 %% @private
 
 delete_matching_nodes(State, PathPattern, TreeOptions, SideEffects) ->
@@ -2539,8 +2539,8 @@ update_projection(Pattern, Projection, OldTree, NewTree) ->
     end.
 
 -spec diff_matching_nodes(OldNodeProps, NewNodeProps) -> Changes when
-      OldNodeProps :: khepri_adv:node_props_map(),
-      NewNodeProps :: khepri_adv:node_props_map(),
+      OldNodeProps :: khepri:node_props_map(),
+      NewNodeProps :: khepri:node_props_map(),
       OldProps :: khepri:node_props(),
       NewProps :: khepri:node_props(),
       Changes :: #{khepri_path:native_path() => {OldProps, NewProps}}.

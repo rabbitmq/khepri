@@ -437,7 +437,7 @@ update_keep_while_conds_revidx_v1(
       Tree :: tree(),
       PathPattern :: khepri_path:native_pattern(),
       TreeOptions :: khepri:tree_options(),
-      Ret :: khepri_machine:common_ret().
+      Ret :: khepri_machine:write_ret().
 %% @private
 
 find_matching_nodes(Tree, PathPattern, TreeOptions) ->
@@ -450,7 +450,7 @@ find_matching_nodes(Tree, PathPattern, TreeOptions) ->
     Ret when
       Path :: khepri_path:native_path(),
       NodeProps :: khepri:node_props(),
-      Map :: khepri_adv:node_props_map(),
+      Map :: khepri:node_props_map(),
       Ret :: Map.
 %% @private
 
@@ -578,7 +578,7 @@ maybe_add_delete_reason_prop(NodeProps, _TreeOptions, _DeleteReason) ->
       Payload :: khepri_payload:payload(),
       PutOptions :: khepri:put_options(),
       TreeOptions :: khepri:tree_options(),
-      NodeProps :: khepri_adv:node_props_map(),
+      NodeProps :: khepri:node_props_map(),
       AppliedChanges :: applied_changes(),
       Ret :: ok(Tree, AppliedChanges, NodeProps) | khepri:error().
 

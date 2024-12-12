@@ -48,23 +48,13 @@
          unregister_projections/1, unregister_projections/2,
          unregister_projections/3]).
 
--type node_props_map() :: #{khepri_path:native_path() => khepri:node_props()}.
-%% Structure used to return a map of nodes and their associated properties,
-%% payload and child nodes.
-
--type many_results() :: khepri_machine:common_ret().
-%% Return value of a query or synchronous command targeting many tree nodes.
-
--export_type([node_props_map/0,
-              many_results/0]).
-
 %% -------------------------------------------------------------------
 %% get().
 %% -------------------------------------------------------------------
 
 -spec get(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Returns the properties and payload of the tree node pointed to by the
 %% given path pattern.
 %%
@@ -83,11 +73,11 @@ get(PathPattern) ->
 (StoreId, PathPattern) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:many_results();
+      Ret :: khepri_machine:write_ret();
 (PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:query_options() | khepri:tree_options(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Returns the properties and payload of the tree node pointed to by the
 %% given path pattern.
 %%
@@ -112,7 +102,7 @@ get(PathPattern, Options) when is_map(Options) ->
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:query_options() | khepri:tree_options(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Returns the properties and payload of the tree node pointed to by the
 %% given path pattern.
 %%
@@ -170,7 +160,7 @@ get(StoreId, PathPattern, Options) ->
 
 -spec get_many(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Returns properties and payloads of all the tree nodes matching the
 %% given path pattern.
 %%
@@ -189,11 +179,11 @@ get_many(PathPattern) ->
 (StoreId, PathPattern) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:many_results();
+      Ret :: khepri_machine:write_ret();
 (PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:query_options() | khepri:tree_options(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Returns properties and payloads of all the tree nodes matching the
 %% given path pattern.
 %%
@@ -218,7 +208,7 @@ get_many(PathPattern, Options) when is_map(Options) ->
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:query_options() | khepri:tree_options(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Returns properties and payloads of all the tree nodes matching the
 %% given path pattern.
 %%
@@ -267,7 +257,7 @@ get_many(StoreId, PathPattern, Options) ->
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Ret :: khepri:minimal_ret() |
-             khepri_adv:many_results().
+             khepri_machine:write_ret().
 %% @doc Sets the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -287,7 +277,7 @@ put(PathPattern, Data) ->
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Ret :: khepri:minimal_ret() |
-             khepri_adv:many_results().
+             khepri_machine:write_ret().
 %% @doc Sets the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -307,7 +297,7 @@ put(StoreId, PathPattern, Data) ->
                  khepri:tree_options() |
                  khepri:put_options(),
       Ret :: khepri:minimal_ret() |
-             khepri_adv:many_results() |
+             khepri_machine:write_ret() |
              khepri_machine:async_ret().
 %% @doc Sets the payload of the tree node pointed to by the given path
 %% pattern.
@@ -406,7 +396,7 @@ put(StoreId, PathPattern, Data, Options) ->
 -spec put_many(PathPattern, Data) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Sets the payload of all the tree nodes matching the given path pattern.
 %%
 %% Calling this function is the same as calling `put_many(StoreId, PathPattern,
@@ -424,7 +414,7 @@ put_many(PathPattern, Data) ->
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Sets the payload of all the tree nodes matching the given path pattern.
 %%
 %% Calling this function is the same as calling `put_many(StoreId, PathPattern,
@@ -442,7 +432,7 @@ put_many(StoreId, PathPattern, Data) ->
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
 %% @doc Sets the payload of all the tree nodes matching the given path pattern.
 %%
 %% The `PathPattern' can be provided as a native path pattern (a list of tree
@@ -533,7 +523,7 @@ put_many(StoreId, PathPattern, Data, Options) ->
 -spec create(PathPattern, Data) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Creates a tree node with the given payload.
 %%
 %% Calling this function is the same as calling `create(StoreId, PathPattern,
@@ -551,7 +541,7 @@ create(PathPattern, Data) ->
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Creates a tree node with the given payload.
 %%
 %% Calling this function is the same as calling `create(StoreId, PathPattern,
@@ -569,7 +559,7 @@ create(StoreId, PathPattern, Data) ->
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
 %% @doc Creates a tree node with the given payload.
 %%
 %% The behavior is the same as {@link put/4} except that if the tree node
@@ -608,7 +598,7 @@ create(StoreId, PathPattern, Data, Options) ->
 -spec update(PathPattern, Data) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Updates an existing tree node with the given payload.
 %%
 %% Calling this function is the same as calling `update(StoreId, PathPattern,
@@ -626,7 +616,7 @@ update(PathPattern, Data) ->
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Updates an existing tree node with the given payload.
 %%
 %% Calling this function is the same as calling `update(StoreId, PathPattern,
@@ -644,7 +634,7 @@ update(StoreId, PathPattern, Data) ->
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
 %% @doc Updates an existing tree node with the given payload.
 %%
 %% The behavior is the same as {@link put/4} except that if the tree node
@@ -685,7 +675,7 @@ update(StoreId, PathPattern, Data, Options) ->
       PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Updates an existing tree node with the given payload only if its data
 %% matches the given pattern.
 %%
@@ -705,7 +695,7 @@ compare_and_swap(PathPattern, DataPattern, Data) ->
       PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Updates an existing tree node with the given payload only if its data
 %% matches the given pattern.
 %%
@@ -726,7 +716,7 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data) ->
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
 %% @doc Updates an existing tree node with the given payload only if its data
 %% matches the given pattern.
 %%
@@ -770,7 +760,7 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) ->
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
 %% @doc Prepares the payload and calls {@link khepri_machine:put/4}.
 %%
 %% @private
@@ -785,7 +775,7 @@ do_put(StoreId, PathPattern, Payload, Options) ->
 
 -spec delete(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Deletes the tree node pointed to by the given path pattern.
 %%
 %% Calling this function is the same as calling `delete(StoreId, PathPattern)'
@@ -803,11 +793,11 @@ delete(PathPattern) ->
 (StoreId, PathPattern) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:many_results();
+      Ret :: khepri_machine:write_ret();
 (PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Deletes the tree node pointed to by the given path pattern.
 %%
 %% This function accepts the following two forms:
@@ -831,7 +821,7 @@ delete(PathPattern, Options) when is_map(Options) ->
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
 %% @doc Deletes the tree node pointed to by the given path pattern.
 %%
 %% The `PathPattern' can be provided as a native path pattern (a list of tree
@@ -889,7 +879,7 @@ delete(StoreId, PathPattern, Options) ->
 
 -spec delete_many(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Deletes all tree nodes matching the given path pattern.
 %%
 %% Calling this function is the same as calling `delete_many(StoreId,
@@ -907,11 +897,11 @@ delete_many(PathPattern) ->
 (StoreId, PathPattern) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:many_results();
+      Ret :: khepri_machine:write_ret();
 (PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 
 %% @doc Deletes all tree nodes matching the given path pattern.
 %%
@@ -936,7 +926,7 @@ delete_many(PathPattern, Options) when is_map(Options) ->
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
 %% @doc Deletes all tree nodes matching the given path pattern.
 %%
 %% The `PathPattern' can be provided as a native path pattern (a list of tree
@@ -988,7 +978,7 @@ delete_many(StoreId, PathPattern, Options) ->
 
 -spec clear_payload(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -1006,7 +996,7 @@ clear_payload(PathPattern) ->
 -spec clear_payload(StoreId, PathPattern) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -1024,7 +1014,7 @@ clear_payload(StoreId, PathPattern) ->
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -1057,7 +1047,7 @@ clear_payload(StoreId, PathPattern, Options) ->
 
 -spec clear_many_payloads(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Deletes the payload of all tree nodes matching the given path pattern.
 %%
 %% Calling this function is the same as calling `clear_many_payloads(StoreId,
@@ -1074,7 +1064,7 @@ clear_many_payloads(PathPattern) ->
 -spec clear_many_payloads(StoreId, PathPattern) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_adv:many_results().
+      Ret :: khepri_machine:write_ret().
 %% @doc Deletes the payload of all tree nodes matching the given path pattern.
 %%
 %% Calling this function is the same as calling `clear_many_payloads(StoreId,
@@ -1092,7 +1082,7 @@ clear_many_payloads(StoreId, PathPattern) ->
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_adv:many_results() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
 %% @doc Deletes the payload of all tree nodes matching the given path pattern.
 %%
 %% In other words, the payload is set to {@link khepri_payload:no_payload()}.
