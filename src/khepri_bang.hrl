@@ -10,7 +10,7 @@
 %% "Bang functions", mostly an Elixir convention.
 %% -------------------------------------------------------------------
 
--type unwrapped_minimal_ret() :: khepri:minimal_ret().
+-type unwrapped_minimal_ret() :: ok.
 
 -type unwrapped_payload_ret(Default) :: khepri:data() |
                                         horus:horus_fun() |
