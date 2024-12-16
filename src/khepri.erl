@@ -240,6 +240,10 @@
 %% exposed by {@link khepri_adv}. The list of returned properties can be
 %% configured using the `props_to_return' option (see {@link tree_options()}).
 
+-type node_props_map() :: #{khepri_path:native_path() => khepri:node_props()}.
+%% Structure used to return a map of nodes and their associated properties,
+%% payload and child nodes.
+
 -type trigger_id() :: atom().
 %% An ID to identify a registered trigger.
 
@@ -462,7 +466,7 @@
 %%
 %% `undefined' is returned if a tree node has no payload attached to it.
 
--type async_ret() :: khepri_adv:many_results() |
+-type async_ret() :: khepri_machine:write_ret() |
                      khepri_tx:tx_fun_result() |
                      khepri:error({not_leader, ra:server_id()}).
 %% The value returned from of a command function which was executed
@@ -478,7 +482,7 @@
 %% commands could not be applied since they were sent to a non-leader member.
 %%
 %% Note that when commands are successfully applied, the return values are
-%% {@link khepri_adv:many_results()} rather than {@link khepri:minimal_ret()},
+%% {@link khepri_machine:write_ret()} rather than {@link khepri:minimal_ret()},
 %% even if the command was sent using a function from the {@link khepri} API
 %% such as {@link khepri:put/4}.
 %%
@@ -494,6 +498,7 @@
               child_list_length/0,
               delete_reason/0,
               node_props/0,
+              node_props_map/0,
               trigger_id/0,
 
               async_option/0,

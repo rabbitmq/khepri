@@ -100,14 +100,14 @@ node_props_to_payload(#{sproc := StandaloneFun}, _Default) -> StandaloneFun;
 node_props_to_payload(_NodeProps, Default)                 -> Default.
 
 -spec flat_struct_to_tree(NodePropsMap) -> DisplayTree when
-      NodePropsMap :: khepri_adv:node_props_map(),
+      NodePropsMap :: khepri:node_props_map(),
       DisplayTree :: display_tree().
 
 flat_struct_to_tree(FlatStruct) ->
     flat_struct_to_tree(FlatStruct, fun(NodeProps) -> NodeProps end).
 
 -spec flat_struct_to_tree(NodePropsMap, MapFun) -> DisplayTree when
-      NodePropsMap :: khepri_adv:node_props_map(),
+      NodePropsMap :: khepri:node_props_map(),
       MapFun :: fun((khepri:node_props()) -> khepri:node_props()),
       DisplayTree :: display_tree().
 
