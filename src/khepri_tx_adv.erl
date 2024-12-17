@@ -713,6 +713,20 @@ ensure_bif_is_valid(Bif, Arity) ->
 is_remote_call_valid(khepri_payload, no_payload, 0) -> true;
 is_remote_call_valid(khepri_payload, data, 1) -> true;
 
+is_remote_call_valid(khepri_path, compile, _) -> true;
+is_remote_call_valid(khepri_path, from_string, _) -> true;
+is_remote_call_valid(khepri_path, from_binary, _) -> true;
+is_remote_call_valid(khepri_path, to_string, _) -> true;
+is_remote_call_valid(khepri_path, to_binary, _) -> true;
+is_remote_call_valid(khepri_path, combine_with_conditions, _) -> true;
+is_remote_call_valid(khepri_path, targets_specific_node, _) -> true;
+is_remote_call_valid(khepri_path, component_targets_specific_node, _) -> true;
+is_remote_call_valid(khepri_path, is_valid, _) -> true;
+is_remote_call_valid(khepri_path, ensure_is_valid, _) -> true;
+is_remote_call_valid(khepri_path, abspath, _) -> true;
+is_remote_call_valid(khepri_path, realpath, _) -> true;
+is_remote_call_valid(khepri_path, pattern_includes_root_node, _) -> true;
+
 is_remote_call_valid(khepri_tx, is_empty, _) -> true;
 is_remote_call_valid(khepri_tx, get, _) -> true;
 is_remote_call_valid(khepri_tx, get_or, _) -> true;
