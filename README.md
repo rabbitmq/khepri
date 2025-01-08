@@ -228,7 +228,8 @@ rebar3 as test dialyzer
 
 ## Copyright and License
 
-© 2021-2024 Broadcom. All Rights Reserved. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+© 2021-2025 Broadcom. All Rights Reserved. The term "Broadcom" refers to
+Broadcom Inc. and/or its subsidiaries.
 
 This work is dual-licensed under the Apache License 2.0 and the Mozilla Public
 License 2.0. Users can choose any of these licenses according to their needs.
