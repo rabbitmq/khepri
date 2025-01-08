@@ -61,6 +61,9 @@ never be called directly outside of Khepri.</p>
   keep-while conditions to be a prefix tree (see <a docgen-rel="seeerl" docgen-href="khepri_prefix_tree" href="khepri_prefix_tree.html"><code>khepri_prefix_tree</code></a>).
   </li>
   <li>Moved the expiration of dedups to the <code>tick</code> aux effect (see <a docgen-rel="seemfa" docgen-href="#handle_aux/5" href="#handle_aux-5"><code>handle_aux/5</code></a>). This also introduces a new command <code>#drop_dedups{}</code>.</li>
+  <li>Added the <code>delete_reason</code> to the list of properties that can be
+  returned. It is returned by default if the effective machine version is 2 or
+  more.</li>
   </ul>
   </td>
   </tr>
