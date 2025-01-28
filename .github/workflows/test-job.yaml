@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp_version: ['25', '26', '27']
+        otp_version: ['26', '27']
         os: [ubuntu-latest, windows-latest]
 
     steps:
