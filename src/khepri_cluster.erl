@@ -866,13 +866,13 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
     end.
 
 wait_for_cluster_change_permitted(RaMemberOrStoreId, Timeout) ->
-    Ret = wait_for_leader(RaMemberOrStoreId, Timeout),
+    Ret = do_wait_for_leader(RaMemberOrStoreId, false, Timeout),
 
     %% We wait for an additional fixed amount of time because the
     %% cluster could have a leader and still not be ready to accept
     %% a cluster change. This avoids too many retries that will
     %% just eat resources.
-    timer:sleep(200),
+    timer:sleep(?TRANSIENT_ERROR_RETRY_INTERVAL),
 
     Ret.
 
@@ -954,8 +954,18 @@ do_reset(RaSystem, StoreId, ThisMember, Timeout) ->
                 Ret2 = wait_for_cluster_change_permitted(StoreId, Timeout1),
                 Timeout2 = khepri_utils:end_timeout_window(Timeout1, T2),
                 case Ret2 of
-                    ok    -> do_reset(RaSystem, StoreId, ThisMember, Timeout2);
-                    Error -> Error
+                    ok ->
+                        do_reset(RaSystem, StoreId, ThisMember, Timeout2);
+                    {error, noproc} ->
+                        ?LOG_DEBUG(
+                           "The local Ra server exited while we were waiting "
+                           "for it to be ready for a membership change. It "
+                           "means it was removed from the cluster by another "
+                           "member; we can proceed with the reset."),
+                        forget_store(StoreId),
+                        ok;
+                    Error ->
+                        Error
                 end
             catch
                 exit:{normal, _} ->
@@ -1183,7 +1193,8 @@ do_query_members(StoreId, RaServer, QueryType, Timeout) ->
           when ?HAS_TIME_LEFT(Timeout) andalso
                (Reason == noconnection orelse
                 Reason == nodedown orelse
-                Reason == shutdown) ->
+                Reason == shutdown orelse
+                Reason == normal) ->
             NewTimeout0 = khepri_utils:end_timeout_window(Timeout, T0),
             NewTimeout = khepri_utils:sleep(
                            ?TRANSIENT_ERROR_RETRY_INTERVAL, NewTimeout0),
@@ -1317,24 +1328,29 @@ wait_for_leader(StoreIdOrRaServer) ->
 %%
 %% @returns `ok' if a leader was elected or an `{error, Reason}' tuple.
 
-wait_for_leader(StoreId, Timeout) when is_atom(StoreId) ->
+wait_for_leader(StoreIdOrRaServer, Timeout) ->
+    do_wait_for_leader(StoreIdOrRaServer, true, Timeout).
+
+do_wait_for_leader(StoreId, WaitForProcToStart, Timeout)
+  when is_atom(StoreId) ->
     ThisMember = this_member(StoreId),
-    wait_for_leader(ThisMember, Timeout);
-wait_for_leader(RaServer, Timeout) ->
+    do_wait_for_leader(ThisMember, WaitForProcToStart, Timeout);
+do_wait_for_leader(RaServer, WaitForProcToStart, Timeout) ->
     T0 = khepri_utils:start_timeout_window(Timeout),
     case ra:members(RaServer, Timeout) of
         {ok, _Members, _LeaderId} ->
             ok;
         {error, Reason}
           when ?HAS_TIME_LEFT(Timeout) andalso
-               (Reason == noproc orelse
+               ((Reason == noproc andalso WaitForProcToStart) orelse
                 Reason == noconnection orelse
                 Reason == nodedown orelse
-                Reason == shutdown) ->
+                Reason == shutdown orelse
+                Reason == normal) ->
             NewTimeout0 = khepri_utils:end_timeout_window(Timeout, T0),
             NewTimeout = khepri_utils:sleep(
                            ?TRANSIENT_ERROR_RETRY_INTERVAL, NewTimeout0),
-            wait_for_leader(RaServer, NewTimeout);
+            do_wait_for_leader(RaServer, WaitForProcToStart, NewTimeout);
         {timeout, _} ->
             {error, timeout};
         {error, _} = Error ->
