@@ -872,7 +872,7 @@ wait_for_cluster_change_permitted(RaMemberOrStoreId, Timeout) ->
     %% cluster could have a leader and still not be ready to accept
     %% a cluster change. This avoids too many retries that will
     %% just eat resources.
-    timer:sleep(200),
+    timer:sleep(?TRANSIENT_ERROR_RETRY_INTERVAL),
 
     Ret.
 
