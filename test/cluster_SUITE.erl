@@ -423,9 +423,15 @@ fail_to_start_with_bad_ra_server_config(Config) ->
               _},
              _}} ->
                true;
+           {error,
+            {{bad_action_from_state_function,
+               {{timeout, tick}, not_a_timeout, tick_timeout}},
+             _}} ->
+               true;
            {error, noproc} ->
                true;
            _ ->
+               ct:pal("Unexpected return value:~n~p", [Ret]),
                false
        end),
 
