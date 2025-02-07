@@ -1152,7 +1152,17 @@ members(StoreId, Options) when is_map(Options) ->
                     consistency -> leader;
                     low_latency -> local
                 end,
-    do_query_members(StoreId, ThisMember, QueryType, Timeout).
+    case QueryType of
+        local ->
+            case ra_leaderboard:lookup_members(StoreId) of
+                Members when is_list(Members) ->
+                    {ok, lists:sort(Members)};
+                undefined ->
+                    do_query_members(StoreId, ThisMember, QueryType, Timeout)
+            end;
+        leader ->
+            do_query_members(StoreId, ThisMember, QueryType, Timeout)
+    end.
 
 -spec do_query_members(StoreId, RaServer, QueryType, Timeout) -> Ret when
       StoreId :: khepri:store_id(),
