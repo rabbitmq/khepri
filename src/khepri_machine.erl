@@ -1050,12 +1050,12 @@ add_applied_condition1(StoreId, Options, Timeout) ->
             add_applied_condition2(StoreId, Options, Timeout);
         false ->
             T0 = khepri_utils:start_timeout_window(Timeout),
-            QueryFun = fun erlang:is_tuple/1,
+            QueryFun = fun erlang:is_integer/1,
             case process_query1(StoreId, QueryFun, Timeout) of
-                true ->
+                false ->
                     NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
                     add_applied_condition2(StoreId, Options, NewTimeout);
-                Other when Other =/= false ->
+                Other when Other =/= true ->
                     Other
             end
     end.
@@ -1086,12 +1086,8 @@ add_applied_condition3(StoreId, Options, LeaderId, Timeout) ->
             NewTimeout1 = khepri_utils:end_timeout_window(Timeout, T0),
 
             %% Now that we know the last committed index of the leader, we can
-            %% perform an arbitrary query on the local server. The query will
-            %% wait for that same index to be applied locally before it is
-            %% executed.
-            %%
-            %% We don't care about the result of that query. We just want to
-            %% block until the latest commands are applied locally.
+            %% use it as a condition on a query to block its execution until
+            %% the local Ra server reaches that index.
             Condition = {applied, {LastIndex, Term}},
             Options1 = Options#{condition => Condition,
                                 timeout => NewTimeout1},
@@ -1126,6 +1122,9 @@ get_timeout(_)                     -> khepri_app:get_default_timeout().
 clear_cache(_StoreId) ->
     ok.
 
+%% FIXME: This should include the calling process in the key. Also, a
+%% persistent term is not meant for frequent writes, we should switch to an ETS
+%% table.
 -define(CAN_SKIP_FENCE_PRELIMINARY_QUERY_KEY(StoreId),
         {?MODULE, can_skip_fence_preliminary_query, StoreId}).
 
@@ -1170,7 +1169,7 @@ sending_command_remotely(StoreId) ->
 -spec ask_fence_preliminary_query(StoreId) -> ok when
       StoreId :: khepri:store_id().
 %% @doc Explicitly requests that a call to {@link
-%% can_skip_fence_preliminary_query/1} returns `true'.
+%% can_skip_fence_preliminary_query/1} returns `false'.
 
 ask_fence_preliminary_query(StoreId) ->
     %% Same behavior as a local async command.
