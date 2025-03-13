@@ -1089,12 +1089,12 @@ add_applied_condition1(StoreId, Options, Timeout) ->
             add_applied_condition2(StoreId, Options, Timeout);
         false ->
             T0 = khepri_utils:start_timeout_window(Timeout),
-            QueryFun = fun erlang:is_tuple/1,
+            QueryFun = fun erlang:is_integer/1,
             case process_query1(StoreId, QueryFun, Timeout) of
-                true ->
+                false ->
                     NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
                     add_applied_condition2(StoreId, Options, NewTimeout);
-                Other when Other =/= false ->
+                Other when Other =/= true ->
                     Other
             end
     end.
@@ -1161,9 +1161,6 @@ get_timeout(_)                     -> khepri_app:get_default_timeout().
 clear_cache(_StoreId) ->
     ok.
 
--define(CAN_SKIP_FENCE_PRELIMINARY_QUERY_KEY(StoreId),
-        {?MODULE, can_skip_fence_preliminary_query, StoreId}).
-
 -spec sending_sync_command_locally(StoreId) -> ok when
       StoreId :: khepri:store_id().
 %% @doc Records that a synchronous command is about to be sent locally.
@@ -1171,7 +1168,7 @@ clear_cache(_StoreId) ->
 %% After that, we know we don't need a fence preliminary query.
 
 sending_sync_command_locally(StoreId) ->
-    Key = ?CAN_SKIP_FENCE_PRELIMINARY_QUERY_KEY(StoreId),
+    Key = {khepri, can_skip_fence_preliminary_query, StoreId},
     _ = erlang:put(Key, true),
     ok.
 
@@ -1190,7 +1187,7 @@ sending_query_locally(StoreId) ->
 %% @doc Records that an asynchronous command is about to be sent locally.
 
 sending_async_command_locally(StoreId) ->
-    Key = ?CAN_SKIP_FENCE_PRELIMINARY_QUERY_KEY(StoreId),
+    Key = {khepri, can_skip_fence_preliminary_query, StoreId},
     _ = erlang:erase(Key),
     ok.
 
@@ -1217,13 +1214,22 @@ ask_fence_preliminary_query(StoreId) ->
 %% @doc Indicates if the calling process sent a synchronous command or a query
 %% before this call.
 %%
+%% The need for a preliminary query is tracked using a process dictionary
+%% entry. The process dictionary is used because that property is specific to
+%% a calling process. Alternatives were explored: a persistent_term was used
+%% initially but it is not meant for frequent writes, and an ETS table is
+%% unpracticle because if Khepri is not running on the calling process node,
+%% it won't be able to create that table.
+%%
+%% The need is updated with calls to the `sending_*/1' functions above.
+%%
 %% @returns `true' if the calling process sent a synchrorous command or a query
 %% to the given store before this call, `false' if the calling process never
 %% sent anything to the given store, if the last message was an asynchrorous
 %% command, or if the last message was sent to a remote store.
 
 can_skip_fence_preliminary_query(StoreId) ->
-    Key = ?CAN_SKIP_FENCE_PRELIMINARY_QUERY_KEY(StoreId),
+    Key = {khepri, can_skip_fence_preliminary_query, StoreId},
     erlang:get(Key) =:= true.
 
 %% -------------------------------------------------------------------
