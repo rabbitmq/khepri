@@ -1089,12 +1089,12 @@ add_applied_condition1(StoreId, Options, Timeout) ->
             add_applied_condition2(StoreId, Options, Timeout);
         false ->
             T0 = khepri_utils:start_timeout_window(Timeout),
-            QueryFun = fun erlang:is_tuple/1,
+            QueryFun = fun erlang:is_integer/1,
             case process_query1(StoreId, QueryFun, Timeout) of
-                true ->
+                false ->
                     NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
                     add_applied_condition2(StoreId, Options, NewTimeout);
-                Other when Other =/= false ->
+                Other when Other =/= true ->
                     Other
             end
     end.
