@@ -1125,12 +1125,8 @@ add_applied_condition3(StoreId, Options, LeaderId, Timeout) ->
             NewTimeout1 = khepri_utils:end_timeout_window(Timeout, T0),
 
             %% Now that we know the last committed index of the leader, we can
-            %% perform an arbitrary query on the local server. The query will
-            %% wait for that same index to be applied locally before it is
-            %% executed.
-            %%
-            %% We don't care about the result of that query. We just want to
-            %% block until the latest commands are applied locally.
+            %% use it as a condition on a query to block its execution until
+            %% the local Ra server reaches that index.
             Condition = {applied, {LastIndex, Term}},
             Options1 = Options#{condition => Condition,
                                 timeout => NewTimeout1},
@@ -1209,7 +1205,7 @@ sending_command_remotely(StoreId) ->
 -spec ask_fence_preliminary_query(StoreId) -> ok when
       StoreId :: khepri:store_id().
 %% @doc Explicitly requests that a call to {@link
-%% can_skip_fence_preliminary_query/1} returns `true'.
+%% can_skip_fence_preliminary_query/1} returns `false'.
 
 ask_fence_preliminary_query(StoreId) ->
     %% Same behavior as a local async command.
