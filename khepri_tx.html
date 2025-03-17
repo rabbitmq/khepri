@@ -53,6 +53,10 @@ catching up after a network partition.</p>
   tree node with no payload, you can use the <a docgen-rel="seeerl" docgen-href="khepri_tx_adv" href="khepri_tx_adv.html"><code>khepri_tx_adv</code></a> module.
 <h2><a name="types">Data Types</a></h2>
 
+<h3 class="typedecl"><a name="type-api_version">api_version()</a></h3>
+<p><code>api_version() = pos_integer()</code></p>
+<p>  Version of the transaction API.</p>
+
 <h3 class="typedecl"><a name="type-tx_abort">tx_abort()</a></h3>
 <p><code>tx_abort() = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error</a>(any())</code></p>
 <p>  Return value after a transaction function aborted.</p>
@@ -137,6 +141,8 @@ pattern.</td></tr>
 <tr><td valign="top"><a href="#abort-1">abort/1</a></td><td>Aborts the transaction.</td></tr>
 <tr><td valign="top"><a href="#is_transaction-0">is_transaction/0</a></td><td>Indicates if the calling function runs in the context of a transaction
   function.</td></tr>
+<tr><td valign="top"><a href="#api_version-0">api_version/0</a></td><td>Returns the version of the transaction API for the Khepri instance  
+that execute the transaction.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -714,6 +720,24 @@ pattern.</p>
   <code>false</code> otherwise.</p>
 </div><p>Indicates if the calling function runs in the context of a transaction
   function.
+ </p>
+
+<h3 class="function"><a name="api_version-0">api_version/0</a></h3>
+<div class="spec">
+<p><code>api_version() -&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-api_version" docgen-rel="seetype" docgen-href="khepri:khepri_tx#api_version/0">khepri_tx:api_version()</a></code><br></p>
+<p></p>
+<p>returns: the version of the Khepri transaction API.</p>
+</div><p><p>Returns the version of the transaction API for the Khepri instance  
+that execute the transaction.</p>
+ 
+  <p>The transaction code is compiled on one Erlang node with a specific version  
+of Khepri. However, it is executed on all members of the Khepri cluster.  
+Some Erlang nodes might use another version of Khepri, newer or older, and  
+the transaction API may differ.</p>
+ 
+  For instance in Khepri 0.17.x, the return values of the <a docgen-rel="seeerl" docgen-href="khepri_tx_adv" href="khepri_tx_adv.html"><code>khepri_tx_adv</code></a> functions changed. The transaction code will have to handle
+  voth versions of the API to work correctly. Thus it can use this function
+  to adapt its behaviour.
  </p>
 <hr>
 
