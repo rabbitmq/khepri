@@ -86,9 +86,12 @@
          clear_many_payloads/1, clear_many_payloads/2,
 
          abort/1,
-         is_transaction/0]).
+         is_transaction/0,
+         api_version/0]).
 
 -compile({no_auto_import, [get/1, put/2, erase/1]}).
+
+-define(TX_API_VERSION, 1).
 
 %% FIXME: Dialyzer complains about several functions with "optional" arguments
 %% (but not all). I believe the specs are correct, but can't figure out how to
@@ -106,9 +109,13 @@
 -type tx_abort() :: khepri:error(any()).
 %% Return value after a transaction function aborted.
 
+-type api_version() :: pos_integer().
+%% Version of the transaction API.
+
 -export_type([tx_fun/0,
               tx_fun_result/0,
-              tx_abort/0]).
+              tx_abort/0,
+              api_version/0]).
 
 %% -------------------------------------------------------------------
 %% is_empty().
@@ -1009,3 +1016,26 @@ is_transaction() ->
         {_State, _SideEffects} -> true;
         _                      -> false
     end.
+
+%% -------------------------------------------------------------------
+%% api_version().
+%% -------------------------------------------------------------------
+
+-spec api_version() -> khepri_tx:api_version().
+%% @doc Returns the version of the transaction API for the Khepri instance
+%% that execute the transaction.
+%%
+%% The transaction code is compiled on one Erlang node with a specific version
+%% of Khepri. However, it is executed on all members of the Khepri cluster.
+%% Some Erlang nodes might use another version of Khepri, newer or older, and
+%% the transaction API may differ.
+%%
+%% For instance in Khepri 0.17.x, the return values of the {@link
+%% khepri_tx_adv} functions changed. The transaction code will have to handle
+%% voth versions of the API to work correctly. Thus it can use this function
+%% to adapt its behaviour.
+%%
+%% @returns the version of the Khepri transaction API.
+
+api_version() ->
+    ?TX_API_VERSION.

@@ -52,7 +52,8 @@ allowed_khepri_tx_api_test() ->
            _ = khepri_tx:has_data([foo]),
            _ = khepri_tx:delete([foo]),
            _ = khepri_tx:abort(error),
-           _ = khepri_tx:is_transaction()
+           _ = khepri_tx:is_transaction(),
+           _ = khepri_tx:api_version()
        end).
 
 denied_khepri_tx_adv_run_4_test() ->

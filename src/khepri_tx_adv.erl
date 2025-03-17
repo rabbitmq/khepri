@@ -751,6 +751,7 @@ is_remote_call_valid(khepri_tx, clear_payload, _) -> true;
 is_remote_call_valid(khepri_tx, clear_many_payloads, _) -> true;
 is_remote_call_valid(khepri_tx, abort, _) -> true;
 is_remote_call_valid(khepri_tx, is_transaction, _) -> true;
+is_remote_call_valid(khepri_tx, api_version, _) -> true;
 
 is_remote_call_valid(khepri_tx_adv, get, _) -> true;
 is_remote_call_valid(khepri_tx_adv, get_many, _) -> true;
