@@ -863,9 +863,10 @@ process_command(StoreId, Command, Options) ->
 
 process_sync_command(
   StoreId, Command, #{protect_against_dups := true} = Options) ->
-    MacVer = version(),
+    %% The deduplication mechanism was added to machine version 1.
+    DedupMacVer = 1,
     case effective_version(StoreId) of
-        {ok, EffectiveMacVer} when EffectiveMacVer >= MacVer ->
+        {ok, EffectiveMacVer} when EffectiveMacVer >= DedupMacVer ->
             %% When `protect_against_dups' is true, we wrap the command inside
             %% a #dedup{} one to give it a unique reference. This is used for
             %% non-idempotent commands which could be replayed when there is a
