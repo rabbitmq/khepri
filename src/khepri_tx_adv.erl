@@ -58,13 +58,20 @@
 
 -type tx_props() :: #{allow_updates := boolean()}.
 
+-type legacy_ret() :: khepri:ok(khepri:node_props() | #{}) |
+                      khepri:error().
+%% Return value when a single tree node could be returned. This is no longer
+%% the case with the transaction API version 1 (all functions return a tree
+%% node props map). But it can happen when the same transaction is executed on
+%% another Khepri cluster member that runs an older version of Khepri.
+
 %% -------------------------------------------------------------------
 %% get().
 %% -------------------------------------------------------------------
 
 -spec get(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret() | legacy_ret().
 %% @doc Returns the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -79,7 +86,7 @@ get(PathPattern) ->
 -spec get(PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:tree_options(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret() | legacy_ret().
 %% @doc Returns the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -90,7 +97,8 @@ get(PathPattern) ->
 
 get(PathPattern, Options) ->
     Options1 = Options#{expect_specific_node => true},
-    get_many(PathPattern, Options1).
+    Ret = get_many(PathPattern, Options1),
+    maybe_write_ret_to_legacy_ret(PathPattern, Ret).
 
 %% -------------------------------------------------------------------
 %% get_many().
@@ -149,7 +157,7 @@ do_get_many(PathPattern, Fun, Acc, Options) ->
 -spec put(PathPattern, Data) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret() | legacy_ret().
 %% @doc Sets the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -165,7 +173,7 @@ put(PathPattern, Data) ->
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Options :: khepri:tree_options() | khepri:put_options(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret() | legacy_ret().
 %% @doc Sets the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -176,7 +184,8 @@ put(PathPattern, Data) ->
 
 put(PathPattern, Data, Options) ->
     Options1 = Options#{expect_specific_node => true},
-    put_many(PathPattern, Data, Options1).
+    Ret = put_many(PathPattern, Data, Options1),
+    maybe_write_ret_to_legacy_ret(PathPattern, Ret).
 
 %% -------------------------------------------------------------------
 %% put_many().
@@ -233,7 +242,7 @@ put_many(PathPattern, Data, Options) ->
 -spec create(PathPattern, Data) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret() | legacy_ret().
 %% @doc Creates a tree node with the given payload.
 %%
 %% This is the same as {@link khepri_adv:create/3} but inside the context of a
@@ -248,7 +257,7 @@ create(PathPattern, Data) ->
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Options :: khepri:tree_options() | khepri:put_options(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret() | legacy_ret().
 %% @doc Creates a tree node with the given payload.
 %%
 %% This is the same as {@link khepri_adv:create/4} but inside the context of a
@@ -261,7 +270,8 @@ create(PathPattern, Data, Options) ->
     PathPattern2 = khepri_path:combine_with_conditions(
                      PathPattern1, [#if_node_exists{exists = false}]),
     Options1 = Options#{expect_specific_node => true},
-    put_many(PathPattern2, Data, Options1).
+    Ret = put_many(PathPattern2, Data, Options1),
+    maybe_write_ret_to_legacy_ret(PathPattern, Ret).
 
 %% -------------------------------------------------------------------
 %% update().
@@ -270,7 +280,7 @@ create(PathPattern, Data, Options) ->
 -spec update(PathPattern, Data) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret() | legacy_ret().
 %% @doc Updates an existing tree node with the given payload.
 %%
 %% This is the same as {@link khepri_adv:update/3} but inside the context of a
@@ -285,7 +295,7 @@ update(PathPattern, Data) ->
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Options :: khepri:tree_options() | khepri:put_options(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret() | legacy_ret().
 %% @doc Updates an existing tree node with the given payload.
 %%
 %% This is the same as {@link khepri_adv:update/4} but inside the context of a
@@ -298,7 +308,8 @@ update(PathPattern, Data, Options) ->
     PathPattern2 = khepri_path:combine_with_conditions(
                      PathPattern1, [#if_node_exists{exists = true}]),
     Options1 = Options#{expect_specific_node => true},
-    put_many(PathPattern2, Data, Options1).
+    Ret = put_many(PathPattern2, Data, Options1),
+    maybe_write_ret_to_legacy_ret(PathPattern, Ret).
 
 %% -------------------------------------------------------------------
 %% compare_and_swap().
@@ -308,7 +319,7 @@ update(PathPattern, Data, Options) ->
       PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret() | legacy_ret().
 %% @doc Updates an existing tree node with the given payload only if its data
 %% matches the given pattern.
 %%
@@ -326,7 +337,7 @@ compare_and_swap(PathPattern, DataPattern, Data) ->
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Options :: khepri:tree_options() | khepri:put_options(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret() | legacy_ret().
 %% @doc Updates an existing tree node with the given payload only if its data
 %% matches the given pattern.
 %%
@@ -340,7 +351,8 @@ compare_and_swap(PathPattern, DataPattern, Data, Options) ->
     PathPattern2 = khepri_path:combine_with_conditions(
                      PathPattern1, [#if_data_matches{pattern = DataPattern}]),
     Options1 = Options#{expect_specific_node => true},
-    put_many(PathPattern2, Data, Options1).
+    Ret = put_many(PathPattern2, Data, Options1),
+    maybe_write_ret_to_legacy_ret(PathPattern, Ret).
 
 %% -------------------------------------------------------------------
 %% delete().
@@ -348,7 +360,7 @@ compare_and_swap(PathPattern, DataPattern, Data, Options) ->
 
 -spec delete(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret() | legacy_ret().
 %% @doc Deletes the tree node pointed to by the given path pattern.
 %%
 %% This is the same as {@link khepri_adv:delete/2} but inside the context of a
@@ -362,7 +374,7 @@ delete(PathPattern) ->
 -spec delete(PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:tree_options(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret() | legacy_ret().
 %% @doc Deletes the tree node pointed to by the given path pattern.
 %%
 %% This is the same as {@link khepri_adv:delete/3} but inside the context of a
@@ -372,7 +384,8 @@ delete(PathPattern) ->
 
 delete(PathPattern, Options) ->
     Options1 = Options#{expect_specific_node => true},
-    delete_many(PathPattern, Options1).
+    Ret = delete_many(PathPattern, Options1),
+    maybe_write_ret_to_legacy_ret(PathPattern, Ret).
 
 %% -------------------------------------------------------------------
 %% delete_many().
@@ -380,7 +393,7 @@ delete(PathPattern, Options) ->
 
 -spec delete_many(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret() | legacy_ret().
 %% @doc Deletes all tree nodes matching the given path pattern.
 %%
 %% This is the same as {@link khepri_adv:delete_many/2} but inside the context
@@ -394,7 +407,7 @@ delete_many(PathPattern) ->
 -spec delete_many(PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:tree_options(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret() | legacy_ret().
 %% @doc Deletes all tree nodes matching the given path pattern.
 %%
 %% This is the same as {@link khepri_adv:delete_many/3} but inside the context
@@ -423,7 +436,7 @@ delete_many(PathPattern, Options) ->
 
 -spec clear_payload(PathPattern) -> Ret when
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret() | legacy_ret().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -438,7 +451,7 @@ clear_payload(PathPattern) ->
 -spec clear_payload(PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:tree_options() | khepri:put_options(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret() | legacy_ret().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -450,8 +463,10 @@ clear_payload(PathPattern) ->
 clear_payload(PathPattern, Options) ->
     Ret = update(PathPattern, khepri_payload:none(), Options),
     case Ret of
-        {error, ?khepri_error(node_not_found, _)} -> {ok, #{}};
-        _                                         -> Ret
+        {error, ?khepri_error(node_not_found, _)} ->
+            {ok, #{}};
+        _ ->
+            maybe_write_ret_to_legacy_ret(PathPattern, Ret)
     end.
 
 %% -------------------------------------------------------------------
@@ -1070,3 +1085,32 @@ ensure_updates_are_allowed() ->
         #{allow_updates := false} ->
             ?khepri_misuse(denied_update_in_readonly_tx, #{})
     end.
+
+-spec maybe_write_ret_to_legacy_ret(PathPattern, Ret) -> NewRet when
+      PathPattern :: khepri_path:pattern(),
+      Ret :: khepri_machine:write_ret(),
+      NewRet :: khepri_machine:write_ret() | legacy_ret().
+%% @doc Converts the return value to the legacy format, if relevant.
+%%
+%% The legacy format was used by Khepri 0.16.0.
+%%
+%% This function will always return the new return value, except in unit tests
+%% because we don't set the `tx_api_version' process dict key.
+%%
+%% The reason for its existence is the same function may return the legacy
+%% format when the transaction is executed on another Khepri cluster member
+%% that still runs an older version of Khepri. The caller should be aware of
+%% that. It also heps with Dialyzer reports.
+%%
+%% @private
+
+maybe_write_ret_to_legacy_ret(PathPattern, {ok, NodePropsMap} = Ret) ->
+    case erlang:get(tx_api_version) of
+        1 ->
+            NodeProps = maps:get(PathPattern, NodePropsMap),
+            {ok, NodeProps};
+        _ ->
+            Ret
+    end;
+maybe_write_ret_to_legacy_ret(_PathPattern, {error, _} = Error) ->
+    Error.
