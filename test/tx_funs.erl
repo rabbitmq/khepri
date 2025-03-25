@@ -60,6 +60,10 @@ denied_khepri_tx_adv_run_4_test() ->
     Params = #{store_id => ?FUNCTION_NAME,
                member => {?FUNCTION_NAME, node()}},
     MachineState = khepri_machine:make_virgin_state(Params),
+    Meta = #{system_time => erlang:system_time(millisecond),
+             index => 1,
+             term => 1,
+             machine_version => 1},
     ?assertToFunError(
        ?khepri_exception(
           failed_to_prepare_tx_fun,
@@ -68,7 +72,7 @@ denied_khepri_tx_adv_run_4_test() ->
                extraction_denied,
                #{error := {call_denied, {khepri_tx_adv, run, 5}}})}),
        _ = khepri_tx_adv:run(
-             MachineState, fun() -> ok end, [], true, undefined)).
+             MachineState, fun() -> ok end, [], true, Meta)).
 
 denied_receive_block_test() ->
     ?assertToFunError(

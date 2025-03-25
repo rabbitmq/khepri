@@ -354,6 +354,19 @@ crash_during_fold_test_() ->
          bug,
          khepri:fold(?FUNCTION_NAME, [foo], Fun, []))]}.
 
+crash_during_delayed_fold_test_() ->
+    Fun = fun(_Path, _NodeProps, _Acc) -> throw(bug) end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], foo_value)),
+      ?_assertThrow(
+         bug,
+         khepri:fold(
+           ?FUNCTION_NAME, [foo], Fun, [], #{favor => consistency}))]}.
+
 list_nodes_cb(Path, _NodeProps, List) ->
     lists:sort([Path | List]).
 
