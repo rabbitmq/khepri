@@ -987,7 +987,7 @@ is_standalone_fun_still_needed(#{calls := Calls}, auto) ->
       StandaloneFun :: horus:horus_fun(),
       Args :: list(),
       AllowUpdates :: boolean(),
-      RaMeta :: ra_machine:command_meta_data() | undefined,
+      RaMeta :: ra_machine:command_meta_data(),
       Ret :: {State, khepri_tx:tx_fun_result() | Exception, SideEffects},
       Exception :: {exception, Class, Reason, Stacktrace},
       Class :: error | exit | throw,

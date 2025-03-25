@@ -89,7 +89,7 @@ insert_when_keep_while_true_test() ->
        #{[baz] => KeepWhile},
        KeepWhileConds),
     ?assertEqual({ok, #{[baz] => #{}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
 
 insert_when_keep_while_false_test() ->
     Commands = [#put{path = [foo],
@@ -117,7 +117,7 @@ insert_when_keep_while_false_test() ->
                        keep_while_reason =>
                        {pattern_matches_no_nodes, [foo, bar]}})},
                  Ret1),
-    ?assertEqual([], SE1),
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE1),
 
     %% The targeted keep_while node exists but the condition is not verified.
     KeepWhile2 = #{[foo] => #if_child_list_length{count = 10}},
@@ -140,7 +140,7 @@ insert_when_keep_while_false_test() ->
                        keep_while_reason =>
                        #if_child_list_length{count = 10}})},
                  Ret2),
-    ?assertEqual([], SE2).
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE2).
 
 insert_when_keep_while_true_on_self_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
@@ -163,7 +163,7 @@ insert_when_keep_while_true_on_self_test() ->
                payload = khepri_payload:data(foo_value)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
 
 insert_when_keep_while_false_on_self_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
@@ -186,7 +186,7 @@ insert_when_keep_while_false_on_self_test() ->
                payload = khepri_payload:data(foo_value)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
 
 keep_while_still_true_after_command_test() ->
     KeepWhile = #{[foo] => #if_child_list_length{count = 0}},
@@ -227,7 +227,7 @@ keep_while_still_true_after_command_test() ->
                                    payload_version => 2,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
 
 keep_while_now_false_after_command_test() ->
     KeepWhile = #{[foo] => #if_child_list_length{count = 0}},
@@ -262,7 +262,7 @@ keep_while_now_false_after_command_test() ->
        Root),
     ?assertEqual({ok, #{[foo, bar] => #{},
                         [baz] => #{delete_reason => keep_while}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
 
 recursive_automatic_cleanup_test() ->
     KeepWhile = #{[?THIS_KHEPRI_NODE] =>
@@ -308,7 +308,7 @@ recursive_automatic_cleanup_test() ->
                                    child_list_version => 3,
                                    child_list_length => 0,
                                    delete_reason => keep_while}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
 
 keep_while_now_false_after_delete_command_test() ->
     KeepWhile = #{[foo] => #if_node_exists{exists = true}},
@@ -345,7 +345,7 @@ keep_while_now_false_after_delete_command_test() ->
                                    child_list_version => 1,
                                    child_list_length => 0,
                                    delete_reason => keep_while}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
 
 automatic_reclaim_of_useless_nodes_works_test() ->
     Commands = [#put{path = [foo, bar, baz, qux],
@@ -366,7 +366,7 @@ automatic_reclaim_of_useless_nodes_works_test() ->
     ?assertEqual({ok, #{[foo, bar, baz] => #{delete_reason => explicit},
                         [foo, bar] => #{delete_reason => keep_while},
                         [foo] => #{delete_reason => keep_while}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
 
 automatic_reclaim_keeps_relevant_nodes_1_test() ->
     %% `/:foo' was created automatically, but later gained a payload. It should
@@ -396,7 +396,7 @@ automatic_reclaim_keeps_relevant_nodes_1_test() ->
        Root),
     ?assertEqual({ok, #{[foo, bar, baz] => #{delete_reason => explicit},
                         [foo, bar] => #{delete_reason => keep_while}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
 
 automatic_reclaim_keeps_relevant_nodes_2_test() ->
     %% `/:bar' was created with a payload. It later gained a child node. It
@@ -433,7 +433,7 @@ automatic_reclaim_keeps_relevant_nodes_2_test() ->
       {ok, #{[foo, bar, baz, qux] => #{delete_reason => explicit},
              [foo, bar, baz] => #{delete_reason => keep_while}}},
       Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
 
 keep_while_condition_on_non_existing_tree_node_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
@@ -456,7 +456,7 @@ keep_while_condition_on_non_existing_tree_node_test() ->
                payload = khepri_payload:data(bar_value)}}},
        Root1),
     ?assertEqual({ok, #{[bar] => #{}}}, Ret1),
-    ?assertEqual([], SE1),
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE1),
 
     Command2 = #put{path = [foo],
                     payload = khepri_payload:data(foo_value),
@@ -477,4 +477,4 @@ keep_while_condition_on_non_existing_tree_node_test() ->
        Root2),
     ?assertEqual({ok, #{[foo] => #{},
                         [bar] => #{delete_reason => keep_while}}}, Ret2),
-    ?assertEqual([], SE2).
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE2).

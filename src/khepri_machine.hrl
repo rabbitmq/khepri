@@ -18,7 +18,8 @@
          snapshot_interval = ?SNAPSHOT_INTERVAL :: non_neg_integer()}).
 
 -record(khepri_machine_aux,
-        {store_id :: khepri:store_id()}).
+        {store_id :: khepri:store_id(),
+         delayed_aux_queries = [] :: [khepri_machine:delayed_aux_query()]}).
 
 %% State machine commands and aux. effects.
 
