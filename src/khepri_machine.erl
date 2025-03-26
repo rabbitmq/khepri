@@ -1137,12 +1137,17 @@ add_applied_condition1(StoreId, Options, Timeout) ->
         false ->
             T0 = khepri_utils:start_timeout_window(Timeout),
             QueryFun = fun erlang:is_integer/1,
-            case process_query1(StoreId, QueryFun, Timeout) of
-                false ->
+            sending_query_locally(StoreId),
+            LocalServerId = {StoreId, node()},
+            Ret = ra:local_query(LocalServerId, QueryFun, Options),
+            case Ret of
+                {ok, {_RaIdxTerm, false}, _NewLeaderId} ->
                     NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
                     add_applied_condition2(StoreId, Options, NewTimeout);
-                Other when Other =/= true ->
-                    Other
+                {timeout, _LeaderId} ->
+                    {error, timeout};
+                {error, _} = Error ->
+                    Error
             end
     end.
 
