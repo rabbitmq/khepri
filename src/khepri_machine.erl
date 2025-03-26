@@ -1630,7 +1630,7 @@ reset_applied_command_count(State) ->
       Result :: any(),
       Meta :: ra_machine:command_meta_data(),
       SideEffects :: ra_machine:effects().
-%% Removes any dedups from the `dedups' field in state that have expired
+%% @doc Removes any dedups from the `dedups' field in state that have expired
 %% according to the timestamp in the handled command.
 %%
 %% This function is a no-op in any other version than version 1. This proved to
