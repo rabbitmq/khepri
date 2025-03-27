@@ -573,21 +573,38 @@ delete_matching_nodes(Tree, PathPattern, AppliedChanges, TreeOptions) ->
 
 delete_matching_nodes_cb(
   [] = Path, #node{} = Node, TreeOptions, DeleteReason, Result) ->
+    Result1 = add_deleted_node_to_result(
+                Path, Node, TreeOptions, DeleteReason, Result),
     Node1 = remove_node_payload(Node),
     Node2 = remove_node_child_nodes(Node1),
-    NodeProps1 = gather_node_props(Node, TreeOptions),
-    NodeProps2 = maybe_add_delete_reason_prop(
-                   NodeProps1, TreeOptions, DeleteReason),
-    {ok, Node2, Result#{Path => NodeProps2}};
+    {ok, Node2, Result1};
 delete_matching_nodes_cb(
   Path, #node{} = Node, TreeOptions, DeleteReason, Result) ->
-    NodeProps1 = gather_node_props(Node, TreeOptions),
-    NodeProps2 = maybe_add_delete_reason_prop(
-                   NodeProps1, TreeOptions, DeleteReason),
-    {ok, delete, Result#{Path => NodeProps2}};
+    Result1 = add_deleted_node_to_result(
+                Path, Node, TreeOptions, DeleteReason, Result),
+    {ok, delete, Result1};
 delete_matching_nodes_cb(
   _, {interrupted, _, _}, _Options, _DeleteReason, Result) ->
     {ok, keep, Result}.
+
+add_deleted_node_to_result(
+  Path, Node, TreeOptions, explicit = DeleteReason, Result) ->
+    add_deleted_node_to_result1(
+      Path, Node, TreeOptions, DeleteReason, Result);
+add_deleted_node_to_result(
+  _Path, _Node, #{return_indirect_deletes := false}, _DeleteReason,
+  Result) ->
+    Result;
+add_deleted_node_to_result(
+  Path, Node, TreeOptions, DeleteReason, Result) ->
+    add_deleted_node_to_result1(
+      Path, Node, TreeOptions, DeleteReason, Result).
+
+add_deleted_node_to_result1(Path, Node, TreeOptions, DeleteReason, Result) ->
+    NodeProps1 = gather_node_props(Node, TreeOptions),
+    NodeProps2 = maybe_add_delete_reason_prop(
+                   NodeProps1, TreeOptions, DeleteReason),
+    Result#{Path => NodeProps2}.
 
 maybe_add_delete_reason_prop(
   NodeProps, #{props_to_return := WantedProps}, DeleteReason) ->

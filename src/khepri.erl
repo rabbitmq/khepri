@@ -357,7 +357,8 @@
 -type tree_options() :: #{expect_specific_node => boolean(),
                           props_to_return => [known_prop_to_return() |
                                               unknown_prop_to_return()],
-                          include_root_props => boolean()}.
+                          include_root_props => boolean(),
+                          return_indirect_deletes => boolean()}.
 %% Options used during tree traversal.
 %%
 %% <ul>
@@ -371,6 +372,10 @@
 %% only.</li>
 %% <li>`include_root_props' indicates if root properties and payload should be
 %% returned as well.</li>
+%% <li>`return_indirect_deletes' indicates if tree nodes deleted as a
+%% byproduct of another put or delete should be part of the returned tree node
+%% properties map. The default is to include them, except in transactions when
+%% the effective machine version is too old.</li>
 %% </ul>
 %%
 %% NOTE: When this list of tree options is modified, {@link

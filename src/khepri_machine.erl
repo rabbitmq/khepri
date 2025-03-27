@@ -765,7 +765,8 @@ split_query_options(StoreId, Options) ->
           (Option, Value, {Q, T}) when
                 Option =:= expect_specific_node orelse
                 Option =:= props_to_return orelse
-                Option =:= include_root_props ->
+                Option =:= include_root_props orelse
+                Option =:= return_indirect_deletes ->
               T1 = T#{Option => Value},
               {Q, T1}
       end, {#{}, #{}}, Options1).
@@ -793,7 +794,8 @@ split_command_options(StoreId, Options) ->
           (Option, Value, {C, TP}) when
                 Option =:= expect_specific_node orelse
                 Option =:= props_to_return orelse
-                Option =:= include_root_props ->
+                Option =:= include_root_props orelse
+                Option =:= return_indirect_deletes ->
               TP1 = TP#{Option => Value},
               {C, TP1};
           (keep_while, KeepWhile, {C, TP}) ->
