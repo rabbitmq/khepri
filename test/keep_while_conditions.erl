@@ -434,3 +434,47 @@ automatic_reclaim_keeps_relevant_nodes_2_test() ->
              [foo, bar, baz] => #{delete_reason => keep_while}}},
       Ret),
     ?assertEqual([], SE).
+
+keep_while_condition_on_non_existing_tree_node_test() ->
+    S0 = khepri_machine:init(?MACH_PARAMS()),
+    KeepWhile = #{[foo] => #if_node_exists{exists = false}},
+    Command1 = #put{path = [bar],
+                    payload = khepri_payload:data(bar_value),
+                    options = #{keep_while => KeepWhile}},
+    {S1, Ret1, SE1} = khepri_machine:apply(?META, Command1, S0),
+    Root1 = khepri_machine:get_root(S1),
+
+    ?assertEqual(
+       #node{
+          props =
+          #{payload_version => 1,
+            child_list_version => 2},
+          child_nodes =
+          #{bar =>
+            #node{
+               props = ?INIT_NODE_PROPS,
+               payload = khepri_payload:data(bar_value)}}},
+       Root1),
+    ?assertEqual({ok, #{[bar] => #{}}}, Ret1),
+    ?assertEqual([], SE1),
+
+    Command2 = #put{path = [foo],
+                    payload = khepri_payload:data(foo_value),
+                    options = #{props_to_return => [delete_reason]}},
+    {S2, Ret2, SE2} = khepri_machine:apply(?META, Command2, S1),
+    Root2 = khepri_machine:get_root(S2),
+
+    ?assertEqual(
+       #node{
+          props =
+          #{payload_version => 1,
+            child_list_version => 3},
+          child_nodes =
+          #{foo =>
+            #node{
+               props = ?INIT_NODE_PROPS,
+               payload = khepri_payload:data(foo_value)}}},
+       Root2),
+    ?assertEqual({ok, #{[foo] => #{},
+                        [bar] => #{delete_reason => keep_while}}}, Ret2),
+    ?assertEqual([], SE2).
