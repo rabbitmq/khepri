@@ -1010,13 +1010,13 @@ select_command_type(#{async := {Correlation, Priority}})
       QueryFun :: query_fun(),
       Options :: khepri:query_options(),
       Ret :: any().
-%% @doc Processes a query which is by the Ra leader.
+%% @doc Processes a query on the local Ra server.
 %%
 %% The `QueryFun' function takes the machine state as an argument and can
 %% return anything. However, the machine state is never modified. The query
 %% does not go through the Ra log and is not replicated.
 %%
-%% The `QueryFun' function is executed from a process on the leader Ra member.
+%% The `QueryFun' function is executed from a process on the local Ra member.
 %%
 %% @param StoreId the name of the Ra cluster.
 %%
@@ -1630,7 +1630,7 @@ reset_applied_command_count(State) ->
       Result :: any(),
       Meta :: ra_machine:command_meta_data(),
       SideEffects :: ra_machine:effects().
-%% Removes any dedups from the `dedups' field in state that have expired
+%% @doc Removes any dedups from the `dedups' field in state that have expired
 %% according to the timestamp in the handled command.
 %%
 %% This function is a no-op in any other version than version 1. This proved to
