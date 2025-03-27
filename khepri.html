@@ -290,7 +290,9 @@ on a single tree node.</p>
   <ul>
   <li><code>keep_while</code> allows to define keep-while conditions on the
   created/updated tree node.</li>
-  </ul></p>
+  </ul>
+ 
+  NOTE: When this list of tree options is modified, <a docgen-rel="seemfa" docgen-href="khepri_machine#split_command_options/2" href="khepri_machine.html#split_command_options-2"><code>khepri_machine:split_command_options/2</code></a> and <a docgen-rel="seemfa" docgen-href="khepri_machine#split_put_options/2" href="khepri_machine.html#split_put_options-2"><code>khepri_machine:split_put_options/2</code></a> must be adapted.</p>
 
 <h3 class="typedecl"><a name="type-query_options">query_options()</a></h3>
 <p><code>query_options() = #{condition =&gt; <a href="/home/runner/work/khepri/ra/doc/ra.html#type-query_condition" docgen-rel="seetype" docgen-href="ra:ra#query_condition/0">ra:query_condition()</a>, timeout =&gt; timeout(), favor =&gt; <a href="#type-favor_option" docgen-rel="seetype" docgen-href="#favor_option/0">favor_option()</a>}</code></p>
@@ -304,8 +306,10 @@ on a single tree node.</p>
   returned data and low latency of queries; see <a docgen-rel="seetype" docgen-href="#favor_option/0" href="#type-favor_option"><code>favor_option()</code></a>.</li>
   </ul>
  
-  <code>favor</code> computes a <code>condition</code> internally. Therefore if both options are
+  <p><code>favor</code> computes a <code>condition</code> internally. Therefore if both options are
   set, <code>condition</code> takes precedence and <code>favor</code> is ignored.</p>
+ 
+  NOTE: When this list of query options is modified, <a docgen-rel="seemfa" docgen-href="khepri_machine#split_query_options/2" href="khepri_machine.html#split_query_options-2"><code>khepri_machine:split_query_options/2</code></a> must be adapted.</p>
 
 <h3 class="typedecl"><a name="type-reply_from_option">reply_from_option()</a></h3>
 <p><code>reply_from_option() = leader | local | {member, <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id" docgen-rel="seetype" docgen-href="ra:ra#server_id/0">ra:server_id()</a>}</code></p>
@@ -351,7 +355,9 @@ controls which member of the cluster carries out the reply.</p>
   only.</li>
   <li><code>include_root_props</code> indicates if root properties and payload should be
   returned as well.</li>
-  </ul></p>
+  </ul>
+ 
+  NOTE: When this list of tree options is modified, <a docgen-rel="seemfa" docgen-href="khepri_machine#split_query_options/2" href="khepri_machine.html#split_query_options-2"><code>khepri_machine:split_query_options/2</code></a> and <a docgen-rel="seemfa" docgen-href="khepri_machine#split_command_options/2" href="khepri_machine.html#split_command_options-2"><code>khepri_machine:split_command_options/2</code></a> must be adapted.</p>
 
 <h3 class="typedecl"><a name="type-trigger_id">trigger_id()</a></h3>
 <p><code>trigger_id() = atom()</code></p>
