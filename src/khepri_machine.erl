@@ -108,7 +108,8 @@
          delete_matching_nodes/4,
          handle_tx_exception/1,
          process_query/3,
-         process_command/3]).
+         process_command/3,
+         does_api_comply_with/2]).
 
 %% Internal functions to access the opaque #khepri_machine{} state.
 -export([is_state/1,
@@ -227,6 +228,13 @@
 %% A mapping between the names of projections and patterns to which each
 %% projection is registered.
 
+-type api_behaviour() :: dedup_protection |
+                         delete_reason_in_node_props |
+                         indirect_deletes_in_ret |
+                         uniform_write_ret |
+                         atom().
+%% Name of a state machine API behaviour.
+
 -export_type([write_ret/0,
               tx_ret/0,
               async_ret/0,
@@ -242,6 +250,7 @@
               triggered/0,
               projection_tree/0,
               projection_map/0,
+              api_behaviour/0,
               command/0,
               old_command/0]).
 
@@ -854,10 +863,12 @@ set_default_options(StoreId, Options) ->
     %% still using a machine version that doesn't know about it. Otherwise old
     %% versions of Khepri will crash when gathering the properties.
     PropsToReturn0 = maps:get(props_to_return, Options1),
-    PropsToReturn1 = case effective_version(StoreId) of
-                         {ok, EffectiveMacVer} when EffectiveMacVer >= 2 ->
+    KeepDeleteReason = does_api_comply_with(
+                         delete_reason_in_node_props, StoreId),
+    PropsToReturn1 = case KeepDeleteReason of
+                         true ->
                              PropsToReturn0;
-                         _ ->
+                         false ->
                              %% `delete_reason' was added in machine version
                              %% 2. Also, previous versions didn't ignore
                              %% unknown props_to_return and crashed.
@@ -898,9 +909,8 @@ process_command(StoreId, Command, Options) ->
 process_sync_command(
   StoreId, Command, #{protect_against_dups := true} = Options) ->
     %% The deduplication mechanism was added to machine version 1.
-    DedupMacVer = 1,
-    case effective_version(StoreId) of
-        {ok, EffectiveMacVer} when EffectiveMacVer >= DedupMacVer ->
+    case does_api_comply_with(dedup_protection, StoreId) of
+        true ->
             %% When `protect_against_dups' is true, we wrap the command inside
             %% a #dedup{} one to give it a unique reference. This is used for
             %% non-idempotent commands which could be replayed when there is a
@@ -939,7 +949,7 @@ process_sync_command(
             RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
             _ = ra:pipeline_command(RaServer, DedupAck),
             Ret;
-        _ ->
+        false ->
             do_process_sync_command(StoreId, Command, Options)
     end;
 process_sync_command(
@@ -1820,6 +1830,48 @@ effective_version(StoreId) when ?IS_KHEPRI_STORE_ID(StoreId) ->
                                   error => Error}),
                     {error, Reason}
             end
+    end.
+
+-spec does_api_comply_with(Behaviour, MacVer | StoreId) -> DoesUse when
+      Behaviour :: khepri_machine:api_behaviour(),
+      MacVer :: ra_machine:version(),
+      StoreId :: khepri:store_id(),
+      DoesUse :: boolean().
+%% @doc Indicates if a new behaviour of the transaction API is activated.
+%%
+%% The transaction code is compiled on one Erlang node with a specific version
+%% of Khepri. However, it is executed on all members of the Khepri cluster.
+%% Some Erlang nodes might use another version of Khepri, newer or older, and
+%% the transaction API may differ.
+%%
+%% For instance in Khepri 0.17.x, the return values of the {@link
+%% khepri_tx_adv} functions changed. The transaction code will have to handle
+%% both versions of the API to work correctly. Thus it can use this function
+%% to adapt.
+%%
+%% @returns true if the given behaviour is activated, false if it is not or if
+%% the behaviour is unknown.
+
+does_api_comply_with(dedup_protection, MacVer)
+  when is_integer(MacVer) ->
+    MacVer >= 1;
+does_api_comply_with(delete_reason_in_node_props, MacVer)
+  when is_integer(MacVer) ->
+    MacVer >= 2;
+does_api_comply_with(indirect_deletes_in_ret, MacVer)
+  when is_integer(MacVer) ->
+    MacVer >= 2;
+does_api_comply_with(uniform_write_ret, MacVer)
+  when is_integer(MacVer) ->
+    MacVer >= 2;
+does_api_comply_with(_Behaviour, MacVer)
+  when is_integer(MacVer) ->
+    false;
+does_api_comply_with(Behaviour, StoreId)
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
+    case effective_version(StoreId) of
+        {ok, MacVer} -> does_api_comply_with(Behaviour, MacVer);
+        _            -> false
     end.
 
 %% -------------------------------------------------------------------

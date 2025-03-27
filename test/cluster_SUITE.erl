@@ -1603,6 +1603,8 @@ can_use_default_store_on_single_node(_Config) ->
                          payload_version => 7}}},
        khepri_adv:get_many([foo], #{})),
 
+    ?assertNot(khepri_machine:does_api_comply_with(some_behaviour, StoreId)),
+
     ?assertEqual({ok, [{StoreId, Node}]}, khepri_cluster:members()),
     ?assertEqual(
        {ok, [{StoreId, Node}]},
