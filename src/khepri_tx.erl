@@ -87,11 +87,9 @@
 
          abort/1,
          is_transaction/0,
-         api_version/0]).
+         does_api_comply_with/1]).
 
 -compile({no_auto_import, [get/1, put/2, erase/1]}).
-
--define(TX_API_VERSION, 1).
 
 %% FIXME: Dialyzer complains about several functions with "optional" arguments
 %% (but not all). I believe the specs are correct, but can't figure out how to
@@ -109,13 +107,9 @@
 -type tx_abort() :: khepri:error(any()).
 %% Return value after a transaction function aborted.
 
--type api_version() :: pos_integer().
-%% Version of the transaction API.
-
 -export_type([tx_fun/0,
               tx_fun_result/0,
-              tx_abort/0,
-              api_version/0]).
+              tx_abort/0]).
 
 %% -------------------------------------------------------------------
 %% is_empty().
@@ -188,7 +182,13 @@ get(PathPattern) ->
 get(PathPattern, Options) ->
     case khepri_tx_adv:get(PathPattern, Options) of
         {ok, NodePropsMap} ->
-            NodeProps = khepri_utils:get_single_node_props(NodePropsMap),
+            NodeProps = case does_api_comply_with(uniform_write_ret) of
+                            true ->
+                                khepri_utils:get_single_node_props(
+                                  NodePropsMap);
+                            false ->
+                                NodePropsMap
+                        end,
             Payload = khepri_utils:node_props_to_payload(NodeProps, undefined),
             {ok, Payload};
         {error, _} = Error ->
@@ -230,7 +230,13 @@ get_or(PathPattern, Default) ->
 get_or(PathPattern, Default, Options) ->
     case khepri_tx_adv:get(PathPattern, Options) of
         {ok, NodePropsMap} ->
-            NodeProps = khepri_utils:get_single_node_props(NodePropsMap),
+            NodeProps = case does_api_comply_with(uniform_write_ret) of
+                            true ->
+                                khepri_utils:get_single_node_props(
+                                  NodePropsMap);
+                            false ->
+                                NodePropsMap
+                        end,
             Payload = khepri_utils:node_props_to_payload(NodeProps, Default),
             {ok, Payload};
         {error, ?khepri_error(node_not_found, _)} ->
@@ -1018,12 +1024,13 @@ is_transaction() ->
     end.
 
 %% -------------------------------------------------------------------
-%% api_version().
+%% does_api_comply_with().
 %% -------------------------------------------------------------------
 
--spec api_version() -> khepri_tx:api_version().
-%% @doc Returns the version of the transaction API for the Khepri instance
-%% that execute the transaction.
+-spec does_api_comply_with(Behaviour) -> DoesUse when
+      Behaviour :: khepri_machine:api_behaviour(),
+      DoesUse :: boolean().
+%% @doc Indicates if a new behaviour of the transaction API is activated.
 %%
 %% The transaction code is compiled on one Erlang node with a specific version
 %% of Khepri. However, it is executed on all members of the Khepri cluster.
@@ -1032,10 +1039,12 @@ is_transaction() ->
 %%
 %% For instance in Khepri 0.17.x, the return values of the {@link
 %% khepri_tx_adv} functions changed. The transaction code will have to handle
-%% voth versions of the API to work correctly. Thus it can use this function
-%% to adapt its behaviour.
+%% both versions of the API to work correctly. Thus it can use this function
+%% to adapt.
 %%
-%% @returns the version of the Khepri transaction API.
+%% @returns true if the given behaviour is activated, false if it is not or if
+%% the behaviour is unknown.
 
-api_version() ->
-    ?TX_API_VERSION.
+does_api_comply_with(Behaviour) ->
+    MacVer = khepri_tx_adv:get_tx_effective_machine_version(),
+    khepri_machine:does_api_comply_with(Behaviour, MacVer).

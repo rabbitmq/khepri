@@ -510,7 +510,8 @@ readonly_transaction(StoreId, Fun, Args, Options)
                     %% the state is unchanged and that there are no side
                     %% effects.
                     {State, Ret, []} = khepri_tx_adv:run(
-                                         State, Fun, Args, false),
+                                         State, Fun, Args, false,
+                                         undefined),
                     Ret
             end,
     case process_query(StoreId, Query, Options) of
@@ -526,7 +527,8 @@ readonly_transaction(StoreId, PathPattern, Args, Options)
                     %% the state is unchanged and that there are no side
                     %% effects.
                     {State, Ret, []} = locate_sproc_and_execute_tx(
-                                         State, PathPattern, Args, false),
+                                         State, PathPattern, Args, false,
+                                         undefined),
                     Ret
             end,
     case process_query(StoreId, Query, Options) of
@@ -1428,13 +1430,13 @@ apply(
   Meta,
   #tx{'fun' = StandaloneFun, args = Args},
   State) when ?IS_HORUS_FUN(StandaloneFun) ->
-    Ret = khepri_tx_adv:run(State, StandaloneFun, Args, true),
+    Ret = khepri_tx_adv:run(State, StandaloneFun, Args, true, Meta),
     post_apply(Ret, Meta);
 apply(
   Meta,
   #tx{'fun' = PathPattern, args = Args},
   State) when ?IS_KHEPRI_PATH_PATTERN(PathPattern) ->
-    Ret = locate_sproc_and_execute_tx(State, PathPattern, Args, true),
+    Ret = locate_sproc_and_execute_tx(State, PathPattern, Args, true, Meta),
     post_apply(Ret, Meta);
 apply(
   Meta,
@@ -1878,7 +1880,7 @@ does_api_comply_with(Behaviour, StoreId)
 %% Internal functions.
 %% -------------------------------------------------------------------
 
-locate_sproc_and_execute_tx(State, PathPattern, Args, AllowUpdates) ->
+locate_sproc_and_execute_tx(State, PathPattern, Args, AllowUpdates, Meta) ->
     Tree = get_tree(State),
     TreeOptions = #{expect_specific_node => true,
                     props_to_return => [raw_payload]},
@@ -1911,7 +1913,7 @@ locate_sproc_and_execute_tx(State, PathPattern, Args, AllowUpdates) ->
         {error, Reason} ->
             {fun failed_to_locate_sproc/1, [Reason]}
     end,
-    khepri_tx_adv:run(State, StandaloneFun, Args1, AllowUpdates).
+    khepri_tx_adv:run(State, StandaloneFun, Args1, AllowUpdates, Meta).
 
 -spec failed_to_locate_sproc(Reason) -> no_return() when
       Reason :: any().

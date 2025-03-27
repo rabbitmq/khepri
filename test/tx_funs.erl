@@ -53,7 +53,7 @@ allowed_khepri_tx_api_test() ->
            _ = khepri_tx:delete([foo]),
            _ = khepri_tx:abort(error),
            _ = khepri_tx:is_transaction(),
-           _ = khepri_tx:api_version()
+           _ = khepri_tx:does_api_comply_with(some_behaviour)
        end).
 
 denied_khepri_tx_adv_run_4_test() ->
@@ -66,8 +66,9 @@ denied_khepri_tx_adv_run_4_test() ->
           #{error :=
             ?horus_error(
                extraction_denied,
-               #{error := {call_denied, {khepri_tx_adv, run, 4}}})}),
-       _ = khepri_tx_adv:run(MachineState, fun() -> ok end, [], true)).
+               #{error := {call_denied, {khepri_tx_adv, run, 5}}})}),
+       _ = khepri_tx_adv:run(
+             MachineState, fun() -> ok end, [], true, undefined)).
 
 denied_receive_block_test() ->
     ?assertToFunError(

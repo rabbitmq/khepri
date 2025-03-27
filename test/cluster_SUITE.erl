@@ -1725,9 +1725,6 @@ can_use_default_store_on_single_node(_Config) ->
        {error, ?khepri_error(node_not_found, _)},
        khepri:get([foo])),
 
-    ?assert(is_integer(khepri_tx:api_version())),
-    ?assert(khepri_tx:api_version() > 0),
-
     ?assertEqual(ok, khepri:stop()),
     ?assertEqual(ok, application:stop(khepri)),
     ?assertEqual(ok, application:stop(ra)),
