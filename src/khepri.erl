@@ -350,6 +350,9 @@
 %%
 %% `favor' computes a `condition' internally. Therefore if both options are
 %% set, `condition' takes precedence and `favor' is ignored.
+%%
+%% NOTE: When this list of query options is modified, {@link
+%% khepri_machine:split_query_options/2} must be adapted.
 
 -type tree_options() :: #{expect_specific_node => boolean(),
                           props_to_return => [known_prop_to_return() |
@@ -369,6 +372,10 @@
 %% <li>`include_root_props' indicates if root properties and payload should be
 %% returned as well.</li>
 %% </ul>
+%%
+%% NOTE: When this list of tree options is modified, {@link
+%% khepri_machine:split_query_options/2} and {@link
+%% khepri_machine:split_command_options/2} must be adapted.
 
 -type known_prop_to_return() :: payload_version |
                                 child_list_version |
@@ -397,6 +404,10 @@
 %% <li>`keep_while' allows to define keep-while conditions on the
 %% created/updated tree node.</li>
 %% </ul>
+%%
+%% NOTE: When this list of tree options is modified, {@link
+%% khepri_machine:split_command_options/2} and {@link
+%% khepri_machine:split_put_options/2} must be adapted.
 
 -type fold_fun() :: fun((khepri_path:native_path(),
                          khepri:node_props(),
