@@ -319,6 +319,14 @@ are_keep_while_conditions_met(Tree, KeepWhile) ->
               case find_matching_nodes(Tree, Path, TreeOptions) of
                   {ok, Result} when Result =/= #{} ->
                       are_keep_while_conditions_met1(Result, Condition);
+                  {ok, Result}
+                    when Result =:= #{} andalso
+                         Condition =:= #if_node_exists{exists = false} ->
+                      %% The path pattern of the `keep_while' condition
+                      %% matched no tree nodes. The condition indicates the
+                      %% target node/pattern should not exist, therefore the
+                      %% condition is met.
+                      true;
                   {ok, _} ->
                       {false, {pattern_matches_no_nodes, Path}};
                   {error, Reason} ->
