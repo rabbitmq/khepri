@@ -418,9 +418,12 @@ transaction(StoreId, Fun, Args, auto = ReadWrite, Options)
        is_map(Options) ->
     case khepri_tx_adv:to_standalone_fun(Fun, ReadWrite) of
         StandaloneFun when ?IS_HORUS_STANDALONE_FUN(StandaloneFun) ->
-            readwrite_transaction(StoreId, StandaloneFun, Args, Options);
+            {CommandOptions, _} = split_command_options(StoreId, Options),
+            readwrite_transaction(
+              StoreId, StandaloneFun, Args, CommandOptions);
         _ ->
-            readonly_transaction(StoreId, Fun, Args, Options)
+            {QueryOptions, _} = split_query_options(StoreId, Options),
+            readonly_transaction(StoreId, Fun, Args, QueryOptions)
     end;
 transaction(StoreId, PathPattern, Args, auto, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
@@ -429,14 +432,16 @@ transaction(StoreId, PathPattern, Args, auto, Options)
        is_map(Options) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
-    readwrite_transaction(StoreId, PathPattern1, Args, Options);
+    {CommandOptions, _} = split_command_options(StoreId, Options),
+    readwrite_transaction(StoreId, PathPattern1, Args, CommandOptions);
 transaction(StoreId, Fun, Args, rw = ReadWrite, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        is_list(Args) andalso
        is_function(Fun, length(Args)) andalso
        is_map(Options) ->
     StandaloneFun = khepri_tx_adv:to_standalone_fun(Fun, ReadWrite),
-    readwrite_transaction(StoreId, StandaloneFun, Args, Options);
+    {CommandOptions, _} = split_command_options(StoreId, Options),
+    readwrite_transaction(StoreId, StandaloneFun, Args, CommandOptions);
 transaction(StoreId, PathPattern, Args, rw, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        ?IS_KHEPRI_PATH_PATTERN(PathPattern) andalso
@@ -444,13 +449,15 @@ transaction(StoreId, PathPattern, Args, rw, Options)
        is_map(Options) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
-    readwrite_transaction(StoreId, PathPattern1, Args, Options);
+    {CommandOptions, _} = split_command_options(StoreId, Options),
+    readwrite_transaction(StoreId, PathPattern1, Args, CommandOptions);
 transaction(StoreId, Fun, Args, ro, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        is_list(Args) andalso
        is_function(Fun, length(Args)) andalso
        is_map(Options) ->
-    readonly_transaction(StoreId, Fun, Args, Options);
+    {QueryOptions, _} = split_query_options(StoreId, Options),
+    readonly_transaction(StoreId, Fun, Args, QueryOptions);
 transaction(StoreId, PathPattern, Args, ro, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        ?IS_KHEPRI_PATH_PATTERN(PathPattern) andalso
@@ -458,7 +465,8 @@ transaction(StoreId, PathPattern, Args, ro, Options)
        is_map(Options) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
-    readonly_transaction(StoreId, PathPattern1, Args, Options);
+    {QueryOptions, _} = split_query_options(StoreId, Options),
+    readonly_transaction(StoreId, PathPattern1, Args, QueryOptions);
 transaction(StoreId, Fun, Args, ReadWrite, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        is_function(Fun) andalso
