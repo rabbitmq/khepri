@@ -1010,13 +1010,13 @@ select_command_type(#{async := {Correlation, Priority}})
       QueryFun :: query_fun(),
       Options :: khepri:query_options(),
       Ret :: any().
-%% @doc Processes a query which is by the Ra leader.
+%% @doc Processes a query on the local Ra server.
 %%
 %% The `QueryFun' function takes the machine state as an argument and can
 %% return anything. However, the machine state is never modified. The query
 %% does not go through the Ra log and is not replicated.
 %%
-%% The `QueryFun' function is executed from a process on the leader Ra member.
+%% The `QueryFun' function is executed from a process on the local Ra member.
 %%
 %% @param StoreId the name of the Ra cluster.
 %%
