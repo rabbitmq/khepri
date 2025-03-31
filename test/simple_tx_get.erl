@@ -942,3 +942,22 @@ filter_node_cb([_ | _] = Path, _NodeProps) ->
     lists:last(Path) =:= baz;
 filter_node_cb(_Path, _NodeProps) ->
     false.
+
+options_are_correctly_filtered_in_auto_txs_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok,
+          {error, ?khepri_error(node_not_found, #{node_name => foo,
+                                                  node_path => [foo],
+                                                  node_is_target => true})}},
+         begin
+             Fun = fun() ->
+                           khepri_tx:get([foo])
+                   end,
+             khepri:transaction(
+               ?FUNCTION_NAME, Fun, auto, #{async => true,
+                                            protect_against_dups => true,
+                                            reply_from => leader})
+         end)]}.
