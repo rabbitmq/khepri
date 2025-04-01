@@ -440,3 +440,21 @@ invalid_compare_and_swap_call_test_() ->
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
+
+options_are_correctly_filtered_in_auto_txs_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, ok},
+         begin
+             Fun = fun() ->
+                           khepri_tx:create([foo], foo_value)
+                   end,
+             khepri:transaction(
+               ?FUNCTION_NAME, Fun, auto, #{condition => {applied, {1, 1}},
+                                            favor => consistency})
+         end),
+      ?_assertEqual(
+         {ok, foo_value},
+         khepri:get(?FUNCTION_NAME, [foo]))]}.

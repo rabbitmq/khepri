@@ -418,11 +418,13 @@ transaction(StoreId, Fun, Args, auto = ReadWrite, Options)
        is_map(Options) ->
     case khepri_tx_adv:to_standalone_fun(Fun, ReadWrite) of
         StandaloneFun when ?IS_HORUS_STANDALONE_FUN(StandaloneFun) ->
-            {CommandOptions, _} = split_command_options(StoreId, Options),
+            Options1 = remove_query_options(Options),
+            {CommandOptions, _} = split_command_options(StoreId, Options1),
             readwrite_transaction(
               StoreId, StandaloneFun, Args, CommandOptions);
         _ ->
-            {QueryOptions, _} = split_query_options(StoreId, Options),
+            Options1 = remove_command_options(Options),
+            {QueryOptions, _} = split_query_options(StoreId, Options1),
             readonly_transaction(StoreId, Fun, Args, QueryOptions)
     end;
 transaction(StoreId, PathPattern, Args, auto, Options)
@@ -432,7 +434,8 @@ transaction(StoreId, PathPattern, Args, auto, Options)
        is_map(Options) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
-    {CommandOptions, _} = split_command_options(StoreId, Options),
+    Options1 = remove_query_options(Options),
+    {CommandOptions, _} = split_command_options(StoreId, Options1),
     readwrite_transaction(StoreId, PathPattern1, Args, CommandOptions);
 transaction(StoreId, Fun, Args, rw = ReadWrite, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
@@ -440,7 +443,8 @@ transaction(StoreId, Fun, Args, rw = ReadWrite, Options)
        is_function(Fun, length(Args)) andalso
        is_map(Options) ->
     StandaloneFun = khepri_tx_adv:to_standalone_fun(Fun, ReadWrite),
-    {CommandOptions, _} = split_command_options(StoreId, Options),
+    Options1 = remove_query_options(Options),
+    {CommandOptions, _} = split_command_options(StoreId, Options1),
     readwrite_transaction(StoreId, StandaloneFun, Args, CommandOptions);
 transaction(StoreId, PathPattern, Args, rw, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
@@ -449,14 +453,16 @@ transaction(StoreId, PathPattern, Args, rw, Options)
        is_map(Options) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
-    {CommandOptions, _} = split_command_options(StoreId, Options),
+    Options1 = remove_query_options(Options),
+    {CommandOptions, _} = split_command_options(StoreId, Options1),
     readwrite_transaction(StoreId, PathPattern1, Args, CommandOptions);
 transaction(StoreId, Fun, Args, ro, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        is_list(Args) andalso
        is_function(Fun, length(Args)) andalso
        is_map(Options) ->
-    {QueryOptions, _} = split_query_options(StoreId, Options),
+    Options1 = remove_command_options(Options),
+    {QueryOptions, _} = split_query_options(StoreId, Options1),
     readonly_transaction(StoreId, Fun, Args, QueryOptions);
 transaction(StoreId, PathPattern, Args, ro, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
@@ -465,7 +471,8 @@ transaction(StoreId, PathPattern, Args, ro, Options)
        is_map(Options) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
-    {QueryOptions, _} = split_query_options(StoreId, Options),
+    Options1 = remove_command_options(Options),
+    {QueryOptions, _} = split_query_options(StoreId, Options1),
     readonly_transaction(StoreId, PathPattern1, Args, QueryOptions);
 transaction(StoreId, Fun, Args, ReadWrite, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
@@ -814,6 +821,23 @@ split_put_options(TreeAndPutOptions) ->
               T1 = T#{Option => Value},
               {T1, P}
       end, {#{}, #{}}, TreeAndPutOptions).
+
+remove_query_options(Options) ->
+    maps:filter(
+      fun
+          (condition, _Value) -> false;
+          (favor, _Value) -> false;
+          (_Option, _Value) -> true
+      end, Options).
+
+remove_command_options(Options) ->
+    maps:filter(
+      fun
+          (async, _Value) -> false;
+          (protect_against_dups, _Value) -> false;
+          (reply_from, _Value) -> false;
+          (_Option, _Value) -> true
+      end, Options).
 
 set_default_options(StoreId, Options) ->
     %% By default, return payload-related properties. The caller can set
