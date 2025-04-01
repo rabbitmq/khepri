@@ -73,7 +73,9 @@
 %% which improves lookup time when the reverse index contains many entries.
 
 -type applied_changes() :: #{khepri_path:native_path() =>
-                             khepri:node_props() | delete}.
+                             {create, khepri:node_props()} |
+                             {update, khepri:node_props()} |
+                             delete}.
 %% Internal index of the per-node changes which happened during a traversal.
 %% This is used when the tree is walked back up to determine the list of tree
 %% nodes to remove after some keep_while condition evaluates to false.
@@ -283,6 +285,29 @@ squash_version_bumps(
                   child_list_version => CVersion},
     CurrentNode#node{props = Stat1}.
 
+squash_version_bumps_after_keep_while(
+  Path,
+  #node{props = #{child_list_version := CVersion} = Props} = Node,
+  AppliedChanges) ->
+    ChildPathLength = length(Path) + 1,
+    WasModified = maps:fold(
+                    fun
+                        (P, {create, _NP}, false) ->
+                            lists:prefix(Path, P) andalso
+                            length(P) =:= ChildPathLength;
+                        (_P, _TaNP, Acc) ->
+                            Acc
+                    end, false, AppliedChanges),
+    case WasModified of
+        false ->
+            Node;
+        true ->
+            CVersion1 = CVersion - 1,
+            ?assert(CVersion1 >= 1),
+            Props1 = Props#{child_list_version => CVersion1},
+            Node#node{props = Props1}
+    end.
+
 %% -------------------------------------------------------------------
 %% Keep-while functions.
 %% -------------------------------------------------------------------
@@ -319,6 +344,14 @@ are_keep_while_conditions_met(Tree, KeepWhile) ->
               case find_matching_nodes(Tree, Path, TreeOptions) of
                   {ok, Result} when Result =/= #{} ->
                       are_keep_while_conditions_met1(Result, Condition);
+                  {ok, Result}
+                    when Result =:= #{} andalso
+                         Condition =:= #if_node_exists{exists = false} ->
+                      %% The path pattern of the `keep_while' condition
+                      %% matched no tree nodes. The condition indicates the
+                      %% target node/pattern should not exist, therefore the
+                      %% condition is met.
+                      true;
                   {ok, _} ->
                       {false, {pattern_matches_no_nodes, Path}};
                   {error, Reason} ->
@@ -1265,7 +1298,8 @@ walk_back_up_the_tree(Walk) ->
 walk_back_up_the_tree(
   #walk{node = delete,
         reversed_path = [ChildName | ReversedPath] = WholeReversedPath,
-        reversed_parent_tree = [ParentNode | ReversedParentTree]} = Walk,
+        reversed_parent_tree = [ParentNode | ReversedParentTree],
+        applied_changes = AppliedChanges} = Walk,
   AppliedChangesAcc) ->
     %% Evaluate keep_while of nodes which depended on ChildName (it is
     %% removed) at the end of walk_back_up_the_tree().
@@ -1275,20 +1309,35 @@ walk_back_up_the_tree(
     %% Evaluate keep_while of parent node on itself right now (its child_count
     %% has changed).
     ParentNode1 = remove_node_child(ParentNode, ChildName),
-    Walk1 = Walk#walk{node = ParentNode1,
+
+    %% If we are handling deletes as part of a `keep_while', it is possible
+    %% that this parent node's child list version was bumped if a node was
+    %% added in the first pass. In this case, we don't want to bump that
+    %% version twice (add + delete), but just once.
+    ParentNode2 = squash_version_bumps_after_keep_while(
+                    lists:reverse(ReversedPath), ParentNode1, AppliedChanges),
+
+    Walk1 = Walk#walk{node = ParentNode2,
                       reversed_path = ReversedPath,
                       reversed_parent_tree = ReversedParentTree},
     handle_keep_while_for_parent_update(Walk1, AppliedChangesAcc1);
 walk_back_up_the_tree(
   #walk{node = Child,
-        reversed_path = [ChildName | ReversedPath],
+        reversed_path = [ChildName | ReversedPath] = WholeReversedPath,
         reversed_parent_tree =
         [{ParentNode, child_created} | ReversedParentTree]} = Walk,
   AppliedChangesAcc) ->
-    %% No keep_while to evaluate, the child is new and no nodes depend on it
-    %% at this stage.
-    %% FIXME: Perhaps there is a condition in a if_any{}?
     Child1 = reset_versions(Child),
+
+    %% Evaluate keep_while of nodes which depend on ChildName (it is
+    %% created) at the end of walk_back_up_the_tree().
+    Path = lists:reverse(WholeReversedPath),
+    TreeOptions = #{props_to_return => [payload,
+                                        payload_version,
+                                        child_list_version,
+                                        child_list_length]},
+    NodeProps = gather_node_props(Child1, TreeOptions),
+    AppliedChangesAcc1 = AppliedChangesAcc#{Path => {create, NodeProps}},
 
     %% Evaluate keep_while of parent node on itself right now (its child_count
     %% has changed).
@@ -1296,7 +1345,7 @@ walk_back_up_the_tree(
     Walk1 = Walk#walk{node = ParentNode1,
                       reversed_path = ReversedPath,
                       reversed_parent_tree = ReversedParentTree},
-    handle_keep_while_for_parent_update(Walk1, AppliedChangesAcc);
+    handle_keep_while_for_parent_update(Walk1, AppliedChangesAcc1);
 walk_back_up_the_tree(
   #walk{node = Child,
         reversed_path = [ChildName | ReversedPath] = WholeReversedPath,
@@ -1309,8 +1358,17 @@ walk_back_up_the_tree(
                                         payload_version,
                                         child_list_version,
                                         child_list_length]},
+    InitialNodeProps = gather_node_props(
+                         maps:get(ChildName, ParentNode#node.child_nodes),
+                         TreeOptions),
     NodeProps = gather_node_props(Child, TreeOptions),
-    AppliedChangesAcc1 = AppliedChangesAcc#{Path => NodeProps},
+    AppliedChangesAcc1 = case NodeProps of
+                             InitialNodeProps ->
+                                 AppliedChangesAcc;
+                             _ ->
+                                 AppliedChangesAcc#{
+                                   Path => {update, NodeProps}}
+                         end,
 
     %% No need to evaluate keep_while of ParentNode, its child_count is
     %% unchanged.
@@ -1373,10 +1431,10 @@ merge_applied_changes(AppliedChanges1, AppliedChanges2) ->
       fun
           (Path, delete, KWA1) ->
               KWA1#{Path => delete};
-          (Path, NodeProps, KWA1) ->
+          (Path, {_, _} = TypeAndNodeProps, KWA1) ->
               case KWA1 of
                   #{Path := delete} -> KWA1;
-                  _                 -> KWA1#{Path => NodeProps}
+                  _                 -> KWA1#{Path => TypeAndNodeProps}
               end
       end, AppliedChanges1, AppliedChanges2).
 
@@ -1398,7 +1456,7 @@ handle_applied_changes(
                               RemovedPath, T#tree.keep_while_conds),
                       T1 = update_keep_while_conds_revidx(T, RemovedPath, #{}),
                       T1#tree{keep_while_conds = KW1};
-                  (_, _, T) ->
+                  (_, {_, _}, T) ->
                       T
               end, Tree1, AppliedChanges),
 
@@ -1443,7 +1501,7 @@ eval_keep_while_conditions_v0(
                                 ToDelete1
                         end
                 end, ToDelete, KeepWhileCondsRevIdx);
-          (UpdatedPath, NodeProps, ToDelete) ->
+          (UpdatedPath, {_Type, NodeProps}, ToDelete) ->
               case KeepWhileCondsRevIdx of
                   #{UpdatedPath := Watchers} ->
                       eval_keep_while_conditions_after_update(
@@ -1464,7 +1522,7 @@ eval_keep_while_conditions_v1(
                         eval_keep_while_conditions_after_removal(
                           Tree, Watchers, ToDelete1)
                 end, ToDelete, RemovedPath, KeepWhileCondsRevIdx);
-          (UpdatedPath, NodeProps, ToDelete) ->
+          (UpdatedPath, {_Type, NodeProps}, ToDelete) ->
               Result = khepri_prefix_tree:find_path(
                          UpdatedPath, KeepWhileCondsRevIdx),
               case Result of

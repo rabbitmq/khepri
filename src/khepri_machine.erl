@@ -1864,7 +1864,7 @@ insert_or_update_node(
         {ok, Tree1, AppliedChanges, Ret2} ->
             State1 = set_tree(State, Tree1),
             {State2, SideEffects1} = add_tree_change_side_effects(
-                                       State, State1, Ret2, AppliedChanges,
+                                       State, State1, AppliedChanges,
                                        SideEffects),
             {State2, {ok, Ret2}, SideEffects1};
         Error ->
@@ -1889,7 +1889,7 @@ delete_matching_nodes(State, PathPattern, TreeOptions, SideEffects) ->
         {ok, Tree1, AppliedChanges, Ret2} ->
             State1 = set_tree(State, Tree1),
             {State2, SideEffects1} = add_tree_change_side_effects(
-                                       State, State1, Ret2, AppliedChanges,
+                                       State, State1, AppliedChanges,
                                        SideEffects),
             {State2, {ok, Ret2}, SideEffects1};
         Error ->
@@ -1897,16 +1897,17 @@ delete_matching_nodes(State, PathPattern, TreeOptions, SideEffects) ->
     end.
 
 add_tree_change_side_effects(
-  InitialState, NewState, Ret, KeepWhileAftermath, SideEffects) ->
+  InitialState, NewState, AppliedChanges, SideEffects) ->
     %% We make a map where for each affected tree node, we indicate the type
     %% of change.
-    Changes0 = maps:merge(Ret, KeepWhileAftermath),
     Changes = maps:map(
                 fun
-                    (_, NodeProps) when NodeProps =:= #{} -> create;
-                    (_, #{} = _NodeProps)                 -> update;
-                    (_, delete)                           -> delete
-                end, Changes0),
+                    (_, {Type, _NodeProps})
+                      when Type =:= create orelse Type =:= update ->
+                        Type;
+                    (_, delete) ->
+                        delete
+                end, AppliedChanges),
     NewSideEffects = create_projection_side_effects(
                        InitialState, NewState, Changes),
     {NewState1, NewSideEffects1} = add_trigger_side_effects(

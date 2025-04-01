@@ -153,13 +153,13 @@ event_using_non_matching_pattern1_does_not_trigger_associated_sproc_test_() ->
               EventFilter,
               StoredProcPath))},
 
-        {"Updating a node; should trigger the procedure",
+        {"Adding a node; should not trigger the procedure",
          ?_assertMatch(
             ok,
             khepri:put(
               ?FUNCTION_NAME, [foo, bar], value))},
 
-        {"Checking the procedure was executed",
+        {"Checking the procedure was not executed",
          ?_assertEqual(timeout, receive_sproc_msg(Key))}]
       }]}.
 
@@ -187,13 +187,22 @@ event_using_non_matching_pattern2_does_not_trigger_associated_sproc_test_() ->
               EventFilter,
               StoredProcPath))},
 
-        {"Updating a node; should trigger the procedure",
+        {"Adding a child node; should trigger the procedure",
          ?_assertMatch(
             ok,
             khepri:put(
-              ?FUNCTION_NAME, [foo, bar], value))},
+              ?FUNCTION_NAME, [foo, bar], value1))},
 
         {"Checking the procedure was executed",
+         ?_assertEqual(executed, receive_sproc_msg(Key))},
+
+        {"Updating a child node; should not trigger the procedure",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, [foo, bar], value2))},
+
+        {"Checking the procedure was not executed",
          ?_assertEqual(timeout, receive_sproc_msg(Key))}]
       }]}.
 
@@ -221,13 +230,13 @@ event_using_non_matching_pattern3_does_not_trigger_associated_sproc_test_() ->
               EventFilter,
               StoredProcPath))},
 
-        {"Updating a node; should trigger the procedure",
+        {"Adding a node; should not trigger the procedure",
          ?_assertMatch(
             ok,
             khepri:put(
               ?FUNCTION_NAME, [foo], value))},
 
-        {"Checking the procedure was executed",
+        {"Checking the procedure was not executed",
          ?_assertEqual(timeout, receive_sproc_msg(Key))}]
       }]}.
 
