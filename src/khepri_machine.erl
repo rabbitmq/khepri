@@ -108,7 +108,8 @@
          delete_matching_nodes/4,
          handle_tx_exception/1,
          process_query/3,
-         process_command/3]).
+         process_command/3,
+         does_api_comply_with/2]).
 
 %% Internal functions to access the opaque #khepri_machine{} state.
 -export([is_state/1,
@@ -207,7 +208,16 @@
 -type aux_state() :: #khepri_machine_aux{}.
 %% Auxiliary state of this Ra state machine.
 
--type query_fun() :: fun((state()) -> any()).
+-type aux_query() :: {query, query_fun(), khepri:query_options()}.
+%% Query executed through the Ra aux mechanism.
+
+-type delayed_aux_query() :: {aux_query(),
+                              gen_statem:from(),
+                              ra:query_condition() | none}.
+%% Aux query that is delayed until a condition is met.
+
+-type query_fun() :: fun((state()) -> any()) |
+                     fun((ra_machine:command_meta_data(), state()) -> any()).
 %% Function representing a query and used {@link process_query/3}.
 
 -type write_ret() :: khepri:ok(khepri:node_props_map()) |
@@ -227,6 +237,13 @@
 %% A mapping between the names of projections and patterns to which each
 %% projection is registered.
 
+-type api_behaviour() :: dedup_protection |
+                         delete_reason_in_node_props |
+                         indirect_deletes_in_ret |
+                         uniform_write_ret |
+                         atom().
+%% Name of a state machine API behaviour.
+
 -export_type([write_ret/0,
               tx_ret/0,
               async_ret/0,
@@ -242,8 +259,10 @@
               triggered/0,
               projection_tree/0,
               projection_map/0,
+              api_behaviour/0,
               command/0,
-              old_command/0]).
+              old_command/0,
+              delayed_aux_query/0]).
 
 -define(PROJECTION_PROPS_TO_RETURN, [payload_version,
                                      child_list_version,
@@ -320,8 +339,9 @@ fence(StoreId, Timeout) ->
     Options = #{favor => consistency,
                 timeout => Timeout},
     case process_query(StoreId, QueryFun, Options) of
-        true                       -> ok;
-        Other when Other =/= false -> Other
+        {exception, _, _, _} = Exception -> handle_tx_exception(Exception);
+        true                             -> ok;
+        Other when Other =/= false       -> Other
     end.
 
 -spec put(StoreId, PathPattern, Payload, Options) -> Ret when
@@ -496,12 +516,13 @@ transaction(StoreId, Fun, Args, ReadWrite, Options)
 
 readonly_transaction(StoreId, Fun, Args, Options)
   when is_list(Args) andalso is_function(Fun, length(Args)) ->
-    Query = fun(State) ->
+    Query = fun(Meta, State) ->
                     %% It is a read-only transaction, therefore we assert that
                     %% the state is unchanged and that there are no side
                     %% effects.
                     {State, Ret, []} = khepri_tx_adv:run(
-                                         State, Fun, Args, false),
+                                         State, Fun, Args, false,
+                                         Meta),
                     Ret
             end,
     case process_query(StoreId, Query, Options) of
@@ -512,12 +533,13 @@ readonly_transaction(StoreId, Fun, Args, Options)
     end;
 readonly_transaction(StoreId, PathPattern, Args, Options)
   when ?IS_KHEPRI_PATH_PATTERN(PathPattern) andalso is_list(Args) ->
-    Query = fun(State) ->
+    Query = fun(Meta, State) ->
                     %% It is a read-only transaction, therefore we assert that
                     %% the state is unchanged and that there are no side
                     %% effects.
                     {State, Ret, []} = locate_sproc_and_execute_tx(
-                                         State, PathPattern, Args, false),
+                                         State, PathPattern, Args, false,
+                                         Meta),
                     Ret
             end,
     case process_query(StoreId, Query, Options) of
@@ -765,7 +787,8 @@ split_query_options(StoreId, Options) ->
           (Option, Value, {Q, T}) when
                 Option =:= expect_specific_node orelse
                 Option =:= props_to_return orelse
-                Option =:= include_root_props ->
+                Option =:= include_root_props orelse
+                Option =:= return_indirect_deletes ->
               T1 = T#{Option => Value},
               {Q, T1}
       end, {#{}, #{}}, Options1).
@@ -793,7 +816,8 @@ split_command_options(StoreId, Options) ->
           (Option, Value, {C, TP}) when
                 Option =:= expect_specific_node orelse
                 Option =:= props_to_return orelse
-                Option =:= include_root_props ->
+                Option =:= include_root_props orelse
+                Option =:= return_indirect_deletes ->
               TP1 = TP#{Option => Value},
               {C, TP1};
           (keep_while, KeepWhile, {C, TP}) ->
@@ -852,10 +876,12 @@ set_default_options(StoreId, Options) ->
     %% still using a machine version that doesn't know about it. Otherwise old
     %% versions of Khepri will crash when gathering the properties.
     PropsToReturn0 = maps:get(props_to_return, Options1),
-    PropsToReturn1 = case effective_version(StoreId) of
-                         {ok, EffectiveMacVer} when EffectiveMacVer >= 2 ->
+    KeepDeleteReason = does_api_comply_with(
+                         delete_reason_in_node_props, StoreId),
+    PropsToReturn1 = case KeepDeleteReason of
+                         true ->
                              PropsToReturn0;
-                         _ ->
+                         false ->
                              %% `delete_reason' was added in machine version
                              %% 2. Also, previous versions didn't ignore
                              %% unknown props_to_return and crashed.
@@ -896,9 +922,8 @@ process_command(StoreId, Command, Options) ->
 process_sync_command(
   StoreId, Command, #{protect_against_dups := true} = Options) ->
     %% The deduplication mechanism was added to machine version 1.
-    DedupMacVer = 1,
-    case effective_version(StoreId) of
-        {ok, EffectiveMacVer} when EffectiveMacVer >= DedupMacVer ->
+    case does_api_comply_with(dedup_protection, StoreId) of
+        true ->
             %% When `protect_against_dups' is true, we wrap the command inside
             %% a #dedup{} one to give it a unique reference. This is used for
             %% non-idempotent commands which could be replayed when there is a
@@ -937,7 +962,7 @@ process_sync_command(
             RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
             _ = ra:pipeline_command(RaServer, DedupAck),
             Ret;
-        _ ->
+        false ->
             do_process_sync_command(StoreId, Command, Options)
     end;
 process_sync_command(
@@ -1062,16 +1087,13 @@ process_query(StoreId, QueryFun, #{condition := _} = Options) ->
     process_query1(StoreId, QueryFun, Options1);
 process_query(StoreId, QueryFun, Options) ->
     Favor = maps:get(favor, Options, low_latency),
-    Timeout = get_timeout(Options),
-    Options1 = maps:remove(favor, Options),
-    Options2 = Options1#{timeout => Timeout},
     case Favor of
         low_latency ->
-            process_query1(StoreId, QueryFun, Options2);
+            process_query1(StoreId, QueryFun, Options);
         consistency ->
-            case add_applied_condition(StoreId, Options2) of
-                {ok, Options3} ->
-                    process_query1(StoreId, QueryFun, Options3);
+            case add_applied_condition(StoreId, Options) of
+                {ok, Options1} ->
+                    process_query1(StoreId, QueryFun, Options1);
                 {error, _} = Error ->
                     Error
             end
@@ -1080,13 +1102,16 @@ process_query(StoreId, QueryFun, Options) ->
 process_query1(StoreId, QueryFun, Options) ->
     sending_query_locally(StoreId),
     LocalServerId = {StoreId, node()},
-    case ra:local_query(LocalServerId, QueryFun, Options) of
-        {ok, {_RaIdxTerm, Ret}, _NewLeaderId} ->
-            ?raise_exception_if_any(Ret);
-        {timeout, _LeaderId} ->
-            {error, timeout};
-        {error, _} = Error ->
-            Error
+    Timeout = get_timeout(Options),
+    try
+        Ret = ra:aux_command(
+                LocalServerId, {query, QueryFun, Options}, Timeout),
+        ?raise_exception_if_any(Ret)
+    catch
+        exit:{noproc, _} ->
+            {error, noproc};
+        exit:{timeout, _} ->
+            {error, timeout}
     end.
 
 -spec add_applied_condition(StoreId, Options) -> NewOptions when
@@ -1123,12 +1148,17 @@ add_applied_condition1(StoreId, Options, Timeout) ->
         false ->
             T0 = khepri_utils:start_timeout_window(Timeout),
             QueryFun = fun erlang:is_integer/1,
-            case process_query1(StoreId, QueryFun, Timeout) of
-                false ->
+            sending_query_locally(StoreId),
+            LocalServerId = {StoreId, node()},
+            Ret = ra:local_query(LocalServerId, QueryFun, Options),
+            case Ret of
+                {ok, {_RaIdxTerm, false}, _NewLeaderId} ->
                     NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
                     add_applied_condition2(StoreId, Options, NewTimeout);
-                Other when Other =/= true ->
-                    Other
+                {timeout, _LeaderId} ->
+                    {error, timeout};
+                {error, _} = Error ->
+                    Error
             end
     end.
 
@@ -1310,16 +1340,38 @@ init_aux(StoreId) ->
 %% @private
 
 handle_aux(
+  _RaState, {call, From},
+  {query, _QueryFun, Options} = AuxQuery,
+  #khepri_machine_aux{delayed_aux_queries = DelayedAuxQueries} = AuxState,
+  IntState) ->
+    Condition = maps:get(condition, Options, none),
+    DelayedAuxQuery = {AuxQuery, From, Condition},
+    DelayedAuxQueries1 = DelayedAuxQueries ++ [DelayedAuxQuery],
+    AuxState1 = AuxState#khepri_machine_aux{
+                  delayed_aux_queries = DelayedAuxQueries1},
+    AuxState2 = handle_delayed_aux_queries(AuxState1, IntState),
+    {no_reply, AuxState2, IntState};
+handle_aux(
+  _RaState, cast,
+  trigger_delayed_aux_queries_eval,
+  AuxState, IntState) ->
+    AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+    {no_reply, AuxState1, IntState};
+handle_aux(
   _RaState, cast,
   #trigger_projection{path = Path,
                       old_props = OldProps,
                       new_props = NewProps,
                       projection = Projection},
   AuxState, IntState) ->
+    AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+
     khepri_projection:trigger(Projection, Path, OldProps, NewProps),
-    {no_reply, AuxState, IntState};
+    {no_reply, AuxState1, IntState};
 handle_aux(
   _RaState, cast, restore_projections, AuxState, IntState) ->
+    AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+
     State = ra_aux:machine_state(IntState),
     Tree = get_tree(State),
     ProjectionTree = get_projections(State),
@@ -1329,16 +1381,20 @@ handle_aux(
               [restore_projection(Projection, Tree, PathPattern) ||
                Projection <- Projections]
       end),
-    {no_reply, AuxState, IntState};
+    {no_reply, AuxState1, IntState};
 handle_aux(
   _RaState, cast,
   #restore_projection{projection = Projection, pattern = PathPattern},
   AuxState, IntState) ->
+    AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+
     State = ra_aux:machine_state(IntState),
     Tree = get_tree(State),
     ok = restore_projection(Projection, Tree, PathPattern),
-    {no_reply, AuxState, IntState};
+    {no_reply, AuxState1, IntState};
 handle_aux(leader, cast, tick, AuxState, IntState) ->
+    AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+
     %% Expiring dedups in the tick handler is only available on versions 2
     %% and greater. In versions 0 and 1, expiration of dedups is done in
     %% `drop_expired_dedups/2'. This proved to be quite expensive when handling
@@ -1365,12 +1421,70 @@ handle_aux(leader, cast, tick, AuxState, IntState) ->
                               DropDedups = #drop_dedups{refs = RefsToDrop},
                               [{append, DropDedups}]
                       end,
-            {no_reply, AuxState, IntState, Effects};
+            {no_reply, AuxState1, IntState, Effects};
         _ ->
-            {no_reply, AuxState, IntState}
+            {no_reply, AuxState1, IntState}
     end;
 handle_aux(_RaState, _Type, _Command, AuxState, IntState) ->
-    {no_reply, AuxState, IntState}.
+    AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+    {no_reply, AuxState1, IntState}.
+
+handle_delayed_aux_queries(
+  #khepri_machine_aux{delayed_aux_queries = []} = AuxState,
+  _IntState) ->
+    AuxState;
+handle_delayed_aux_queries(
+  #khepri_machine_aux{delayed_aux_queries = DelayedAuxQueries} = AuxState,
+  IntState) ->
+    Index = ra_aux:last_applied(IntState),
+    Term = ra_aux:current_term(IntState),
+    MacVer = ra_aux:effective_machine_version(IntState),
+    Meta = #{system_time => erlang:system_time(millisecond),
+             index => Index,
+             term => Term,
+             machine_version => MacVer},
+    State = ra_aux:machine_state(IntState),
+    DelayedAuxQueries2 = eval_delayed_aux_queries_condition(
+                           Meta, DelayedAuxQueries, State, []),
+    AuxState1 = AuxState#khepri_machine_aux{
+                  delayed_aux_queries = DelayedAuxQueries2},
+    AuxState1.
+
+eval_delayed_aux_queries_condition(
+  Meta,
+  [{AuxQuery, From, none} | Rest],
+  State, Acc) ->
+    Meta1 = Meta#{from => From},
+    perform_delayed_aux_query(Meta1, AuxQuery, State),
+    eval_delayed_aux_queries_condition(Meta, Rest, State, Acc);
+eval_delayed_aux_queries_condition(
+  #{index := Index, term := Term} = Meta,
+  [{AuxQuery, From, {applied, {TargetIndex, TargetTerm}}} | Rest],
+  State, Acc)
+  when (Term =:= TargetTerm andalso Index >= TargetIndex) orelse
+       Term > TargetTerm ->
+    Meta1 = Meta#{from => From},
+    perform_delayed_aux_query(Meta1, AuxQuery, State),
+    eval_delayed_aux_queries_condition(Meta, Rest, State, Acc);
+eval_delayed_aux_queries_condition(
+  Meta,
+  [DelayedAuxQuery | Rest],
+  State, Acc) ->
+    Acc1 = [DelayedAuxQuery | Acc],
+    eval_delayed_aux_queries_condition(Meta, Rest, State, Acc1);
+eval_delayed_aux_queries_condition(
+  _Meta, [], _State, Acc) ->
+    lists:reverse(Acc).
+
+perform_delayed_aux_query(
+  #{from := From} = Meta,
+  {query, QueryFun, _Options}, State) ->
+    {arity, Arity} = erlang:fun_info(QueryFun, arity),
+    Ret = case Arity of
+              1 -> QueryFun(State);
+              2 -> QueryFun(Meta, State)
+          end,
+    gen_statem:reply(From, Ret).
 
 restore_projection(Projection, Tree, PathPattern) ->
     _ = khepri_projection:init(Projection),
@@ -1416,13 +1530,13 @@ apply(
   Meta,
   #tx{'fun' = StandaloneFun, args = Args},
   State) when ?IS_HORUS_FUN(StandaloneFun) ->
-    Ret = khepri_tx_adv:run(State, StandaloneFun, Args, true),
+    Ret = khepri_tx_adv:run(State, StandaloneFun, Args, true, Meta),
     post_apply(Ret, Meta);
 apply(
   Meta,
   #tx{'fun' = PathPattern, args = Args},
   State) when ?IS_KHEPRI_PATH_PATTERN(PathPattern) ->
-    Ret = locate_sproc_and_execute_tx(State, PathPattern, Args, true),
+    Ret = locate_sproc_and_execute_tx(State, PathPattern, Args, true, Meta),
     post_apply(Ret, Meta);
 apply(
   Meta,
@@ -1615,7 +1729,8 @@ post_apply({State, Result}, Meta) ->
 post_apply({_State, _Result, _SideEffects} = Ret, Meta) ->
     Ret1 = bump_applied_command_count(Ret, Meta),
     Ret2 = drop_expired_dedups(Ret1, Meta),
-    Ret2.
+    Ret3 = trigger_delayed_aux_queries_eval(Ret2, Meta),
+    Ret3.
 
 -spec bump_applied_command_count(ApplyRet, Meta) ->
     {State, Result, SideEffects} when
@@ -1694,6 +1809,21 @@ drop_expired_dedups(
 drop_expired_dedups({State, Result, SideEffects}, _Meta) ->
     %% No-op on versions 2 and higher.
     {State, Result, SideEffects}.
+
+-spec trigger_delayed_aux_queries_eval(ApplyRet, Meta) ->
+    {State, Result, SideEffects} when
+      ApplyRet :: {State, Result, SideEffects},
+      State :: state(),
+      Result :: any(),
+      Meta :: ra_machine:command_meta_data(),
+      SideEffects :: ra_machine:effects().
+%% @doc Add an `aux' side effect to retrigger the eval of delayed aux queries.
+%%
+%% @private
+
+trigger_delayed_aux_queries_eval({State, Result, SideEffects}, _Meta) ->
+    SideEffects1 = [{aux, trigger_delayed_aux_queries_eval} | SideEffects],
+    {State, Result, SideEffects1}.
 
 %% @private
 
@@ -1820,11 +1950,53 @@ effective_version(StoreId) when ?IS_KHEPRI_STORE_ID(StoreId) ->
             end
     end.
 
+-spec does_api_comply_with(Behaviour, MacVer | StoreId) -> DoesUse when
+      Behaviour :: khepri_machine:api_behaviour(),
+      MacVer :: ra_machine:version(),
+      StoreId :: khepri:store_id(),
+      DoesUse :: boolean().
+%% @doc Indicates if a new behaviour of the transaction API is activated.
+%%
+%% The transaction code is compiled on one Erlang node with a specific version
+%% of Khepri. However, it is executed on all members of the Khepri cluster.
+%% Some Erlang nodes might use another version of Khepri, newer or older, and
+%% the transaction API may differ.
+%%
+%% For instance in Khepri 0.17.x, the return values of the {@link
+%% khepri_tx_adv} functions changed. The transaction code will have to handle
+%% both versions of the API to work correctly. Thus it can use this function
+%% to adapt.
+%%
+%% @returns true if the given behaviour is activated, false if it is not or if
+%% the behaviour is unknown.
+
+does_api_comply_with(dedup_protection, MacVer)
+  when is_integer(MacVer) ->
+    MacVer >= 1;
+does_api_comply_with(delete_reason_in_node_props, MacVer)
+  when is_integer(MacVer) ->
+    MacVer >= 2;
+does_api_comply_with(indirect_deletes_in_ret, MacVer)
+  when is_integer(MacVer) ->
+    MacVer >= 2;
+does_api_comply_with(uniform_write_ret, MacVer)
+  when is_integer(MacVer) ->
+    MacVer >= 2;
+does_api_comply_with(_Behaviour, MacVer)
+  when is_integer(MacVer) ->
+    false;
+does_api_comply_with(Behaviour, StoreId)
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
+    case effective_version(StoreId) of
+        {ok, MacVer} -> does_api_comply_with(Behaviour, MacVer);
+        _            -> false
+    end.
+
 %% -------------------------------------------------------------------
 %% Internal functions.
 %% -------------------------------------------------------------------
 
-locate_sproc_and_execute_tx(State, PathPattern, Args, AllowUpdates) ->
+locate_sproc_and_execute_tx(State, PathPattern, Args, AllowUpdates, Meta) ->
     Tree = get_tree(State),
     TreeOptions = #{expect_specific_node => true,
                     props_to_return => [raw_payload]},
@@ -1857,7 +2029,7 @@ locate_sproc_and_execute_tx(State, PathPattern, Args, AllowUpdates) ->
         {error, Reason} ->
             {fun failed_to_locate_sproc/1, [Reason]}
     end,
-    khepri_tx_adv:run(State, StandaloneFun, Args1, AllowUpdates).
+    khepri_tx_adv:run(State, StandaloneFun, Args1, AllowUpdates, Meta).
 
 -spec failed_to_locate_sproc(Reason) -> no_return() when
       Reason :: any().

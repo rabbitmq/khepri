@@ -68,7 +68,7 @@ insert_a_node_at_the_root_of_an_empty_db_test() ->
                payload = khepri_payload:data(value)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{payload_version => 1}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 insert_a_node_at_the_root_of_an_empty_db_with_conditions_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
@@ -97,7 +97,7 @@ insert_a_node_at_the_root_of_an_empty_db_with_conditions_test() ->
                payload = khepri_payload:data(value)}}},
        Root),
     ?assertEqual({ok, #{[foo] => #{payload_version => 1}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 overwrite_an_existing_node_data_test() ->
     Commands = [#put{path = [foo],
@@ -129,7 +129,7 @@ overwrite_an_existing_node_data_test() ->
                                    payload_version => 2,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 insert_a_node_with_path_containing_dot_and_dot_dot_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
@@ -157,7 +157,7 @@ insert_a_node_with_path_containing_dot_and_dot_dot_test() ->
                     payload = khepri_payload:data(value)}}}}},
        Root),
     ?assertEqual({ok, #{[foo, bar] => #{payload_version => 1}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 insert_a_node_under_an_nonexisting_parents_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
@@ -194,7 +194,7 @@ insert_a_node_under_an_nonexisting_parents_test() ->
     ?assertEqual(
        {ok, #{[foo, bar, baz, qux] => #{payload_version => 1}}},
        Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 insert_a_node_with_condition_true_on_self_test() ->
     Commands = [#put{path = [foo],
@@ -227,7 +227,7 @@ insert_a_node_with_condition_true_on_self_test() ->
                                    payload_version => 2,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 insert_a_node_with_condition_false_on_self_test() ->
     Commands = [#put{path = [foo],
@@ -259,7 +259,7 @@ insert_a_node_with_condition_false_on_self_test() ->
                        node_props => #{data => value1,
                                        payload_version => 1},
                        condition => Compiled})}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 insert_a_node_with_condition_true_on_self_using_dot_test() ->
     Commands = [#put{path = [foo],
@@ -293,7 +293,7 @@ insert_a_node_with_condition_true_on_self_using_dot_test() ->
                                    payload_version => 2,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 insert_a_node_with_condition_false_on_self_using_dot_test() ->
     Commands = [#put{path = [foo],
@@ -326,7 +326,7 @@ insert_a_node_with_condition_false_on_self_using_dot_test() ->
                        node_props => #{data => value1,
                                        payload_version => 1},
                        condition => Compiled})}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 insert_a_node_with_condition_true_on_parent_test() ->
     Commands = [#put{path = [foo],
@@ -360,7 +360,7 @@ insert_a_node_with_condition_true_on_parent_test() ->
                     payload = khepri_payload:data(bar_value)}}}}},
        Root),
     ?assertEqual({ok, #{[foo, bar] => #{payload_version => 1}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 insert_a_node_with_condition_false_on_parent_test() ->
     Commands = [#put{path = [foo],
@@ -393,7 +393,7 @@ insert_a_node_with_condition_false_on_parent_test() ->
                        node_props => #{data => value1,
                                        payload_version => 1},
                        condition => Compiled})}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 %% The #if_node_exists{} is tested explicitly in addition to the testcases
 %% above because there is specific code to manage it when the node is not
@@ -434,7 +434,7 @@ insert_a_node_with_if_node_exists_true_on_self_test() ->
                                    payload_version => 2,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret1),
-    ?assertEqual([], SE1),
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE1),
 
     Compiled = khepri_condition:compile(
                  #if_all{conditions =
@@ -460,7 +460,7 @@ insert_a_node_with_if_node_exists_true_on_self_test() ->
                        node_path => [baz],
                        node_is_target => true,
                        condition => Compiled})}, Ret2),
-    ?assertEqual([], SE2).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE2).
 
 insert_a_node_with_if_node_exists_false_on_self_test() ->
     Commands = [#put{path = [foo],
@@ -491,7 +491,7 @@ insert_a_node_with_if_node_exists_false_on_self_test() ->
                        node_props => #{data => value1,
                                        payload_version => 1},
                        condition => #if_node_exists{exists = false}})}, Ret1),
-                  ?assertEqual([], SE1),
+                  ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE1),
 
     Command2 = #put{path = [#if_all{conditions =
                                     [baz,
@@ -521,7 +521,7 @@ insert_a_node_with_if_node_exists_false_on_self_test() ->
                payload = khepri_payload:data(value2)}}},
        Root),
     ?assertEqual({ok, #{[baz] => #{payload_version => 1}}}, Ret2),
-    ?assertEqual([], SE2).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE2).
 
 insert_a_node_with_if_node_exists_true_on_parent_test() ->
     Commands = [#put{path = [foo],
@@ -556,7 +556,7 @@ insert_a_node_with_if_node_exists_true_on_parent_test() ->
                     payload = khepri_payload:data(bar_value)}}}}},
        Root),
     ?assertEqual({ok, #{[foo, bar] => #{payload_version => 1}}}, Ret1),
-    ?assertEqual([], SE1),
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE1),
 
     Compiled = khepri_condition:compile(
                  #if_all{conditions =
@@ -583,7 +583,7 @@ insert_a_node_with_if_node_exists_true_on_parent_test() ->
                        node_path => [baz],
                        node_is_target => false,
                        condition => Compiled})}, Ret2),
-    ?assertEqual([], SE2).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE2).
 
 insert_a_node_with_if_node_exists_false_on_parent_test() ->
     Commands = [#put{path = [foo],
@@ -615,7 +615,7 @@ insert_a_node_with_if_node_exists_false_on_parent_test() ->
                        node_props => #{data => value1,
                                        payload_version => 1},
                        condition => #if_node_exists{exists = false}})}, Ret1),
-    ?assertEqual([], SE1),
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE1),
 
     Command2 = #put{path = [#if_all{conditions =
                                     [baz,
@@ -650,7 +650,7 @@ insert_a_node_with_if_node_exists_false_on_parent_test() ->
                     payload = khepri_payload:data(bar_value)}}}}},
        Root),
     ?assertEqual({ok, #{[baz, bar] => #{payload_version => 1}}}, Ret2),
-    ?assertEqual([], SE2).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE2).
 
 insert_with_a_path_matching_many_nodes_test() ->
     Commands = [#put{path = [foo],
@@ -678,7 +678,7 @@ insert_with_a_path_matching_many_nodes_test() ->
            possibly_matching_many_nodes_denied,
            #{path => [#if_name_matches{regex = any}]})},
        Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 clear_payload_in_an_existing_node_test() ->
     Commands = [#put{path = [foo],
@@ -710,7 +710,7 @@ clear_payload_in_an_existing_node_test() ->
                                    payload_version => 2,
                                    child_list_version => 1,
                                    child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 put_command_bumps_applied_command_count_test() ->
     Commands = [#put{path = [foo],
@@ -730,7 +730,7 @@ put_command_bumps_applied_command_count_test() ->
     ?assertEqual(
        #{applied_command_count => 1},
        khepri_machine:get_metrics(S1)),
-    ?assertEqual([], SE1),
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE1),
 
     Command2 = #put{path = [baz],
                     payload = ?NO_PAYLOAD},
@@ -739,7 +739,7 @@ put_command_bumps_applied_command_count_test() ->
     ?assertEqual(
        #{applied_command_count => 2},
        khepri_machine:get_metrics(S2)),
-    ?assertEqual([], SE2),
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE2),
 
     Command3 = #put{path = [qux],
                     payload = ?NO_PAYLOAD},
@@ -747,4 +747,5 @@ put_command_bumps_applied_command_count_test() ->
     {S3, _, SE3} = khepri_machine:apply(Meta, Command3, S2),
 
     ?assertEqual(#{}, khepri_machine:get_metrics(S3)),
-    ?assertEqual([{release_cursor, maps:get(index, Meta), S3}], SE3).
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval},
+                  {release_cursor, maps:get(index, Meta), S3}], SE3).

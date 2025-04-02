@@ -160,7 +160,7 @@ store_data_in_root_node_using_empty_path_test() ->
     ?assertEqual({ok, #{[] => #{payload_version => 2,
                                 child_list_version => 1,
                                 child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 store_data_in_root_node_using_root_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
@@ -183,7 +183,7 @@ store_data_in_root_node_using_root_test() ->
     ?assertEqual({ok, #{[] => #{payload_version => 2,
                                 child_list_version => 1,
                                 child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 store_data_in_root_node_using_dot_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
@@ -206,7 +206,7 @@ store_data_in_root_node_using_dot_test() ->
     ?assertEqual({ok, #{[] => #{payload_version => 2,
                                 child_list_version => 1,
                                 child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 store_data_in_root_node_using_dot_dot_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
@@ -229,7 +229,7 @@ store_data_in_root_node_using_dot_dot_test() ->
     ?assertEqual({ok, #{[] => #{payload_version => 2,
                                 child_list_version => 1,
                                 child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 store_data_in_root_node_with_condition_true_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
@@ -254,7 +254,7 @@ store_data_in_root_node_with_condition_true_test() ->
     ?assertEqual({ok, #{[] => #{payload_version => 2,
                                 child_list_version => 1,
                                 child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 store_data_in_root_node_with_condition_true_using_dot_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
@@ -279,7 +279,7 @@ store_data_in_root_node_with_condition_true_using_dot_test() ->
     ?assertEqual({ok, #{[] => #{payload_version => 2,
                                 child_list_version => 1,
                                 child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 store_data_in_root_node_with_condition_false_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
@@ -305,7 +305,7 @@ store_data_in_root_node_with_condition_false_test() ->
                        node_is_target => true,
                        node_props => #{payload_version => 1},
                        condition => Compiled})}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 delete_empty_root_node_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
@@ -326,7 +326,7 @@ delete_empty_root_node_test() ->
     ?assertEqual({ok, #{[] => #{payload_version => 1,
                                 child_list_version => 1,
                                 child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 delete_root_node_using_empty_path_test() ->
     Commands = [#put{path = [],
@@ -350,7 +350,7 @@ delete_root_node_using_empty_path_test() ->
                                 payload_version => 2,
                                 child_list_version => 1,
                                 child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 delete_root_node_using_root_test() ->
     Commands = [#put{path = [],
@@ -374,7 +374,7 @@ delete_root_node_using_root_test() ->
                                 payload_version => 2,
                                 child_list_version => 1,
                                 child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 delete_root_node_using_dot_test() ->
     Commands = [#put{path = [],
@@ -398,7 +398,7 @@ delete_root_node_using_dot_test() ->
                                 payload_version => 2,
                                 child_list_version => 1,
                                 child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 delete_root_node_using_dot_dot_test() ->
     Commands = [#put{path = [],
@@ -422,7 +422,7 @@ delete_root_node_using_dot_dot_test() ->
                                 payload_version => 2,
                                 child_list_version => 1,
                                 child_list_length => 0}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 delete_root_node_with_child_nodes_test() ->
     Commands = [#put{path = [foo, bar],
@@ -447,7 +447,7 @@ delete_root_node_with_child_nodes_test() ->
     ?assertEqual({ok, #{[] => #{payload_version => 1,
                                 child_list_version => 3,
                                 child_list_length => 2}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 delete_root_node_with_condition_true_test() ->
     Commands = [#put{path = [foo],
@@ -472,7 +472,7 @@ delete_root_node_with_condition_true_test() ->
     ?assertEqual({ok, #{[] => #{payload_version => 1,
                                 child_list_version => 2,
                                 child_list_length => 1}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 delete_root_node_with_condition_true_using_dot_test() ->
     Commands = [#put{path = [foo],
@@ -497,7 +497,7 @@ delete_root_node_with_condition_true_using_dot_test() ->
     ?assertEqual({ok, #{[] => #{payload_version => 1,
                                 child_list_version => 2,
                                 child_list_length => 1}}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 delete_root_node_with_condition_false_test() ->
     Commands = [#put{path = [foo],
@@ -520,4 +520,4 @@ delete_root_node_with_condition_false_test() ->
                   payload = khepri_payload:data(foo_value)}}},
        Root),
     ?assertEqual({ok, #{}}, Ret),
-    ?assertEqual([], SE).
+    ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).

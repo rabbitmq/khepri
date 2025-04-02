@@ -1603,6 +1603,8 @@ can_use_default_store_on_single_node(_Config) ->
                          payload_version => 7}}},
        khepri_adv:get_many([foo], #{})),
 
+    ?assertNot(khepri_machine:does_api_comply_with(some_behaviour, StoreId)),
+
     ?assertEqual({ok, [{StoreId, Node}]}, khepri_cluster:members()),
     ?assertEqual(
        {ok, [{StoreId, Node}]},
@@ -1722,9 +1724,6 @@ can_use_default_store_on_single_node(_Config) ->
     ?assertMatch(
        {error, ?khepri_error(node_not_found, _)},
        khepri:get([foo])),
-
-    ?assert(is_integer(khepri_tx:api_version())),
-    ?assert(khepri_tx:api_version() > 0),
 
     ?assertEqual(ok, khepri:stop()),
     ?assertEqual(ok, application:stop(khepri)),

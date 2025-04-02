@@ -53,21 +53,26 @@ allowed_khepri_tx_api_test() ->
            _ = khepri_tx:delete([foo]),
            _ = khepri_tx:abort(error),
            _ = khepri_tx:is_transaction(),
-           _ = khepri_tx:api_version()
+           _ = khepri_tx:does_api_comply_with(some_behaviour)
        end).
 
 denied_khepri_tx_adv_run_4_test() ->
     Params = #{store_id => ?FUNCTION_NAME,
                member => {?FUNCTION_NAME, node()}},
     MachineState = khepri_machine:make_virgin_state(Params),
+    Meta = #{system_time => erlang:system_time(millisecond),
+             index => 1,
+             term => 1,
+             machine_version => 1},
     ?assertToFunError(
        ?khepri_exception(
           failed_to_prepare_tx_fun,
           #{error :=
             ?horus_error(
                extraction_denied,
-               #{error := {call_denied, {khepri_tx_adv, run, 4}}})}),
-       _ = khepri_tx_adv:run(MachineState, fun() -> ok end, [], true)).
+               #{error := {call_denied, {khepri_tx_adv, run, 5}}})}),
+       _ = khepri_tx_adv:run(
+             MachineState, fun() -> ok end, [], true, Meta)).
 
 denied_receive_block_test() ->
     ?assertToFunError(
