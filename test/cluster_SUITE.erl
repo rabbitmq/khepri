@@ -670,7 +670,7 @@ can_join_several_times_a_three_node_cluster(Config) ->
     lists:foreach(
       fun(Node) ->
               Options = case Node of
-                            LeaderNode -> #{};
+                            LeaderNode   -> #{};
                             FollowerNode -> #{};
                             _            -> #{favor => consistency}
                         end,
@@ -699,7 +699,9 @@ can_join_several_times_a_three_node_cluster(Config) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
                  {ok, value2},
-                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+                 rpc:call(
+                   Node, khepri, get,
+                   [StoreId, [foo], #{favor => consistency}]))
       end, Nodes),
 
     ok.
