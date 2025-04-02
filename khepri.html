@@ -341,7 +341,7 @@ controls which member of the cluster carries out the reply.</p>
   This is the same as the Ra cluster name hosting the Khepri store.</p>
 
 <h3 class="typedecl"><a name="type-tree_options">tree_options()</a></h3>
-<p><code>tree_options() = #{expect_specific_node =&gt; boolean(), props_to_return =&gt; [<a href="#type-known_prop_to_return" docgen-rel="seetype" docgen-href="#known_prop_to_return/0">known_prop_to_return()</a> | <a href="#type-unknown_prop_to_return" docgen-rel="seetype" docgen-href="#unknown_prop_to_return/0">unknown_prop_to_return()</a>], include_root_props =&gt; boolean()}</code></p>
+<p><code>tree_options() = #{expect_specific_node =&gt; boolean(), props_to_return =&gt; [<a href="#type-known_prop_to_return" docgen-rel="seetype" docgen-href="#known_prop_to_return/0">known_prop_to_return()</a> | <a href="#type-unknown_prop_to_return" docgen-rel="seetype" docgen-href="#unknown_prop_to_return/0">unknown_prop_to_return()</a>], include_root_props =&gt; boolean(), return_indirect_deletes =&gt; boolean()}</code></p>
 <p><p>  Options used during tree traversal.</p>
  
   <ul>
@@ -355,6 +355,10 @@ controls which member of the cluster carries out the reply.</p>
   only.</li>
   <li><code>include_root_props</code> indicates if root properties and payload should be
   returned as well.</li>
+  <li><code>return_indirect_deletes</code> indicates if tree nodes deleted as a
+  byproduct of another put or delete should be part of the returned tree node
+  properties map. The default is to include them, except in transactions when
+  the effective machine version is too old.</li>
   </ul>
  
   NOTE: When this list of tree options is modified, <a docgen-rel="seemfa" docgen-href="khepri_machine#split_query_options/2" href="khepri_machine.html#split_query_options-2"><code>khepri_machine:split_query_options/2</code></a> and <a docgen-rel="seemfa" docgen-href="khepri_machine#split_command_options/2" href="khepri_machine.html#split_command_options-2"><code>khepri_machine:split_command_options/2</code></a> must be adapted.</p>

@@ -70,9 +70,17 @@ never be called directly outside of Khepri.</p>
   </table>
 <h2><a name="types">Data Types</a></h2>
 
+<h3 class="typedecl"><a name="type-api_behaviour">api_behaviour()</a></h3>
+<p><code>api_behaviour() = dedup_protection | delete_reason_in_node_props | indirect_deletes_in_ret | uniform_write_ret | atom()</code></p>
+<p>  Name of a state machine API behaviour.</p>
+
 <h3 class="typedecl"><a name="type-async_ret">async_ret()</a></h3>
 <p><code>async_ret() = ok</code></p>
 
+
+<h3 class="typedecl"><a name="type-aux_query">aux_query()</a></h3>
+<p><code>aux_query() = {query, <a href="#type-query_fun" docgen-rel="seetype" docgen-href="#query_fun/0">query_fun()</a>, <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-query_options" docgen-rel="seetype" docgen-href="khepri:khepri#query_options/0">khepri:query_options()</a>}</code></p>
+<p>  Query executed through the Ra aux mechanism.</p>
 
 <h3 class="typedecl"><a name="type-command">command()</a></h3>
 <p><code>command() = #put{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_pattern/0">khepri_path:native_pattern()</a>, payload = <a href="/home/runner/work/khepri/khepri/doc/khepri_payload.html#type-payload" docgen-rel="seetype" docgen-href="khepri:khepri_payload#payload/0">khepri_payload:payload()</a>, options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-put_options" docgen-rel="seetype" docgen-href="khepri:khepri#put_options/0">khepri:put_options()</a>} | #delete{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_pattern/0">khepri_path:native_pattern()</a>, options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a>} | #tx{'fun' = <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun" docgen-rel="seetype" docgen-href="horus:horus#horus_fun/0">horus:horus_fun()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a>, args = list()} | #register_trigger{id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id" docgen-rel="seetype" docgen-href="khepri:khepri#trigger_id/0">khepri:trigger_id()</a>, event_filter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter/0">khepri_evf:event_filter()</a>, sproc = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a>} | #ack_triggered{triggered = [<a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-triggered" docgen-rel="seetype" docgen-href="khepri:khepri_machine#triggered/0">khepri_machine:triggered()</a>]} | #register_projection{pattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_pattern/0">khepri_path:native_pattern()</a>, projection = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-projection" docgen-rel="seetype" docgen-href="khepri:khepri_projection#projection/0">khepri_projection:projection()</a>} | #unregister_projections{names = all | [<a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-name" docgen-rel="seetype" docgen-href="khepri:khepri_projection#name/0">khepri_projection:name()</a>]} | #dedup{ref = reference(), expiry = integer(), command = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-command" docgen-rel="seetype" docgen-href="khepri:khepri_machine#command/0">khepri_machine:command()</a>} | #dedup_ack{ref = reference()}</code></p>
@@ -81,6 +89,10 @@ never be called directly outside of Khepri.</p>
 <h3 class="typedecl"><a name="type-dedups_map">dedups_map()</a></h3>
 <p><code>dedups_map() = #{reference() =&gt; {any(), integer()}}</code></p>
 <p>  Map to handle command deduplication.</p>
+
+<h3 class="typedecl"><a name="type-delayed_aux_query">delayed_aux_query()</a></h3>
+<p><code>delayed_aux_query() = {<a href="#type-aux_query" docgen-rel="seetype" docgen-href="#aux_query/0">aux_query()</a>, <a href="/home/runner/work/khepri/stdlib/doc/gen_statem.html#type-from" docgen-rel="seetype" docgen-href="stdlib:gen_statem#from/0">gen_statem:from()</a>, <a href="/home/runner/work/khepri/ra/doc/ra.html#type-query_condition" docgen-rel="seetype" docgen-href="ra:ra#query_condition/0">ra:query_condition()</a> | none}</code></p>
+<p>  Aux query that is delayed until a condition is met.</p>
 
 <h3 class="typedecl"><a name="type-machine_config">machine_config()</a></h3>
 <p><code>machine_config() = #config{store_id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a>, member = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id" docgen-rel="seetype" docgen-href="ra:ra#server_id/0">ra:server_id()</a>, snapshot_interval = non_neg_integer()}</code></p>
@@ -116,6 +128,10 @@ Khepri.</p>
 <h3 class="typedecl"><a name="type-props">props()</a></h3>
 <p><code>props() = #{payload_version := <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-payload_version" docgen-rel="seetype" docgen-href="khepri:khepri#payload_version/0">khepri:payload_version()</a>, child_list_version := <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-child_list_version" docgen-rel="seetype" docgen-href="khepri:khepri#child_list_version/0">khepri:child_list_version()</a>}</code></p>
 <p>  Properties attached to each node in the tree structure.</p>
+
+<h3 class="typedecl"><a name="type-query_fun">query_fun()</a></h3>
+<p><code>query_fun() = fun((<a href="#type-state" docgen-rel="seetype" docgen-href="#state/0">state()</a>) -&gt; any()) | fun((<a href="/home/runner/work/khepri/ra/doc/ra_machine.html#type-command_meta_data" docgen-rel="seetype" docgen-href="ra:ra_machine#command_meta_data/0">ra_machine:command_meta_data()</a>, <a href="#type-state" docgen-rel="seetype" docgen-href="#state/0">state()</a>) -&gt; any())</code></p>
+<p>  Function representing a query and used <a docgen-rel="seemfa" docgen-href="#process_query/3" href="#process_query-3"><code>process_query/3</code></a>.</p>
 
 <h3 class="typedecl"><a name="type-state">state()</a></h3>
 <p><code>state() = <a href="#type-state_v1" docgen-rel="seetype" docgen-href="#state_v1/0">state_v1()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_machine_v0.html#type-state" docgen-rel="seetype" docgen-href="khepri:khepri_machine_v0#state/0">khepri_machine_v0:state()</a></code></p>
@@ -158,6 +174,7 @@ Khepri.</p>
 <tr><td valign="top"><a href="#unregister_projections-3">unregister_projections/3</a></td><td>Removes the given projections from the store.</td></tr>
 <tr><td valign="top"><a href="#version-0">version/0</a></td><td>Returns the state machine version.</td></tr>
 <tr><td valign="top"><a href="#which_module-1">which_module/1</a></td><td>Returns the state machine module corresponding to the given version.</td></tr>
+<tr><td valign="top"><a href="#does_api_comply_with-2">does_api_comply_with/2</a></td><td>Indicates if a new behaviour of the transaction API is activated.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -295,6 +312,25 @@ Khepri.</p>
 <ul class="definitions"><li><code>MacVer = 0..2</code></li><li><code>Module = khepri_machine</code></li></ul></p>
 <p></p>
 </div><p>Returns the state machine module corresponding to the given version.</p>
+
+<h3 class="function"><a name="does_api_comply_with-2">does_api_comply_with/2</a></h3>
+<div class="spec">
+<p><code>does_api_comply_with(Behaviour, MacVer::MacVer | StoreId) -&gt; DoesUse</code>
+<ul class="definitions"><li><code>Behaviour = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-api_behaviour" docgen-rel="seetype" docgen-href="khepri:khepri_machine#api_behaviour/0">khepri_machine:api_behaviour()</a></code></li><li><code>MacVer = <a href="/home/runner/work/khepri/ra/doc/ra_machine.html#type-version" docgen-rel="seetype" docgen-href="ra:ra_machine#version/0">ra_machine:version()</a></code></li><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>DoesUse = boolean()</code></li></ul></p>
+<p></p>
+<p>returns: true if the given behaviour is activated, false if it is not or if
+  the behaviour is unknown.</p>
+</div><p><p>Indicates if a new behaviour of the transaction API is activated.</p>
+ 
+  <p>The transaction code is compiled on one Erlang node with a specific version  
+of Khepri. However, it is executed on all members of the Khepri cluster.  
+Some Erlang nodes might use another version of Khepri, newer or older, and  
+the transaction API may differ.</p>
+ 
+  For instance in Khepri 0.17.x, the return values of the <a docgen-rel="seeerl" docgen-href="khepri_tx_adv" href="khepri_tx_adv.html"><code>khepri_tx_adv</code></a> functions changed. The transaction code will have to handle
+  both versions of the API to work correctly. Thus it can use this function
+  to adapt.
+ </p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
