@@ -147,7 +147,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        id: install-erlang
+        with:
+          otp-version: ${{ env.LATEST_ERLANG_VERSION }}
+          rebar3-version: ${{ env.REBAR_VERSION }}
+
       - name: Publish to Hex.pm
-        uses: erlangpack/github-action@v3
         env:
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
+        run: rebar3 edoc && rebar3 hex publish -r hexpm --yes
