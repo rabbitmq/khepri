@@ -40,6 +40,16 @@ jobs:
       - name: Common test (integration tests)
         run: rebar3 ct --verbose --cover --sname ct
 
+      - name: Upload common_test logs
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: common-test-logs-${{ matrix.otp_version }}-${{ matrix.os }}
+          path: _build/test/logs
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 5
+
       - name: Generate code coverage report
         run: rebar3 as test covertool generate
 
