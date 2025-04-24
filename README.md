@@ -5,7 +5,7 @@
 [![Codecov](https://codecov.io/gh/rabbitmq/khepri/branch/main/graph/badge.svg?token=R0OGKZ2RK2)](https://codecov.io/gh/rabbitmq/khepri)
 
 Khepri is a tree-like replicated on-disk database library for Erlang and
-Elixir.
+Elixir, built on top of the [Raft consensus algorithm](https://raft.github.io/).
 
 <img align="right" width="100" src="/doc/khepri-logo.svg">
 
@@ -24,6 +24,15 @@ state machine in a Ra cluster.
 
 Khepri is still under active development and should be considered *Beta* at
 this stage.
+
+## Fundamental Assumptions
+
+As a Raft-based system, Khepri **requires durable storage**, including
+between node restarts, and stable node (replica) identities.
+
+Likewise, as a Raft-based system, Khepri requires a majority of nodes to be
+online at all times. When this is not the case, the cluster will lose its availability,
+specifically for writes.
 
 ## Known limitations
 
