@@ -2270,7 +2270,7 @@ evaluate_trigger(
     %%      path pattern in the event filter.
     %%   2. we verify the type of change matches the change filter in the
     %%      event filter.
-    PathMatches = khepri_tree:does_path_match(Path, PathPattern, Tree),
+    PathMatches = khepri_path:does_path_match(Path, PathPattern, Tree),
     DefaultWatchedChanges = [create, update, delete],
     WatchedChanges = case EventFilterProps of
                          #{on_actions := []} ->

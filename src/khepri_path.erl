@@ -63,7 +63,8 @@
          ensure_is_valid/1,
          abspath/2,
          realpath/1,
-         pattern_includes_root_node/1]).
+         pattern_includes_root_node/1,
+         does_path_match/3]).
 
 -ifdef(TEST).
 -export([component_to_string/1]).
@@ -646,3 +647,56 @@ realpath([], Result) ->
 
 pattern_includes_root_node(Path) ->
     [] =:= realpath(Path).
+
+%% -------------------------------------------------------------------
+%% Does path match.
+%% -------------------------------------------------------------------
+
+does_path_match(Path, PathPattern, Tree) ->
+    PathPattern1 = compile(PathPattern),
+    does_path_match(Path, PathPattern1, [], Tree).
+
+does_path_match(PathRest, PathRest, _ReversedPath, _Tree) ->
+    true;
+does_path_match([], _PathPatternRest, _ReversedPath, _Tree) ->
+    false;
+does_path_match(_PathRest, [], _ReversedPath, _Tree) ->
+    false;
+does_path_match(
+  [Component | Path], [Component | PathPattern], ReversedPath, Tree)
+  when ?IS_KHEPRI_PATH_COMPONENT(Component) ->
+    does_path_match(Path, PathPattern, [Component | ReversedPath], Tree);
+does_path_match(
+  [Component | _Path], [Condition | _PathPattern], _ReversedPath, _Tree)
+  when ?IS_KHEPRI_PATH_COMPONENT(Component) andalso
+       ?IS_KHEPRI_PATH_COMPONENT(Condition) ->
+    false;
+does_path_match(
+  [Component | Path], [Condition | PathPattern], ReversedPath, Tree) ->
+    %% Query the tree node, required to evaluate the condition.
+    ReversedPath1 = [Component | ReversedPath],
+    CurrentPath = lists:reverse(ReversedPath1),
+    TreeOptions = #{expect_specific_node => true,
+                    props_to_return => [payload,
+                                        payload_version,
+                                        child_list_version,
+                                        child_list_length]},
+    {ok, #{CurrentPath := Node}} = khepri_tree:find_matching_nodes(
+                                     Tree,
+                                     lists:reverse([Component | ReversedPath]),
+                                     TreeOptions),
+    case khepri_condition:is_met(Condition, Component, Node) of
+        true ->
+            ConditionMatchesGrandchildren =
+            case khepri_condition:applies_to_grandchildren(Condition) of
+                true ->
+                    does_path_match(
+                      Path, [Condition | PathPattern], ReversedPath1, Tree);
+                false ->
+                    false
+            end,
+            ConditionMatchesGrandchildren orelse
+              does_path_match(Path, PathPattern, ReversedPath1, Tree);
+        {false, _} ->
+            false
+    end.
