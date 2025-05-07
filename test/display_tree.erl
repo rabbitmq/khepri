@@ -28,7 +28,7 @@ complex_flat_struct_to_tree_test() ->
                      payload = khepri_payload:data(pouet_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    {ok, FlatStruct} = khepri_tree:find_matching_nodes(
+    {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Tree,
                          [#if_path_matches{regex = any}],
                          #{props_to_return => [payload,
@@ -424,7 +424,7 @@ display_simple_tree_test() ->
                      payload = khepri_payload:data(foo_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    {ok, FlatStruct} = khepri_tree:find_matching_nodes(
+    {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Tree,
                          [#if_path_matches{regex = any}],
                          #{props_to_return => [payload, payload_version]}),
@@ -462,7 +462,7 @@ display_large_tree_test() ->
                                   est, laborum])}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    {ok, FlatStruct} = khepri_tree:find_matching_nodes(
+    {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Tree,
                          [#if_path_matches{regex = any}],
                          #{props_to_return => [payload, payload_version]}),
@@ -518,7 +518,7 @@ display_tree_with_plaintext_lines_test() ->
                                   est, laborum])}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    {ok, FlatStruct} = khepri_tree:find_matching_nodes(
+    {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Tree,
                          [#if_path_matches{regex = any}],
                          #{props_to_return => [payload, payload_version]}),
@@ -574,7 +574,7 @@ display_tree_without_colors_test() ->
                                   est, laborum])}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    {ok, FlatStruct} = khepri_tree:find_matching_nodes(
+    {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Tree,
                          [#if_path_matches{regex = any}],
                          #{props_to_return => [payload, payload_version]}),
@@ -630,7 +630,7 @@ display_tree_with_plaintext_lines_and_without_colors_test() ->
                                   est, laborum])}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    {ok, FlatStruct} = khepri_tree:find_matching_nodes(
+    {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Tree,
                          [#if_path_matches{regex = any}],
                          #{props_to_return => [payload, payload_version]}),
@@ -670,7 +670,7 @@ display_tree_with_binary_key_test() ->
                      payload = khepri_payload:data(bar_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    {ok, FlatStruct} = khepri_tree:find_matching_nodes(
+    {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Tree,
                          [#if_path_matches{regex = any}],
                          #{props_to_return => [payload, payload_version]}),
@@ -694,7 +694,7 @@ display_tree_with_similar_atom_and_binary_keys_test() ->
                      payload = khepri_payload:data(foo_atom)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    {ok, FlatStruct} = khepri_tree:find_matching_nodes(
+    {ok, FlatStruct} = khepri_machine:find_matching_nodes(
                          Tree,
                          [#if_path_matches{regex = any}],
                          #{props_to_return => [payload, payload_version]}),

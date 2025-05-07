@@ -111,6 +111,7 @@
          process_command/3,
          does_api_comply_with/2,
 
+         find_matching_nodes/3,
          collect_node_props_cb/3,
          count_node_cb/3]).
 
@@ -1493,7 +1494,7 @@ restore_projection(Projection, Tree, PathPattern) ->
     _ = khepri_projection:init(Projection),
     TreeOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
                     include_root_props => true},
-    case khepri_tree:find_matching_nodes(Tree, PathPattern, TreeOptions) of
+    case find_matching_nodes(Tree, PathPattern, TreeOptions) of
         {ok, MatchingNodes} ->
             maps:foreach(fun(Path, Props) ->
                                  khepri_projection:trigger(
@@ -1897,7 +1898,7 @@ overview(State) ->
                                         child_list_version,
                                         child_list_length],
                     include_root_props => true},
-    {ok, NodePropsMap} = khepri_tree:find_matching_nodes(
+    {ok, NodePropsMap} = find_matching_nodes(
                            Tree, [?KHEPRI_WILDCARD_STAR_STAR], TreeOptions),
     MapFun = fun
                  (#{sproc := Sproc} = Props) ->
@@ -1999,6 +2000,20 @@ does_api_comply_with(Behaviour, StoreId)
 %% Integration with the tree implementation.
 %% -------------------------------------------------------------------
 
+-spec find_matching_nodes(Tree, PathPattern, TreeOptions) ->
+    Ret when
+      Tree :: khepri_tree:tree(),
+      PathPattern :: khepri_path:native_pattern(),
+      TreeOptions :: khepri:tree_options(),
+      Ret :: khepri_machine:write_ret().
+%% @private
+
+find_matching_nodes(Tree, PathPattern, TreeOptions) ->
+    khepri_tree:fold(
+      Tree, PathPattern,
+      fun khepri_machine:collect_node_props_cb/3, #{},
+      TreeOptions).
+
 -spec collect_node_props_cb(Path, NodeProps, Map) ->
     Ret when
       Path :: khepri_path:native_path(),
@@ -2030,7 +2045,7 @@ locate_sproc_and_execute_tx(State, PathPattern, Args, AllowUpdates, Meta) ->
     TreeOptions = #{expect_specific_node => true,
                     props_to_return => [raw_payload]},
     {StandaloneFun, Args1} =
-    case khepri_tree:find_matching_nodes(Tree, PathPattern, TreeOptions) of
+    case find_matching_nodes(Tree, PathPattern, TreeOptions) of
         {ok, Result} ->
             case maps:values(Result) of
                 [#{raw_payload := #p_sproc{
@@ -2215,16 +2230,14 @@ evaluate_projection(
   InitialTree, NewTree, Path, Projection, Effects) ->
     FindOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
                     expect_specific_node => true},
-    InitialRet = khepri_tree:find_matching_nodes(
-                   InitialTree, Path, FindOptions),
+    InitialRet = find_matching_nodes(InitialTree, Path, FindOptions),
     InitialProps = case InitialRet of
                        {ok, #{Path := InitialProps0}} ->
                            InitialProps0;
                        _ ->
                            #{}
                    end,
-    NewRet = khepri_tree:find_matching_nodes(
-               NewTree, Path, FindOptions),
+    NewRet = find_matching_nodes(NewTree, Path, FindOptions),
     NewProps = case NewRet of
                      {ok, #{Path := NewProps0}} ->
                          NewProps0;
@@ -2349,8 +2362,7 @@ find_stored_proc(Tree, StoredProcPath) ->
                                         payload_version,
                                         child_list_version,
                                         child_list_length]},
-    Ret = khepri_tree:find_matching_nodes(
-            Tree, StoredProcPath, TreeOptions),
+    Ret = find_matching_nodes(Tree, StoredProcPath, TreeOptions),
     %% Non-existing nodes and nodes which are not stored procedures are
     %% ignored.
     case Ret of
@@ -2781,10 +2793,9 @@ set_of_projections(ProjectionTree) ->
 update_projection(Pattern, Projection, OldTree, NewTree) ->
     TreeOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
                     include_root_props => true},
-    case khepri_tree:find_matching_nodes(OldTree, Pattern, TreeOptions) of
+    case find_matching_nodes(OldTree, Pattern, TreeOptions) of
         {ok, OldMatchingNodes} ->
-            Result = khepri_tree:find_matching_nodes(
-                       NewTree, Pattern, TreeOptions),
+            Result = find_matching_nodes(NewTree, Pattern, TreeOptions),
             case Result of
                 {ok, NewMatchingNodes} ->
                     Updates = diff_matching_nodes(

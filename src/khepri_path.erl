@@ -681,7 +681,7 @@ does_path_match(
                                         payload_version,
                                         child_list_version,
                                         child_list_length]},
-    {ok, #{CurrentPath := Node}} = khepri_tree:find_matching_nodes(
+    {ok, #{CurrentPath := Node}} = khepri_machine:find_matching_nodes(
                                      Tree,
                                      lists:reverse([Component | ReversedPath]),
                                      TreeOptions),

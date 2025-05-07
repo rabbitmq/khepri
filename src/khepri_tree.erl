@@ -25,7 +25,6 @@
 
          are_keep_while_conditions_met/2,
 
-         find_matching_nodes/3,
          fold/5,
          delete_matching_nodes/4,
          insert_or_update_node/5,
@@ -372,7 +371,9 @@ are_keep_while_conditions_met(Tree, KeepWhile) ->
     maps:fold(
       fun
           (Path, Condition, true) ->
-              case find_matching_nodes(Tree, Path, TreeOptions) of
+              Ret = khepri_machine:find_matching_nodes(
+                      Tree, Path, TreeOptions),
+              case Ret of
                   {ok, Result} when Result =/= #{} ->
                       are_keep_while_conditions_met1(Result, Condition);
                   {ok, Result}
@@ -495,20 +496,6 @@ update_keep_while_conds_revidx_v1(Tree, Watcher, KeepWhile) ->
 %% -------------------------------------------------------------------
 %% Find matching nodes.
 %% -------------------------------------------------------------------
-
--spec find_matching_nodes(Tree, PathPattern, TreeOptions) ->
-    Ret when
-      Tree :: tree(),
-      PathPattern :: khepri_path:native_pattern(),
-      TreeOptions :: khepri:tree_options(),
-      Ret :: khepri_machine:write_ret().
-%% @private
-
-find_matching_nodes(Tree, PathPattern, TreeOptions) ->
-    fold(
-      Tree, PathPattern,
-      fun khepri_machine:collect_node_props_cb/3, #{},
-      TreeOptions).
 
 -spec fold(Tree, PathPattern, Fun, Acc, TreeOptions) ->
     Ret when

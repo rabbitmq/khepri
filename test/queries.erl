@@ -20,7 +20,7 @@
 query_a_non_existing_node_test() ->
     S0 = khepri_machine:init(?MACH_PARAMS()),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_tree:find_matching_nodes(Tree, [foo], #{}),
+    Ret = khepri_machine:find_matching_nodes(Tree, [foo], #{}),
 
     ?assertEqual(
        {ok, #{}},
@@ -31,7 +31,7 @@ query_an_existing_node_with_no_value_test() ->
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_tree:find_matching_nodes(
+    Ret = khepri_machine:find_matching_nodes(
             Tree, [foo],
             #{props_to_return => [payload,
                                   payload_version,
@@ -49,7 +49,7 @@ query_an_existing_node_with_value_test() ->
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_tree:find_matching_nodes(
+    Ret = khepri_machine:find_matching_nodes(
             Tree, [foo, bar],
             #{props_to_return => [payload,
                                   payload_version,
@@ -68,7 +68,7 @@ query_a_node_with_matching_condition_test() ->
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_tree:find_matching_nodes(
+    Ret = khepri_machine:find_matching_nodes(
             Tree,
             [#if_all{conditions = [foo,
                                    #if_data_matches{pattern = value}]}],
@@ -89,7 +89,7 @@ query_a_node_with_non_matching_condition_test() ->
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_tree:find_matching_nodes(
+    Ret = khepri_machine:find_matching_nodes(
             Tree,
             [#if_all{conditions = [foo,
                                    #if_data_matches{pattern = other}]}],
@@ -109,7 +109,7 @@ query_child_nodes_of_a_specific_node_test() ->
                      payload = khepri_payload:data(baz_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_tree:find_matching_nodes(
+    Ret = khepri_machine:find_matching_nodes(
             Tree,
             [#if_name_matches{regex = any}],
             #{props_to_return => [payload,
@@ -134,7 +134,7 @@ query_child_nodes_of_a_specific_node_with_condition_on_leaf_test() ->
                      payload = khepri_payload:data(baz_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_tree:find_matching_nodes(
+    Ret = khepri_machine:find_matching_nodes(
             Tree,
             [#if_all{conditions = [#if_name_matches{regex = any},
                                    #if_child_list_length{count = {ge, 1}}]}],
@@ -160,7 +160,7 @@ query_many_nodes_with_condition_on_parent_test() ->
                      payload = khepri_payload:data(pouet_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_tree:find_matching_nodes(
+    Ret = khepri_machine:find_matching_nodes(
             Tree,
             [#if_child_list_length{count = {gt, 1}},
              #if_name_matches{regex = any}],
@@ -191,7 +191,7 @@ query_many_nodes_recursively_test() ->
                      payload = khepri_payload:data(pouet_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    Ret1 = khepri_tree:find_matching_nodes(
+    Ret1 = khepri_machine:find_matching_nodes(
              Tree,
              [#if_path_matches{regex = any}],
              #{props_to_return => [payload,
@@ -221,7 +221,7 @@ query_many_nodes_recursively_test() ->
                                 child_list_length => 0}}},
        Ret1),
 
-    Ret2 = khepri_tree:find_matching_nodes(
+    Ret2 = khepri_machine:find_matching_nodes(
              Tree,
              [#if_path_matches{regex = any}],
              #{props_to_return => [payload,
@@ -241,7 +241,7 @@ query_many_nodes_recursively_using_regex_test() ->
                      payload = khepri_payload:data(pouet_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_tree:find_matching_nodes(
+    Ret = khepri_machine:find_matching_nodes(
             Tree,
             [#if_path_matches{regex = "o"}],
             #{props_to_return => [payload,
@@ -274,7 +274,7 @@ query_many_nodes_recursively_with_condition_on_leaf_test() ->
                      payload = khepri_payload:data(pouet_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_tree:find_matching_nodes(
+    Ret = khepri_machine:find_matching_nodes(
             Tree,
             [#if_path_matches{regex = any}, #if_name_matches{regex = "o"}],
             #{props_to_return => [payload,
@@ -304,7 +304,7 @@ query_many_nodes_recursively_with_condition_on_self_test() ->
                      payload = khepri_payload:data(pouet_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_tree:find_matching_nodes(
+    Ret = khepri_machine:find_matching_nodes(
             Tree,
             [#if_all{conditions = [#if_path_matches{regex = any},
                                    #if_data_matches{pattern = '_'}]}],
@@ -343,7 +343,7 @@ query_many_nodes_recursively_with_several_star_star_test() ->
                      payload = khepri_payload:data(pouet_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_tree:find_matching_nodes(
+    Ret = khepri_machine:find_matching_nodes(
             Tree,
             [#if_path_matches{regex = any},
              baz,
@@ -365,7 +365,7 @@ query_a_node_using_relative_path_components_test() ->
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_tree:find_matching_nodes(
+    Ret = khepri_machine:find_matching_nodes(
             Tree, [?THIS_KHEPRI_NODE, foo, ?PARENT_KHEPRI_NODE, foo, bar],
             #{props_to_return => [payload,
                                   payload_version,
@@ -386,7 +386,7 @@ include_child_names_in_query_response_test() ->
                      payload = khepri_payload:data(quux_value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_tree:find_matching_nodes(
+    Ret = khepri_machine:find_matching_nodes(
             Tree,
             [foo],
             #{props_to_return => [payload,
@@ -405,7 +405,7 @@ use_an_unknown_prop_to_return_test() ->
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
     Tree = khepri_machine:get_tree(S0),
-    Ret = khepri_tree:find_matching_nodes(
+    Ret = khepri_machine:find_matching_nodes(
             Tree, [foo],
             #{props_to_return => [payload,
                                   future_prop_name]}),
