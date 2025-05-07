@@ -109,7 +109,10 @@
          handle_tx_exception/1,
          process_query/3,
          process_command/3,
-         does_api_comply_with/2]).
+         does_api_comply_with/2,
+
+         collect_node_props_cb/3,
+         count_node_cb/3]).
 
 %% Internal functions to access the opaque #khepri_machine{} state.
 -export([is_state/1,
@@ -1991,6 +1994,32 @@ does_api_comply_with(Behaviour, StoreId)
         {ok, MacVer} -> does_api_comply_with(Behaviour, MacVer);
         _            -> false
     end.
+
+%% -------------------------------------------------------------------
+%% Integration with the tree implementation.
+%% -------------------------------------------------------------------
+
+-spec collect_node_props_cb(Path, NodeProps, Map) ->
+    Ret when
+      Path :: khepri_path:native_path(),
+      NodeProps :: khepri:node_props(),
+      Map :: khepri:node_props_map(),
+      Ret :: Map.
+%% @private
+
+collect_node_props_cb(Path, NodeProps, Map) when is_map(Map) ->
+    Map#{Path => NodeProps}.
+
+-spec count_node_cb(Path, NodeProps, Count) ->
+    Ret when
+      Path :: khepri_path:native_path(),
+      NodeProps :: khepri:node_props(),
+      Count :: non_neg_integer(),
+      Ret :: Count.
+%% @private
+
+count_node_cb(_Path, _NodeProps, Count) when is_integer(Count) ->
+    Count + 1.
 
 %% -------------------------------------------------------------------
 %% Internal functions.

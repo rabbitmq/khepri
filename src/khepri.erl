@@ -1516,7 +1516,7 @@ count(PathPattern, Options) when is_map(Options) ->
 %% an `{error, Reason}' tuple.
 
 count(StoreId, PathPattern, Options) ->
-    Fun = fun khepri_tree:count_node_cb/3,
+    Fun = fun khepri_machine:count_node_cb/3,
     Options1 = Options#{expect_specific_node => false},
     khepri_machine:fold(StoreId, PathPattern, Fun, 0, Options1).
 

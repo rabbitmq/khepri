@@ -481,7 +481,7 @@ count(PathPattern, Options) ->
     {State, _SideEffects} = khepri_tx_adv:get_tx_state(),
     StoreId = khepri_machine:get_store_id(State),
     Tree = khepri_machine:get_tree(State),
-    Fun = fun khepri_tree:count_node_cb/3,
+    Fun = fun khepri_machine:count_node_cb/3,
     {_QueryOptions, TreeOptions} =
     khepri_machine:split_query_options(StoreId, Options),
     TreeOptions1 = TreeOptions#{expect_specific_node => false},

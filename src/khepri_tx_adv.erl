@@ -134,7 +134,7 @@ get_many(PathPattern) ->
 %% @see khepri_adv:get_many/3.
 
 get_many(PathPattern, Options) ->
-    Fun = fun khepri_tree:collect_node_props_cb/3,
+    Fun = fun khepri_machine:collect_node_props_cb/3,
     Acc = #{},
     do_get_many(PathPattern, Fun, Acc, Options).
 

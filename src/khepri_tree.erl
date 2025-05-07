@@ -25,9 +25,6 @@
 
          are_keep_while_conditions_met/2,
 
-         collect_node_props_cb/3,
-         count_node_cb/3,
-
          find_matching_nodes/3,
          fold/5,
          delete_matching_nodes/4,
@@ -510,30 +507,8 @@ update_keep_while_conds_revidx_v1(Tree, Watcher, KeepWhile) ->
 find_matching_nodes(Tree, PathPattern, TreeOptions) ->
     fold(
       Tree, PathPattern,
-      fun collect_node_props_cb/3, #{},
+      fun khepri_machine:collect_node_props_cb/3, #{},
       TreeOptions).
-
--spec collect_node_props_cb(Path, NodeProps, Map) ->
-    Ret when
-      Path :: khepri_path:native_path(),
-      NodeProps :: khepri:node_props(),
-      Map :: khepri:node_props_map(),
-      Ret :: Map.
-%% @private
-
-collect_node_props_cb(Path, NodeProps, Map) when is_map(Map) ->
-    Map#{Path => NodeProps}.
-
--spec count_node_cb(Path, NodeProps, Count) ->
-    Ret when
-      Path :: khepri_path:native_path(),
-      NodeProps :: khepri:node_props(),
-      Count :: non_neg_integer(),
-      Ret :: Count.
-%% @private
-
-count_node_cb(_Path, _NodeProps, Count) when is_integer(Count) ->
-    Count + 1.
 
 -spec fold(Tree, PathPattern, Fun, Acc, TreeOptions) ->
     Ret when
