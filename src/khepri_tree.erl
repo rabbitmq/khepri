@@ -1398,10 +1398,14 @@ walk_back_up_the_tree(
   #walk{reversed_path = [], %% <-- We reached the root (i.e. not a branch,
                             %% see handle_branch())
         reversed_parent_tree = [],
+        tree = Tree,
+        node = Root,
         applied_changes = AppliedChanges} = Walk,
   AppliedChangesAcc) ->
+    Tree1 = Tree#tree{root = Root},
     AppliedChanges1 = merge_applied_changes(AppliedChanges, AppliedChangesAcc),
-    Walk1 = Walk#walk{applied_changes = AppliedChanges1},
+    Walk1 = Walk#walk{tree = Tree1,
+                      applied_changes = AppliedChanges1},
     handle_applied_changes(Walk1);
 walk_back_up_the_tree(
   #walk{reversed_parent_tree = [],
@@ -1461,12 +1465,10 @@ handle_applied_changes(
     {ok, Walk};
 handle_applied_changes(
   #walk{tree = Tree,
-        node = Root,
         applied_changes = AppliedChanges} = Walk) ->
-    Tree1 = Tree#tree{root = Root},
-    ToDelete = eval_keep_while_conditions(Tree1, AppliedChanges),
+    ToDelete = eval_keep_while_conditions(Tree, AppliedChanges),
 
-    Tree2 = maps:fold(
+    Tree1 = maps:fold(
               fun
                   (RemovedPath, delete, T) ->
                       KW1 = maps:remove(
@@ -1475,10 +1477,10 @@ handle_applied_changes(
                       T1#tree{keep_while_conds = KW1};
                   (_, {_, _}, T) ->
                       T
-              end, Tree1, AppliedChanges),
+              end, Tree, AppliedChanges),
 
     ToDelete1 = filter_and_sort_paths_to_delete(ToDelete, AppliedChanges),
-    Walk1 = Walk#walk{tree = Tree2},
+    Walk1 = Walk#walk{tree = Tree1},
     remove_expired_nodes(ToDelete1, Walk1).
 
 eval_keep_while_conditions(
