@@ -26,6 +26,7 @@
 %% <td style="text-align: right; vertical-align: top;">0</td>
 %% <td>Initial version</td>
 %% </tr>
+%%
 %% <tr>
 %% <td style="text-align: right; vertical-align: top;">1</td>
 %% <td>
@@ -42,6 +43,7 @@
 %% </ul>
 %% </td>
 %% </tr>
+%%
 %% <tr>
 %% <td style="text-align: right; vertical-align: top;">2</td>
 %% <td>
@@ -54,6 +56,17 @@
 %% <li>Added the `delete_reason' to the list of properties that can be
 %% returned. It is returned by default if the effective machine version is 2 or
 %% more.</li>
+%% </ul>
+%% </td>
+%% </tr>
+%%
+%% <tr>
+%% <td style="text-align: right; vertical-align: top;">3</td>
+%% <td>
+%% <ul>
+%% <li>Moved the `keep_while' conditions and reverse index from the tree to
+%% the machine state itself.
+%% </li>
 %% </ul>
 %% </td>
 %% </tr>
@@ -185,9 +198,13 @@
          metrics = #{} :: khepri_machine:metrics(),
 
          %% Added in machine version 1.
-         dedups = #{} :: khepri_machine:dedups_map()}).
+         dedups = #{} :: khepri_machine:dedups_map(),
 
--opaque state_v1() :: #khepri_machine{}.
+         %% Added in machine version 3.
+         keep_while_state = khepri_kws:new() :: khepri_kws:state() | none
+        }).
+
+-opaque state_v3() :: #khepri_machine{}.
 %% State of this Ra state machine, version 1.
 %%
 %% Note that this type is used also for machine version 2. Machine version 2
@@ -195,7 +212,9 @@
 %% doesn't need any changes to the `khepri_machine' type. See the moduledoc of
 %% this module for more information about version 2.
 
--type state() :: state_v1() | khepri_machine_v0:state().
+-type state() :: state_v3() |
+                 khepri_machine_v1:state() |
+                 khepri_machine_v0:state().
 %% State of this Ra state machine.
 
 -type triggers_map() :: #{khepri:trigger_id() =>
@@ -254,7 +273,7 @@
 
               machine_init_args/0,
               state/0,
-              state_v1/0,
+              state_v3/0,
               machine_config/0,
               triggers_map/0,
               metrics/0,
@@ -723,7 +742,7 @@ ack_triggers_execution(StoreId, TriggeredStoredProcs)
 -spec get_keep_while_conds_state(StoreId, Options) -> Ret when
       StoreId :: khepri:store_id(),
       Options :: khepri:query_options(),
-      Ret :: khepri:ok(khepri_tree:keep_while_conds_map()) | khepri:error().
+      Ret :: khepri:ok(khepri_kws:keep_while_conds_map()) | khepri:error().
 %% @doc Returns the `keep_while' conditions internal state.
 %%
 %% The returned state consists of all the `keep_while' condition set so far.
@@ -1885,7 +1904,7 @@ emitted_triggers_to_side_effects(State) ->
       StoreId :: khepri:store_id(),
       NodeTree :: khepri_utils:display_tree(),
       Triggers :: khepri_machine:triggers_map(),
-      KeepWhileConds :: khepri_tree:keep_while_conds_map().
+      KeepWhileConds :: khepri_kws:keep_while_conds_map().
 %% @private
 
 overview(State) ->
@@ -1913,17 +1932,18 @@ overview(State) ->
       keep_while_conds => KeepWhileConds}.
 
 -spec version() -> MacVer when
-      MacVer :: 2.
+      MacVer :: 3.
 %% @doc Returns the state machine version.
 
 version() ->
-    2.
+    3.
 
 -spec which_module(MacVer) -> Module when
-      MacVer :: 0..2,
+      MacVer :: 0..3,
       Module :: ?MODULE.
 %% @doc Returns the state machine module corresponding to the given version.
 
+which_module(3) -> ?MODULE;
 which_module(2) -> ?MODULE;
 which_module(1) -> ?MODULE;
 which_module(0) -> ?MODULE.
@@ -2098,15 +2118,27 @@ failed_to_locate_sproc(Reason) ->
 insert_or_update_node(
   State, PathPattern, Payload, PutOptions, TreeOptions, SideEffects) ->
     Tree = get_tree(State),
+    KeepWhileState = get_keep_while_state(State),
     Ret1 = khepri_tree:insert_or_update_node(
-             Tree, PathPattern, Payload, PutOptions, TreeOptions),
+             Tree, KeepWhileState, PathPattern, Payload, PutOptions,
+             TreeOptions),
     case Ret1 of
-        {ok, Tree1, AppliedChanges, Ret2} ->
+        {ok, Tree1, KeepWhileState1, AppliedChanges, Ret2} ->
+            case KeepWhileState of
+                none ->
+                    ?assertEqual(none, KeepWhileState1);
+                _ ->
+                    ?assertEqual(
+                       none, khepri_tree:get_keep_while_conds(Tree1)),
+                    ?assertEqual(
+                       none, khepri_tree:get_keep_while_conds_revidx(Tree1))
+            end,
             State1 = set_tree(State, Tree1),
-            {State2, SideEffects1} = add_tree_change_side_effects(
-                                       State, State1, AppliedChanges,
+            State2 = set_keep_while_state(State1, KeepWhileState1),
+            {State3, SideEffects1} = add_tree_change_side_effects(
+                                       State, State2, AppliedChanges,
                                        SideEffects),
-            {State2, {ok, Ret2}, SideEffects1};
+            {State3, {ok, Ret2}, SideEffects1};
         Error ->
             {State, Error, SideEffects}
     end.
@@ -2123,15 +2155,26 @@ insert_or_update_node(
 
 delete_matching_nodes(State, PathPattern, TreeOptions, SideEffects) ->
     Tree = get_tree(State),
+    KeepWhileState = get_keep_while_state(State),
     Ret = khepri_tree:delete_matching_nodes(
-            Tree, PathPattern, #{}, TreeOptions),
+            Tree, KeepWhileState, PathPattern, #{}, TreeOptions),
     case Ret of
-        {ok, Tree1, AppliedChanges, Ret2} ->
+        {ok, Tree1, KeepWhileState1, AppliedChanges, Ret2} ->
+            case KeepWhileState of
+                none ->
+                    ?assertEqual(none, KeepWhileState1);
+                _ ->
+                    ?assertEqual(
+                       none, khepri_tree:get_keep_while_conds(Tree1)),
+                    ?assertEqual(
+                       none, khepri_tree:get_keep_while_conds_revidx(Tree1))
+            end,
             State1 = set_tree(State, Tree1),
-            {State2, SideEffects1} = add_tree_change_side_effects(
-                                       State, State1, AppliedChanges,
+            State2 = set_keep_while_state(State1, KeepWhileState1),
+            {State3, SideEffects1} = add_tree_change_side_effects(
+                                       State, State2, AppliedChanges,
                                        SideEffects),
-            {State2, {ok, Ret2}, SideEffects1};
+            {State3, {ok, Ret2}, SideEffects1};
         Error ->
             {State, Error, SideEffects}
     end.
@@ -2447,7 +2490,7 @@ clear_compiled_projection_tree() ->
 %% @private
 
 is_state(State) ->
-    is_record(State, khepri_machine) orelse khepri_machine_v0:is_state(State).
+    is_record(State, khepri_machine) orelse khepri_machine_v1:is_state(State).
 
 -spec ensure_is_state(State) -> ok when
       State :: khepri_machine:state().
@@ -2469,7 +2512,7 @@ ensure_is_state(State) ->
 get_config(#khepri_machine{config = Config}) ->
     Config;
 get_config(State) ->
-    khepri_machine_v0:get_config(State).
+    khepri_machine_v1:get_config(State).
 
 -spec get_tree(State) -> Tree when
       State :: khepri_machine:state(),
@@ -2481,7 +2524,7 @@ get_config(State) ->
 get_tree(#khepri_machine{tree = Tree}) ->
     Tree;
 get_tree(State) ->
-    khepri_machine_v0:get_tree(State).
+    khepri_machine_v1:get_tree(State).
 
 -spec set_tree(State, Tree) -> NewState when
       State :: khepri_machine:state(),
@@ -2494,7 +2537,7 @@ get_tree(State) ->
 set_tree(#khepri_machine{} = State, Tree) ->
     State#khepri_machine{tree = Tree};
 set_tree(State, Tree) ->
-    khepri_machine_v0:set_tree(State, Tree).
+    khepri_machine_v1:set_tree(State, Tree).
 
 -spec get_root(State) -> Root when
       State :: khepri_machine:state(),
@@ -2510,15 +2553,49 @@ get_root(State) ->
 
 -spec get_keep_while_conds(State) -> KeepWhileConds when
       State :: khepri_machine:state(),
-      KeepWhileConds :: khepri_tree:keep_while_conds_map().
+      KeepWhileConds :: khepri_kws:keep_while_conds_map().
 %% @doc Returns the `keep_while' conditions in the tree from the given state.
 %%
 %% @private
 
 get_keep_while_conds(State) ->
     Tree = get_tree(State),
-    KeepWhileConds = khepri_tree:get_keep_while_conds(Tree),
-    KeepWhileConds.
+    case get_keep_while_state(State) of
+        none ->
+            KeepWhileConds = khepri_tree:get_keep_while_conds(Tree),
+            KeepWhileConds;
+        KeepWhileState ->
+            ?assertEqual(none, khepri_tree:get_keep_while_conds(Tree)),
+            ?assertEqual(none, khepri_tree:get_keep_while_conds_revidx(Tree)),
+            KeepWhileConds = khepri_kws:get_conds(KeepWhileState),
+            KeepWhileConds
+    end.
+
+-spec get_keep_while_state(State) -> KeepWhileState when
+      State :: khepri_machine:state(),
+      KeepWhileState :: khepri_kws:state() | none.
+%% @doc Returns the `keep_while' conditions from the given state.
+%%
+%% @private
+
+get_keep_while_state(#khepri_machine{keep_while_state = KeepWhileState}) ->
+    KeepWhileState;
+get_keep_while_state(_State) ->
+    none.
+
+-spec set_keep_while_state(State, KeepWhileState) -> NewState when
+      State :: khepri_machine:state(),
+      KeepWhileState :: khepri_kws:state() | none,
+      NewState :: khepri_machine:state().
+%% @doc Sets the `keep_while' conditions in the given state.
+%%
+%% @private
+
+set_keep_while_state(#khepri_machine{} = State, KeepWhileState) ->
+    State1 = State#khepri_machine{keep_while_state = KeepWhileState},
+    State1;
+set_keep_while_state(State, none) ->
+    State.
 
 -spec get_triggers(State) -> Triggers when
       State :: khepri_machine:state(),
@@ -2530,7 +2607,7 @@ get_keep_while_conds(State) ->
 get_triggers(#khepri_machine{triggers = Triggers}) ->
     Triggers;
 get_triggers(State) ->
-    khepri_machine_v0:get_triggers(State).
+    khepri_machine_v1:get_triggers(State).
 
 -spec set_triggers(State, Triggers) -> NewState when
       State :: khepri_machine:state(),
@@ -2543,7 +2620,7 @@ get_triggers(State) ->
 set_triggers(#khepri_machine{} = State, Triggers) ->
     State#khepri_machine{triggers = Triggers};
 set_triggers(State, Triggers) ->
-    khepri_machine_v0:set_triggers(State, Triggers).
+    khepri_machine_v1:set_triggers(State, Triggers).
 
 -spec get_emitted_triggers(State) -> EmittedTriggers when
       State :: khepri_machine:state(),
@@ -2555,7 +2632,7 @@ set_triggers(State, Triggers) ->
 get_emitted_triggers(#khepri_machine{emitted_triggers = EmittedTriggers}) ->
     EmittedTriggers;
 get_emitted_triggers(State) ->
-    khepri_machine_v0:get_emitted_triggers(State).
+    khepri_machine_v1:get_emitted_triggers(State).
 
 -spec set_emitted_triggers(State, EmittedTriggers) -> NewState when
       State :: khepri_machine:state(),
@@ -2568,7 +2645,7 @@ get_emitted_triggers(State) ->
 set_emitted_triggers(#khepri_machine{} = State, EmittedTriggers) ->
     State#khepri_machine{emitted_triggers = EmittedTriggers};
 set_emitted_triggers(State, EmittedTriggers) ->
-    khepri_machine_v0:set_emitted_triggers(State, EmittedTriggers).
+    khepri_machine_v1:set_emitted_triggers(State, EmittedTriggers).
 
 -spec get_projections(State) -> Projections when
       State :: khepri_machine:state(),
@@ -2580,7 +2657,7 @@ set_emitted_triggers(State, EmittedTriggers) ->
 get_projections(#khepri_machine{projections = Projections}) ->
     Projections;
 get_projections(State) ->
-    khepri_machine_v0:get_projections(State).
+    khepri_machine_v1:get_projections(State).
 
 -spec has_projection(ProjectionTree, ProjectionName) -> boolean() when
       ProjectionTree :: khepri_machine:projection_tree(),
@@ -2612,7 +2689,7 @@ has_projection(ProjectionTree, Name) when is_atom(Name) ->
 set_projections(#khepri_machine{} = State, Projections) ->
     State#khepri_machine{projections = Projections};
 set_projections(State, Projections) ->
-    khepri_machine_v0:set_projections(State, Projections).
+    khepri_machine_v1:set_projections(State, Projections).
 
 -spec get_metrics(State) -> Metrics when
       State :: khepri_machine:state(),
@@ -2624,7 +2701,7 @@ set_projections(State, Projections) ->
 get_metrics(#khepri_machine{metrics = Metrics}) ->
     Metrics;
 get_metrics(State) ->
-    khepri_machine_v0:get_metrics(State).
+    khepri_machine_v1:get_metrics(State).
 
 -spec set_metrics(State, Metrics) -> NewState when
       State :: khepri_machine:state(),
@@ -2637,7 +2714,7 @@ get_metrics(State) ->
 set_metrics(#khepri_machine{} = State, Metrics) ->
     State#khepri_machine{metrics = Metrics};
 set_metrics(State, Metrics) ->
-    khepri_machine_v0:set_metrics(State, Metrics).
+    khepri_machine_v1:set_metrics(State, Metrics).
 
 -spec get_dedups(State) -> Dedups when
       State :: khepri_machine:state(),
@@ -2648,8 +2725,8 @@ set_metrics(State, Metrics) ->
 
 get_dedups(#khepri_machine{dedups = Dedups}) ->
     Dedups;
-get_dedups(_State) ->
-    #{}.
+get_dedups(State) ->
+    khepri_machine_v1:get_dedups(State).
 
 -spec set_dedups(State, Dedups) -> NewState when
       State :: khepri_machine:state(),
@@ -2661,8 +2738,8 @@ get_dedups(_State) ->
 
 set_dedups(#khepri_machine{} = State, Dedups) ->
     State#khepri_machine{dedups = Dedups};
-set_dedups(State, _Dedups) ->
-    State.
+set_dedups(State, Dedups) ->
+    khepri_machine_v1:set_dedups(State, Dedups).
 
 -spec get_store_id(State) -> StoreId when
       State :: khepri_machine:state(),
@@ -2715,7 +2792,18 @@ convert_state1(State, 0, 1) ->
 convert_state1(State, 1, 2) ->
     Tree = get_tree(State),
     Tree1 = khepri_tree:convert_tree(Tree, 1, 2),
-    set_tree(State, Tree1).
+    set_tree(State, Tree1);
+convert_state1(State, 2, 3) ->
+    ?assert(khepri_machine_v1:is_state(State)),
+    Fields0 = khepri_machine_v1:state_to_list(State),
+    Tree = get_tree(State),
+    KeepWhileState = khepri_tree:tree_to_keep_while_state(Tree),
+    Tree1 = khepri_tree:clear_old_keep_while_state(Tree),
+    Fields1 = Fields0 ++ [KeepWhileState],
+    State1 = list_to_tuple(Fields1),
+    State2 = set_tree(State1, Tree1),
+    ?assert(is_state(State2)),
+    State2.
 
 -spec update_projections(OldState, NewState) -> ok when
       OldState :: khepri_machine:state(),
