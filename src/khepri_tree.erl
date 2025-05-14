@@ -24,16 +24,24 @@
          get_keep_while_conds/1,
          get_keep_while_conds_revidx/1,
 
-         are_keep_while_conditions_met/2,
-
          fold/5,
-         delete_matching_nodes/5,
-         insert_or_update_node/6,
+         put/6,
+         delete/5,
+
+         %% Used by import/export.
+         %% FIXME: Import/export needs to use the more generic `fold()' API. We
+         %% may need to return keep_while conditions as node properties to
+         %% allow that.
          walk_down_the_tree/5,
 
+         %% Used during machine state conversion.
          tree_to_keep_while_state/1,
          clear_old_keep_while_state/1,
          convert_tree/3]).
+
+-ifdef(TEST).
+-export([are_keep_while_conditions_met/2]).
+-endif.
 
 -record(tree, {root = #node{} :: khepri_tree:tree_node(),
                keep_while_conds = #{} ::
@@ -449,101 +457,10 @@ find_matching_nodes_cb(_, {interrupted, _, _}, _, Acc, _) ->
     {ok, keep, Acc}.
 
 %% -------------------------------------------------------------------
-%% Delete matching nodes.
-%% -------------------------------------------------------------------
-
--spec delete_matching_nodes(
-        Tree, KeepWhileState, PathPattern, AppliedChanges, TreeOptions) ->
-    Ret when
-      Tree :: khepri_tree:tree(),
-      KeepWhileState :: khepri_kws:state() | none,
-      PathPattern :: khepri_path:pattern(),
-      AppliedChanges :: applied_changes(),
-      TreeOptions :: khepri:tree_options(),
-      Ret :: ok(NewTree, NewKeepWhileState, NewAppliedChanges, Result) |
-             khepri:error(),
-      NewTree :: khepri_tree:tree(),
-      NewKeepWhileState :: khepri_kws:state() | none,
-      NewAppliedChanges :: applied_changes(),
-      Result :: any().
-
-delete_matching_nodes(
-  Tree, KeepWhileState, PathPattern, AppliedChanges, TreeOptions) ->
-    Tree1 = case KeepWhileState of
-                none -> Tree;
-                _    -> update_from_keep_while_state(Tree, KeepWhileState)
-            end,
-    Fun = fun(Path, Node, Result) ->
-                  delete_matching_nodes_cb(
-                    Path, Node, TreeOptions, explicit, Result)
-          end,
-    Ret1 = walk_down_the_tree(
-             Tree1, PathPattern, TreeOptions, AppliedChanges, Fun, #{}),
-    case Ret1 of
-        {ok, Tree2, AppliedChanges1, Ret2} ->
-            case KeepWhileState of
-                none ->
-                    {ok, Tree2, KeepWhileState, AppliedChanges1, Ret2};
-                _ ->
-                    KeepWhileState1 = tree_to_keep_while_state(Tree2),
-                    Tree3 = clear_old_keep_while_state(Tree2),
-                    {ok, Tree3, KeepWhileState1, AppliedChanges1, Ret2}
-            end;
-        {error, _} = Error ->
-            Error
-    end.
-
-delete_matching_nodes_cb(
-  [] = Path, #node{} = Node, TreeOptions, DeleteReason, Result) ->
-    Result1 = add_deleted_node_to_result(
-                Path, Node, TreeOptions, DeleteReason, Result),
-    Node1 = remove_node_payload(Node),
-    Node2 = remove_node_child_nodes(Node1),
-    {ok, Node2, Result1};
-delete_matching_nodes_cb(
-  Path, #node{} = Node, TreeOptions, DeleteReason, Result) ->
-    Result1 = add_deleted_node_to_result(
-                Path, Node, TreeOptions, DeleteReason, Result),
-    {ok, delete, Result1};
-delete_matching_nodes_cb(
-  _, {interrupted, _, _}, _Options, _DeleteReason, Result) ->
-    {ok, keep, Result}.
-
-add_deleted_node_to_result(
-  Path, Node, TreeOptions, explicit = DeleteReason, Result) ->
-    add_deleted_node_to_result1(
-      Path, Node, TreeOptions, DeleteReason, Result);
-add_deleted_node_to_result(
-  _Path, _Node, #{return_indirect_deletes := false}, _DeleteReason,
-  Result) ->
-    Result;
-add_deleted_node_to_result(
-  Path, Node, TreeOptions, DeleteReason, Result) ->
-    add_deleted_node_to_result1(
-      Path, Node, TreeOptions, DeleteReason, Result).
-
-add_deleted_node_to_result1(Path, Node, TreeOptions, DeleteReason, Result) ->
-    NodeProps1 = gather_node_props(Node, TreeOptions),
-    NodeProps2 = maybe_add_delete_reason_prop(
-                   NodeProps1, TreeOptions, DeleteReason),
-    Result#{Path => NodeProps2}.
-
-maybe_add_delete_reason_prop(
-  NodeProps, #{props_to_return := WantedProps}, DeleteReason) ->
-    case lists:member(delete_reason, WantedProps) of
-        true ->
-            NodeProps#{delete_reason => DeleteReason};
-        false ->
-            NodeProps
-    end;
-maybe_add_delete_reason_prop(NodeProps, _TreeOptions, _DeleteReason) ->
-    NodeProps.
-
-%% -------------------------------------------------------------------
 %% Insert or update a tree node.
 %% -------------------------------------------------------------------
 
--spec insert_or_update_node(
+-spec put(
         Tree, KeepWhileState, PathPattern, Payload, PutOptions, TreeOptions) ->
     Ret when
       Tree :: khepri_tree:tree(),
@@ -559,7 +476,7 @@ maybe_add_delete_reason_prop(NodeProps, _TreeOptions, _DeleteReason) ->
       NewTree :: khepri_tree:tree(),
       NewKeepWhileState :: khepri_kws:state() | none.
 
-insert_or_update_node(
+put(
   Tree, KeepWhileState, PathPattern, Payload, #{keep_while := KeepWhile},
   TreeOptions) ->
     Tree1 = case KeepWhileState of
@@ -619,7 +536,7 @@ insert_or_update_node(
         {error, _} = Error ->
             Error
     end;
-insert_or_update_node(
+put(
   Tree, KeepWhileState, PathPattern, Payload, _PutOptions, TreeOptions) ->
     Tree1 = case KeepWhileState of
                 none -> Tree;
@@ -708,6 +625,95 @@ can_continue_update_after_node_not_found1(#if_any{conditions = Conds}) ->
     lists:any(fun can_continue_update_after_node_not_found1/1, Conds);
 can_continue_update_after_node_not_found1(_) ->
     false.
+
+%% -------------------------------------------------------------------
+%% Delete matching nodes.
+%% -------------------------------------------------------------------
+
+-spec delete(Tree, KeepWhileState, PathPattern, AppliedChanges, TreeOptions) ->
+    Ret when
+      Tree :: khepri_tree:tree(),
+      KeepWhileState :: khepri_kws:state() | none,
+      PathPattern :: khepri_path:pattern(),
+      AppliedChanges :: applied_changes(),
+      TreeOptions :: khepri:tree_options(),
+      Ret :: ok(NewTree, NewKeepWhileState, NewAppliedChanges, Result) |
+             khepri:error(),
+      NewTree :: khepri_tree:tree(),
+      NewKeepWhileState :: khepri_kws:state() | none,
+      NewAppliedChanges :: applied_changes(),
+      Result :: any().
+
+delete(Tree, KeepWhileState, PathPattern, AppliedChanges, TreeOptions) ->
+    Tree1 = case KeepWhileState of
+                none -> Tree;
+                _    -> update_from_keep_while_state(Tree, KeepWhileState)
+            end,
+    Fun = fun(Path, Node, Result) ->
+                  delete_matching_nodes_cb(
+                    Path, Node, TreeOptions, explicit, Result)
+          end,
+    Ret1 = walk_down_the_tree(
+             Tree1, PathPattern, TreeOptions, AppliedChanges, Fun, #{}),
+    case Ret1 of
+        {ok, Tree2, AppliedChanges1, Ret2} ->
+            case KeepWhileState of
+                none ->
+                    {ok, Tree2, KeepWhileState, AppliedChanges1, Ret2};
+                _ ->
+                    KeepWhileState1 = tree_to_keep_while_state(Tree2),
+                    Tree3 = clear_old_keep_while_state(Tree2),
+                    {ok, Tree3, KeepWhileState1, AppliedChanges1, Ret2}
+            end;
+        {error, _} = Error ->
+            Error
+    end.
+
+delete_matching_nodes_cb(
+  [] = Path, #node{} = Node, TreeOptions, DeleteReason, Result) ->
+    Result1 = add_deleted_node_to_result(
+                Path, Node, TreeOptions, DeleteReason, Result),
+    Node1 = remove_node_payload(Node),
+    Node2 = remove_node_child_nodes(Node1),
+    {ok, Node2, Result1};
+delete_matching_nodes_cb(
+  Path, #node{} = Node, TreeOptions, DeleteReason, Result) ->
+    Result1 = add_deleted_node_to_result(
+                Path, Node, TreeOptions, DeleteReason, Result),
+    {ok, delete, Result1};
+delete_matching_nodes_cb(
+  _, {interrupted, _, _}, _Options, _DeleteReason, Result) ->
+    {ok, keep, Result}.
+
+add_deleted_node_to_result(
+  Path, Node, TreeOptions, explicit = DeleteReason, Result) ->
+    add_deleted_node_to_result1(
+      Path, Node, TreeOptions, DeleteReason, Result);
+add_deleted_node_to_result(
+  _Path, _Node, #{return_indirect_deletes := false}, _DeleteReason,
+  Result) ->
+    Result;
+add_deleted_node_to_result(
+  Path, Node, TreeOptions, DeleteReason, Result) ->
+    add_deleted_node_to_result1(
+      Path, Node, TreeOptions, DeleteReason, Result).
+
+add_deleted_node_to_result1(Path, Node, TreeOptions, DeleteReason, Result) ->
+    NodeProps1 = gather_node_props(Node, TreeOptions),
+    NodeProps2 = maybe_add_delete_reason_prop(
+                   NodeProps1, TreeOptions, DeleteReason),
+    Result#{Path => NodeProps2}.
+
+maybe_add_delete_reason_prop(
+  NodeProps, #{props_to_return := WantedProps}, DeleteReason) ->
+    case lists:member(delete_reason, WantedProps) of
+        true ->
+            NodeProps#{delete_reason => DeleteReason};
+        false ->
+            NodeProps
+    end;
+maybe_add_delete_reason_prop(NodeProps, _TreeOptions, _DeleteReason) ->
+    NodeProps.
 
 %% -------------------------------------------------------------------
 %% Tree traversal functions.
@@ -1532,9 +1538,8 @@ remove_expired_nodes(
         applied_changes = AppliedChanges,
         tree_options = TreeOptions,
         fun_acc = Acc} = Walk) ->
-    %% See `delete_matching_nodes/5'. This is the same except that the
-    %% accumulator is passed through and the `DeleteReason' is provided as
-    %% `keep_while'.
+    %% See `delete/5'. This is the same except that the accumulator is passed
+    %% through and the `DeleteReason' is provided as `keep_while'.
     Fun = fun(Path, Node, Result) ->
                   delete_matching_nodes_cb(
                     Path, Node, TreeOptions, keep_while, Result)

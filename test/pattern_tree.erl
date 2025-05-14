@@ -67,7 +67,7 @@ fold_finds_all_patterns_matching_a_path_test() ->
     Tree = lists:foldl(
              fun(Path, Tree0) ->
                  {ok, Tree, none, _AppliedChanges, _NodeProps} =
-                 khepri_tree:insert_or_update_node(
+                 khepri_tree:put(
                    Tree0, none, Path, TreePayload, #{}, #{}),
                  Tree
              end, khepri_tree:new(), [[stock, wood, <<"oak">>],

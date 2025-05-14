@@ -2119,7 +2119,7 @@ insert_or_update_node(
   State, PathPattern, Payload, PutOptions, TreeOptions, SideEffects) ->
     Tree = get_tree(State),
     KeepWhileState = get_keep_while_state(State),
-    Ret1 = khepri_tree:insert_or_update_node(
+    Ret1 = khepri_tree:put(
              Tree, KeepWhileState, PathPattern, Payload, PutOptions,
              TreeOptions),
     case Ret1 of
@@ -2156,7 +2156,7 @@ insert_or_update_node(
 delete_matching_nodes(State, PathPattern, TreeOptions, SideEffects) ->
     Tree = get_tree(State),
     KeepWhileState = get_keep_while_state(State),
-    Ret = khepri_tree:delete_matching_nodes(
+    Ret = khepri_tree:delete(
             Tree, KeepWhileState, PathPattern, #{}, TreeOptions),
     case Ret of
         {ok, Tree1, KeepWhileState1, AppliedChanges, Ret2} ->
