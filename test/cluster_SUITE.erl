@@ -29,6 +29,7 @@
 
          can_start_a_single_node/1,
          can_restart_a_single_node_with_ra_server_config/1,
+         handle_timeout_during_recovery/1,
          can_query_members_with_a_single_node/1,
          can_wait_for_leader_with_a_single_node/1,
          fail_to_start_with_bad_ra_server_config/1,
@@ -57,6 +58,7 @@
 all() ->
     [can_start_a_single_node,
      can_restart_a_single_node_with_ra_server_config,
+     handle_timeout_during_recovery,
      can_query_members_with_a_single_node,
      can_wait_for_leader_with_a_single_node,
      fail_to_start_with_bad_ra_server_config,
@@ -113,6 +115,7 @@ end_per_group(_Group, _Config) ->
 init_per_testcase(Testcase, Config)
   when Testcase =:= can_start_a_single_node orelse
        Testcase =:= can_restart_a_single_node_with_ra_server_config orelse
+       Testcase =:= handle_timeout_during_recovery orelse
        Testcase =:= can_query_members_with_a_single_node orelse
        Testcase =:= can_wait_for_leader_with_a_single_node orelse
        Testcase =:= fail_to_start_with_bad_ra_server_config orelse
@@ -266,6 +269,61 @@ can_restart_a_single_node_with_ra_server_config(Config) ->
     ?assertEqual(
        {error, noproc},
        khepri:get(StoreId, [foo])),
+
+    ok.
+
+handle_timeout_during_recovery(Config) ->
+    Node = node(),
+    #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
+    StoreId = RaSystem,
+
+    ct:pal("Start database"),
+    RaServerConfig = #{cluster_name => StoreId},
+    ?assertEqual(
+       {ok, StoreId},
+       khepri:start(RaSystem, RaServerConfig)),
+
+    TxCount = 40,
+    ct:pal("Execute slow transactions:"),
+    lists:foreach(
+      fun(I) ->
+              ct:pal("- transaction ~b/~b", [I, TxCount]),
+              ?assertEqual(
+                 {ok, ok},
+                 khepri:transaction(
+                   StoreId,
+                   fun() -> timer:sleep(1000) end, rw))
+      end, lists:seq(1, TxCount)),
+
+    ct:pal("Stop database"),
+    ?assertEqual(
+       ok,
+       khepri:stop(StoreId)),
+
+    ct:pal("Restart database"),
+    ?assertEqual(
+       {ok, StoreId},
+       khepri:start(RaSystem, RaServerConfig, infinity)),
+
+    ct:pal("Wait for leader for 60 seconds"),
+    ?assertEqual(
+       ok,
+       khepri_cluster:wait_for_leader(StoreId, 60000)),
+
+    ct:pal("Stop database"),
+    ?assertEqual(
+       ok,
+       khepri:stop(StoreId)),
+
+    ct:pal("Restart database"),
+    ?assertEqual(
+       {ok, StoreId},
+       khepri:start(RaSystem, RaServerConfig, infinity)),
+
+    ct:pal("Wait for leader for 30 seconds"),
+    ?assertEqual(
+       {error, timeout},
+       khepri_cluster:wait_for_leader(StoreId, 30000)),
 
     ok.
 
