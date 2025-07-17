@@ -919,6 +919,7 @@ is_remote_call_valid(re, run, _) -> true;
 is_remote_call_valid(re, split, _) -> true;
 is_remote_call_valid(sets, _, _) -> true;
 is_remote_call_valid(string, _, _) -> true;
+is_remote_call_valid(timer, sleep, _) -> true;
 is_remote_call_valid(unicode, _, _) -> true;
 
 is_remote_call_valid(_, _, _) -> false.
