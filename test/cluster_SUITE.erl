@@ -56,36 +56,55 @@
          spam_changes_during_unregister_projections/1]).
 
 all() ->
-    [can_start_a_single_node,
-     can_restart_a_single_node_with_ra_server_config,
-     handle_timeout_during_recovery,
-     can_query_members_with_a_single_node,
-     can_wait_for_leader_with_a_single_node,
-     fail_to_start_with_bad_ra_server_config,
-     initial_members_are_ignored,
-     can_start_a_three_node_cluster,
-     can_join_several_times_a_three_node_cluster,
-     can_rejoin_after_a_reset_in_a_three_node_cluster,
-     can_restart_nodes_in_a_three_node_cluster,
-     can_reset_a_cluster_member,
-     can_query_members_with_a_three_node_cluster,
-     can_wait_for_leader_with_a_three_node_cluster,
-     fail_to_join_if_not_started,
-     fail_to_join_non_existing_node,
-     fail_to_join_non_existing_store,
-     can_use_default_store_on_single_node,
-     can_start_store_in_specified_data_dir_on_single_node,
-     handle_leader_down_on_three_node_cluster_command,
-     handle_leader_down_on_three_node_cluster_response,
-     can_set_snapshot_interval,
-     projections_are_consistent_on_three_node_cluster,
-     projections_are_updated_when_a_snapshot_is_installed,
-     async_command_leader_change_in_three_node_cluster,
-     spam_txs_during_election,
-     spam_changes_during_unregister_projections].
+    [
+     {group, all}
+    ].
 
 groups() ->
-    [].
+    [
+     {all, [],
+      [
+       {single_node, [],
+        [
+         {non_parallel, [],
+          [
+           can_use_default_store_on_single_node,
+           can_start_store_in_specified_data_dir_on_single_node
+          ]},
+         {parallel, [],
+          [
+           can_start_a_single_node,
+           can_restart_a_single_node_with_ra_server_config,
+           handle_timeout_during_recovery,
+           can_query_members_with_a_single_node,
+           can_wait_for_leader_with_a_single_node,
+           fail_to_start_with_bad_ra_server_config,
+           initial_members_are_ignored,
+           fail_to_join_non_existing_node,
+           can_set_snapshot_interval
+          ]}
+        ]},
+       {cluster, [],
+        [
+         can_start_a_three_node_cluster,
+         can_join_several_times_a_three_node_cluster,
+         can_rejoin_after_a_reset_in_a_three_node_cluster,
+         can_restart_nodes_in_a_three_node_cluster,
+         can_reset_a_cluster_member,
+         can_query_members_with_a_three_node_cluster,
+         can_wait_for_leader_with_a_three_node_cluster,
+         fail_to_join_if_not_started,
+         fail_to_join_non_existing_store,
+         handle_leader_down_on_three_node_cluster_command,
+         handle_leader_down_on_three_node_cluster_response,
+         projections_are_consistent_on_three_node_cluster,
+         projections_are_updated_when_a_snapshot_is_installed,
+         async_command_leader_change_in_three_node_cluster,
+         spam_txs_during_election,
+         spam_changes_during_unregister_projections
+        ]}
+      ]}
+    ].
 
 init_per_suite(Config) ->
     basic_logger_config(),
