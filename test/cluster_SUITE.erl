@@ -146,7 +146,7 @@ init_per_testcase(Testcase, Config)
        Testcase =:= can_set_snapshot_interval ->
     {ok, _} = application:ensure_all_started(khepri),
     Props = helpers:start_ra_system(Testcase),
-    [{ra_system_props, #{node() => Props}} | Config];
+    [{ra_system_props, #{node() => #{props => Props}}} | Config];
 init_per_testcase(Testcase, Config)
   when Testcase =:= can_start_a_three_node_cluster orelse
        Testcase =:= can_join_several_times_a_three_node_cluster orelse
@@ -165,28 +165,28 @@ init_per_testcase(Testcase, Config)
        Testcase =:= spam_changes_during_unregister_projections ->
     Nodes = start_n_nodes(Testcase, 3),
     PropsPerNode0 = [begin
-                         {ok, _} = rpc:call(
-                                     Node, application, ensure_all_started,
+                         {ok, _} = peer:call(
+                                     Peer, application, ensure_all_started,
                                      [khepri]),
-                         Props = rpc:call(
-                                   Node, helpers, start_ra_system,
+                         Props = peer:call(
+                                   Peer, helpers, start_ra_system,
                                    [Testcase]),
-                         {Node, Props}
-                     end || {Node, _Peer} <- Nodes],
+                         {Node, #{peer => Peer, props => Props}}
+                     end || {Node, Peer} <- Nodes],
     PropsPerNode = maps:from_list(PropsPerNode0),
     [{ra_system_props, PropsPerNode}, {peer_nodes, Nodes} | Config];
 init_per_testcase(Testcase, Config)
   when Testcase =:= spam_txs_during_election ->
     Nodes = start_n_nodes(Testcase, 2),
     PropsPerNode0 = [begin
-                         {ok, _} = rpc:call(
-                                     Node, application, ensure_all_started,
+                         {ok, _} = peer:call(
+                                     Peer, application, ensure_all_started,
                                      [khepri]),
-                         Props = rpc:call(
-                                   Node, helpers, start_ra_system,
+                         Props = peer:call(
+                                   Peer, helpers, start_ra_system,
                                    [Testcase]),
-                         {Node, Props}
-                     end || {Node, _Peer} <- Nodes],
+                         {Node, #{peer => Peer, props => Props}}
+                     end || {Node, Peer} <- Nodes],
     PropsPerNode = maps:from_list(PropsPerNode0),
     [{ra_system_props, PropsPerNode}, {peer_nodes, Nodes} | Config];
 init_per_testcase(Testcase, Config)
@@ -200,16 +200,18 @@ end_per_testcase(Testcase, _Config)
     ok;
 end_per_testcase(_Testcase, Config) ->
     PropsPerNode = ?config(ra_system_props, Config),
-    maps:fold(
-      fun(Node, Props, Acc) ->
-              _ = rpc:call(Node, helpers, stop_ra_system, [Props]),
-              Acc
-      end, ok, PropsPerNode),
+    maps:foreach(
+      fun
+          (_Node, #{peer := Peer, props := Props}) ->
+              _ = catch peer:call(
+                          Peer, helpers, stop_ra_system, [Props], infinity);
+          (_Node, #{props := Props}) ->
+              helpers:stop_ra_system(Props)
+      end, PropsPerNode),
     ok.
 
 can_start_a_single_node(Config) ->
-    Node = node(),
-    #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Use database before starting it"),
@@ -247,8 +249,7 @@ can_start_a_single_node(Config) ->
     ok.
 
 can_restart_a_single_node_with_ra_server_config(Config) ->
-    Node = node(),
-    #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Start database"),
@@ -293,8 +294,7 @@ can_restart_a_single_node_with_ra_server_config(Config) ->
     ok.
 
 handle_timeout_during_recovery(Config) ->
-    Node = node(),
-    #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Start database"),
@@ -349,7 +349,7 @@ handle_timeout_during_recovery(Config) ->
 
 can_query_members_with_a_single_node(Config) ->
     Node = node(),
-    #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Query members before starting database"),
@@ -431,8 +431,7 @@ can_query_members_with_a_single_node(Config) ->
     ok.
 
 can_wait_for_leader_with_a_single_node(Config) ->
-    Node = node(),
-    #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Wait for leader before starting database"),
@@ -472,8 +471,7 @@ can_wait_for_leader_with_a_single_node(Config) ->
     ok.
 
 fail_to_start_with_bad_ra_server_config(Config) ->
-    Node = node(),
-    #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Start database"),
@@ -516,8 +514,7 @@ fail_to_start_with_bad_ra_server_config(Config) ->
     ok.
 
 initial_members_are_ignored(Config) ->
-    Node = node(),
-    #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Start database"),
@@ -546,7 +543,7 @@ can_start_a_three_node_cluster(Config) ->
     [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
 
     %% We assume all nodes are using the same Ra system name & store ID.
-    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Use database before starting it"),
@@ -555,11 +552,11 @@ can_start_a_three_node_cluster(Config) ->
               ct:pal("- khepri:put() from node ~s", [Node]),
               ?assertEqual(
                  {error, noproc},
-                 rpc:call(Node, khepri, put, [StoreId, [foo], value1])),
+                 call(Config, Node, khepri, put, [StoreId, [foo], value1])),
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
                  {error, noproc},
-                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+                 call(Config, Node, khepri, get, [StoreId, [foo]]))
       end, Nodes),
 
     ct:pal("Start database + cluster nodes"),
@@ -568,14 +565,14 @@ can_start_a_three_node_cluster(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
+                 call(Config, Node, khepri, start, [RaSystem, StoreId]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+                 call(Config, Node, khepri_cluster, join, [StoreId, Node3]))
       end, [Node1, Node2]),
     lists:foreach(
       fun(Node) ->
@@ -584,7 +581,7 @@ can_start_a_three_node_cluster(Config) ->
               ?assertEqual(
                  ExpectedMembers,
                  begin
-                     {ok, M} = rpc:call(
+                     {ok, M} = call(Config,
                                  Node,
                                  khepri_cluster, members, [StoreId]),
                      lists:sort(M)
@@ -592,7 +589,7 @@ can_start_a_three_node_cluster(Config) ->
               ?assertEqual(
                  ExpectedMembers,
                  begin
-                     {ok, LKM} = rpc:call(
+                     {ok, LKM} = call(Config,
                                    Node,
                                    khepri_cluster, members,
                                    [StoreId, #{favor => low_latency}]),
@@ -603,7 +600,7 @@ can_start_a_three_node_cluster(Config) ->
               ?assertEqual(
                  ExpectedNodes,
                  begin
-                     {ok, N} = rpc:call(
+                     {ok, N} = call(Config,
                                  Node,
                                  khepri_cluster, nodes, [StoreId]),
                      lists:sort(N)
@@ -611,7 +608,7 @@ can_start_a_three_node_cluster(Config) ->
               ?assertEqual(
                  ExpectedNodes,
                  begin
-                     {ok, LKN} = rpc:call(
+                     {ok, LKN} = call(Config,
                                    Node,
                                    khepri_cluster, nodes,
                                    [StoreId, #{favor => low_latency}]),
@@ -620,11 +617,13 @@ can_start_a_three_node_cluster(Config) ->
       end, Nodes),
 
     ct:pal("Use database after starting it"),
-    LeaderId1 = get_leader_in_store(StoreId, Nodes),
+    LeaderId1 = get_leader_in_store(Config, StoreId, Nodes),
     {StoreId, LeaderNode} = LeaderId1,
     [FollowerNode | _] = Nodes -- [LeaderNode],
     ct:pal("- khepri:put() from node ~s", [FollowerNode]),
-    ?assertEqual(ok, rpc:call(FollowerNode, khepri, put, [StoreId, [foo], value2])),
+    ?assertEqual(
+       ok,
+       call(Config, FollowerNode, khepri, put, [StoreId, [foo], value2])),
     lists:foreach(
       fun(Node) ->
               Options = case Node of
@@ -636,7 +635,7 @@ can_start_a_three_node_cluster(Config) ->
                 "- khepri:get() from node ~s; options: ~0p", [Node, Options]),
               ?assertEqual(
                  {ok, value2},
-                 rpc:call(Node, khepri, get, [StoreId, [foo], Options]))
+                 call(Config, Node, khepri, get, [StoreId, [foo], Options]))
       end, Nodes),
 
     {StoreId, StoppedLeaderNode1} = LeaderId1,
@@ -645,17 +644,18 @@ can_start_a_three_node_cluster(Config) ->
     ct:pal("Stop database on leader node (quorum is maintained)"),
     ?assertEqual(
        ok,
-       rpc:call(StoppedLeaderNode1, khepri, stop, [StoreId])),
+       call(Config, StoppedLeaderNode1, khepri, stop, [StoreId])),
 
     ct:pal("Use database having it running on 2 out of 3 nodes"),
     %% We try a put from the stopped leader and it should fail because the
     %% leaderboard on that node is stale.
     ?assertEqual(
        {error, noproc},
-       rpc:call(StoppedLeaderNode1, khepri, put, [StoreId, [foo], value3])),
+       call(
+         Config, StoppedLeaderNode1, khepri, put, [StoreId, [foo], value3])),
     ?assertEqual(
        {error, noproc},
-       rpc:call(StoppedLeaderNode1, khepri, get, [StoreId, [foo]])),
+       call(Config, StoppedLeaderNode1, khepri, get, [StoreId, [foo]])),
 
     %% Querying running nodes should be fine however.
     lists:foreach(
@@ -663,19 +663,19 @@ can_start_a_three_node_cluster(Config) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
                  {ok, value2},
-                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+                 call(Config, Node, khepri, get, [StoreId, [foo]]))
       end, RunningNodes1),
 
     %% Likewise, a put from a running node should succeed.
     ?assertEqual(
        ok,
-       rpc:call(hd(RunningNodes1), khepri, put, [StoreId, [foo], value4])),
+       call(Config, hd(RunningNodes1), khepri, put, [StoreId, [foo], value4])),
 
     %% The stopped leader should still fail to respond because it is stopped
     %% and again, the leaderboard is stale on this node.
     ?assertEqual(
        {error, noproc},
-       rpc:call(StoppedLeaderNode1, khepri, get, [StoreId, [foo]])),
+       call(Config, StoppedLeaderNode1, khepri, get, [StoreId, [foo]])),
 
     %% Running nodes should see the updated value however.
     lists:foreach(
@@ -683,23 +683,24 @@ can_start_a_three_node_cluster(Config) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
                  {ok, value4},
-                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+                 call(Config, Node, khepri, get, [StoreId, [foo]]))
       end, RunningNodes1),
 
-    LeaderId2 = get_leader_in_store(StoreId, RunningNodes1),
+    LeaderId2 = get_leader_in_store(Config, StoreId, RunningNodes1),
     {StoreId, StoppedLeaderNode2} = LeaderId2,
     RunningNodes2 = RunningNodes1 -- [StoppedLeaderNode2],
 
     ct:pal("Stop database on the new leader node (quorum is lost)"),
     ?assertEqual(
        ok,
-       rpc:call(StoppedLeaderNode2, khepri, stop, [StoreId])),
+       call(Config, StoppedLeaderNode2, khepri, stop, [StoreId])),
 
     ct:pal("Use database having it running on 1 out of 3 nodes"),
     %% We try a put from the second old leader and it should fail.
     ?assertEqual(
        {error, noproc},
-       rpc:call(StoppedLeaderNode2, khepri, put, [StoreId, [foo], value5])),
+       call(
+         Config, StoppedLeaderNode2, khepri, put, [StoreId, [foo], value5])),
 
     %% The last running node should fail to respond as well because the quorum
     %% is lost.
@@ -708,7 +709,7 @@ can_start_a_three_node_cluster(Config) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
                  {error, timeout},
-                 rpc:call(
+                 call(Config,
                    Node, khepri, get,
                    [StoreId, [foo], #{favor => consistency}]))
       end, RunningNodes2),
@@ -720,7 +721,7 @@ can_join_several_times_a_three_node_cluster(Config) ->
     [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
 
     %% We assume all nodes are using the same Ra system name & store ID.
-    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Start database + cluster nodes"),
@@ -729,22 +730,24 @@ can_join_several_times_a_three_node_cluster(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
+                 call(Config, Node, khepri, start, [RaSystem, StoreId]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+                 call(Config, Node, khepri_cluster, join, [StoreId, Node3]))
       end, [Node1, Node2]),
 
     ct:pal("Use database after starting it"),
-    LeaderId1 = get_leader_in_store(StoreId, Nodes),
+    LeaderId1 = get_leader_in_store(Config, StoreId, Nodes),
     {StoreId, LeaderNode} = LeaderId1,
     [FollowerNode | _] = Nodes -- [LeaderNode],
     ct:pal("- khepri:put() from node ~s", [FollowerNode]),
-    ?assertEqual(ok, rpc:call(FollowerNode, khepri, put, [StoreId, [foo], value1])),
+    ?assertEqual(
+       ok,
+       call(Config, FollowerNode, khepri, put, [StoreId, [foo], value1])),
     lists:foreach(
       fun(Node) ->
               Options = case Node of
@@ -756,7 +759,7 @@ can_join_several_times_a_three_node_cluster(Config) ->
                 "- khepri:get() from node ~s; options: ~0p", [Node, Options]),
               ?assertEqual(
                  {ok, value1},
-                 rpc:call(Node, khepri, get, [StoreId, [foo], Options]))
+                 call(Config, Node, khepri, get, [StoreId, [foo], Options]))
       end, Nodes),
 
     {StoreId, LeaderNode1} = LeaderId1,
@@ -765,19 +768,19 @@ can_join_several_times_a_three_node_cluster(Config) ->
     ct:pal("Make leader node join the cluster again"),
     ?assertEqual(
        ok,
-       rpc:call(
+       call(Config,
          LeaderNode1, khepri_cluster, join, [StoreId, hd(OtherNodes1)])),
 
     ct:pal("Use database after recreating the cluster"),
     ?assertEqual(
        ok,
-       rpc:call(LeaderNode1, khepri, put, [StoreId, [foo], value2])),
+       call(Config, LeaderNode1, khepri, put, [StoreId, [foo], value2])),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
                  {ok, value2},
-                 rpc:call(
+                 call(Config,
                    Node, khepri, get,
                    [StoreId, [foo], #{favor => consistency}]))
       end, Nodes),
@@ -789,7 +792,7 @@ can_rejoin_after_a_reset_in_a_three_node_cluster(Config) ->
     [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
 
     %% We assume all nodes are using the same Ra system name & store ID.
-    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Start database + cluster nodes"),
@@ -798,22 +801,24 @@ can_rejoin_after_a_reset_in_a_three_node_cluster(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
+                 call(Config, Node, khepri, start, [RaSystem, StoreId]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+                 call(Config, Node, khepri_cluster, join, [StoreId, Node3]))
       end, [Node1, Node2]),
 
     ct:pal("Use database after starting it"),
-    LeaderId1 = get_leader_in_store(StoreId, Nodes),
+    LeaderId1 = get_leader_in_store(Config, StoreId, Nodes),
     {StoreId, LeaderNode} = LeaderId1,
     [FollowerNode | _] = Nodes -- [LeaderNode],
     ct:pal("- khepri:put() from node ~s", [FollowerNode]),
-    ?assertEqual(ok, rpc:call(FollowerNode, khepri, put, [StoreId, [foo], value1])),
+    ?assertEqual(
+       ok,
+       call(Config, FollowerNode, khepri, put, [StoreId, [foo], value1])),
     lists:foreach(
       fun(Node) ->
               Options = case Node of
@@ -825,7 +830,7 @@ can_rejoin_after_a_reset_in_a_three_node_cluster(Config) ->
                 "- khepri:get() from node ~s; options: ~0p", [Node, Options]),
               ?assertEqual(
                  {ok, value1},
-                 rpc:call(Node, khepri, get, [StoreId, [foo], Options]))
+                 call(Config, Node, khepri, get, [StoreId, [foo], Options]))
       end, Nodes),
 
     {StoreId, LeaderNode1} = LeaderId1,
@@ -834,41 +839,41 @@ can_rejoin_after_a_reset_in_a_three_node_cluster(Config) ->
     ct:pal("Stop and reset leader node"),
     ?assertEqual(
        ok,
-       rpc:call(
+       call(Config,
          LeaderNode1, khepri, stop, [StoreId])),
-    Props = maps:get(LeaderNode1, PropsPerNode),
+    #{props := Props} = maps:get(LeaderNode1, PropsPerNode),
     ?assertMatch(
        ok,
-       rpc:call(LeaderNode1, helpers, stop_ra_system, [Props])),
+       call(Config, LeaderNode1, helpers, stop_ra_system, [Props])),
 
     %% Wait for a new leader to be elected among the remaining members.
-    NewLeader = get_leader_in_store(StoreId, OtherNodes1),
+    NewLeader = get_leader_in_store(Config, StoreId, OtherNodes1),
     ?assertNotEqual(LeaderId1, NewLeader),
 
     %% The following call removes the existing data directory.
     ?assertMatch(
        #{},
-       rpc:call(LeaderNode1, helpers, start_ra_system, [RaSystem])),
+       call(Config, LeaderNode1, helpers, start_ra_system, [RaSystem])),
     ?assertEqual(
        {ok, StoreId},
-       rpc:call(LeaderNode1, khepri, start, [RaSystem, StoreId])),
+       call(Config, LeaderNode1, khepri, start, [RaSystem, StoreId])),
 
     ct:pal("Make leader node join the cluster again"),
     ?assertEqual(
        ok,
-       rpc:call(
+       call(Config,
          LeaderNode1, khepri_cluster, join, [StoreId, hd(OtherNodes1)])),
 
     ct:pal("Use database after recreating the cluster"),
     ?assertEqual(
        ok,
-       rpc:call(LeaderNode1, khepri, put, [StoreId, [foo], value2])),
+       call(Config, LeaderNode1, khepri, put, [StoreId, [foo], value2])),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
                  {ok, value2},
-                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+                 call(Config, Node, khepri, get, [StoreId, [foo]]))
       end, Nodes),
 
     ok.
@@ -878,7 +883,7 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
     [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
 
     %% We assume all nodes are using the same Ra system name & store ID.
-    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
     RaServerConfig = #{cluster_name => StoreId},
 
@@ -888,7 +893,7 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, RaServerConfig]))
+                 call(Config, Node, khepri, start, [RaSystem, RaServerConfig]))
       end, Nodes),
     %% This (gratuitous) restart of Khepri stores is to ensure the remembered
     %% `RaServerConfig' contains everything we need in `join()' later. Indeed,
@@ -899,25 +904,27 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
               ct:pal("- Restart Khepri store on node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri, stop, [StoreId])),
+                 call(Config, Node, khepri, stop, [StoreId])),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, RaServerConfig]))
+                 call(Config, Node, khepri, start, [RaSystem, RaServerConfig]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+                 call(Config, Node, khepri_cluster, join, [StoreId, Node3]))
       end, [Node1, Node2]),
 
     ct:pal("Use database after starting it"),
-    LeaderId1 = get_leader_in_store(StoreId, Nodes),
+    LeaderId1 = get_leader_in_store(Config, StoreId, Nodes),
     {StoreId, LeaderNode} = LeaderId1,
     [FollowerNode | _] = Nodes -- [LeaderNode],
     ct:pal("- khepri:put() from node ~s", [FollowerNode]),
-    ?assertEqual(ok, rpc:call(FollowerNode, khepri, put, [StoreId, [foo], value1])),
+    ?assertEqual(
+       ok,
+       call(Config, FollowerNode, khepri, put, [StoreId, [foo], value1])),
     lists:foreach(
       fun(Node) ->
               Options = case Node of
@@ -929,7 +936,7 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
                 "- khepri:get() from node ~s; options: ~0p", [Node, Options]),
               ?assertEqual(
                  {ok, value1},
-                 rpc:call(Node, khepri, get, [StoreId, [foo], Options]))
+                 call(Config, Node, khepri, get, [StoreId, [foo], Options]))
       end, Nodes),
 
     %% Stop the current leader.
@@ -941,10 +948,10 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
       [StoppedLeaderNode1]),
     ?assertEqual(
        ok,
-       rpc:call(StoppedLeaderNode1, khepri, stop, [StoreId])),
+       call(Config, StoppedLeaderNode1, khepri, stop, [StoreId])),
 
     %% Stop the next elected leader.
-    LeaderId2 = get_leader_in_store(StoreId, RunningNodes1),
+    LeaderId2 = get_leader_in_store(Config, StoreId, RunningNodes1),
     ?assertNotEqual(LeaderId1, LeaderId2),
     {StoreId, StoppedLeaderNode2} = LeaderId2,
     RunningNodes2 = RunningNodes1 -- [StoppedLeaderNode2],
@@ -954,14 +961,14 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
       [StoppedLeaderNode2]),
     ?assertEqual(
        ok,
-       rpc:call(StoppedLeaderNode2, khepri, stop, [StoreId])),
+       call(Config, StoppedLeaderNode2, khepri, stop, [StoreId])),
 
     ct:pal(
       "Restart database on node ~s (quorum is restored)",
       [StoppedLeaderNode1]),
     ?assertEqual(
        {ok, StoreId},
-       rpc:call(
+       call(Config,
          StoppedLeaderNode1, khepri, start, [RaSystem, RaServerConfig])),
     RunningNodes3 = RunningNodes2 ++ [StoppedLeaderNode1],
 
@@ -970,10 +977,11 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
     %% leaderboard on that node is stale.
     ?assertEqual(
        {error, noproc},
-       rpc:call(StoppedLeaderNode2, khepri, put, [StoreId, [foo], value2])),
+       call(
+         Config, StoppedLeaderNode2, khepri, put, [StoreId, [foo], value2])),
     ?assertEqual(
        {error, noproc},
-       rpc:call(StoppedLeaderNode2, khepri, get, [StoreId, [foo]])),
+       call(Config, StoppedLeaderNode2, khepri, get, [StoreId, [foo]])),
 
     %% Querying running nodes should be fine however.
     lists:foreach(
@@ -981,19 +989,19 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
                  {ok, value1},
-                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+                 call(Config, Node, khepri, get, [StoreId, [foo]]))
       end, RunningNodes3),
 
     %% Likewise, a put from a running node should succeed.
     ?assertEqual(
        ok,
-       rpc:call(hd(RunningNodes3), khepri, put, [StoreId, [foo], value3])),
+       call(Config, hd(RunningNodes3), khepri, put, [StoreId, [foo], value3])),
 
     %% The stopped leader should still fail to respond because it is stopped
     %% and again, the leaderboard is stale on this node.
     ?assertEqual(
        {error, noproc},
-       rpc:call(StoppedLeaderNode2, khepri, get, [StoreId, [foo]])),
+       call(Config, StoppedLeaderNode2, khepri, get, [StoreId, [foo]])),
 
     %% Running nodes should see the updated value however.
     lists:foreach(
@@ -1001,7 +1009,7 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
                  {ok, value3},
-                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+                 call(Config, Node, khepri, get, [StoreId, [foo]]))
       end, RunningNodes3),
 
     ok.
@@ -1010,8 +1018,9 @@ handle_leader_down_on_three_node_cluster_command(Config) ->
     PropsPerNode = ?config(ra_system_props, Config),
     PeerPerNode = ?config(peer_nodes, Config),
     [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
+
     %% We assume all nodes are using the same Ra system name & store ID.
-    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
     RaServerConfig = #{cluster_name => StoreId},
 
@@ -1021,7 +1030,7 @@ handle_leader_down_on_three_node_cluster_command(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, RaServerConfig]))
+                 call(Config, Node, khepri, start, [RaSystem, RaServerConfig]))
       end, Nodes),
     %% This (gratuitous) restart of Khepri stores is to ensure the remembered
     %% `RaServerConfig' contains everything we need in `join()' later. Indeed,
@@ -1032,25 +1041,27 @@ handle_leader_down_on_three_node_cluster_command(Config) ->
               ct:pal("- Restart Khepri store on node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri, stop, [StoreId])),
+                 call(Config, Node, khepri, stop, [StoreId])),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, RaServerConfig]))
+                 call(Config, Node, khepri, start, [RaSystem, RaServerConfig]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+                 call(Config, Node, khepri_cluster, join, [StoreId, Node3]))
       end, [Node1, Node2]),
 
     ct:pal("Use database after starting it"),
-    LeaderId1 = get_leader_in_store(StoreId, Nodes),
+    LeaderId1 = get_leader_in_store(Config, StoreId, Nodes),
     {StoreId, LeaderNode} = LeaderId1,
     [FollowerNode | _] = Nodes -- [LeaderNode],
     ct:pal("- khepri:put() from node ~s", [FollowerNode]),
-    ?assertEqual(ok, rpc:call(FollowerNode, khepri, put, [StoreId, [foo], value1])),
+    ?assertEqual(
+       ok,
+       call(Config, FollowerNode, khepri, put, [StoreId, [foo], value1])),
     lists:foreach(
       fun(Node) ->
               Options = case Node of
@@ -1062,7 +1073,7 @@ handle_leader_down_on_three_node_cluster_command(Config) ->
                 "- khepri:get() from node ~s; options: ~0p", [Node, Options]),
               ?assertEqual(
                  {ok, value1},
-                 rpc:call(Node, khepri, get, [StoreId, [foo], Options]))
+                 call(Config, Node, khepri, get, [StoreId, [foo], Options]))
       end, Nodes),
 
     %% Stop the current leader.
@@ -1080,7 +1091,7 @@ handle_leader_down_on_three_node_cluster_command(Config) ->
               ct:pal("- khepri:put() in node ~s", [Node]),
               ?assertMatch(
                  ok,
-                 rpc:call(Node, khepri, put, [StoreId, [foo], value1]))
+                 call(Config, Node, khepri, put, [StoreId, [foo], value1]))
       end, RunningNodes1),
     ok.
 
@@ -1088,8 +1099,9 @@ handle_leader_down_on_three_node_cluster_response(Config) ->
     PropsPerNode = ?config(ra_system_props, Config),
     PeerPerNode = ?config(peer_nodes, Config),
     [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
+
     %% We assume all nodes are using the same Ra system name & store ID.
-    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
     RaServerConfig = #{cluster_name => StoreId},
 
@@ -1099,7 +1111,7 @@ handle_leader_down_on_three_node_cluster_response(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, RaServerConfig]))
+                 call(Config, Node, khepri, start, [RaSystem, RaServerConfig]))
       end, Nodes),
     %% This (gratuitous) restart of Khepri stores is to ensure the remembered
     %% `RaServerConfig' contains everything we need in `join()' later. Indeed,
@@ -1110,25 +1122,27 @@ handle_leader_down_on_three_node_cluster_response(Config) ->
               ct:pal("- Restart Khepri store on node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri, stop, [StoreId])),
+                 call(Config, Node, khepri, stop, [StoreId])),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, RaServerConfig]))
+                 call(Config, Node, khepri, start, [RaSystem, RaServerConfig]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+                 call(Config, Node, khepri_cluster, join, [StoreId, Node3]))
       end, [Node1, Node2]),
 
     ct:pal("Use database after starting it"),
-    LeaderId1 = get_leader_in_store(StoreId, Nodes),
+    LeaderId1 = get_leader_in_store(Config, StoreId, Nodes),
     {StoreId, LeaderNode} = LeaderId1,
     [FollowerNode | _] = Nodes -- [LeaderNode],
     ct:pal("- khepri:put() from node ~s", [FollowerNode]),
-    ?assertEqual(ok, rpc:call(FollowerNode, khepri, put, [StoreId, [foo], value1])),
+    ?assertEqual(
+       ok,
+       call(Config, FollowerNode, khepri, put, [StoreId, [foo], value1])),
     lists:foreach(
       fun(Node) ->
               Options = case Node of
@@ -1140,7 +1154,7 @@ handle_leader_down_on_three_node_cluster_response(Config) ->
                 "- khepri:get() from node ~s; options: ~0p", [Node, Options]),
               ?assertEqual(
                  {ok, value1},
-                 rpc:call(Node, khepri, get, [StoreId, [foo], Options]))
+                 call(Config, Node, khepri, get, [StoreId, [foo], Options]))
       end, Nodes),
 
     %% Stop the current leader.
@@ -1158,7 +1172,7 @@ handle_leader_down_on_three_node_cluster_response(Config) ->
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
                  {ok, value1},
-                 rpc:call(Node, khepri, get, [StoreId, [foo]]))
+                 call(Config, Node, khepri, get, [StoreId, [foo]]))
       end, RunningNodes1),
     ok.
 
@@ -1167,7 +1181,7 @@ can_reset_a_cluster_member(Config) ->
     [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
 
     %% We assume all nodes are using the same Ra system name & store ID.
-    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Start database + cluster nodes"),
@@ -1176,14 +1190,14 @@ can_reset_a_cluster_member(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
+                 call(Config, Node, khepri, start, [RaSystem, StoreId]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+                 call(Config, Node, khepri_cluster, join, [StoreId, Node3]))
       end, [Node1, Node2]),
 
     ct:pal("Check membership on all nodes"),
@@ -1193,7 +1207,7 @@ can_reset_a_cluster_member(Config) ->
               ?assertEqual(
                  lists:sort(Nodes),
                  begin
-                     {ok, N} = rpc:call(
+                     {ok, N} = call(Config,
                                  Node,
                                  khepri_cluster, nodes, [StoreId]),
                      lists:sort(N)
@@ -1201,7 +1215,7 @@ can_reset_a_cluster_member(Config) ->
       end, Nodes),
 
     %% Reset the current leader.
-    LeaderId1 = get_leader_in_store(StoreId, Nodes),
+    LeaderId1 = get_leader_in_store(Config, StoreId, Nodes),
     {StoreId, StoppedLeaderNode1} = LeaderId1,
     RunningNodes1 = Nodes -- [StoppedLeaderNode1],
 
@@ -1210,7 +1224,7 @@ can_reset_a_cluster_member(Config) ->
       [StoppedLeaderNode1]),
     ?assertEqual(
        ok,
-       rpc:call(StoppedLeaderNode1, khepri_cluster, reset, [StoreId])),
+       call(Config, StoppedLeaderNode1, khepri_cluster, reset, [StoreId])),
 
     ct:pal("Check membership on remaining nodes"),
     lists:foreach(
@@ -1219,7 +1233,7 @@ can_reset_a_cluster_member(Config) ->
               ?assertEqual(
                  lists:sort(RunningNodes1),
                  begin
-                     {ok, N} = rpc:call(
+                     {ok, N} = call(Config,
                                  Node,
                                  khepri_cluster, nodes, [StoreId]),
                      lists:sort(N)
@@ -1234,7 +1248,7 @@ can_query_members_with_a_three_node_cluster(Config) ->
     [Node1, Node2, Node3] = Nodes = lists:sort(maps:keys(PropsPerNode)),
 
     %% We assume all nodes are using the same Ra system name & store ID.
-    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Query members before starting database"),
@@ -1242,17 +1256,18 @@ can_query_members_with_a_three_node_cluster(Config) ->
       fun(Node) ->
               ?assertEqual(
                  {error, noproc},
-                 erpc:call(Node, khepri_cluster, members, [StoreId])),
+                 call(Config, Node, khepri_cluster, members, [StoreId])),
               ?assertEqual(
                  {error, noproc},
-                 erpc:call(
+                 call(Config,
                    Node,
                    khepri_cluster, members, [StoreId, #{timeout => 10000}])),
               ?assertEqual(
                  {error, noproc},
-                 erpc:call(
+                 call(Config,
                    Node,
-                   khepri_cluster, members, [StoreId, #{favor => low_latency}]))
+                   khepri_cluster, members,
+                   [StoreId, #{favor => low_latency}]))
       end, Nodes),
 
     ct:pal("Query nodes before starting database"),
@@ -1260,15 +1275,15 @@ can_query_members_with_a_three_node_cluster(Config) ->
       fun(Node) ->
               ?assertEqual(
                  {error, noproc},
-                 erpc:call(Node, khepri_cluster, nodes, [StoreId])),
+                 call(Config, Node, khepri_cluster, nodes, [StoreId])),
               ?assertEqual(
                  {error, noproc},
-                 erpc:call(
+                 call(Config,
                    Node,
                    khepri_cluster, nodes, [StoreId, #{timeout => 10000}])),
               ?assertEqual(
                  {error, noproc},
-                 erpc:call(
+                 call(Config,
                    Node,
                    khepri_cluster, nodes, [StoreId, #{favor => low_latency}]))
       end, Nodes),
@@ -1279,14 +1294,14 @@ can_query_members_with_a_three_node_cluster(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
+                 call(Config, Node, khepri, start, [RaSystem, StoreId]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+                 call(Config, Node, khepri_cluster, join, [StoreId, Node3]))
       end, [Node1, Node2]),
 
     ct:pal("Query members after starting database"),
@@ -1294,15 +1309,15 @@ can_query_members_with_a_three_node_cluster(Config) ->
       fun(Node) ->
               ?assertEqual(
                  {ok, [{StoreId, N} || N <- Nodes]},
-                 erpc:call(Node, khepri_cluster, members, [StoreId])),
+                 call(Config, Node, khepri_cluster, members, [StoreId])),
               ?assertEqual(
                  {ok, [{StoreId, N} || N <- Nodes]},
-                 erpc:call(
+                 call(Config,
                    Node,
                    khepri_cluster, members, [StoreId, #{timeout => 10000}])),
               ?assertEqual(
                  {ok, [{StoreId, N} || N <- Nodes]},
-                 erpc:call(
+                 call(Config,
                    Node,
                    khepri_cluster, members,
                    [StoreId, #{favor => low_latency}]))
@@ -1313,20 +1328,20 @@ can_query_members_with_a_three_node_cluster(Config) ->
       fun(Node) ->
               ?assertEqual(
                  {ok, Nodes},
-                 erpc:call(Node, khepri_cluster, nodes, [StoreId])),
+                 call(Config, Node, khepri_cluster, nodes, [StoreId])),
               ?assertEqual(
                  {ok, Nodes},
-                 erpc:call(
+                 call(Config,
                    Node,
                    khepri_cluster, nodes, [StoreId, #{timeout => 10000}])),
               ?assertEqual(
                  {ok, Nodes},
-                 erpc:call(
+                 call(Config,
                    Node,
                    khepri_cluster, nodes, [StoreId, #{favor => low_latency}]))
       end, Nodes),
 
-    LeaderId1 = get_leader_in_store(StoreId, Nodes),
+    LeaderId1 = get_leader_in_store(Config, StoreId, Nodes),
     {StoreId, LeaderNode1} = LeaderId1,
     ct:pal("Stop node ~s", [LeaderNode1]),
     LeaderPeer1 = proplists:get_value(LeaderNode1, PeerPerNode),
@@ -1338,20 +1353,20 @@ can_query_members_with_a_three_node_cluster(Config) ->
       fun(Node) ->
               ?assertEqual(
                  {ok, Nodes},
-                 erpc:call(Node, khepri_cluster, nodes, [StoreId])),
+                 call(Config, Node, khepri_cluster, nodes, [StoreId])),
               ?assertEqual(
                  {ok, Nodes},
-                 erpc:call(
+                 call(Config,
                    Node,
                    khepri_cluster, nodes, [StoreId, #{timeout => 10000}])),
               ?assertEqual(
                  {ok, Nodes},
-                 erpc:call(
+                 call(Config,
                    Node,
                    khepri_cluster, nodes, [StoreId, #{favor => low_latency}]))
       end, LeftNodes1),
 
-    LeaderId2 = get_leader_in_store(StoreId, LeftNodes1),
+    LeaderId2 = get_leader_in_store(Config, StoreId, LeftNodes1),
     {StoreId, LeaderNode2} = LeaderId2,
     ct:pal("Stop node ~s", [LeaderNode2]),
     LeaderPeer2 = proplists:get_value(LeaderNode2, PeerPerNode),
@@ -1363,15 +1378,15 @@ can_query_members_with_a_three_node_cluster(Config) ->
       fun(Node) ->
               ?assertEqual(
                  {error, timeout},
-                 erpc:call(Node, khepri_cluster, members, [StoreId])),
+                 call(Config, Node, khepri_cluster, members, [StoreId])),
               ?assertEqual(
                  {error, timeout},
-                 erpc:call(
+                 call(Config,
                    Node,
                    khepri_cluster, members, [StoreId, #{timeout => 10000}])),
               ?assertEqual(
                  {ok, [{StoreId, N} || N <- Nodes]},
-                 erpc:call(
+                 call(Config,
                    Node,
                    khepri_cluster, members,
                    [StoreId, #{favor => low_latency}]))
@@ -1382,15 +1397,15 @@ can_query_members_with_a_three_node_cluster(Config) ->
       fun(Node) ->
               ?assertEqual(
                  {error, timeout},
-                 erpc:call(Node, khepri_cluster, nodes, [StoreId])),
+                 call(Config, Node, khepri_cluster, nodes, [StoreId])),
               ?assertEqual(
                  {error, timeout},
-                 erpc:call(
+                 call(Config,
                    Node,
                    khepri_cluster, nodes, [StoreId, #{timeout => 10000}])),
               ?assertEqual(
                  {ok, Nodes},
-                 erpc:call(
+                 call(Config,
                    Node,
                    khepri_cluster, nodes, [StoreId, #{favor => low_latency}]))
       end, LeftNodes2),
@@ -1403,7 +1418,7 @@ can_wait_for_leader_with_a_three_node_cluster(Config) ->
     [Node1, Node2, Node3] = Nodes = lists:sort(maps:keys(PropsPerNode)),
 
     %% We assume all nodes are using the same Ra system name & store ID.
-    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Wait for leader before starting database"),
@@ -1411,11 +1426,11 @@ can_wait_for_leader_with_a_three_node_cluster(Config) ->
       fun(Node) ->
               ?assertEqual(
                  {error, noproc},
-                 erpc:call(
+                 call(Config,
                    Node, khepri_cluster, wait_for_leader, [StoreId])),
               ?assertEqual(
                  {error, noproc},
-                 erpc:call(
+                 call(Config,
                    Node, khepri_cluster, wait_for_leader, [StoreId, 2000]))
       end, Nodes),
 
@@ -1425,14 +1440,14 @@ can_wait_for_leader_with_a_three_node_cluster(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
+                 call(Config, Node, khepri, start, [RaSystem, StoreId]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+                 call(Config, Node, khepri_cluster, join, [StoreId, Node3]))
       end, [Node1, Node2]),
 
     ct:pal("Wait for leader after starting database"),
@@ -1440,15 +1455,15 @@ can_wait_for_leader_with_a_three_node_cluster(Config) ->
       fun(Node) ->
               ?assertEqual(
                  ok,
-                 erpc:call(
+                 call(Config,
                    Node, khepri_cluster, wait_for_leader, [StoreId])),
               ?assertEqual(
                  ok,
-                 erpc:call(
+                 call(Config,
                    Node, khepri_cluster, wait_for_leader, [StoreId, 2000]))
       end, Nodes),
 
-    LeaderId1 = get_leader_in_store(StoreId, Nodes),
+    LeaderId1 = get_leader_in_store(Config, StoreId, Nodes),
     {StoreId, LeaderNode1} = LeaderId1,
     ct:pal("Stop node ~s", [LeaderNode1]),
     LeaderPeer1 = proplists:get_value(LeaderNode1, PeerPerNode),
@@ -1460,11 +1475,11 @@ can_wait_for_leader_with_a_three_node_cluster(Config) ->
       fun(Node) ->
               ?assertEqual(
                  ok,
-                 erpc:call(
+                 call(Config,
                    Node, khepri_cluster, wait_for_leader, [StoreId])),
               ?assertEqual(
                  ok,
-                 erpc:call(
+                 call(Config,
                    Node, khepri_cluster, wait_for_leader, [StoreId, 2000]))
       end, LeftNodes1),
 
@@ -1473,7 +1488,7 @@ can_wait_for_leader_with_a_three_node_cluster(Config) ->
               ct:pal("Stop node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri, stop, [StoreId]))
+                 call(Config, Node, khepri, stop, [StoreId]))
       end, LeftNodes1),
 
     ct:pal("Wait for leader after stopping database"),
@@ -1481,11 +1496,11 @@ can_wait_for_leader_with_a_three_node_cluster(Config) ->
       fun(Node) ->
               ?assertEqual(
                  {error, noproc},
-                 erpc:call(
+                 call(Config,
                    Node, khepri_cluster, wait_for_leader, [StoreId])),
               ?assertEqual(
                  {error, noproc},
-                 erpc:call(
+                 call(Config,
                    Node, khepri_cluster, wait_for_leader, [StoreId, 2000]))
       end, LeftNodes1),
 
@@ -1496,7 +1511,7 @@ fail_to_join_if_not_started(Config) ->
     [Node1, Node2, _Node3] = maps:keys(PropsPerNode),
 
     %% We assume all nodes are using the same Ra system name & store ID.
-    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Cluster node"),
@@ -1504,14 +1519,13 @@ fail_to_join_if_not_started(Config) ->
        {error, ?khepri_error(
                   not_a_khepri_store,
                   #{store_id => StoreId})},
-       rpc:call(
+       call(Config,
          Node1, khepri_cluster, join, [StoreId, Node2])),
 
     ok.
 
 fail_to_join_non_existing_node(Config) ->
-    Node = node(),
-    #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Start database"),
@@ -1545,29 +1559,29 @@ fail_to_join_non_existing_store(Config) ->
     [Node1, Node2, _Node3] = maps:keys(PropsPerNode),
 
     %% We assume all nodes are using the same Ra system name & store ID.
-    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Start database"),
     ?assertEqual(
        {ok, StoreId},
-       rpc:call(Node1, khepri, start, [RaSystem, StoreId])),
+       call(Config, Node1, khepri, start, [RaSystem, StoreId])),
 
     ct:pal("Cluster node"),
     ?assertEqual(
        {error, noproc},
-       rpc:call(
+       call(Config,
          Node1, khepri_cluster, join, [StoreId, Node2])),
 
     ?assertEqual(
        {ok, [khepri_cluster:node_to_member(StoreId, Node1)]},
-       rpc:call(
+       call(Config,
          Node1, khepri_cluster, members, [StoreId])),
 
     ct:pal("Stop database"),
     ?assertEqual(
        ok,
-       rpc:call(Node1, khepri, stop, [StoreId])),
+       call(Config, Node1, khepri, stop, [StoreId])),
 
     ok.
 
@@ -1585,9 +1599,13 @@ can_use_default_store_on_single_node(_Config) ->
     ?assertEqual({error, noproc}, khepri:is_sproc([foo])),
 
     ?assertEqual({error, noproc}, khepri_cluster:members()),
-    ?assertEqual({error, noproc}, khepri_cluster:members(#{favor => low_latency})),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:members(#{favor => low_latency})),
     ?assertEqual({error, noproc}, khepri_cluster:nodes()),
-    ?assertEqual({error, noproc}, khepri_cluster:nodes(#{favor => low_latency})),
+    ?assertEqual(
+       {error, noproc},
+       khepri_cluster:nodes(#{favor => low_latency})),
 
     ?assertEqual({error, noproc}, khepri_cluster:wait_for_leader()),
 
@@ -1873,7 +1891,7 @@ can_start_store_in_specified_data_dir_on_single_node(_Config) ->
 
 can_set_snapshot_interval(Config) ->
     Node = node(),
-    #{Node := #{ra_system := RaSystem}} = ?config(ra_system_props, Config),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Start database"),
@@ -1976,7 +1994,7 @@ projections_are_consistent_on_three_node_cluster(Config) ->
     [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
 
     %% We assume all nodes are using the same Ra system name & store ID.
-    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Projection table does not exist before registering"),
@@ -1985,7 +2003,7 @@ projections_are_consistent_on_three_node_cluster(Config) ->
               ct:pal("- ets:info/1 from node ~s", [Node]),
               ?assertEqual(
                  undefined,
-                 rpc:call(Node, ets, info, [ProjectionName]))
+                 call(Config, Node, ets, info, [ProjectionName]))
       end, Nodes),
 
     ct:pal("Start database + cluster nodes"),
@@ -1994,25 +2012,27 @@ projections_are_consistent_on_three_node_cluster(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
+                 call(Config, Node, khepri, start, [RaSystem, StoreId]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+                 call(Config, Node, khepri_cluster, join, [StoreId, Node3]))
       end, [Node1, Node2]),
 
     ct:pal("Register projection on node ~s", [Node1]),
     Projection = khepri_projection:new(
                    ProjectionName, fun(Path, Payload) -> {Path, Payload} end),
-    rpc:call(Node1,
+    call(Config, Node1,
       khepri, register_projection,
       [StoreId, [?KHEPRI_WILDCARD_STAR_STAR], Projection]),
 
     ct:pal("The projection table exists on node ~s", [Node1]),
-    ?assertNotEqual(undefined, rpc:call(Node1, ets, info, [ProjectionName])),
+    ?assertNotEqual(
+       undefined,
+       call(Config, Node1, ets, info, [ProjectionName])),
 
     ct:pal("Wait for the projection table to exist on all nodes"),
     %% `khepri:register_projection/4' uses a `reply_mode' of `local' which
@@ -2020,7 +2040,7 @@ projections_are_consistent_on_three_node_cluster(Config) ->
     %% `Node1'. The projection is also guaranteed to exist on the leader
     %% member but the remaining cluster members are eventually consistent.
     %% This function polls for the remaining cluster members.
-    ok = wait_for_projection_on_nodes([Node2, Node3], ProjectionName),
+    ok = wait_for_projection_on_nodes(Config, [Node2, Node3], ProjectionName),
 
     ct:pal("An update by a member looks consistent to that member "
            "when using the `local' `reply_mode'"),
@@ -2031,16 +2051,16 @@ projections_are_consistent_on_three_node_cluster(Config) ->
               %% consistent on the caller node.
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri, put, [StoreId, [foo], value1,
+                 call(Config, Node, khepri, put, [StoreId, [foo], value1,
                                               #{reply_from => local}])),
 
               ct:pal("- ets:lookup() from node ~s", [Node]),
               ?assertEqual(
                  [{[foo], value1}],
-                 rpc:call(Node, ets, lookup, [ProjectionName, [foo]]))
+                 call(Config, Node, ets, lookup, [ProjectionName, [foo]]))
       end, Nodes),
 
-    LeaderId = get_leader_in_store(StoreId, Nodes),
+    LeaderId = get_leader_in_store(Config, StoreId, Nodes),
     {StoreId, LeaderNode} = LeaderId,
     [FollowerNode | _] = Nodes -- [LeaderNode],
 
@@ -2049,24 +2069,24 @@ projections_are_consistent_on_three_node_cluster(Config) ->
            [FollowerNode, LeaderNode]),
     ?assertEqual(
        ok,
-       rpc:call(FollowerNode, khepri, put, [StoreId, [foo], value2,
+       call(Config, FollowerNode, khepri, put, [StoreId, [foo], value2,
                                             #{reply_from => local}])),
     ?assertEqual(
        [{[foo], value2}],
-       rpc:call(LeaderNode, ets, lookup, [ProjectionName, [foo]])),
+       call(Config, LeaderNode, ets, lookup, [ProjectionName, [foo]])),
 
     ok.
 
-wait_for_projection_on_nodes([], _ProjectionName) ->
+wait_for_projection_on_nodes(_Config, [], _ProjectionName) ->
    ok;
-wait_for_projection_on_nodes([Node | Rest] = Nodes, ProjectionName) ->
-   case rpc:call(Node, ets, info, [ProjectionName]) of
+wait_for_projection_on_nodes(Config, [Node | Rest] = Nodes, ProjectionName) ->
+   case call(Config, Node, ets, info, [ProjectionName]) of
       undefined ->
          timer:sleep(10),
-         wait_for_projection_on_nodes(Nodes, ProjectionName);
+         wait_for_projection_on_nodes(Config, Nodes, ProjectionName);
       _Info ->
          ct:pal("- projection ~s exists on node ~s", [ProjectionName, Node]),
-         wait_for_projection_on_nodes(Rest, ProjectionName)
+         wait_for_projection_on_nodes(Config, Rest, ProjectionName)
    end.
 
 projections_are_updated_when_a_snapshot_is_installed(Config) ->
@@ -2096,9 +2116,11 @@ projections_are_updated_when_a_snapshot_is_installed(Config) ->
 
     PropsPerNode = ?config(ra_system_props, Config),
     [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
+
     %% We assume all nodes are using the same Ra system name & store ID.
-    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
+
     %% Set the snapshot interval low so that we can trigger a snapshot by
     %% sending a few commands.
     RaServerConfig = #{cluster_name => StoreId,
@@ -2110,14 +2132,14 @@ projections_are_updated_when_a_snapshot_is_installed(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, RaServerConfig]))
+                 call(Config, Node, khepri, start, [RaSystem, RaServerConfig]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+                 call(Config, Node, khepri_cluster, join, [StoreId, Node3]))
       end, [Node1, Node2]),
 
     ProjectionName1 = projection_1,
@@ -2134,28 +2156,30 @@ projections_are_updated_when_a_snapshot_is_installed(Config) ->
                     fun(Path, Payload) -> {Path, Payload} end),
 
     ct:pal("Register projection ~ts on node ~s", [ProjectionName1, Node1]),
-    rpc:call(Node1,
+    call(Config, Node1,
       khepri, register_projection,
       [StoreId, [?KHEPRI_WILDCARD_STAR_STAR], Projection1]),
-    ok = wait_for_projection_on_nodes([Node2, Node3], ProjectionName1),
+    ok = wait_for_projection_on_nodes(
+           Config, [Node2, Node3], ProjectionName1),
 
     ct:pal("Register projection ~ts on node ~s", [ProjectionName2, Node1]),
-    rpc:call(Node1,
+    call(Config, Node1,
       khepri, register_projection,
       [StoreId, [?KHEPRI_WILDCARD_STAR_STAR], Projection2]),
-    ok = wait_for_projection_on_nodes([Node2, Node3], ProjectionName2),
+    ok = wait_for_projection_on_nodes(
+           Config, [Node2, Node3], ProjectionName2),
 
     ?assertEqual(
        ok,
-       rpc:call(Node3, khepri, put, [StoreId, [key1], value1v1,
+       call(Config, Node3, khepri, put, [StoreId, [key1], value1v1,
                                      #{reply_from => local}])),
     ?assertEqual(
        value1v1,
-       rpc:call(Node3, ets, lookup_element, [ProjectionName1, [key1], 2])),
+       call(Config, Node3, ets, lookup_element, [ProjectionName1, [key1], 2])),
     %% This key will be deleted.
     ?assertEqual(
        ok,
-       rpc:call(Node3, khepri, put, [StoreId, [key2], value2v1,
+       call(Config, Node3, khepri, put, [StoreId, [key2], value2v1,
                                      #{reply_from => local}])),
     %% So far there isn't a snapshot.
     ?assertMatch(
@@ -2164,28 +2188,28 @@ projections_are_updated_when_a_snapshot_is_installed(Config) ->
 
     ct:pal(
       "Stop cluster member ~s (quorum is maintained)", [Node1]),
-    ok = rpc:call(Node1, khepri, stop, [StoreId]),
+    ok = call(Config, Node1, khepri, stop, [StoreId]),
 
     ct:pal("Modify paths which are watched by projections"),
     ct:pal("- set key1:value1v2"),
-    ok = rpc:call(Node3, khepri, put, [StoreId, [key1], value1v2]),
+    ok = call(Config, Node3, khepri, put, [StoreId, [key1], value1v2]),
     ct:pal("- delete key2"),
-    ok = rpc:call(Node3, khepri, delete, [StoreId, [key2]]),
+    ok = call(Config, Node3, khepri, delete, [StoreId, [key2]]),
     ct:pal("- set key3:value3v1"),
-    ok = rpc:call(Node3, khepri, put, [StoreId, [key3], value3v1]),
+    ok = call(Config, Node3, khepri, put, [StoreId, [key3], value3v1]),
     ct:pal("- set key4:value4v1"),
-    ok = rpc:call(Node3, khepri, put, [StoreId, [key4], value4v1]),
+    ok = call(Config, Node3, khepri, put, [StoreId, [key4], value4v1]),
 
     ct:pal("Register projection ~ts on node ~s", [ProjectionName3, Node3]),
-    rpc:call(Node3,
+    call(Config, Node3,
       khepri, register_projection,
       [StoreId, [?KHEPRI_WILDCARD_STAR_STAR], Projection3]),
     ct:pal("Unregister projection ~ts on node ~s", [ProjectionName2, Node3]),
-    rpc:call(Node3,
+    call(Config, Node3,
       khepri, unregister_projections, [StoreId, [ProjectionName2]]),
 
     ct:pal("Send many commands to ensure a snapshot is triggered"),
-    [ok = rpc:call(Node3, khepri, put, [StoreId, [key5], value5v1])
+    [ok = call(Config, Node3, khepri, put, [StoreId, [key5], value5v1])
      || _ <- lists:seq(1, 20)],
 
     {ok, #{log := #{snapshot_index := SnapshotIndex}}, _} =
@@ -2194,64 +2218,70 @@ projections_are_updated_when_a_snapshot_is_installed(Config) ->
     ?assert(is_number(SnapshotIndex) andalso SnapshotIndex > 20),
 
     ct:pal("Restart cluster member ~s", [Node1]),
-    {ok, StoreId} = rpc:call(Node1, khepri, start, [RaSystem, RaServerConfig]),
+    {ok, StoreId} = call(
+                      Config, Node1,
+                      khepri, start, [RaSystem, RaServerConfig]),
 
     %% Execute a command with local-reply from Node1 - this will ensure that
     %% we block until Node1 has caught up with the latest changes before we
     %% check its projection table. We have to retry the command a few times
     %% if it times out to deal with CI runners with few schedulers.
     ok = put_with_retry(
-           StoreId, Node1,
+           Config, StoreId, Node1,
            [key5], value5v1, #{reply_from => local}),
     ?assertEqual(
       value5v1,
-      rpc:call(Node1, ets, lookup_element, [ProjectionName1, [key5], 2])),
+      call(Config, Node1, ets, lookup_element, [ProjectionName1, [key5], 2])),
 
     ct:pal("Contents of projection table '~ts'", [ProjectionName1]),
     [begin
-         Contents = rpc:call(Node, ets, tab2list, [ProjectionName1]),
+         Contents = call(Config, Node, ets, tab2list, [ProjectionName1]),
          ct:pal("- node ~ts:~n~p", [Node, Contents])
      end || Node <- Nodes],
 
     [begin
          ?assertEqual(
            value1v2,
-           rpc:call(Node, ets, lookup_element, [ProjectionName1, [key1], 2])),
+           call(
+             Config, Node, ets, lookup_element, [ProjectionName1, [key1], 2])),
          ?assertEqual(
            false,
-           rpc:call(Node, ets, member, [ProjectionName1, [key2]])),
+           call(Config, Node, ets, member, [ProjectionName1, [key2]])),
          ?assertEqual(
            value3v1,
-           rpc:call(Node, ets, lookup_element, [ProjectionName1, [key3], 2])),
+           call(
+             Config, Node, ets, lookup_element, [ProjectionName1, [key3], 2])),
          ?assertEqual(
            value4v1,
-           rpc:call(Node, ets, lookup_element, [ProjectionName1, [key4], 2]))
+           call(
+             Config, Node, ets, lookup_element, [ProjectionName1, [key4], 2]))
      end || Node <- Nodes],
 
     %% Ensure that the projections themselves are also updated on Node1.
     %% ProjectionName2 was unregistered and ProjectionName3 was registered.
     ?assertEqual(
       undefined,
-      rpc:call(Node1, ets, info, [ProjectionName2])),
+      call(Config, Node1, ets, info, [ProjectionName2])),
     ?assertEqual(
       value1v2,
-      rpc:call(Node1, ets, lookup_element, [ProjectionName3, [key1], 2])),
+      call(Config, Node1, ets, lookup_element, [ProjectionName3, [key1], 2])),
 
     ok.
 
-put_with_retry(StoreId, Node, Key, Value, Options) ->
-   put_with_retry(StoreId, Node, Key, Value, Options, 10).
+put_with_retry(Config, StoreId, Node, Key, Value, Options) ->
+   put_with_retry(Config, StoreId, Node, Key, Value, Options, 10).
 
-put_with_retry(StoreId, Node, Key, Value, Options, Retries) ->
+put_with_retry(Config, StoreId, Node, Key, Value, Options, Retries) ->
    ct:pal("- put (~p) '~p':'~p' (try ~b)", [Node, Key, Value, 10 - Retries]),
-   case rpc:call(Node, khepri, put, [StoreId, Key, Value, Options]) of
+   case call(Config, Node, khepri, put, [StoreId, Key, Value, Options]) of
       {error, timeout} = Err ->
          case Retries of
             0 ->
                erlang:error({?FUNCTION_NAME, [{actual, Err}]});
             _ ->
                timer:sleep(10),
-               put_with_retry(StoreId, Node, Key, Value, Options, Retries - 1)
+               put_with_retry(
+                 Config, StoreId, Node, Key, Value, Options, Retries - 1)
          end;
       Ret ->
          Ret
@@ -2262,7 +2292,7 @@ async_command_leader_change_in_three_node_cluster(Config) ->
     [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
 
     %% We assume all nodes are using the same Ra system name & store ID.
-    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Start database + cluster nodes"),
@@ -2271,17 +2301,17 @@ async_command_leader_change_in_three_node_cluster(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 rpc:call(Node, khepri, start, [RaSystem, StoreId]))
+                 call(Config, Node, khepri, start, [RaSystem, StoreId]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 rpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+                 call(Config, Node, khepri_cluster, join, [StoreId, Node3]))
       end, [Node1, Node2]),
 
-    LeaderId = get_leader_in_store(StoreId, Nodes),
+    LeaderId = get_leader_in_store(Config, StoreId, Nodes),
     {StoreId, LeaderNode} = LeaderId,
 
     ct:pal("Send an async command from the leader node ~s", [LeaderNode]),
@@ -2349,7 +2379,7 @@ spam_txs_during_election(Config) ->
     [Node1, Node2] = Nodes = maps:keys(PropsPerNode),
 
     %% We assume all nodes are using the same Ra system name & store ID.
-    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Start database on each node"),
@@ -2358,7 +2388,7 @@ spam_txs_during_election(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 erpc:call(Node, khepri, start, [RaSystem, StoreId]))
+                 call(Config, Node, khepri, start, [RaSystem, StoreId]))
       end, Nodes),
 
     %% The first process to spam the Khepri store is here to make sure the test
@@ -2366,14 +2396,15 @@ spam_txs_during_election(Config) ->
     Parent = self(),
     {Pid1, MRef1} = spawn_monitor(
                       fun() ->
-                              bump_counter_proc(Parent, Node1, StoreId, 0)
+                              bump_counter_proc(
+                                Config, Parent, Node1, StoreId, 0)
                       end),
     timer:sleep(500),
 
     ct:pal("Node ~s joins node ~s", [Node2, Node1]),
     ?assertEqual(
        ok,
-       erpc:call(Node2, khepri_cluster, join, [StoreId, Node1])),
+       call(Config, Node2, khepri_cluster, join, [StoreId, Node1])),
 
     ct:pal("Asking spammer process #1 ~0p to stop", [Pid1]),
     Pid1 ! stop,
@@ -2396,14 +2427,15 @@ spam_txs_during_election(Config) ->
     %% 1 first, then at some point will go to the new leader on node 2.
     {Pid2, MRef2} = spawn_monitor(
                       fun() ->
-                              bump_counter_proc(Parent, Node2, StoreId, Runs1)
+                              bump_counter_proc(
+                                Config, Parent, Node2, StoreId, Runs1)
                       end),
     timer:sleep(500),
 
     ct:pal("Node ~s leaves node ~s", [Node1, Node2]),
     ?assertEqual(
        ok,
-       erpc:call(Node1, khepri_cluster, reset, [StoreId])),
+       call(Config, Node1, khepri_cluster, reset, [StoreId])),
     timer:sleep(500),
 
     ct:pal("Asking spammer process #2 ~0p to stop", [Pid2]),
@@ -2416,7 +2448,7 @@ spam_txs_during_election(Config) ->
 
     ok.
 
-bump_counter_proc(Parent, Node, StoreId, Runs) ->
+bump_counter_proc(Config, Parent, Node, StoreId, Runs) ->
     receive
         stop ->
             ct:pal(
@@ -2429,7 +2461,7 @@ bump_counter_proc(Parent, Node, StoreId, Runs) ->
               ?LOG_INFO(
                  "Transaction run #~b on node ~0p",
                  [NewRuns, Node]),
-              {ok, Ret} = erpc:call(
+              {ok, Ret} = call(Config,
                             Node, khepri, transaction,
                             [StoreId, fun bump_counter_tx/0, rw,
                              #{reply_from => leader}]),
@@ -2437,7 +2469,7 @@ bump_counter_proc(Parent, Node, StoreId, Runs) ->
                  "Transaction returned ~p after ~b runs",
                  [Ret, NewRuns]),
               ?assertEqual({counter, NewRuns}, Ret),
-              bump_counter_proc(Parent, Node, StoreId, NewRuns)
+              bump_counter_proc(Config, Parent, Node, StoreId, NewRuns)
     end.
 
 bump_counter_tx() ->
@@ -2457,7 +2489,7 @@ spam_changes_during_unregister_projections(Config) ->
     [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
 
     %% We assume all nodes are using the same Ra system name & store ID.
-    #{ra_system := RaSystem} = maps:get(Node1, PropsPerNode),
+    RaSystem = get_ra_system_name(Config),
     StoreId = RaSystem,
 
     ct:pal("Start database + cluster nodes"),
@@ -2466,20 +2498,20 @@ spam_changes_during_unregister_projections(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 erpc:call(Node, khepri, start, [RaSystem, StoreId]))
+                 call(Config, Node, khepri, start, [RaSystem, StoreId]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 erpc:call(Node, khepri_cluster, join, [StoreId, Node3]))
+                 call(Config, Node, khepri_cluster, join, [StoreId, Node3]))
       end, [Node1, Node2]),
 
     ct:pal("Register projection on node ~s", [Node1]),
     Projection = khepri_projection:new(
                    ProjectionName, fun(Path, Payload) -> {Path, Payload} end),
-    erpc:call(Node1,
+    call(Config, Node1,
       khepri, register_projection,
       [StoreId, [?KHEPRI_WILDCARD_STAR_STAR], Projection]),
 
@@ -2488,17 +2520,18 @@ spam_changes_during_unregister_projections(Config) ->
     Parent = self(),
     {Pid, MRef} = spawn_monitor(
                     fun() ->
-                          spam_async_changes(Parent, Node1, StoreId, Path, 0)
+                          spam_async_changes(
+                            Config, Parent, Node1, StoreId, Path, 0)
                     end),
     timer:sleep(50),
 
     ct:pal("Unregistering the projection"),
-    erpc:call(
+    call(Config,
       Node1, khepri, unregister_projections, [StoreId, [ProjectionName]]),
 
     ?assertEqual(
       undefined,
-      erpc:call(Node1, ets, info, [ProjectionName])),
+      call(Config, Node1, ets, info, [ProjectionName])),
 
     timer:sleep(50),
 
@@ -2513,7 +2546,7 @@ spam_changes_during_unregister_projections(Config) ->
 
     ok.
 
-spam_async_changes(Parent, Node, StoreId, Path, Runs) ->
+spam_async_changes(Config, Parent, Node, StoreId, Path, Runs) ->
     receive
         stop ->
             ct:pal(
@@ -2524,10 +2557,11 @@ spam_async_changes(Parent, Node, StoreId, Path, Runs) ->
     after 0 ->
               NewRuns = Runs + 1,
               ?LOG_INFO("Update run #~b on node ~0p", [NewRuns, Node]),
-              ok = erpc:call(
+              ok = call(Config,
                      Node, khepri, put,
                      [StoreId, Path, NewRuns, #{async => true}]),
-              spam_async_changes(Parent, Node, StoreId, Path, NewRuns)
+              spam_async_changes(
+                Config, Parent, Node, StoreId, Path, NewRuns)
     end.
 
 %% -------------------------------------------------------------------
@@ -2608,38 +2642,39 @@ start_n_nodes(NamePrefix, Count) ->
 
     CodePath = code:get_path(),
     lists:foreach(
-      fun({Node, _Peer}) ->
-              rpc:call(Node, code, add_pathsz, [CodePath]),
-              ok = rpc:call(Node, ?MODULE, setup_node, [])
+      fun({_Node, Peer}) ->
+              peer:call(Peer, code, add_pathsz, [CodePath]),
+              ok = peer:call(Peer, ?MODULE, setup_node, [])
       end, Nodes),
     Nodes.
 
--if(?OTP_RELEASE >= 25).
 start_erlang_node(Name) ->
     Name1 = list_to_atom(Name),
     {ok, Peer, Node} = peer:start(#{name => Name1,
-                                    wait_boot => infinity}),
+                                    wait_boot => infinity,
+                                    connection => standard_io}),
     {Node, Peer}.
 stop_erlang_node(_Node, Peer) ->
     ok = peer:stop(Peer).
--else.
-start_erlang_node(Name) ->
-    Name1 = list_to_atom(Name),
-    Options = [{monitor_master, true}],
-    {ok, Node} = ct_slave:start(Name1, Options),
-    {Node, Node}.
-stop_erlang_node(_Node, Node) ->
-    {ok, _} = ct_slave:stop(Node),
-    ok.
--endif.
 
-get_leader_in_store(StoreId, [Node | _] = _RunningNodes) ->
+get_ra_system_name(Config) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    [Node | _] = maps:keys(PropsPerNode),
+    #{props := #{ra_system := RaSystem}} = maps:get(Node, PropsPerNode),
+    RaSystem.
+
+call(Config, Node, Module, Func, Args) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    #{peer := Peer} = maps:get(Node, PropsPerNode),
+    peer:call(Peer, Module, Func, Args, infinity).
+
+get_leader_in_store(Config, StoreId, [Node | _] = _RunningNodes) ->
     %% Query members; this is used to make sure there is an elected leader.
     ct:pal("Trying to figure who the leader is in \"~s\"", [StoreId]),
-    {ok, Members} = rpc:call(Node, khepri_cluster, members, [StoreId]),
-    Pids = [[Member, rpc:call(N, erlang, whereis, [RegName])]
+    {ok, Members} = call(Config, Node, khepri_cluster, members, [StoreId]),
+    Pids = [[Member, catch call(Config, N, erlang, whereis, [RegName])]
             || {RegName, N} = Member <- Members],
-    LeaderId = rpc:call(Node, ra_leaderboard, lookup_leader, [StoreId]),
+    LeaderId = call(Config, Node, ra_leaderboard, lookup_leader, [StoreId]),
     ?assertNotEqual(undefined, LeaderId),
     ct:pal(
       "Leader: ~0p~n"
