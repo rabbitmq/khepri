@@ -125,6 +125,9 @@ end_per_suite(Config) ->
         end,
     ok.
 
+init_per_group(single_node, Config) ->
+    setup_node(),
+    Config;
 init_per_group(_Group, Config) ->
     Config.
 
@@ -141,7 +144,6 @@ init_per_testcase(Testcase, Config)
        Testcase =:= initial_members_are_ignored orelse
        Testcase =:= fail_to_join_non_existing_node orelse
        Testcase =:= can_set_snapshot_interval ->
-    setup_node(),
     {ok, _} = application:ensure_all_started(khepri),
     Props = helpers:start_ra_system(Testcase),
     [{ra_system_props, #{node() => Props}} | Config];
@@ -190,7 +192,6 @@ init_per_testcase(Testcase, Config)
 init_per_testcase(Testcase, Config)
   when Testcase =:= can_use_default_store_on_single_node orelse
        Testcase =:= can_start_store_in_specified_data_dir_on_single_node ->
-    setup_node(),
     Config.
 
 end_per_testcase(Testcase, _Config)
