@@ -979,7 +979,7 @@ do_reset(RaSystem, StoreId, ThisMember, Timeout) ->
             end;
         {timeout, _} ->
             {error, timeout};
-        {error, noproc} ->
+        {error, Reason} when Reason =:= noproc orelse Reason =:= normal ->
             ?LOG_DEBUG(
                "The local Ra server exited while we tried to detach it from "
                "its cluster. It means it was removed from the cluster by "
