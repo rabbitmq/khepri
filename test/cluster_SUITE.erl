@@ -881,6 +881,10 @@ can_rejoin_after_a_reset_in_a_three_node_cluster(Config) ->
        call(Config, LeaderNode1, khepri, put, [StoreId, [foo], value2])),
     lists:foreach(
       fun(Node) ->
+              ct:pal("- khepri:fence() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 call(Config, Node, khepri, fence, [StoreId])),
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
                  {ok, value2},
