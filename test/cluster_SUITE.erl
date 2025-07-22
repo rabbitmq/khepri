@@ -1017,6 +1017,10 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
     %% Running nodes should see the updated value however.
     lists:foreach(
       fun(Node) ->
+              ct:pal("- khepri:fence() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 call(Config, Node, khepri, fence, [StoreId])),
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
                  {ok, value3},
