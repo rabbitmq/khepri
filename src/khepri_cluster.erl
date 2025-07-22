@@ -1468,11 +1468,17 @@ complete_ra_server_config(#{cluster_name := StoreId,
 
 remember_store(RaSystem, #{cluster_name := StoreId} = RaServerConfig) ->
     ?assert(maps:is_key(id, RaServerConfig)),
-    StoreIds = persistent_term:get(?PT_STORE_IDS, #{}),
-    Props = #{ra_system => RaSystem,
-              ra_server_config => RaServerConfig},
-    StoreIds1 = StoreIds#{StoreId => Props},
-    persistent_term:put(?PT_STORE_IDS, StoreIds1),
+    Lock = store_ids_lock(),
+    global:set_lock(Lock, [node()]),
+    try
+        StoreIds = persistent_term:get(?PT_STORE_IDS, #{}),
+        Props = #{ra_system => RaSystem,
+                  ra_server_config => RaServerConfig},
+        StoreIds1 = StoreIds#{StoreId => Props},
+        persistent_term:put(?PT_STORE_IDS, StoreIds1)
+    after
+            global:del_lock(Lock, [node()])
+    end,
     ok.
 
 -spec get_store_prop(StoreId, PropName) -> Ret when
@@ -1502,13 +1508,22 @@ get_store_prop(StoreId, PropName) ->
 
 forget_store(StoreId) ->
     ok = khepri_machine:clear_cache(StoreId),
-    StoreIds = persistent_term:get(?PT_STORE_IDS, #{}),
-    StoreIds1 = maps:remove(StoreId, StoreIds),
-    case maps:size(StoreIds1) of
-        0 -> _ = persistent_term:erase(?PT_STORE_IDS);
-        _ -> ok = persistent_term:put(?PT_STORE_IDS, StoreIds1)
+    Lock = store_ids_lock(),
+    global:set_lock(Lock, [node()]),
+    try
+        StoreIds = persistent_term:get(?PT_STORE_IDS, #{}),
+        StoreIds1 = maps:remove(StoreId, StoreIds),
+        case maps:size(StoreIds1) of
+            0 -> _ = persistent_term:erase(?PT_STORE_IDS);
+            _ -> ok = persistent_term:put(?PT_STORE_IDS, StoreIds1)
+        end
+    after
+            global:del_lock(Lock, [node()])
     end,
     ok.
+
+store_ids_lock() ->
+    {?PT_STORE_IDS, self()}.
 
 -spec get_store_ids() -> [StoreId] when
       StoreId :: khepri:store_id().
