@@ -390,8 +390,17 @@ ensure_server_started_locked(
                [StoreId, RaSystem]),
             case do_start_server(RaSystem, RaServerConfig1) of
                 ok ->
-                    ok = trigger_election(RaServerConfig1, Timeout),
-                    {ok, StoreId};
+                    try
+                        trigger_election(RaServerConfig1, Timeout),
+                        {ok, StoreId}
+                    catch
+                        Class:Reason:Stacktrace ->
+                            ?LOG_ERROR(
+                               "Failed to trigger election on the freshly "
+                               "started Ra server for store \"~s\"::~n~p",
+                               [StoreId, Reason]),
+                            erlang:raise(Class, Reason, Stacktrace)
+                    end;
                 Error ->
                     Error
             end;
@@ -502,8 +511,11 @@ stop_locked(StoreId) ->
                     %% to try again.
                     Error
             end;
-        {error, _} ->
+        {error, _} = Error ->
             %% The store is unknown, it must have been stopped already.
+            ?LOG_DEBUG(
+               "Unknown Ra system for store \"~s\" on member ~0p: ~0p",
+               [StoreId, ThisMember, Error]),
             ok
     end.
 
@@ -520,15 +532,15 @@ wait_for_ra_server_exit({StoreId, _} = Member) ->
        [Member, StoreId]),
     MRef = erlang:monitor(process, Member),
     receive
-        {'DOWN', MRef, _, _, noproc} ->
+        {'DOWN', MRef, _, Pid, noproc} ->
             ?LOG_DEBUG(
-               "Ra server ~0p in store \"~s\" already exited",
-               [Member, StoreId]),
+               "Ra server ~0p (~0p) in store \"~s\" already exited",
+               [Member, Pid, StoreId]),
             ok;
-        {'DOWN', MRef, _, _, Reason} ->
+        {'DOWN', MRef, _, Pid, Reason} ->
             ?LOG_DEBUG(
-               "Ra server ~0p in store \"~s\" exited: ~p",
-               [Member, StoreId, Reason]),
+               "Ra server ~0p (~0p) in store \"~s\" exited: ~p",
+               [Member, Pid, StoreId, Reason]),
             ok
     end.
 
@@ -858,7 +870,7 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
             %% standalone (after a reset) and needs an election to be in a
             %% working state again. We don't care about the result at this
             %% point.
-            _ = trigger_election(ThisMember, Timeout1),
+            trigger_election(ThisMember, Timeout1),
             case Error of
                 {timeout, _} -> {error, timeout};
                 {error, _}   -> Error
@@ -979,7 +991,7 @@ do_reset(RaSystem, StoreId, ThisMember, Timeout) ->
             end;
         {timeout, _} ->
             {error, timeout};
-        {error, noproc} ->
+        {error, Reason} when Reason =:= noproc orelse Reason =:= normal ->
             ?LOG_DEBUG(
                "The local Ra server exited while we tried to detach it from "
                "its cluster. It means it was removed from the cluster by "
@@ -1459,11 +1471,17 @@ complete_ra_server_config(#{cluster_name := StoreId,
 
 remember_store(RaSystem, #{cluster_name := StoreId} = RaServerConfig) ->
     ?assert(maps:is_key(id, RaServerConfig)),
-    StoreIds = persistent_term:get(?PT_STORE_IDS, #{}),
-    Props = #{ra_system => RaSystem,
-              ra_server_config => RaServerConfig},
-    StoreIds1 = StoreIds#{StoreId => Props},
-    persistent_term:put(?PT_STORE_IDS, StoreIds1),
+    Lock = store_ids_lock(),
+    global:set_lock(Lock, [node()]),
+    try
+        StoreIds = persistent_term:get(?PT_STORE_IDS, #{}),
+        Props = #{ra_system => RaSystem,
+                  ra_server_config => RaServerConfig},
+        StoreIds1 = StoreIds#{StoreId => Props},
+        persistent_term:put(?PT_STORE_IDS, StoreIds1)
+    after
+            global:del_lock(Lock, [node()])
+    end,
     ok.
 
 -spec get_store_prop(StoreId, PropName) -> Ret when
@@ -1493,13 +1511,22 @@ get_store_prop(StoreId, PropName) ->
 
 forget_store(StoreId) ->
     ok = khepri_machine:clear_cache(StoreId),
-    StoreIds = persistent_term:get(?PT_STORE_IDS, #{}),
-    StoreIds1 = maps:remove(StoreId, StoreIds),
-    case maps:size(StoreIds1) of
-        0 -> _ = persistent_term:erase(?PT_STORE_IDS);
-        _ -> ok = persistent_term:put(?PT_STORE_IDS, StoreIds1)
+    Lock = store_ids_lock(),
+    global:set_lock(Lock, [node()]),
+    try
+        StoreIds = persistent_term:get(?PT_STORE_IDS, #{}),
+        StoreIds1 = maps:remove(StoreId, StoreIds),
+        case maps:size(StoreIds1) of
+            0 -> _ = persistent_term:erase(?PT_STORE_IDS);
+            _ -> ok = persistent_term:put(?PT_STORE_IDS, StoreIds1)
+        end
+    after
+            global:del_lock(Lock, [node()])
     end,
     ok.
+
+store_ids_lock() ->
+    {?PT_STORE_IDS, self()}.
 
 -spec get_store_ids() -> [StoreId] when
       StoreId :: khepri:store_id().
