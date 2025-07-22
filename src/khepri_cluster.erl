@@ -390,8 +390,17 @@ ensure_server_started_locked(
                [StoreId, RaSystem]),
             case do_start_server(RaSystem, RaServerConfig1) of
                 ok ->
-                    ok = trigger_election(RaServerConfig1, Timeout),
-                    {ok, StoreId};
+                    try
+                        trigger_election(RaServerConfig1, Timeout),
+                        {ok, StoreId}
+                    catch
+                        Class:Reason:Stacktrace ->
+                            ?LOG_ERROR(
+                               "Failed to trigger election on the freshly "
+                               "started Ra server for store \"~s\"::~n~p",
+                               [StoreId, Reason]),
+                            erlang:raise(Class, Reason, Stacktrace)
+                    end;
                 Error ->
                     Error
             end;
@@ -858,7 +867,7 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
             %% standalone (after a reset) and needs an election to be in a
             %% working state again. We don't care about the result at this
             %% point.
-            _ = trigger_election(ThisMember, Timeout1),
+            trigger_election(ThisMember, Timeout1),
             case Error of
                 {timeout, _} -> {error, timeout};
                 {error, _}   -> Error
