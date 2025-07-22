@@ -511,8 +511,11 @@ stop_locked(StoreId) ->
                     %% to try again.
                     Error
             end;
-        {error, _} ->
+        {error, _} = Error ->
             %% The store is unknown, it must have been stopped already.
+            ?LOG_DEBUG(
+               "Unknown Ra system for store \"~s\" on member ~0p: ~0p",
+               [StoreId, ThisMember, Error]),
             ok
     end.
 
@@ -529,15 +532,15 @@ wait_for_ra_server_exit({StoreId, _} = Member) ->
        [Member, StoreId]),
     MRef = erlang:monitor(process, Member),
     receive
-        {'DOWN', MRef, _, _, noproc} ->
+        {'DOWN', MRef, _, Pid, noproc} ->
             ?LOG_DEBUG(
-               "Ra server ~0p in store \"~s\" already exited",
-               [Member, StoreId]),
+               "Ra server ~0p (~0p) in store \"~s\" already exited",
+               [Member, Pid, StoreId]),
             ok;
-        {'DOWN', MRef, _, _, Reason} ->
+        {'DOWN', MRef, _, Pid, Reason} ->
             ?LOG_DEBUG(
-               "Ra server ~0p in store \"~s\" exited: ~p",
-               [Member, StoreId, Reason]),
+               "Ra server ~0p (~0p) in store \"~s\" exited: ~p",
+               [Member, Pid, StoreId, Reason]),
             ok
     end.
 

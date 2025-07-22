@@ -66,8 +66,7 @@ start_ra_system(RaSystem) ->
 
 stop_ra_system(#{ra_system := RaSystem,
                  store_dir := StoreDir}) ->
-    ?assertEqual(ok, supervisor:terminate_child(ra_systems_sup, RaSystem)),
-    ?assertEqual(ok, supervisor:delete_child(ra_systems_sup, RaSystem)),
+    ?assertEqual(ok, ra_system:stop(RaSystem)),
     _ = remove_store_dir(StoreDir),
     ok.
 
