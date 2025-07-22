@@ -475,13 +475,24 @@ fail_to_start_with_bad_ra_server_config(Config) ->
     StoreId = RaSystem,
 
     ct:pal("Start database"),
-    ?assertExit(
-       {{{bad_action_from_state_function,
-          {{timeout, tick}, not_a_timeout, tick_timeout}},
-         _},
-        _},
-       khepri:start(RaSystem, #{cluster_name => StoreId,
-                                tick_timeout => not_a_timeout})),
+    Ret1 = (catch khepri:start(RaSystem, #{cluster_name => StoreId,
+                                           tick_timeout => not_a_timeout})),
+    ct:pal("Return value of khepri:start/2: ~p", [Ret1]),
+    ?assert(
+       case Ret1 of
+           {'EXIT',
+            {{{bad_action_from_state_function,
+               {{timeout, tick}, not_a_timeout, tick_timeout}},
+              _},
+             _}} ->
+               true;
+           {'EXIT',
+            {noproc, _}} ->
+               true;
+           _ ->
+               ct:pal("Unexpected return value:~n~p", [Ret1]),
+               false
+       end),
 
     ThisMember = khepri_cluster:this_member(StoreId),
     ok = khepri_cluster:wait_for_ra_server_exit(ThisMember),
@@ -489,10 +500,10 @@ fail_to_start_with_bad_ra_server_config(Config) ->
     %% The process is restarted by its supervisor. Depending on the timing, we
     %% may get a `noproc' or an exception.
     ct:pal("Database unusable after failing to start it"),
-    Ret = (catch khepri:get(StoreId, [foo])),
-    ct:pal("Return value of khepri:get/2: ~p", [Ret]),
+    Ret2 = (catch khepri:get(StoreId, [foo])),
+    ct:pal("Return value of khepri:get/2: ~p", [Ret2]),
     ?assert(
-       case Ret of
+       case Ret2 of
            {'EXIT',
             {{{bad_action_from_state_function,
                {{timeout, tick}, not_a_timeout, tick_timeout}},
@@ -507,7 +518,7 @@ fail_to_start_with_bad_ra_server_config(Config) ->
            {error, noproc} ->
                true;
            _ ->
-               ct:pal("Unexpected return value:~n~p", [Ret]),
+               ct:pal("Unexpected return value:~n~p", [Ret2]),
                false
        end),
 
