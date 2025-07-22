@@ -939,7 +939,7 @@ can_restart_nodes_in_a_three_node_cluster(Config) ->
     lists:foreach(
       fun(Node) ->
               Options = case Node of
-                            LeaderNode -> #{};
+                            LeaderNode   -> #{};
                             FollowerNode -> #{};
                             _            -> #{favor => consistency}
                         end,
