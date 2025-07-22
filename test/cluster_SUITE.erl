@@ -62,7 +62,7 @@ all() ->
 
 groups() ->
     [
-     {all, [],
+     {all, [parallel],
       [
        {single_node, [],
         [
@@ -71,7 +71,7 @@ groups() ->
            can_use_default_store_on_single_node,
            can_start_store_in_specified_data_dir_on_single_node
           ]},
-         {parallel, [],
+         {parallel, [parallel],
           [
            can_start_a_single_node,
            can_restart_a_single_node_with_ra_server_config,
@@ -84,7 +84,7 @@ groups() ->
            can_set_snapshot_interval
           ]}
         ]},
-       {cluster, [],
+       {cluster, [parallel],
         [
          can_start_a_three_node_cluster,
          can_join_several_times_a_three_node_cluster,
