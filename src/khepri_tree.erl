@@ -22,6 +22,7 @@
 -export([new/0,
          get_root/1,
          get_keep_while_conds/1,
+         assert_equal/2,
 
          are_keep_while_conditions_met/2,
 
@@ -124,6 +125,14 @@ get_root(#tree{root = Root}) ->
 
 get_keep_while_conds(#tree{keep_while_conds = KeepWhileConds}) ->
     KeepWhileConds.
+
+-spec assert_equal(Tree1, Tree2) -> ok when
+      Tree1 :: khepri_tree:tree(),
+      Tree2 :: khepri_tree:tree().
+
+assert_equal(#tree{} = Tree1, #tree{} = Tree2) ->
+    ?assertEqual(Tree1, Tree2),
+    ok.
 
 -spec create_node_record(Payload) -> Node when
       Payload :: khepri_payload:payload(),
