@@ -520,9 +520,10 @@ readonly_transaction(StoreId, Fun, Args, Options)
                     %% It is a read-only transaction, therefore we assert that
                     %% the state is unchanged and that there are no side
                     %% effects.
-                    {State, Ret, []} = khepri_tx_adv:run(
-                                         State, Fun, Args, false,
-                                         Meta),
+                    {State1, Ret, []} = khepri_tx_adv:run(
+                                          State, Fun, Args, false,
+                                          Meta),
+                    assert_equal(State, State1),
                     Ret
             end,
     case process_query(StoreId, Query, Options) of
@@ -537,9 +538,10 @@ readonly_transaction(StoreId, PathPattern, Args, Options)
                     %% It is a read-only transaction, therefore we assert that
                     %% the state is unchanged and that there are no side
                     %% effects.
-                    {State, Ret, []} = locate_sproc_and_execute_tx(
-                                         State, PathPattern, Args, false,
-                                         Meta),
+                    {State1, Ret, []} = locate_sproc_and_execute_tx(
+                                          State, PathPattern, Args, false,
+                                          Meta),
+                    assert_equal(State, State1),
                     Ret
             end,
     case process_query(StoreId, Query, Options) of
@@ -2633,6 +2635,16 @@ set_dedups(State, _Dedups) ->
 get_store_id(State) ->
     #config{store_id = StoreId} = get_config(State),
     StoreId.
+
+-spec assert_equal(State1, State2) -> ok when
+      State1 :: khepri_machine:state(),
+      State2 :: khepri_machine:state().
+
+assert_equal(#khepri_machine{} = State1, #khepri_machine{} = State2) ->
+    ?assertEqual(State1, State2),
+    ok;
+assert_equal(State1, State2) ->
+    khepri_machine_v0:assert_equal(State1, State2).
 
 -ifdef(TEST).
 -spec make_virgin_state(Params) -> State when
