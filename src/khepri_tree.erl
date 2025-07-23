@@ -904,11 +904,8 @@ walk_down_the_tree1(
 walk_down_the_tree1(
   #walk{path_pattern = [?PARENT_KHEPRI_NODE | PathPattern],
         reversed_path = [_CurrentName | ReversedPath],
-        reversed_parent_tree = [ParentNode0 | ReversedParentTree]} = Walk) ->
-    ParentNode = case ParentNode0 of
-                     {PN, child_created} -> PN;
-                     _                   -> ParentNode0
-                 end,
+        reversed_parent_tree = [#node{} = ParentNode | ReversedParentTree]
+       } = Walk) ->
     Walk1 = Walk#walk{node = ParentNode,
                       path_pattern = PathPattern,
                       reversed_path = ReversedPath,
