@@ -88,7 +88,7 @@ get_config(#khepri_machine{config = Config}) ->
 
 -spec get_tree(State) -> Tree when
       State :: khepri_machine_v0:state(),
-      Tree :: khepri_tree:tree().
+      Tree :: khepri_tree:tree_v0().
 %% @doc Returns the tree from the given state.
 %%
 %% @private
