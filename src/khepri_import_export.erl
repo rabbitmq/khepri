@@ -239,7 +239,7 @@ do_export(State, PathPattern, Module, ModulePriv) ->
                      Tree, PathPattern, TreeOptions, Fun, ModulePriv1),
             case Ret1 of
                 {ok, Tree1, _AppliedChanges, FinalModulePriv} ->
-                    ?assertEqual(Tree, Tree1),
+                    khepri_tree:assert_equal(Tree, Tree1),
                     commit_write(Module, FinalModulePriv);
                 {error, _} = Error ->
                     Error
