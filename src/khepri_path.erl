@@ -73,9 +73,9 @@
 %% A node name.
 
 -type component() :: node_id() |
-                    ?KHEPRI_ROOT_NODE |
-                    ?THIS_KHEPRI_NODE |
-                    ?PARENT_KHEPRI_NODE.
+                     ?KHEPRI_ROOT_NODE |
+                     ?THIS_KHEPRI_NODE |
+                     ?PARENT_KHEPRI_NODE.
 %% Component name in a path to a node.
 
 -type native_path() :: [component()].
@@ -625,8 +625,9 @@ abspath([_ | _] = RelativePath, BasePath) ->
 abspath([] = PathToRoot, _) ->
     PathToRoot.
 
--spec realpath(Path) -> Path when
-      Path :: native_pattern().
+-spec realpath(Path) -> NewPath when
+      Path :: native_pattern(),
+      NewPath :: native_pattern().
 
 realpath(Path) ->
     realpath(Path, []).
@@ -639,7 +640,10 @@ realpath([?PARENT_KHEPRI_NODE | Rest], [_ | Result]) ->
     realpath(Rest, Result);
 realpath([?PARENT_KHEPRI_NODE | Rest], [] = Result) ->
     realpath(Rest, Result);
-realpath([Component | Rest], Result) ->
+realpath([Component | Rest], Result)
+  when is_atom(Component) orelse
+       is_binary(Component) orelse
+       ?IS_KHEPRI_CONDITION(Component) ->
     realpath(Rest, [Component | Result]);
 realpath([], Result) ->
     lists:reverse(Result).

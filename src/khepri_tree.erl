@@ -22,6 +22,7 @@
 -export([new/0,
          get_root/1,
          get_keep_while_conds/1,
+         assert_equal/2,
 
          are_keep_while_conditions_met/2,
 
@@ -39,16 +40,16 @@
 
 -record(tree, {root = #node{} :: khepri_tree:tree_node(),
                keep_while_conds = #{} :: khepri_tree:keep_while_conds_map(),
-               keep_while_conds_revidx = #{} ::
-               khepri_tree:keep_while_conds_revidx()}).
+               keep_while_conds_revidx = #{}}).
 
 -type tree_node() :: #node{}.
 %% A node in the tree structure.
 
--opaque tree_v0() :: #tree{keep_while_conds_revidx ::
-                           khepri_tree:keep_while_conds_revidx_v0()}.
--opaque tree_v1() :: #tree{keep_while_conds_revidx ::
-                           khepri_tree:keep_while_conds_revidx_v1()}.
+-type tree(KeepWhileCondsRevIdxType) :: #tree{keep_while_conds_revidx ::
+                                              KeepWhileCondsRevIdxType}.
+
+-opaque tree_v0() :: tree(khepri_tree:keep_while_conds_revidx_v0()).
+-opaque tree_v1() :: tree(khepri_tree:keep_while_conds_revidx_v1()).
 
 -type tree() :: tree_v0() | tree_v1().
 
@@ -124,6 +125,14 @@ get_root(#tree{root = Root}) ->
 
 get_keep_while_conds(#tree{keep_while_conds = KeepWhileConds}) ->
     KeepWhileConds.
+
+-spec assert_equal(Tree1, Tree2) -> ok when
+      Tree1 :: khepri_tree:tree(),
+      Tree2 :: khepri_tree:tree().
+
+assert_equal(#tree{} = Tree1, #tree{} = Tree2) ->
+    ?assertEqual(Tree1, Tree2),
+    ok.
 
 -spec create_node_record(Payload) -> Node when
       Payload :: khepri_payload:payload(),
@@ -312,9 +321,10 @@ squash_version_bumps_after_keep_while(
 %% Keep-while functions.
 %% -------------------------------------------------------------------
 
--spec to_absolute_keep_while(BasePath, KeepWhile) -> KeepWhile when
+-spec to_absolute_keep_while(BasePath, KeepWhile) -> AbsKeepWhile when
       BasePath :: khepri_path:native_path(),
-      KeepWhile :: khepri_condition:native_keep_while().
+      KeepWhile :: khepri_condition:native_keep_while(),
+      AbsKeepWhile :: khepri_condition:native_keep_while().
 %% @private
 
 to_absolute_keep_while(BasePath, KeepWhile) ->
@@ -379,18 +389,24 @@ is_keep_while_condition_met_on_self(
             true
     end.
 
+-spec update_keep_while_conds(Tree, Watcher, KeepWhile) -> NewTree when
+      Tree :: khepri_tree:tree(),
+      Watcher :: khepri_path:native_path(),
+      KeepWhile :: khepri_condition:native_keep_while(),
+      NewTree :: khepri_tree:tree().
+
 update_keep_while_conds(Tree, Watcher, KeepWhile) ->
     AbsKeepWhile = to_absolute_keep_while(Watcher, KeepWhile),
     Tree1 = update_keep_while_conds_revidx(Tree, Watcher, AbsKeepWhile),
-    #tree{keep_while_conds = KeepWhileConds} = Tree1,
+    KeepWhileConds = get_keep_while_conds(Tree1),
     KeepWhileConds1 = KeepWhileConds#{Watcher => AbsKeepWhile},
     Tree1#tree{keep_while_conds = KeepWhileConds1}.
 
--spec update_keep_while_conds_revidx(Tree, Watcher, KeepWhile) ->
-    Tree when
+-spec update_keep_while_conds_revidx(Tree, Watcher, KeepWhile) -> NewTree when
       Tree :: tree(),
       Watcher :: khepri_path:native_path(),
-      KeepWhile :: khepri_condition:native_keep_while().
+      KeepWhile :: khepri_condition:native_keep_while(),
+      NewTree :: tree().
 
 update_keep_while_conds_revidx(
   #tree{keep_while_conds_revidx = KeepWhileCondsRevIdx} = Tree,
