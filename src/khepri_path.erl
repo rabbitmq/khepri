@@ -639,7 +639,10 @@ realpath([?PARENT_KHEPRI_NODE | Rest], [_ | Result]) ->
     realpath(Rest, Result);
 realpath([?PARENT_KHEPRI_NODE | Rest], [] = Result) ->
     realpath(Rest, Result);
-realpath([Component | Rest], Result) ->
+realpath([Component | Rest], Result)
+  when is_atom(Component) orelse
+       is_binary(Component) orelse
+       ?IS_KHEPRI_CONDITION(Component) ->
     realpath(Rest, [Component | Result]);
 realpath([], Result) ->
     lists:reverse(Result).
