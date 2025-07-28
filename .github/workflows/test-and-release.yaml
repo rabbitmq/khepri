@@ -9,8 +9,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  REBAR_VERSION: '3.23.0'
-  LATEST_ERLANG_VERSION: '27'
+  REBAR_VERSION: '3.25.1'
+  LATEST_ERLANG_VERSION: '28'
 
 jobs:
   # `env_to_output` works around a limitation of GitHub Actions that prevents
