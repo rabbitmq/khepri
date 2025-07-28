@@ -13,6 +13,8 @@
 
 -module(khepri_machine_v0).
 
+-include_lib("stdlib/include/assert.hrl").
+
 -include("src/khepri_machine.hrl").
 
 -export([init/1]).
@@ -25,6 +27,7 @@
          get_emitted_triggers/1, set_emitted_triggers/2,
          get_projections/1, set_projections/2,
          get_metrics/1, set_metrics/2,
+         assert_equal/2,
          state_to_list/1]).
 
 -record(khepri_machine,
@@ -88,7 +91,7 @@ get_config(#khepri_machine{config = Config}) ->
 
 -spec get_tree(State) -> Tree when
       State :: khepri_machine_v0:state(),
-      Tree :: khepri_tree:tree().
+      Tree :: khepri_tree:tree_v0().
 %% @doc Returns the tree from the given state.
 %%
 %% @private
@@ -191,6 +194,7 @@ get_metrics(#khepri_machine{metrics = Metrics}) ->
 set_metrics(#khepri_machine{} = State, Metrics) ->
     State#khepri_machine{metrics = Metrics}.
 
+
 -spec state_to_list(State) -> Fields when
       State :: khepri_machine_v0:state(),
       Fields :: [any()].
@@ -200,3 +204,11 @@ set_metrics(#khepri_machine{} = State, Metrics) ->
 
 state_to_list(#khepri_machine{} = State) ->
     tuple_to_list(State).
+
+-spec assert_equal(State1, State2) -> ok when
+      State1 :: khepri_machine:state(),
+      State2 :: khepri_machine:state().
+
+assert_equal(#khepri_machine{} = State1, #khepri_machine{} = State2) ->
+    ?assertEqual(State1, State2),
+    ok.
