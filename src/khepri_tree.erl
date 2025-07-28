@@ -321,9 +321,10 @@ squash_version_bumps_after_keep_while(
 %% Keep-while functions.
 %% -------------------------------------------------------------------
 
--spec to_absolute_keep_while(BasePath, KeepWhile) -> KeepWhile when
+-spec to_absolute_keep_while(BasePath, KeepWhile) -> AbsKeepWhile when
       BasePath :: khepri_path:native_path(),
-      KeepWhile :: khepri_condition:native_keep_while().
+      KeepWhile :: khepri_condition:native_keep_while(),
+      AbsKeepWhile :: khepri_condition:native_keep_while().
 %% @private
 
 to_absolute_keep_while(BasePath, KeepWhile) ->
@@ -395,11 +396,11 @@ update_keep_while_conds(Tree, Watcher, KeepWhile) ->
     KeepWhileConds1 = KeepWhileConds#{Watcher => AbsKeepWhile},
     Tree1#tree{keep_while_conds = KeepWhileConds1}.
 
--spec update_keep_while_conds_revidx(Tree, Watcher, KeepWhile) ->
-    Tree when
+-spec update_keep_while_conds_revidx(Tree, Watcher, KeepWhile) -> NewTree when
       Tree :: tree(),
       Watcher :: khepri_path:native_path(),
-      KeepWhile :: khepri_condition:native_keep_while().
+      KeepWhile :: khepri_condition:native_keep_while(),
+      NewTree :: tree().
 
 update_keep_while_conds_revidx(
   #tree{keep_while_conds_revidx = KeepWhileCondsRevIdx} = Tree,

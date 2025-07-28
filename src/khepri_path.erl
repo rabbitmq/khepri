@@ -625,8 +625,9 @@ abspath([_ | _] = RelativePath, BasePath) ->
 abspath([] = PathToRoot, _) ->
     PathToRoot.
 
--spec realpath(Path) -> Path when
-      Path :: native_pattern().
+-spec realpath(Path) -> NewPath when
+      Path :: native_pattern(),
+      NewPath :: native_pattern().
 
 realpath(Path) ->
     realpath(Path, []).
