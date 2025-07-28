@@ -73,9 +73,9 @@
 %% A node name.
 
 -type component() :: node_id() |
-                    ?KHEPRI_ROOT_NODE |
-                    ?THIS_KHEPRI_NODE |
-                    ?PARENT_KHEPRI_NODE.
+                     ?KHEPRI_ROOT_NODE |
+                     ?THIS_KHEPRI_NODE |
+                     ?PARENT_KHEPRI_NODE.
 %% Component name in a path to a node.
 
 -type native_path() :: [component()].
