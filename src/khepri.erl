@@ -414,6 +414,24 @@
 %% khepri_machine:split_command_options/2} and {@link
 %% khepri_machine:split_put_options/2} must be adapted.
 
+-type trigger_options() :: #{where =>
+                             khepri_event_handler:trigger_exec_loc() | local}.
+%% Options specific to trigger registrations.
+%%
+%% <ul>
+%% <li>`where' allows to indicate on which member(s) of the cluster a
+%% triggered action should be executed. With `{member, MemberNode}', if the
+%% target member is not part of the cluster at the time the action is
+%% triggered, the trigger is executed on the leader. The special value `local'
+%% means that the node running `khepri_machine:register_trigger/5' will
+%% execute the trigger (if it is a member of the cluster at the time the
+%% action is triggered).</li>
+%% </ul>
+%%
+%% NOTE: When this list of trigger options is modified, {@link
+%% khepri_machine:split_command_options/2} and {@link
+%% khepri_machine:split_trigger_options/2} must be adapted.
+
 -type fold_fun() :: fun((khepri_path:native_path(),
                          khepri:node_props(),
                          khepri:fold_acc()) -> khepri:fold_acc()).
@@ -524,6 +542,7 @@
               query_options/0,
               tree_options/0,
               put_options/0,
+              trigger_options/0,
 
               fold_fun/0,
               fold_acc/0,
