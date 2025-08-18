@@ -104,7 +104,7 @@ corresponds to the expected value.</p>
 #if_child_list_version{version = {gt, 10}}.</code></pre></p>
 
 <h3 class="typedecl"><a name="type-if_data_matches">if_data_matches()</a></h3>
-<p><code>if_data_matches() = #if_data_matches{pattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern" docgen-rel="seetype" docgen-href="stdlib:ets#match_pattern/0">ets:match_pattern()</a> | term(), conditions = [any()], compiled = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-comp_match_spec" docgen-rel="seetype" docgen-href="stdlib:ets#comp_match_spec/0">ets:comp_match_spec()</a> | undefined}</code></p>
+<p><code>if_data_matches() = #if_data_matches{pattern = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-match_pattern" docgen-rel="seetype" docgen-href="stdlib:ets#match_pattern/0">ets:match_pattern()</a> | any(), conditions = [any()], compiled = <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-comp_match_spec" docgen-rel="seetype" docgen-href="stdlib:ets#comp_match_spec/0">ets:comp_match_spec()</a> | undefined}</code></p>
 <p><p>  Condition. Evaluates to true if the tested node has a data payload and the
   data payload term matches the given <code>pattern</code> and all <code>conditions</code> evaluates  
 to true.</p>
@@ -293,7 +293,7 @@ overwrite the other.</p>
   converted to native paths if necessary.</p>
 
 <h3 class="typedecl"><a name="type-re_compile_ret">re_compile_ret()</a></h3>
-<p><code>re_compile_ret() = {ok, {re_pattern, term(), term(), term(), term()}} | {error, {string(), non_neg_integer()}}</code></p>
+<p><code>re_compile_ret() = {ok, {re_pattern, any(), any(), any(), any()}} | {error, {string(), non_neg_integer()}}</code></p>
 <p><p>  Return value of <a docgen-rel="seemfa" docgen-href="re#compile/1" href="re.html#compile-1"><code>re:compile/1</code></a>.</p>
  
   The opaque compiled regex type, <a docgen-rel="seetype" docgen-href="re#mp/0" href="re.html#type-mp"><code>re:mp()</code></a>, is unfortunately not

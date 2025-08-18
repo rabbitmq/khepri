@@ -44,7 +44,7 @@
 
 <h3 class="function"><a name="is_prefix_tree-1">is_prefix_tree/1</a></h3>
 <div class="spec">
-<p><code>is_prefix_tree(Prefix_tree::<a href="#type-tree" docgen-rel="seetype" docgen-href="#tree/0">tree</a>(term())) -&gt; true</code><br></p><p><code>is_prefix_tree(Prefix_tree::term()) -&gt; false</code><br></p>
+<p><code>is_prefix_tree(Prefix_tree::<a href="#type-tree" docgen-rel="seetype" docgen-href="#tree/0">tree</a>(term())) -&gt; true</code><br></p><p><code>is_prefix_tree(Prefix_tree::any()) -&gt; false</code><br></p>
 <p></p>
 <p></p>
 </div><p>Determines whether the given term is a prefix tree.</p>
@@ -52,14 +52,14 @@
 <h3 class="function"><a name="from_map-1">from_map/1</a></h3>
 <div class="spec">
 <p><code>from_map(Map) -&gt; Tree</code>
-<ul class="definitions"><li><code>Map = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a> =&gt; Payload}</code></li><li><code>Tree = <a href="/home/runner/work/khepri/khepri/doc/khepri_prefix_tree.html#type-tree" docgen-rel="seetype" docgen-href="khepri:khepri_prefix_tree#tree/0">khepri_prefix_tree:tree</a>(Payload)</code></li><li><code>Payload = term()</code></li></ul></p>
+<ul class="definitions"><li><code>Map = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a> =&gt; Payload}</code></li><li><code>Tree = <a href="/home/runner/work/khepri/khepri/doc/khepri_prefix_tree.html#type-tree" docgen-rel="seetype" docgen-href="khepri:khepri_prefix_tree#tree/0">khepri_prefix_tree:tree</a>(Payload)</code></li><li><code>Payload = any()</code></li></ul></p>
 <p></p>
 </div><p>Converts a map of paths to payloads into a prefix tree.</p>
 
 <h3 class="function"><a name="fold_prefixes_of-4">fold_prefixes_of/4</a></h3>
 <div class="spec">
 <p><code>fold_prefixes_of(Fun, Acc, Path, Tree) -&gt; Ret</code>
-<ul class="definitions"><li><code>Fun = fun((Payload, Acc) -&gt; Acc1)</code></li><li><code>Acc = term()</code></li><li><code>Acc1 = term()</code></li><li><code>Path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a></code></li><li><code>Tree = <a href="/home/runner/work/khepri/khepri/doc/khepri_prefix_tree.html#type-tree" docgen-rel="seetype" docgen-href="khepri:khepri_prefix_tree#tree/0">khepri_prefix_tree:tree</a>(Payload)</code></li><li><code>Payload = term()</code></li><li><code>Ret = Acc1</code></li></ul></p>
+<ul class="definitions"><li><code>Fun = fun((Payload, Acc) -&gt; Acc1)</code></li><li><code>Acc = any()</code></li><li><code>Acc1 = any()</code></li><li><code>Path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a></code></li><li><code>Tree = <a href="/home/runner/work/khepri/khepri/doc/khepri_prefix_tree.html#type-tree" docgen-rel="seetype" docgen-href="khepri:khepri_prefix_tree#tree/0">khepri_prefix_tree:tree</a>(Payload)</code></li><li><code>Payload = any()</code></li><li><code>Ret = Acc1</code></li></ul></p>
 <p></p>
 </div><p>Folds over all nodes in the tree which are prefixed by the given <code>Path</code>
   building an accumulated value with the given fold function and initial
@@ -68,7 +68,7 @@
 <h3 class="function"><a name="find_path-2">find_path/2</a></h3>
 <div class="spec">
 <p><code>find_path(Path, Tree) -&gt; Ret</code>
-<ul class="definitions"><li><code>Path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a></code></li><li><code>Tree = <a href="/home/runner/work/khepri/khepri/doc/khepri_prefix_tree.html#type-tree" docgen-rel="seetype" docgen-href="khepri:khepri_prefix_tree#tree/0">khepri_prefix_tree:tree</a>(Payload)</code></li><li><code>Payload = term()</code></li><li><code>Ret = {ok, Payload} | error</code></li></ul></p>
+<ul class="definitions"><li><code>Path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a></code></li><li><code>Tree = <a href="/home/runner/work/khepri/khepri/doc/khepri_prefix_tree.html#type-tree" docgen-rel="seetype" docgen-href="khepri:khepri_prefix_tree#tree/0">khepri_prefix_tree:tree</a>(Payload)</code></li><li><code>Payload = any()</code></li><li><code>Ret = {ok, Payload} | error</code></li></ul></p>
 <p></p>
 <p>returns: <code>{ok, Payload}</code> where <code>Payload</code> is associated with the given path
   or <code>error</code> if the path is not associated with a payload in the given tree.</p>
@@ -78,7 +78,7 @@
 <h3 class="function"><a name="update-3">update/3</a></h3>
 <div class="spec">
 <p><code>update(Fun, Path, Tree) -&gt; Ret</code>
-<ul class="definitions"><li><code>Fun = fun((Payload | '$__NO_PAYLOAD__') -&gt; Payload | '$__NO_PAYLOAD__')</code></li><li><code>Path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a></code></li><li><code>Tree = <a href="/home/runner/work/khepri/khepri/doc/khepri_prefix_tree.html#type-tree" docgen-rel="seetype" docgen-href="khepri:khepri_prefix_tree#tree/0">khepri_prefix_tree:tree</a>(Payload)</code></li><li><code>Payload = term()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_prefix_tree.html#type-tree" docgen-rel="seetype" docgen-href="khepri:khepri_prefix_tree#tree/0">khepri_prefix_tree:tree</a>(Payload)</code></li></ul></p>
+<ul class="definitions"><li><code>Fun = fun((Payload | '$__NO_PAYLOAD__') -&gt; Payload | '$__NO_PAYLOAD__')</code></li><li><code>Path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a></code></li><li><code>Tree = <a href="/home/runner/work/khepri/khepri/doc/khepri_prefix_tree.html#type-tree" docgen-rel="seetype" docgen-href="khepri:khepri_prefix_tree#tree/0">khepri_prefix_tree:tree</a>(Payload)</code></li><li><code>Payload = any()</code></li><li><code>Ret = <a href="/home/runner/work/khepri/khepri/doc/khepri_prefix_tree.html#type-tree" docgen-rel="seetype" docgen-href="khepri:khepri_prefix_tree#tree/0">khepri_prefix_tree:tree</a>(Payload)</code></li></ul></p>
 <p></p>
 </div><p><p>Updates a given path in the tree.</p>
  
