@@ -449,7 +449,7 @@ trigger_copy_projection(_Name, _Table, _OldProps, _NewProps) ->
 -spec try_ets_insert(Name, Table, Record) -> ok when
       Name :: khepri_projection:name(),
       Table :: ets:tid(),
-      Record :: term().
+      Record :: any().
 %% @hidden
 
 try_ets_insert(Name, Table, Record) ->
@@ -473,7 +473,7 @@ try_ets_insert(Name, Table, Record) ->
 -spec try_ets_delete_object(Name, Table, Record) -> ok when
       Name :: khepri_projection:name(),
       Table :: ets:tid(),
-      Record :: term().
+      Record :: any().
 %% @hidden
 
 try_ets_delete_object(Name, Table, Record) ->

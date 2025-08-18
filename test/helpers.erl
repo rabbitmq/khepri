@@ -109,7 +109,7 @@ restore_default_logger(OldDefaultLoggerLevel) ->
 -spec with_log(Fun) -> {Result, Log}
     when
       Fun :: fun(() -> Result),
-      Result :: term(),
+      Result :: any(),
       Log :: binary().
 
 %% @doc Returns the value of executing the given `Fun' and any log messages

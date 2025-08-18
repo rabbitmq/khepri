@@ -52,7 +52,7 @@ empty() ->
     #prefix_tree{}.
 
 -spec is_prefix_tree(tree(_)) -> true;
-                    (term()) -> false.
+                    (any()) -> false.
 %% @doc Determines whether the given term is a prefix tree.
 
 is_prefix_tree(#prefix_tree{}) ->
@@ -63,7 +63,7 @@ is_prefix_tree(_) ->
 -spec from_map(Map) -> Tree when
       Map :: #{khepri_path:native_path() => Payload},
       Tree :: khepri_prefix_tree:tree(Payload),
-      Payload :: term().
+      Payload :: any().
 %% @doc Converts a map of paths to payloads into a prefix tree.
 
 from_map(Map) when is_map(Map) ->
@@ -80,11 +80,11 @@ from_map(Map) when is_map(Map) ->
 
 -spec fold_prefixes_of(Fun, Acc, Path, Tree) -> Ret when
       Fun :: fun((Payload, Acc) -> Acc1),
-      Acc :: term(),
-      Acc1 :: term(),
+      Acc :: any(),
+      Acc1 :: any(),
       Path :: khepri_path:native_path(),
       Tree :: khepri_prefix_tree:tree(Payload),
-      Payload :: term(),
+      Payload :: any(),
       Ret :: Acc1.
 %% @doc Folds over all nodes in the tree which are prefixed by the given `Path'
 %% building an accumulated value with the given fold function and initial
@@ -117,7 +117,7 @@ fold_prefixes_of1(
 -spec find_path(Path, Tree) -> Ret when
       Path :: khepri_path:native_path(),
       Tree :: khepri_prefix_tree:tree(Payload),
-      Payload :: term(),
+      Payload :: any(),
       Ret :: {ok, Payload} | error.
 %% @doc Returns the payload associated with a path in the tree.
 %%
@@ -146,7 +146,7 @@ find_path1([Component | Rest], #prefix_tree{child_nodes = ChildNodes}) ->
       Fun :: fun((Payload | ?NO_PAYLOAD) -> Payload | ?NO_PAYLOAD),
       Path :: khepri_path:native_path(),
       Tree :: khepri_prefix_tree:tree(Payload),
-      Payload :: term(),
+      Payload :: any(),
       Ret :: khepri_prefix_tree:tree(Payload).
 %% @doc Updates a given path in the tree.
 %%

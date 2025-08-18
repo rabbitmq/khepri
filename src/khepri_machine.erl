@@ -1333,7 +1333,7 @@ init_aux(StoreId) ->
     Ret when
       RaState :: ra_server:ra_state(),
       Type :: {call, ra:from()} | cast,
-      Command :: term(),
+      Command :: any(),
       AuxState :: aux_state(),
       IntState :: ra_aux:internal_state(),
       Ret :: {no_reply, AuxState, IntState} |

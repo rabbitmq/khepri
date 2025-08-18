@@ -130,7 +130,7 @@
 %% callback can use this term however it wants. It is returned from most
 %% callback functions and passed to the next one.
 
--type backup_item() :: term().
+-type backup_item() :: any().
 %% An opaque term passed in a list to `Module:write/2' and returned by
 %% `Module:read/1'.
 %%
