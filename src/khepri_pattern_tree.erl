@@ -36,7 +36,7 @@
 
 -type payload() :: any().
 
--type fold_acc() :: term().
+-type fold_acc() :: any().
 -type fold_fun(Payload) :: fun((khepri_path:native_pattern(),
                                 Payload,
                                 fold_acc()) -> fold_acc()).

@@ -325,7 +325,7 @@
 %% This is the same as {@link keep_while()} but the paths in the map keys were
 %% converted to native paths if necessary.
 
--type re_compile_ret() :: {ok, {re_pattern, term(), term(), term(), term()}} |
+-type re_compile_ret() :: {ok, {re_pattern, any(), any(), any(), any()}} |
                           {error, {string(), non_neg_integer()}}.
 %% Return value of {@link re:compile/1}.
 %%

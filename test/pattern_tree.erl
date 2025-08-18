@@ -133,7 +133,7 @@ fold_finds_all_patterns_matching_a_path_test() ->
 -spec put_new(PatternTree, PathPattern, Payload) -> Ret when
       PatternTree :: khepri_pattern_tree:tree(Payload),
       PathPattern :: khepri_path:native_pattern(),
-      Payload :: term(),
+      Payload :: any(),
       Ret :: khepri_pattern_tree:tree(Payload).
 
 put_new(PatternTree, PathPattern, Data) ->
