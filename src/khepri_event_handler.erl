@@ -18,7 +18,7 @@
 -include("src/khepri_machine.hrl").
 
 -export([start_link/0,
-         handle_triggered_sprocs/2]).
+         handle_triggered_actions/2]).
 
 -export([init/1,
          handle_call/3,
@@ -36,10 +36,10 @@
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
-handle_triggered_sprocs(_StoreId, []) ->
+handle_triggered_actions(_StoreId, []) ->
     ok;
-handle_triggered_sprocs(StoreId, TriggeredStoredProcs) ->
-    gen_server:cast(?SERVER, {?FUNCTION_NAME, StoreId, TriggeredStoredProcs}).
+handle_triggered_actions(StoreId, TriggeredActions) ->
+    gen_server:cast(?SERVER, {?FUNCTION_NAME, StoreId, TriggeredActions}).
 
 init(_) ->
     erlang:process_flag(trap_exit, true),
@@ -54,7 +54,7 @@ handle_call(Request, From, State) ->
     {reply, ok, State1, Timeout}.
 
 handle_cast(
-  {handle_triggered_sprocs, StoreId, TriggeredStoredProcs},
+  {handle_triggered_actions, StoreId, TriggeredActions},
   #?MODULE{trigger_crashes = Crashes} = State) ->
     State1 =
     lists:foldl(
@@ -101,8 +101,8 @@ handle_cast(
                               S#?MODULE{trigger_crashes = Crashes1}
                       end
               end
-      end, State, TriggeredStoredProcs),
-    _ = khepri_machine:ack_triggers_execution(StoreId, TriggeredStoredProcs),
+      end, State, TriggeredActions),
+    _ = khepri_machine:ack_triggers_execution(StoreId, TriggeredActions),
     {State2, Timeout} = log_accumulated_trigger_crashes(State1),
     {noreply, State2, Timeout};
 handle_cast(Request, State) ->
