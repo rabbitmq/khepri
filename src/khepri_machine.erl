@@ -703,10 +703,10 @@ unregister_projections(StoreId, Names, Options)
     Command = #unregister_projections{names = Names},
     process_command(StoreId, Command, Options).
 
--spec ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
+-spec ack_triggers_execution(StoreId, TriggeredActions) ->
     Ret when
       StoreId :: khepri:store_id(),
-      TriggeredStoredProcs :: [triggered()],
+      TriggeredActions :: [triggered()],
       Ret :: ok | khepri:error().
 %% @doc Acknowledges the execution of a trigger.
 %%
@@ -715,9 +715,9 @@ unregister_projections(StoreId, Names, Options)
 %%
 %% @private
 
-ack_triggers_execution(StoreId, TriggeredStoredProcs)
+ack_triggers_execution(StoreId, TriggeredActions)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
-    Command = #ack_triggered{triggered = TriggeredStoredProcs},
+    Command = #ack_triggered{triggered = TriggeredActions},
     process_command(StoreId, Command, #{async => true}).
 
 -spec get_keep_while_conds_state(StoreId, Options) -> Ret when
@@ -1869,7 +1869,7 @@ emitted_triggers_to_side_effects(State) ->
         [_ | _] ->
             SideEffect = {mod_call,
                           khepri_event_handler,
-                          handle_triggered_sprocs,
+                          handle_triggered_actions,
                           [StoreId, EmittedTriggers]},
             [SideEffect];
         [] ->
@@ -2238,52 +2238,51 @@ add_trigger_side_effects(InitialState, NewState, Changes, SideEffects) ->
         true ->
             {NewState, SideEffects};
         false ->
-            EmittedTriggers = get_emitted_triggers(InitialState),
             #config{store_id = StoreId} = get_config(NewState),
             Tree = get_tree(NewState),
-            TriggeredStoredProcs = list_triggered_sprocs(
-                                     Tree, Changes, Triggers),
+            TriggeredActions = list_triggered_actions(
+                                 Tree, Changes, Triggers),
 
-            %% We record the list of triggered stored procedures in the state
-            %% machine's state. This is used to guaranty at-least-once
-            %% execution of the trigger: the event handler process is supposed
-            %% to ack when it executed the triggered stored procedure. If the
-            %% Ra cluster changes leader in between, we know that we need to
-            %% retry the execution.
+            %% We record the list of triggered actions in the state machine's
+            %% state. This is used to guaranty at-least-once execution of the
+            %% trigger: the event handler process is supposed to ack when it
+            %% executed the triggered action. If the Ra cluster changes leader
+            %% in between, we know that we need to retry the execution.
             %%
             %% This could lead to multiple execution of the same trigger,
-            %% therefore the stored procedure must be idempotent.
+            %% therefore the action must be idempotent.
+            EmittedTriggers = get_emitted_triggers(InitialState),
             NewState1 = set_emitted_triggers(
-                          NewState, EmittedTriggers ++ TriggeredStoredProcs),
+                          NewState, EmittedTriggers ++ TriggeredActions),
 
-            %% We still emit a `mod_call' effect to wake up the event handler
+            %% We emit a `mod_call' effect to wake up the event handler
             %% process so it doesn't have to poll the internal list.
             SideEffect = {mod_call,
                           khepri_event_handler,
-                          handle_triggered_sprocs,
-                          [StoreId, TriggeredStoredProcs]},
+                          handle_triggered_actions,
+                          [StoreId, TriggeredActions]},
             {NewState1, [SideEffect | SideEffects]}
     end.
 
-list_triggered_sprocs(Tree, Changes, Triggers) ->
-    TriggeredStoredProcs =
+list_triggered_actions(Tree, Changes, Triggers) ->
+    TriggeredActions =
     maps:fold(
-      fun(Path, Change, TSP) ->
+      fun(Path, Change, TA) ->
               % For each change, we evaluate each trigger.
               maps:fold(
-                fun(TriggerId, TriggerProps, TSP1) ->
+                fun(TriggerId, TriggerProps, TA1) ->
                         evaluate_trigger(
-                          Tree, Path, Change, TriggerId, TriggerProps, TSP1)
-                end, TSP, Triggers)
+                          Tree, Path, Change, TriggerId, TriggerProps, TA1)
+                end, TA, Triggers)
       end, [], Changes),
-    sort_triggered_sprocs(TriggeredStoredProcs).
+    sort_triggered_actions(TriggeredActions).
 
 evaluate_trigger(
   Tree, Path, Change, TriggerId,
   #{sproc := StoredProcPath,
     event_filter := #evf_tree{path = PathPattern,
                               props = EventFilterProps} = EventFilter},
-  TriggeredStoredProcs) ->
+  TriggeredActions) ->
     %% For each trigger based on a tree event:
     %%   1. we verify the path of the changed tree node matches the monitored
     %%      path pattern in the event filter.
@@ -2313,7 +2312,7 @@ evaluate_trigger(
             %% the caller code is being updated).
             case find_stored_proc(Tree, StoredProcPath) of
                 undefined ->
-                    TriggeredStoredProcs;
+                    TriggeredActions;
                 StoredProc ->
                     %% TODO: Use a record to format
                     %% stored procedure arguments?
@@ -2324,14 +2323,14 @@ evaluate_trigger(
                                    event_filter = EventFilter,
                                    sproc = StoredProc,
                                    props = EventProps},
-                    [Triggered | TriggeredStoredProcs]
+                    [Triggered | TriggeredActions]
             end;
         false ->
-            TriggeredStoredProcs
+            TriggeredActions
     end;
 evaluate_trigger(
-  _Root, _Path, _Change, _TriggerId, _TriggerProps, TriggeredStoredProcs) ->
-    TriggeredStoredProcs.
+  _Root, _Path, _Change, _TriggerId, _TriggerProps, TriggeredActions) ->
+    TriggeredActions.
 
 find_stored_proc(Tree, StoredProcPath) ->
     TreeOptions = #{expect_specific_node => true,
@@ -2348,14 +2347,14 @@ find_stored_proc(Tree, StoredProcPath) ->
         _                                                 -> undefined
     end.
 
-sort_triggered_sprocs(TriggeredStoredProcs) ->
-    %% We first sort by priority, then by triggered ID if priorities are equal.
+sort_triggered_actions(TriggeredActions) ->
+    %% We first sort by priority, then by trigger ID if priorities are equal.
     %% The priority can be any integer (even negative integers). The default
     %% priority is 0.
     %%
-    %% A higher priority (a greater integer) means that the triggered stored
-    %% procedure will be executed before another one with lower priority
-    %% (smaller integer).
+    %% A higher priority (a greater integer) means that the triggered action
+    %% will be executed before another one with lower priority (smaller
+    %% integer).
     %%
     %% If the priorities are equal, a trigger with an ID earlier in
     %% alphabetical order will be executed before another one with an ID later
@@ -2370,7 +2369,7 @@ sort_triggered_sprocs(TriggeredStoredProcs) ->
                   true            -> PrioA > PrioB
               end
       end,
-      TriggeredStoredProcs).
+      TriggeredActions).
 
 -spec get_compiled_projection_tree(ProjectionTree) -> CompiledProjectionTree
     when
