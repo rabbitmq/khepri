@@ -2364,10 +2364,7 @@ evaluate_trigger(
             end;
         false ->
             TriggeredActions
-    end;
-evaluate_trigger(
-  _Root, _Path, _Change, _TriggerId, _TriggerProps, TriggeredActions) ->
-    TriggeredActions.
+    end.
 
 find_stored_proc(Tree, StoredProcPath) ->
     TreeOptions = #{expect_specific_node => true,
