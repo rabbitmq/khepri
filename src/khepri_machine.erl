@@ -438,12 +438,12 @@ put(StoreId, PathPattern, Payload, Options)
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     Payload1 = khepri_payload:prepare(Payload),
-    {CommandOptions, TreeAndPutOptions} = split_command_options(
+    {CommandOptions, NonCommandOptions} = split_command_options(
                                             StoreId, Options),
     Command = case does_api_comply_with(uniform_commands, StoreId) of
                   true ->
                       {TreeOptions, PutOptions} = split_put_options(
-                                                    TreeAndPutOptions),
+                                                    NonCommandOptions),
                       CommandArgs = #put_v1{path = PathPattern1,
                                             payload = Payload1,
                                             put_options = PutOptions,
@@ -452,7 +452,7 @@ put(StoreId, PathPattern, Payload, Options)
                   false ->
                       #put{path = PathPattern1,
                            payload = Payload1,
-                           options = TreeAndPutOptions}
+                           options = NonCommandOptions}
               end,
     process_command(StoreId, Command, CommandOptions);
 put(_StoreId, PathPattern, Payload, _Options) ->
@@ -962,48 +962,48 @@ split_query_options(StoreId, Options) ->
       end, {#{}, #{}}, Options1).
 
 -spec split_command_options(StoreId, Options) ->
-    {CommandOptions, TreeAndPutOptions} when
+    {CommandOptions, NonCommandOptions} when
       StoreId :: khepri:store_id(),
-      Options :: CommandOptions | TreeAndPutOptions,
+      Options :: CommandOptions | NonCommandOptions,
       CommandOptions :: khepri:command_options(),
-      TreeAndPutOptions :: khepri:tree_options() | khepri:put_options().
+      NonCommandOptions :: khepri:tree_options() | khepri:put_options().
 %% @private
 
 split_command_options(StoreId, Options) ->
     Options1 = set_default_options(StoreId, Options),
     maps:fold(
       fun
-          (Option, Value, {C, TP}) when
+          (Option, Value, {C, NC}) when
                 Option =:= reply_from orelse
                 Option =:= timeout orelse
                 Option =:= async ->
               C1 = C#{Option => Value},
-              {C1, TP};
+              {C1, NC};
           (props_to_return, [], Acc) ->
               Acc;
-          (Option, Value, {C, TP}) when
+          (Option, Value, {C, NC}) when
                 Option =:= expect_specific_node orelse
                 Option =:= props_to_return orelse
                 Option =:= include_root_props orelse
                 Option =:= return_indirect_deletes ->
-              TP1 = TP#{Option => Value},
-              {C, TP1};
-          (keep_while, KeepWhile, {C, TP}) ->
-              %% `keep_while' is kept in `TreeAndPutOptions' here. The state
+              NC1 = NC#{Option => Value},
+              {C, NC1};
+          (keep_while, KeepWhile, {C, NC}) ->
+              %% `keep_while' is kept in `NonCommandOptions' here. The state
               %% machine will extract it in `apply()'.
               KeepWhile1 = khepri_condition:ensure_native_keep_while(
                              KeepWhile),
-              TP1 = TP#{keep_while => KeepWhile1},
-              {C, TP1}
+              NC1 = NC#{keep_while => KeepWhile1},
+              {C, NC1}
       end, {#{}, #{}}, Options1).
 
--spec split_put_options(TreeAndPutOptions) -> {TreeOptions, PutOptions} when
-      TreeAndPutOptions :: TreeOptions | PutOptions,
+-spec split_put_options(NonCommandOptions) -> {TreeOptions, PutOptions} when
+      NonCommandOptions :: TreeOptions | PutOptions,
       TreeOptions :: khepri:tree_options(),
       PutOptions :: khepri:put_options().
 %% @private
 
-split_put_options(TreeAndPutOptions) ->
+split_put_options(NonCommandOptions) ->
     maps:fold(
       fun
           (keep_while, KeepWhile, {T, P}) ->
@@ -1012,7 +1012,7 @@ split_put_options(TreeAndPutOptions) ->
           (Option, Value, {T, P}) ->
               T1 = T#{Option => Value},
               {T1, P}
-      end, {#{}, #{}}, TreeAndPutOptions).
+      end, {#{}, #{}}, NonCommandOptions).
 
 remove_query_options(Options) ->
     maps:filter(
@@ -2079,8 +2079,8 @@ handle_unknown_command(
 convert_to_uniform_command(
   #put{path = PathPattern,
        payload = Payload,
-       options = TreeAndPutOptions}) ->
-    {TreeOptions, PutOptions} = split_put_options(TreeAndPutOptions),
+       options = NonCommandOptions}) ->
+    {TreeOptions, PutOptions} = split_put_options(NonCommandOptions),
     CommandArgs = #put_v1{path = PathPattern,
                           payload = Payload,
                           put_options = PutOptions,
