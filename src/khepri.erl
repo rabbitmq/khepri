@@ -410,7 +410,7 @@
 %% created/updated tree node.</li>
 %% </ul>
 %%
-%% NOTE: When this list of tree options is modified, {@link
+%% NOTE: When this list of put options is modified, {@link
 %% khepri_machine:split_command_options/2} and {@link
 %% khepri_machine:split_put_options/2} must be adapted.
 

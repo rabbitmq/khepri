@@ -28,7 +28,7 @@
               options = #{} :: khepri:tree_options() | khepri:put_options()}).
 
 -record(delete, {path :: khepri_path:native_pattern(),
-                 options  = #{} :: khepri:tree_options()}).
+                 options = #{} :: khepri:tree_options()}).
 
 -record(tx, {'fun' :: horus:horus_fun() | khepri_path:pattern(),
              args = [] :: list()}).
