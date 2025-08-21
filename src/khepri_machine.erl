@@ -688,10 +688,19 @@ register_trigger_v2(
     EventFilter1 = khepri_evf:wrap(EventFilter),
     {CommandOptions, NonCommandOptions} = split_command_options(
                                             StoreId, Options),
+    NonCommandOptions1 = case NonCommandOptions of
+                             #{where := local} ->
+                                 %% Interpret the `local' value and replace it
+                                 %% with this node name.
+                                 Where = {member, node()},
+                                 NonCommandOptions#{where => Where};
+                             _ ->
+                                 NonCommandOptions
+                         end,
     Command = #register_trigger_v2{id = TriggerId,
                                    event_filter = EventFilter1,
                                    action = Action,
-                                   options = NonCommandOptions},
+                                   options = NonCommandOptions1},
     process_command(StoreId, Command, CommandOptions).
 
 -spec register_projection(StoreId, PathPattern, Projection, Options) ->
@@ -1397,8 +1406,9 @@ init_aux(StoreId) ->
       Command :: any(),
       AuxState :: aux_state(),
       IntState :: ra_aux:internal_state(),
-      Ret :: {no_reply, AuxState, IntState} |
-             {no_reply, AuxState, IntState, Effects},
+      Ret :: {no_reply, NewAuxState, IntState} |
+             {no_reply, NewAuxState, IntState, Effects},
+      NewAuxState :: aux_state(),
       Effects :: ra_machine:effects().
 %% @private
 
@@ -1488,6 +1498,32 @@ handle_aux(leader, cast, tick, AuxState, IntState) ->
         _ ->
             {no_reply, AuxState1, IntState}
     end;
+handle_aux(
+  RaState, cast,
+  {handle_triggered_actions, TriggeredActions},
+  #khepri_machine_aux{store_id = StoreId} = AuxState,
+  #{cluster := Cluster} = IntState) ->
+    AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+
+    TriggeredActions1 = lists:filter(
+                          fun
+                              (#triggered_v2{where = all_members}) ->
+                                  true;
+                              (#triggered_v2{where = {member, MemberNode}}) ->
+                                  %% If the target member is not a cluster
+                                  %% member, we run the trigger on the leader.
+                                  MemberNode =:= node() orelse
+                                  (RaState =:= leader andalso
+                                   begin
+                                       Member = {StoreId, MemberNode},
+                                       IsMember = maps:is_key(Member, Cluster),
+                                       not IsMember
+                                   end);
+                              (#triggered_v2{where = _}) ->
+                                  false
+                          end, TriggeredActions),
+    khepri_event_handler:handle_triggered_actions(StoreId, TriggeredActions1),
+    {no_reply, AuxState1, IntState};
 handle_aux(_RaState, _Type, _Command, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
     {no_reply, AuxState1, IntState}.
@@ -2325,13 +2361,32 @@ add_trigger_side_effects(InitialState, NewState, Changes, SideEffects) ->
             NewState1 = set_emitted_triggers(
                           NewState, EmittedTriggers ++ TriggeredActions),
 
-            %% We emit a `mod_call' effect to wake up the event handler
-            %% process so it doesn't have to poll the internal list.
-            SideEffect = {mod_call,
-                          khepri_event_handler,
-                          handle_triggered_actions,
-                          [StoreId, TriggeredActions]},
-            {NewState1, [SideEffect | SideEffects]}
+            {ModCalls, AuxEvents} = split_actions_executed_on_leader(
+                                      TriggeredActions),
+
+            SideEffects1 = case ModCalls of
+                               [] ->
+                                   SideEffects;
+                               _ ->
+                                   %% We emit a `mod_call' effect to wake up
+                                   %% the event handler process so it doesn't
+                                   %% have to poll the internal list.
+                                   SideEffect1 = {mod_call,
+                                                  khepri_event_handler,
+                                                  handle_triggered_actions,
+                                                  [StoreId, ModCalls]},
+                                   [SideEffect1 | SideEffects]
+                           end,
+            SideEffects2 = case AuxEvents of
+                               [] ->
+                                   SideEffects1;
+                               _ ->
+                                   SideEffect2 = {aux,
+                                                  {handle_triggered_actions,
+                                                   AuxEvents}},
+                                   [SideEffect2 | SideEffects1]
+                           end,
+            {NewState1, SideEffects2}
     end.
 
 list_triggered_actions(Tree, Changes, Triggers) ->
@@ -2462,6 +2517,16 @@ get_trigger_id_and_event_filter(
 get_trigger_id_and_event_filter(
   #triggered_v2{id = Id, event_filter = EventFilter}) ->
     {Id, EventFilter}.
+
+split_actions_executed_on_leader(TriggeredActions) ->
+    lists:partition(
+      fun
+          (#triggered{}) ->
+              %% Old triggers are always executed on the leader.
+              true;
+          (#triggered_v2{where = Where}) ->
+              Where =:= leader
+      end, TriggeredActions).
 
 -spec get_compiled_projection_tree(ProjectionTree) -> CompiledProjectionTree
     when

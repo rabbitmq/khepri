@@ -38,7 +38,18 @@
 %% It is the stored procedure pointed to by the path in the triggered action's
 %% arguments.
 
--type trigger_exec_loc() :: leader.
+-type trigger_exec_loc() :: leader | {member, node()} | all_members.
+%% Where to execute the triggered action.
+%%
+%% It supports the following locations:
+%% <ul>
+%% <li>`leader': the action is executed on the leader node at the time the
+%% action is triggered.</li>
+%% <li>`{member, Member}': the action is executed on the given node if it is a
+%% member of the cluster, or the leader otherwise.</li>
+%% <li>`all_members': the action is executed on all members of the
+%% cluster.</li>
+%% </ul>
 
 -export_type([trigger_action/0,
               triggered_action/0,
