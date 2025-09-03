@@ -167,10 +167,10 @@ init_per_testcase(Testcase, Config)
     PropsPerNode0 = [begin
                          {ok, _} = peer:call(
                                      Peer, application, ensure_all_started,
-                                     [khepri]),
+                                     [khepri], infinity),
                          Props = peer:call(
                                    Peer, helpers, start_ra_system,
-                                   [Testcase]),
+                                   [Testcase], infinity),
                          {Node, #{peer => Peer, props => Props}}
                      end || {Node, Peer} <- Nodes],
     PropsPerNode = maps:from_list(PropsPerNode0),
@@ -181,10 +181,10 @@ init_per_testcase(Testcase, Config)
     PropsPerNode0 = [begin
                          {ok, _} = peer:call(
                                      Peer, application, ensure_all_started,
-                                     [khepri]),
+                                     [khepri], infinity),
                          Props = peer:call(
                                    Peer, helpers, start_ra_system,
-                                   [Testcase]),
+                                   [Testcase], infinity),
                          {Node, #{peer => Peer, props => Props}}
                      end || {Node, Peer} <- Nodes],
     PropsPerNode = maps:from_list(PropsPerNode0),
@@ -2662,8 +2662,8 @@ start_n_nodes(NamePrefix, Count) ->
     CodePath = code:get_path(),
     lists:foreach(
       fun({_Node, Peer}) ->
-              peer:call(Peer, code, add_pathsz, [CodePath]),
-              ok = peer:call(Peer, ?MODULE, setup_node, [])
+              peer:call(Peer, code, add_pathsz, [CodePath], infinity),
+              ok = peer:call(Peer, ?MODULE, setup_node, [], infinity)
       end, Nodes),
     Nodes.
 
