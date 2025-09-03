@@ -84,24 +84,30 @@ groups() ->
            can_set_snapshot_interval
           ]}
         ]},
-       {cluster, [parallel],
+       {cluster, [],
         [
-         can_start_a_three_node_cluster,
-         can_join_several_times_a_three_node_cluster,
-         can_rejoin_after_a_reset_in_a_three_node_cluster,
-         can_restart_nodes_in_a_three_node_cluster,
-         can_reset_a_cluster_member,
-         can_query_members_with_a_three_node_cluster,
-         can_wait_for_leader_with_a_three_node_cluster,
-         fail_to_join_if_not_started,
-         fail_to_join_non_existing_store,
-         handle_leader_down_on_three_node_cluster_command,
-         handle_leader_down_on_three_node_cluster_response,
-         projections_are_consistent_on_three_node_cluster,
-         projections_are_updated_when_a_snapshot_is_installed,
-         async_command_leader_change_in_three_node_cluster,
-         spam_txs_during_election,
-         spam_changes_during_unregister_projections
+         {group1, [parallel],
+          [
+           can_start_a_three_node_cluster,
+           can_join_several_times_a_three_node_cluster,
+           can_rejoin_after_a_reset_in_a_three_node_cluster,
+           can_restart_nodes_in_a_three_node_cluster,
+           can_reset_a_cluster_member,
+           can_query_members_with_a_three_node_cluster,
+           can_wait_for_leader_with_a_three_node_cluster,
+           fail_to_join_if_not_started,
+           fail_to_join_non_existing_store,
+           handle_leader_down_on_three_node_cluster_command
+          ]},
+         {group2, [parallel],
+          [
+           handle_leader_down_on_three_node_cluster_response,
+           projections_are_consistent_on_three_node_cluster,
+           projections_are_updated_when_a_snapshot_is_installed,
+           async_command_leader_change_in_three_node_cluster,
+           spam_txs_during_election,
+           spam_changes_during_unregister_projections
+          ]}
         ]}
       ]}
     ].
