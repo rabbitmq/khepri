@@ -167,10 +167,10 @@ init_per_testcase(Testcase, Config)
     PropsPerNode0 = [begin
                          {ok, _} = peer:call(
                                      Peer, application, ensure_all_started,
-                                     [khepri]),
+                                     [khepri], infinity),
                          Props = peer:call(
                                    Peer, helpers, start_ra_system,
-                                   [Testcase]),
+                                   [Testcase], infinity),
                          {Node, #{peer => Peer, props => Props}}
                      end || {Node, Peer} <- Nodes],
     PropsPerNode = maps:from_list(PropsPerNode0),
@@ -181,10 +181,10 @@ init_per_testcase(Testcase, Config)
     PropsPerNode0 = [begin
                          {ok, _} = peer:call(
                                      Peer, application, ensure_all_started,
-                                     [khepri]),
+                                     [khepri], infinity),
                          Props = peer:call(
                                    Peer, helpers, start_ra_system,
-                                   [Testcase]),
+                                   [Testcase], infinity),
                          {Node, #{peer => Peer, props => Props}}
                      end || {Node, Peer} <- Nodes],
     PropsPerNode = maps:from_list(PropsPerNode0),
@@ -691,6 +691,10 @@ can_start_a_three_node_cluster(Config) ->
     %% Running nodes should see the updated value however.
     lists:foreach(
       fun(Node) ->
+              ct:pal("- khepri:fence() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 call(Config, Node, khepri, fence, [StoreId])),
               ct:pal("- khepri:get() from node ~s", [Node]),
               ?assertEqual(
                  {ok, value4},
@@ -2662,8 +2666,8 @@ start_n_nodes(NamePrefix, Count) ->
     CodePath = code:get_path(),
     lists:foreach(
       fun({_Node, Peer}) ->
-              peer:call(Peer, code, add_pathsz, [CodePath]),
-              ok = peer:call(Peer, ?MODULE, setup_node, [])
+              peer:call(Peer, code, add_pathsz, [CodePath], infinity),
+              ok = peer:call(Peer, ?MODULE, setup_node, [], infinity)
       end, Nodes),
     Nodes.
 
@@ -2689,7 +2693,7 @@ call(Config, Node, Module, Func, Args) ->
 
 get_leader_in_store(Config, StoreId, [Node | _] = _RunningNodes) ->
     %% Query members; this is used to make sure there is an elected leader.
-    ct:pal("Trying to figure who the leader is in \"~s\"", [StoreId]),
+    ct:pal("Trying to figure out who the leader is in \"~s\"", [StoreId]),
     {ok, Members} = call(Config, Node, khepri_cluster, members, [StoreId]),
     Pids = [[Member, catch call(Config, N, erlang, whereis, [RegName])]
             || {RegName, N} = Member <- Members],

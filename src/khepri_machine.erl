@@ -1830,8 +1830,8 @@ trigger_delayed_aux_queries_eval({State, Result, SideEffects}, _Meta) ->
 %% @private
 
 state_enter(leader, State) ->
-    SideEffects1 = emitted_triggers_to_side_effects(State),
-    SideEffects1;
+    SideEffects = emitted_triggers_to_side_effects(State),
+    SideEffects;
 state_enter(recovered, _State) ->
     SideEffect = {aux, restore_projections},
     [SideEffect];
