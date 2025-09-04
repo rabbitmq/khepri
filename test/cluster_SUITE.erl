@@ -202,9 +202,10 @@ end_per_testcase(_Testcase, Config) ->
     PropsPerNode = ?config(ra_system_props, Config),
     maps:foreach(
       fun
-          (_Node, #{peer := Peer, props := Props}) ->
+          (Node, #{peer := Peer, props := Props}) ->
               _ = catch peer:call(
-                          Peer, helpers, stop_ra_system, [Props], infinity);
+                          Peer, helpers, stop_ra_system, [Props], infinity),
+              _ = catch stop_erlang_node(Node, Peer);
           (_Node, #{props := Props}) ->
               helpers:stop_ra_system(Props)
       end, PropsPerNode),
@@ -2677,6 +2678,7 @@ start_erlang_node(Name) ->
                                     wait_boot => infinity,
                                     connection => standard_io}),
     {Node, Peer}.
+
 stop_erlang_node(_Node, Peer) ->
     ok = peer:stop(Peer).
 
