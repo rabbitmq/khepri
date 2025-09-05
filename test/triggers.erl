@@ -564,8 +564,10 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
 
 make_sproc(Pid, Key) ->
     fun(Props) ->
-            #{on_action := OnAction, path := Path} = Props,
-            Pid ! {sproc, Key, {OnAction, Path}}
+            case Props of
+                #{path := Path, on_action := OnAction} ->
+                    Pid ! {sproc, Key, {OnAction, Path}}
+            end
     end.
 
 receive_sproc_msg(Key) ->
