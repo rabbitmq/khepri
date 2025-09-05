@@ -2416,32 +2416,37 @@ add_tree_change_side_effects(
   InitialState, NewState, AppliedChanges, SideEffects) ->
     %% We make a map where for each affected tree node, we indicate the type
     %% of change.
-    Changes = maps:map(
-                fun
-                    (_, {Type, _NodeProps})
-                      when Type =:= create orelse Type =:= update ->
-                        Type;
-                    (_, delete) ->
-                        delete
-                end, AppliedChanges),
+    Paths = lists:sort(maps:keys(AppliedChanges)),
+    Events = lists:map(
+               fun(Path) ->
+                       Change = case maps:get(Path, AppliedChanges) of
+                                    {Type, _NodeProps}
+                                      when Type =:= create orelse
+                                           Type =:= update ->
+                                        Type;
+                                    delete = Type ->
+                                        Type
+                                end,
+                       #ev_tree{path = Path, change = Change}
+               end, Paths),
     NewSideEffects = create_projection_side_effects(
-                       InitialState, NewState, Changes),
+                       InitialState, NewState, Events),
     {NewState1, NewSideEffects1} = add_trigger_side_effects(
-                                     InitialState, NewState, Changes,
+                                     InitialState, NewState, Events,
                                      NewSideEffects),
     SideEffects1 = lists:reverse(NewSideEffects1, SideEffects),
     {NewState1, SideEffects1}.
 
-create_projection_side_effects(InitialState, NewState, Changes) ->
+create_projection_side_effects(InitialState, NewState, Events) ->
     InitialTree = get_tree(InitialState),
     NewTree = get_tree(NewState),
     ProjectionTree0 = get_projections(NewState),
     ProjectionTree = get_compiled_projection_tree(ProjectionTree0),
-    maps:fold(
-      fun(Path, Change, Effects) ->
+    lists:foldl(
+      fun(#ev_tree{path = Path, change = Change}, Effects) ->
               create_projection_side_effects1(
                 InitialTree, NewTree, ProjectionTree, Path, Change, Effects)
-      end, [], Changes).
+      end, [], Events).
 
 create_projection_side_effects1(
   InitialTree, NewTree, ProjectionTree, Path, Change, Effects) ->
@@ -2508,7 +2513,7 @@ evaluate_projection(
     Effect = {aux, Trigger},
     [Effect | Effects].
 
-add_trigger_side_effects(InitialState, NewState, Changes, SideEffects) ->
+add_trigger_side_effects(InitialState, NewState, Events, SideEffects) ->
     %% We want to consider the new state (with the updated tree), but we want
     %% to use triggers from the initial state, in case they were updated too.
     %% In other words, we want to evaluate triggers in the state they were at
@@ -2519,10 +2524,8 @@ add_trigger_side_effects(InitialState, NewState, Changes, SideEffects) ->
             {NewState, SideEffects};
         false ->
             #config{store_id = StoreId} = get_config(NewState),
-            InitialTree = get_tree(InitialState),
-            NewTree = get_tree(NewState),
             TriggeredActions = list_triggered_actions(
-                                 InitialTree, NewTree, Changes, Triggers),
+                                 InitialState, NewState, Events, Triggers),
 
             %% We record the list of triggered actions in the state machine's
             %% state. This is used to guaranty at-least-once execution of the
@@ -2541,27 +2544,23 @@ add_trigger_side_effects(InitialState, NewState, Changes, SideEffects) ->
             {NewState1, SideEffects1}
     end.
 
-list_triggered_actions(InitialTree, NewTree, Changes, Triggers) ->
+list_triggered_actions(InitialState, NewState, Events, Triggers) ->
     TriggeredActions =
-    maps:fold(
-      fun(Path, Change, TA) ->
-              % For each change, we evaluate each trigger.
-              Tree = case Change of
-                         delete ->
-                             InitialTree;
-                         _ ->
-                             NewTree
-                     end,
+    lists:foldl(
+      fun(Event, TA) ->
+              %% For each change, we evaluate each trigger.
               maps:fold(
                 fun(TriggerId, TriggerProps, TA1) ->
                         evaluate_trigger(
-                          Tree, Path, Change, TriggerId, TriggerProps, TA1)
+                          InitialState, NewState, Event,
+                          TriggerId, TriggerProps, TA1)
                 end, TA, Triggers)
-      end, [], Changes),
+      end, [], Events),
     sort_triggered_actions(TriggeredActions).
 
 evaluate_trigger(
-  Tree, Path, Change, TriggerId,
+  InitialState, NewState,
+  #ev_tree{path = Path, change = Change} = Event, TriggerId,
   #{event_filter := #evf_tree{path = PathPattern,
                               props = EventFilterProps} = EventFilter
    } = Trigger,
@@ -2577,6 +2576,10 @@ evaluate_trigger(
                          #{sproc := SPP}           -> SPP;
                          #{action := {sproc, SPP}} -> SPP
                      end,
+    Tree = case Change of
+               delete -> get_tree(InitialState);
+               _      -> get_tree(NewState)
+           end,
     PathMatches = khepri_tree:does_path_match(Path, PathPattern, Tree),
     DefaultWatchedChanges = [create, update, delete],
     WatchedChanges = case EventFilterProps of
@@ -2603,12 +2606,10 @@ evaluate_trigger(
                 undefined ->
                     TriggeredActions;
                 StoredProc ->
-                    %% TODO: Use a record to format
-                    %% stored procedure arguments?
-                    EventProps = #{path => Path,
-                                   on_action => Change},
                     Triggered = case Trigger of
                                     #{sproc := _} ->
+                                        EventProps = #{path => Path,
+                                                       on_action => Change},
                                         #triggered{
                                            id = TriggerId,
                                            event_filter = EventFilter,
@@ -2621,7 +2622,7 @@ evaluate_trigger(
                                            event_filter = EventFilter,
                                            action = {sproc, StoredProc},
                                            where = Where,
-                                           props = EventProps}
+                                           event = Event}
                                 end,
                     [Triggered | TriggeredActions]
             end;
