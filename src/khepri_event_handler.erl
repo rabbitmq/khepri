@@ -15,6 +15,7 @@
 -include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
+-include("src/khepri_evf.hrl").
 -include("src/khepri_machine.hrl").
 
 -export([start_link/0,
@@ -94,8 +95,10 @@ handle_cast(
           (#triggered_v2{id = TriggerId,
                          action = {sproc, StoredProc},
                          event_filter = EventFilter,
-                         props = Props},
+                         event = #ev_tree{path = Path, change = Change}},
            S) ->
+              Props = #{path => Path,
+                        on_action => Change},
               run_triggered_sproc(
                 StoreId, TriggerId, StoredProc, EventFilter, Props, S)
       end, State, TriggeredActions),
