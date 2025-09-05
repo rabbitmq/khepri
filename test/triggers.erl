@@ -563,9 +563,13 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
       }]}.
 
 make_sproc(Pid, Key) ->
-    fun(Props) ->
-            #{on_action := OnAction, path := Path} = Props,
-            Pid ! {sproc, Key, {OnAction, Path}}
+    fun(PropsOrEvent) ->
+            case PropsOrEvent of
+                #{path := Path, on_action := OnAction} ->
+                    Pid ! {sproc, Key, {OnAction, Path}};
+                #ev_tree{path = Path, change = Change} ->
+                    Pid ! {sproc, Key, {Change, Path}}
+            end
     end.
 
 receive_sproc_msg(Key) ->
@@ -574,6 +578,6 @@ receive_sproc_msg(Key) ->
     end.
 
 receive_sproc_msg_with_props(Key) ->
-    receive {sproc, Key, Props} -> Props
-    after 1000                  -> timeout
+    receive {sproc, Key, PropsOrEvent} -> PropsOrEvent
+    after 1000                         -> timeout
     end.
