@@ -372,4 +372,4 @@
                        event_filter :: khepri_evf:event_filter(),
                        action :: khepri_event_handler:triggered_action(),
                        where :: khepri_event_handler:trigger_exec_loc(),
-                       props = #{} :: map()}).
+                       event = khepri_evf:event()}).

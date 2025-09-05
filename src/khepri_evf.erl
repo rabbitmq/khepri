@@ -69,11 +69,26 @@
 %%
 %% The default priority is 0.
 
+-type tree_event() :: #ev_tree{}.
+%% An event record representing a change tree change.
+%%
+%% The event has the following fields:
+%% <ul>
+%% <li>`path': the path of the affected tree node</li>
+%% <li>`change': the nature of the change (`create', `update' or
+%% `delete').</li>
+%% </ul>
+
+-type event() :: tree_event().
+%% An record representing an event.
+
 -export_type([event_filter/0,
               event_filter_or_compat/0,
               tree_event_filter/0,
               tree_event_filter_props/0,
-              priority/0]).
+              priority/0,
+              tree_event/0,
+              event/0]).
 
 -spec tree(PathPattern) -> EventFilter when
       PathPattern :: khepri_path:pattern(),
