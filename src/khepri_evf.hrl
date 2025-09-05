@@ -14,3 +14,6 @@
 
 -define(IS_KHEPRI_EVENT_FILTER(EventFilter),
         (is_record(EventFilter, evf_tree))).
+
+-record(ev_tree, {path :: khepri_path:native_path(),
+                  change :: create | update | delete}).

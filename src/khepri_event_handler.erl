@@ -96,10 +96,10 @@ handle_cast(
           (#triggered_v2{id = TriggerId,
                          action = {sproc, StoredProc},
                          event_filter = EventFilter,
-                         props = Props},
+                         event = Event},
            S) ->
               run_triggered_sproc(
-                StoreId, TriggerId, StoredProc, EventFilter, Props, S)
+                StoreId, TriggerId, StoredProc, EventFilter, Event, S)
       end, State, TriggeredActions),
     _ = khepri_machine:ack_triggers_execution(StoreId, TriggeredActions),
     {State2, Timeout} = log_accumulated_trigger_crashes(State1),
@@ -124,9 +124,9 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 run_triggered_sproc(
-  StoreId, TriggerId, StoredProc, EventFilter, Props,
+  StoreId, TriggerId, StoredProc, EventFilter, PropsOrEvent,
   #?MODULE{trigger_crashes = Crashes} = State) ->
-    Args = [Props],
+    Args = [PropsOrEvent],
     try
         %% TODO: Be flexible and accept a function with an arity of 0.
         _ = khepri_sproc:run(StoredProc, Args),
@@ -145,11 +145,11 @@ run_triggered_sproc(
                             "  Trigger ID: ~s~n"
                             "  Event filter:~n"
                             "    ~p~n"
-                            "  Event props:~n"
+                            "  Event (or its props):~n"
                             "    ~p~n"
                             "  Crash:~n"
                             "    ~ts",
-                            [StoreId, TriggerId, EventFilter, Props,
+                            [StoreId, TriggerId, EventFilter, PropsOrEvent,
                              khepri_utils:format_exception(
                                Class, Reason, Stacktrace,
                                #{column => 4})]),
