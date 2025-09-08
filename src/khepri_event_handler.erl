@@ -27,6 +27,30 @@
          terminate/2,
          code_change/3]).
 
+-type trigger_action() :: {sproc, khepri_path:native_path()}.
+%% The type of action associated with a trigger.
+%%
+%% It must be the path to a stored procedure.
+
+-type triggered_action() :: {sproc, horus:horus_fun()}.
+%% The action associated with a trigger once it is triggered.
+%%
+%% It is the stored procedure pointed to by the path in the triggered action's
+%% arguments.
+
+-type trigger_exec_loc() :: leader.
+%% Where to execute the triggered action.
+%%
+%% It supports the following locations:
+%% <ul>
+%% <li>`leader': the action is executed on the leader node at the time the
+%% action is triggered.</li>
+%% </ul>
+
+-export_type([trigger_action/0,
+              triggered_action/0,
+              trigger_exec_loc/0]).
+
 -define(SERVER, ?MODULE).
 
 -define(SILENCE_ERROR_FOR, 10000).
@@ -54,8 +78,7 @@ handle_call(Request, From, State) ->
     {reply, ok, State1, Timeout}.
 
 handle_cast(
-  {handle_triggered_actions, StoreId, TriggeredActions},
-  #?MODULE{trigger_crashes = Crashes} = State) ->
+  {handle_triggered_actions, StoreId, TriggeredActions}, State) ->
     State1 =
     lists:foldl(
       fun
@@ -64,43 +87,15 @@ handle_cast(
                       event_filter = EventFilter,
                       props = Props},
            S) ->
-              Args = [Props],
-              try
-                  %% TODO: Be flexible and accept a function with an arity of
-                  %% 0.
-                  _ = khepri_sproc:run(StoredProc, Args),
-                  S
-              catch
-                  Class:Reason:Stacktrace ->
-                      Key = {Class, Reason, Stacktrace},
-                      case Crashes of
-                          #{Key := {Timestamp, Count, Msg}} ->
-                              Crashes1 = Crashes#{
-                                           Key => {Timestamp, Count + 1, Msg}},
-                              S#?MODULE{trigger_crashes = Crashes1};
-                          _ ->
-                              Msg = io_lib:format(
-                                      "Triggered stored procedure crash~n"
-                                      "  Store ID: ~s~n"
-                                      "  Trigger ID: ~s~n"
-                                      "  Event filter:~n"
-                                      "    ~p~n"
-                                      "  Event props:~n"
-                                      "    ~p~n"
-                                      "  Crash:~n"
-                                      "    ~ts",
-                                      [StoreId, TriggerId, EventFilter, Props,
-                                       khepri_utils:format_exception(
-                                         Class, Reason, Stacktrace,
-                                         #{column => 4})]),
-                              ?LOG_ERROR(Msg, []),
-
-                              Timestamp = erlang:monotonic_time(millisecond),
-                              Crashes1 = Crashes#{
-                                           Key => {Timestamp, 1, Msg}},
-                              S#?MODULE{trigger_crashes = Crashes1}
-                      end
-              end
+              run_triggered_sproc(
+                StoreId, TriggerId, StoredProc, EventFilter, Props, S);
+          (#triggered_v2{id = TriggerId,
+                         action = {sproc, StoredProc},
+                         event_filter = EventFilter,
+                         props = Props},
+           S) ->
+              run_triggered_sproc(
+                StoreId, TriggerId, StoredProc, EventFilter, Props, S)
       end, State, TriggeredActions),
     _ = khepri_machine:ack_triggers_execution(StoreId, TriggeredActions),
     {State2, Timeout} = log_accumulated_trigger_crashes(State1),
@@ -123,6 +118,44 @@ terminate(_Reason, _State) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+run_triggered_sproc(
+  StoreId, TriggerId, StoredProc, EventFilter, Props,
+  #?MODULE{trigger_crashes = Crashes} = State) ->
+    Args = [Props],
+    try
+        %% TODO: Be flexible and accept a function with an arity of 0.
+        _ = khepri_sproc:run(StoredProc, Args),
+        State
+    catch
+        Class:Reason:Stacktrace ->
+            Key = {Class, Reason, Stacktrace},
+            case Crashes of
+                #{Key := {Timestamp, Count, Msg}} ->
+                    Crashes1 = Crashes#{Key => {Timestamp, Count + 1, Msg}},
+                    State#?MODULE{trigger_crashes = Crashes1};
+                _ ->
+                    Msg = io_lib:format(
+                            "Triggered stored procedure crash~n"
+                            "  Store ID: ~s~n"
+                            "  Trigger ID: ~s~n"
+                            "  Event filter:~n"
+                            "    ~p~n"
+                            "  Event props:~n"
+                            "    ~p~n"
+                            "  Crash:~n"
+                            "    ~ts",
+                            [StoreId, TriggerId, EventFilter, Props,
+                             khepri_utils:format_exception(
+                               Class, Reason, Stacktrace,
+                               #{column => 4})]),
+                    ?LOG_ERROR(Msg, []),
+
+                    Timestamp = erlang:monotonic_time(millisecond),
+                    Crashes1 = Crashes#{Key => {Timestamp, 1, Msg}},
+                    State#?MODULE{trigger_crashes = Crashes1}
+            end
+    end.
 
 log_accumulated_trigger_crashes(
   #?MODULE{trigger_crashes = Crashes} = State)
