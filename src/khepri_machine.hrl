@@ -37,6 +37,10 @@
                            event_filter :: khepri_evf:event_filter(),
                            sproc :: khepri_path:native_path()}).
 
+-record(register_trigger_v2, {id :: khepri:trigger_id(),
+                              event_filter :: khepri_evf:event_filter(),
+                              action :: khepri_event_handler:trigger_action()}).
+
 -record(ack_triggered, {triggered :: [khepri_machine:triggered()]}).
 
 -record(triggered, {id :: khepri:trigger_id(),
@@ -45,6 +49,14 @@
                     event_filter :: khepri_evf:event_filter(),
                     sproc :: horus:horus_fun(),
                     props = #{} :: map()}).
+
+-record(triggered_v2, {id :: khepri:trigger_id(),
+                       %% TODO: Do we need a ref to distinguish multiple
+                       %% instances of the same trigger?
+                       event_filter :: khepri_evf:event_filter(),
+                       action :: khepri_event_handler:triggered_action(),
+                       where :: khepri_event_handler:trigger_exec_loc(),
+                       props = #{} :: map()}).
 
 -record(register_projection, {pattern :: khepri_path:native_pattern(),
                               projection :: khepri_projection:projection()}).
