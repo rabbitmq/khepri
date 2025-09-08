@@ -123,7 +123,7 @@ convert_to_uniform_command_test() ->
                    args = #register_trigger_v1{
                              id = ?FUNCTION_NAME,
                              event_filter = khepri_evf:tree([foo]),
-                             sproc = [sproc]}}},
+                             action = {sproc, [sproc]}}}},
 
                {#ack_triggered{triggered = []},
                 #ack_triggered_v{args = #ack_triggered_v1{triggered = []}}},
@@ -166,7 +166,7 @@ convert_to_uniform_command_test() ->
                    args = #register_trigger_v1{
                              id = ?FUNCTION_NAME,
                              event_filter = khepri_evf:tree([foo]),
-                             sproc = [sproc]}},
+                             action = {sproc, [sproc]}}},
                 same},
 
                {#ack_triggered_v{args = #ack_triggered_v1{triggered = []}},

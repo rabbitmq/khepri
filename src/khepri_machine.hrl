@@ -29,7 +29,8 @@
           multi_table_projections     => 3,
 
           uniform_commands            => 4,
-          request_snapshot            => 4}).
+          request_snapshot            => 4,
+          extended_trigger            => 4}).
 
 %% Get the state machine version the given API behaviour was introduced in.
 %% This is similar to `khepri_machine:api_behaviour_to_machine_version/1' but
@@ -120,14 +121,13 @@
 -record(register_trigger_v1,
         {id :: khepri:trigger_id(),
          event_filter :: khepri_evf:event_filter(),
-         sproc :: khepri_path:native_path()}).
+         action :: khepri_event_handler:trigger_action()}).
 %% Trigger registration-specific attributes.
 %%
 %% <ul>
 %% <li>`id' is of identifier of the trigger.</li>
 %% <li>`event_filter' is the event filter for that trigger.</li>
-%% <li>`sproc' is the path to the stored procedure associated with the
-%% trigger.</li>
+%% <li>`action' is the action to be executed.</li>
 %% </ul>
 
 -record(register_trigger_v,
@@ -147,7 +147,16 @@
 %% Trigger ack-specific attributes.
 %%
 %% <ul>
-%% <li>`triggered' is a list of `#triggered{}' record.</li>
+%% <li>`triggered' is a list of `#triggered{}' records.</li>
+%% </ul>
+
+-record(ack_triggered_v2,
+        {triggered :: [khepri_machine:triggered_v2()]}).
+%% Trigger ack-specific attributes.
+%%
+%% <ul>
+%% <li>`triggered' is a list of `#triggered{}' or `#triggered_v2{}'
+%% records.</li>
 %% </ul>
 
 -record(ack_triggered_v,
@@ -356,3 +365,11 @@
                     event_filter :: khepri_evf:event_filter(),
                     sproc :: horus:horus_fun(),
                     props = #{} :: map()}).
+
+-record(triggered_v2, {id :: khepri:trigger_id(),
+                       %% TODO: Do we need a ref to distinguish multiple
+                       %% instances of the same trigger?
+                       event_filter :: khepri_evf:event_filter(),
+                       action :: khepri_event_handler:triggered_action(),
+                       where :: khepri_event_handler:trigger_exec_loc(),
+                       props = #{} :: map()}).
