@@ -2851,7 +2851,7 @@ register_trigger(TriggerId, EventFilter, StoredProcPath) ->
       EventFilter :: khepri_evf:event_filter() |
                      khepri_path:pattern(),
       StoredProcPath :: khepri_path:path(),
-      Options :: command_options() | khepri:tree_options(),
+      Options :: command_options(),
       Ret :: ok | error().
 %% @doc Registers a trigger.
 %%
@@ -2885,7 +2885,7 @@ register_trigger(TriggerId, EventFilter, StoredProcPath, Options)
       EventFilter :: khepri_evf:event_filter() |
                      khepri_path:pattern(),
       StoredProcPath :: khepri_path:path(),
-      Options :: command_options() | khepri:tree_options(),
+      Options :: command_options(),
       Ret :: ok | error().
 %% @doc Registers a trigger.
 %%
