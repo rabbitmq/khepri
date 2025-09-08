@@ -391,25 +391,6 @@ of {@link khepri_export_erlang}.
 
 == Stored procedures and triggers ==
 
-=== Triggering a function after some event ===
-
-It is possible to associate events with an anonymous function to trigger its
-execution when something happens. This is what is usually called a
-<em>trigger</em> in databases and Khepri supports this feature.
-
-Currently, Khepri supports a single type of event, <em>tree changes</em>. This
-event is emitted whenever a tree node is being created, updated or deleted.
-
-Here is a summary of what happens when such an event is emitted:
-<ol>
-<li>Khepri looks up any <em>event filters</em> which could match the emitted
-event.</li>
-<li>If one or more event filters are found, their corresponding stored
-procedures are executed.</li>
-</ol>
-
-The indicated stored procedure must have been stored in the tree first.
-
 === Storing an anonymous function ===
 
 This is possible to store an anonymous function as the payload of a tree node:
@@ -430,9 +411,8 @@ messages, read or write from a disk, generate random numbers and so on.
 
 A stored procedure can accept any numbers of arguments too.
 
-It is possible to execute a stored procedure directly without configuring any
-triggers. To execute a stored procedure, you can call {@link
-khepri:run_sproc/3}. Here is an example:
+It is possible to execute a stored procedure directly. To execute a stored
+procedure, you can call {@link khepri:run_sproc/3}. Here is an example:
 
 ```
 Ret = khepri:run_sproc(
@@ -444,6 +424,33 @@ Ret = khepri:run_sproc(
 This works exactly like {@link erlang:apply/2}. The list of arguments passed
 to {@link khepri:run_sproc/3} must correspond to the stored procedure
 arity.
+
+It's also possible to executed a stored procedure after an event happened; see
+below.
+
+=== Triggering a function after some event ===
+
+Khepri can associate events with an anonymous function to trigger its execution
+when something happens. This is what is usually called a <em>trigger</em> in
+databases.
+
+Khepri supports the following types of event:
+<ul>
+<li><em>tree changes</em>. This event is emitted whenever a tree node is being
+created, updated or deleted.</li>
+<li><em>process termination</em>. This event is emitted when a monitored
+process exits.</li>
+</ul>
+
+Here is a summary of what happens when such an event is emitted:
+<ol>
+<li>Khepri looks up any <em>event filters</em> which could match the emitted
+event.</li>
+<li>If one or more event filters are found, their corresponding stored
+procedures are executed.</li>
+</ol>
+
+The indicated stored procedure must have been stored in the tree first.
 
 === Configuring a trigger ===
 
@@ -489,6 +496,36 @@ Neither the monitored path nor the stored procedure (pointed to by
 stored procedure doesn't exist when an event occurs, the event filter is
 simply ignored. A stored procedure can change after an event filter is
 registered as well.
+
+A process-based event filter can be created like this:
+```
+EventFilter = khepri_evf:process(Pid,                %% Required
+                                 #{priority => 10}). %% Optional
+'''
+
+This makes the Ra leader of the Khepri cluster monitor the given process. When
+the process exits or if it's not running in the first place, it will trigger
+the execution of the trigger action.
+
+If the monitored process is on a different Erlang node than the Ra leader, the
+loss of connection between the two nodes (i.e. the `noconnection' exit reason)
+is handled in a specific way:
+<ul>
+<li>If the remote node is a member of the Khepri cluster, Khepri will start to
+monitor that node after receiving the `noconnection' exit reaison. Then two
+things can happen:
+<ul>
+<li>The node comes back online. In this case, processes that are supposed to
+run on it are monitored again. If the node was restarted and the processes were
+killed, this new monitoring will detect this situation.</li>
+<li>The node is removed from the cluster. In this case, it is unlikely to come
+back. Thus, the processes that were running on it are considered as dead.</li>
+</ul></li>
+<li>If the remote node is not a member of the Khepri cluster, Khepri will
+consider that the processes supposed to run on this node are dead, even if this
+is network partition and the node and its processes could be reachable again in
+the future.</li>
+</ul>
 
 The stored procedure used for a trigger must accept a single argument, a map
 containing properties of the emitted event:
