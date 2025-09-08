@@ -148,11 +148,16 @@ prepare_action_arg(
     Arg.
 
 event_type(#ev_tree{}) ->
-    tree.
+    tree;
+event_type(#ev_process{}) ->
+    process.
 
 event_to_props(#ev_tree{path = Path, change = Change}) ->
     #{path => Path,
-     change => Change}.
+      change => Change};
+event_to_props(#ev_process{pid = Pid, change = Change}) ->
+    #{pid => Pid,
+      change => Change}.
 
 action_to_props({sproc, _StoredProc}) ->
     #{}.

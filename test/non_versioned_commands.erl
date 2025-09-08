@@ -220,9 +220,14 @@ convert_to_uniform_command_test() ->
               end
       end, Records).
 
-ra_builtin_commands_test() ->
-    MachineVersion = {machine_version, 0, 1},
-    ?assertNot(khepri_machine:does_command_support_common_args(MachineVersion)),
-    ?assertEqual(
-       none,
-       khepri_machine:get_command_common_args(MachineVersion)).
+ra_builtin_commands_test_() ->
+    RaBuiltinCommands = [{down, self(), normal},
+                         {really_down, self(), normal},
+                         {nodeup, node()},
+                         {machine_version, 0, 1}],
+    [fun() ->
+         ?assertNot(khepri_machine:does_command_support_common_args(Command)),
+         ?assertEqual(
+            none,
+            khepri_machine:get_command_common_args(Command))
+     end || Command <- RaBuiltinCommands].
