@@ -39,7 +39,8 @@
 
 -record(register_trigger_v2, {id :: khepri:trigger_id(),
                               event_filter :: khepri_evf:event_filter(),
-                              action :: khepri_event_handler:trigger_action()}).
+                              action :: khepri_event_handler:trigger_action(),
+                              options = #{} :: khepri:trigger_options()}).
 
 -record(ack_triggered, {triggered :: [khepri_machine:triggered()]}).
 
