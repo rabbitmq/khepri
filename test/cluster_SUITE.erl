@@ -54,12 +54,18 @@
          async_command_leader_change_in_three_node_cluster/1,
          spam_txs_during_election/1,
          spam_changes_during_unregister_projections/1,
+         trigger_based_on_process_event_works/1,
+         process_event_is_delayed_during_node_down_1/1,
+         process_event_is_delayed_during_node_down_2/1,
+         process_event_is_delayed_during_node_down_3/1,
          trigger_runs_on_leader/1,
          trigger_runs_on_follower/1,
          trigger_runs_on_local_member/1,
          trigger_runs_on_all_members/1,
          trigger_runs_on_leader_if_non_member_target/1,
-         trigger_options_rejected_before_v3/1]).
+         trigger_options_rejected_before_v3/1,
+
+         start_monitored_proc/0]).
 
 all() ->
     [
@@ -88,7 +94,8 @@ groups() ->
            fail_to_start_with_bad_ra_server_config,
            initial_members_are_ignored,
            fail_to_join_non_existing_node,
-           can_set_snapshot_interval
+           can_set_snapshot_interval,
+           trigger_based_on_process_event_works
           ]}
         ]},
        {cluster, [],
@@ -113,7 +120,13 @@ groups() ->
            projections_are_updated_when_a_snapshot_is_installed,
            async_command_leader_change_in_three_node_cluster,
            spam_txs_during_election,
-           spam_changes_during_unregister_projections,
+           spam_changes_during_unregister_projections
+          ]},
+         {group3, [parallel],
+          [
+           process_event_is_delayed_during_node_down_1,
+           process_event_is_delayed_during_node_down_2,
+           process_event_is_delayed_during_node_down_3,
            trigger_runs_on_leader,
            trigger_runs_on_follower,
            trigger_runs_on_local_member,
@@ -162,6 +175,7 @@ init_per_testcase(Testcase, Config)
        Testcase =:= initial_members_are_ignored orelse
        Testcase =:= fail_to_join_non_existing_node orelse
        Testcase =:= can_set_snapshot_interval orelse
+       Testcase =:= trigger_based_on_process_event_works orelse
        Testcase =:= trigger_options_rejected_before_v3 ->
     {ok, _} = application:ensure_all_started(khepri),
     Props = helpers:start_ra_system(Testcase),
@@ -182,6 +196,9 @@ init_per_testcase(Testcase, Config)
        Testcase =:= projections_are_updated_when_a_snapshot_is_installed orelse
        Testcase =:= async_command_leader_change_in_three_node_cluster orelse
        Testcase =:= spam_changes_during_unregister_projections orelse
+       Testcase =:= process_event_is_delayed_during_node_down_1 orelse
+       Testcase =:= process_event_is_delayed_during_node_down_2 orelse
+       Testcase =:= process_event_is_delayed_during_node_down_3 orelse
        Testcase =:= trigger_runs_on_leader orelse
        Testcase =:= trigger_runs_on_follower orelse
        Testcase =:= trigger_runs_on_local_member orelse
@@ -2640,6 +2657,314 @@ spam_async_changes(Config, Parent, Node, StoreId, Path, Runs) ->
                 Config, Parent, Node, StoreId, Path, NewRuns)
     end.
 
+trigger_based_on_process_event_works(Config) ->
+    RaSystem = get_ra_system_name(Config),
+    StoreId = RaSystem,
+
+    ct:pal("Start database"),
+    ?assertEqual(
+       {ok, StoreId},
+       khepri:start(RaSystem, StoreId)),
+
+    TriggerId = ?FUNCTION_NAME,
+    Pid = start_monitored_proc(),
+    EventFilter = khepri_evf:process(Pid),
+    StoredProcPath = [sproc],
+
+    ct:pal("Put store procedure"),
+    SprocRet = ?FUNCTION_NAME,
+    ?assertEqual(
+       ok,
+       khepri:put(StoreId, StoredProcPath, make_sproc(self(), SprocRet))),
+
+    ct:pal("Register trigger"),
+    ?assertEqual(
+       ok,
+       khepri:register_trigger(
+         StoreId, TriggerId, EventFilter, StoredProcPath)),
+
+    ct:pal("Terminate process to trigger the stored procedure"),
+    Pid ! stop,
+
+    ct:pal("Wait for the trigger message from the leader node"),
+    receive
+        {sproc, SprocRet, Node, _Props} when Node =:= node() ->
+            ok
+    after 60000 ->
+              ct:pal(
+                "Messages in inbox:~n~p",
+                [erlang:process_info(self(), messages)]),
+              ct:fail("Did not receive the expected message from the trigger")
+    end,
+
+    ct:pal("Stop database"),
+    ?assertEqual(ok, khepri:stop(StoreId)),
+
+    ok.
+
+process_event_is_delayed_during_node_down_1(Config) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    PeerPerNode = ?config(peer_nodes, Config),
+    [Node1, _Node2, Node3] = Nodes = maps:keys(PropsPerNode),
+
+    %% We assume all nodes are using the same Ra system name & store ID.
+    RaSystem = get_ra_system_name(Config),
+    StoreId = RaSystem,
+
+    ct:pal("Start database + cluster nodes"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 call(Config, Node, khepri, start, [RaSystem, StoreId]))
+      end, Nodes),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:join() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 call(Config, Node, khepri_cluster, join, [StoreId, Node1]))
+      end, Nodes -- [Node1]),
+
+    TriggerId = ?FUNCTION_NAME,
+    MonitoredProcNode = Node3,
+    Pid = call(Config, MonitoredProcNode, ?MODULE, start_monitored_proc, []),
+    EventFilter = khepri_evf:process(Pid),
+    StoredProcPath = [sproc],
+
+    ct:pal("Put store procedure"),
+    ?assertEqual(
+       ok,
+       call(
+         Config, Node1,
+         khepri, put,
+         [StoreId, StoredProcPath, make_sproc(self(), TriggerId)])),
+
+    ct:pal("Register trigger"),
+    ?assertEqual(
+       ok,
+       call(
+         Config, Node1,
+         khepri, register_trigger,
+         [StoreId, TriggerId, EventFilter, StoredProcPath])),
+
+    ct:pal(
+      "Stop node ~s to trigger the process monitor",
+      [MonitoredProcNode]),
+    Peer = proplists:get_value(MonitoredProcNode, PeerPerNode),
+    ?assertEqual(ok, stop_erlang_node(MonitoredProcNode, Peer)),
+
+    ct:pal(
+      "Restart node ~s to trigger the node monitor",
+      [MonitoredProcNode]),
+    {ok, NewPeer, _Node} = peer:start(#{name => MonitoredProcNode,
+                                        wait_boot => infinity,
+                                        connection => standard_io}),
+    ?assertEqual(pong, peer:call(NewPeer, net_adm, ping, [Node1])),
+    peer:stop(NewPeer),
+
+    {_, LeaderNode} = get_leader_in_store(Config, StoreId, Nodes),
+
+    ct:pal("Wait for the trigger message from the leader node"),
+    receive
+        {sproc, TriggerId, LeaderNode, Event} ->
+            ct:pal("Process event: ~p", [Event]),
+            ?assertMatch(
+               #khepri_trigger{event = #{pid := Pid,
+                                         change := {'DOWN', Reason}}}
+                 when Reason =:= noproc orelse
+                      Reason =:= noconnection,
+               Event),
+            ok
+    after 60000 ->
+              ct:pal(
+                "Messages in inbox:~n~p",
+                [erlang:process_info(self(), messages)]),
+              ct:fail(
+                "Did not receive the expected message from the "
+                "trigger from ~s",
+                [LeaderNode])
+    end,
+
+    ok.
+
+process_event_is_delayed_during_node_down_2(Config) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    PeerPerNode = ?config(peer_nodes, Config),
+    [Node1, _Node2, Node3] = Nodes = maps:keys(PropsPerNode),
+
+    %% We assume all nodes are using the same Ra system name & store ID.
+    RaSystem = get_ra_system_name(Config),
+    StoreId = RaSystem,
+
+    ct:pal("Start database + cluster nodes"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 call(Config, Node, khepri, start, [RaSystem, StoreId]))
+      end, Nodes),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:join() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 call(Config, Node, khepri_cluster, join, [StoreId, Node1]))
+      end, Nodes -- [Node1]),
+
+    TriggerId = ?FUNCTION_NAME,
+    MonitoredProcNode = Node3,
+    Pid = call(Config, MonitoredProcNode, ?MODULE, start_monitored_proc, []),
+    EventFilter = khepri_evf:process(Pid),
+    StoredProcPath = [sproc],
+
+    ct:pal("Put store procedure"),
+    ?assertEqual(
+       ok,
+       call(
+         Config, Node1,
+         khepri, put,
+         [StoreId, StoredProcPath, make_sproc(self(), TriggerId)])),
+
+    ct:pal("Register trigger"),
+    ?assertEqual(
+       ok,
+       call(
+         Config, Node1,
+         khepri, register_trigger,
+         [StoreId, TriggerId, EventFilter, StoredProcPath])),
+
+    ct:pal(
+      "Stop node ~s to trigger the process monitor",
+      [MonitoredProcNode]),
+    Peer = proplists:get_value(MonitoredProcNode, PeerPerNode),
+    ?assertEqual(ok, stop_erlang_node(MonitoredProcNode, Peer)),
+
+    receive
+        {sproc, TriggerId, _LeaderNode, _Event} ->
+            ct:fail(
+              "Received the stored proc message before the monitored node "
+              "came back up")
+    after 2000 ->
+              ok
+    end,
+
+    ct:pal("Remove node ~s from cluster", [MonitoredProcNode]),
+    ?assertMatch(
+       {ok, _, _},
+       call(
+         Config, Node1,
+         ra, remove_member,
+         [{StoreId, Node1}, {StoreId, MonitoredProcNode}, infinity])),
+
+    {_, LeaderNode} = get_leader_in_store(Config, StoreId, Nodes),
+
+    ct:pal("Wait for the trigger message from the leader node"),
+    receive
+        {sproc, TriggerId, LeaderNode, Event} ->
+            ct:pal("Process event: ~p", [Event]),
+            ?assertMatch(
+               #khepri_trigger{event = #{pid := Pid,
+                                         change := {'DOWN', Reason}}}
+                 when Reason =:= noproc orelse
+                      Reason =:= noconnection,
+               Event),
+            ok
+    after 60000 ->
+              ct:pal(
+                "Messages in inbox:~n~p",
+                [erlang:process_info(self(), messages)]),
+              ct:fail(
+                "Did not receive the expected message from the "
+                "trigger from ~s",
+                [LeaderNode])
+    end,
+
+    ok.
+
+process_event_is_delayed_during_node_down_3(Config) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    PeerPerNode = ?config(peer_nodes, Config),
+    [Node1, Node2, Node3] = maps:keys(PropsPerNode),
+
+    %% Compared to `process_event_is_delayed_during_node_down_1', we only
+    %% cluster the first two nodes. Therefore, the monitored process will run
+    %% on a node that is outside of the Khepri cluster.
+    Nodes = [Node1, Node2],
+
+    %% We assume all nodes are using the same Ra system name & store ID.
+    RaSystem = get_ra_system_name(Config),
+    StoreId = RaSystem,
+
+    ct:pal("Start database + cluster nodes"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 call(Config, Node, khepri, start, [RaSystem, StoreId]))
+      end, Nodes),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:join() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 call(Config, Node, khepri_cluster, join, [StoreId, Node1]))
+      end, Nodes -- [Node1]),
+
+    TriggerId = ?FUNCTION_NAME,
+    MonitoredProcNode = Node3,
+    Pid = call(Config, MonitoredProcNode, ?MODULE, start_monitored_proc, []),
+    EventFilter = khepri_evf:process(Pid),
+    StoredProcPath = [sproc],
+
+    ct:pal("Put store procedure"),
+    ?assertEqual(
+       ok,
+       call(
+         Config, Node1,
+         khepri, put,
+         [StoreId, StoredProcPath, make_sproc(self(), TriggerId)])),
+
+    ct:pal("Register trigger"),
+    ?assertEqual(
+       ok,
+       call(
+         Config, Node1,
+         khepri, register_trigger,
+         [StoreId, TriggerId, EventFilter, StoredProcPath])),
+
+    ct:pal(
+      "Stop database on leader node ~s (quorum is maintained)",
+      [Node1]),
+    Peer = proplists:get_value(MonitoredProcNode, PeerPerNode),
+    ?assertEqual(ok, stop_erlang_node(MonitoredProcNode, Peer)),
+
+    {_, LeaderNode} = get_leader_in_store(Config, StoreId, Nodes),
+
+    ct:pal("Wait for the trigger message from the leader node"),
+    receive
+        {sproc, TriggerId, LeaderNode, Event} ->
+            ct:pal("Process event: ~p", [Event]),
+            ?assertMatch(
+               #khepri_trigger{event = #{pid := Pid,
+                                         change := {'DOWN', noconnection}}},
+               Event),
+            ok
+    after 60000 ->
+              ct:pal(
+                "Messages in inbox:~n~p",
+                [erlang:process_info(self(), messages)]),
+              ct:fail(
+                "Did not receive the expected message from the "
+                "trigger from ~s",
+                [LeaderNode])
+    end,
+
+    ok.
+
 trigger_runs_on_leader(Config) ->
     trigger_runs_on_where(Config, ?FUNCTION_NAME, leader).
 
@@ -2860,6 +3185,14 @@ make_sproc(Pid, Testcase) ->
     fun(Props) ->
             Pid ! {sproc, Testcase, node(), Props}
     end.
+
+start_monitored_proc() ->
+    spawn(fun() ->
+                  receive
+                      _ ->
+                          ok
+                  end
+          end).
 
 wait_for_leader_to_be(Config, WantedLeaderId) ->
     PropsPerNode = ?config(ra_system_props, Config),
