@@ -562,13 +562,61 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
          ?_assertEqual(executed, receive_sproc_msg(Key))}]
       }]}.
 
+trigger_based_on_process_event_test_() ->
+    Parent = self(),
+    Pid = spawn_link(fun() ->
+                             receive
+                                 _ ->
+                                     erlang:unlink(Parent)
+                             end
+                     end),
+    EventFilter = khepri_evf:process(Pid),
+    StoredProcPath = [sproc],
+    Key = ?FUNCTION_NAME,
+
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [{"Store a procedure",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, StoredProcPath,
+              make_sproc(self(), Key)))},
+        {"Register a trigger",
+         ?_assertEqual(
+            ok,
+            khepri:register_trigger(
+              ?FUNCTION_NAME,
+              ?FUNCTION_NAME,
+              EventFilter,
+              StoredProcPath))},
+        {"Terminate process",
+         ?_assert(begin
+                      MRef = erlang:monitor(process, Pid),
+                      Pid ! stop,
+                      receive
+                          {'DOWN', MRef, process, Pid, _Reason} ->
+                              true
+                      end
+                  end)},
+        {"Wait for the trigger message",
+         ?_assert(receive
+                      {sproc, Key, _Props} ->
+                          true
+                  end)}]
+      }]}.
+
 make_sproc(Pid, Key) ->
     fun(PropsOrEvent) ->
             case PropsOrEvent of
                 #{path := Path, on_action := OnAction} ->
                     Pid ! {sproc, Key, {OnAction, Path}};
                 #ev_tree{path = Path, change = Change} ->
-                    Pid ! {sproc, Key, {Change, Path}}
+                    Pid ! {sproc, Key, {Change, Path}};
+                #ev_process{pid = MonitoredPid, change = Change} ->
+                    Pid ! {sproc, Key, {Change, MonitoredPid}}
             end
     end.
 

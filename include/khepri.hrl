@@ -133,6 +133,9 @@
 -record(ev_tree, {path :: khepri_path:native_path(),
                   change :: create | update | delete}).
 
+-record(ev_process, {pid :: pid(),
+                     change :: {'DOWN', any()}}).
+
 %% -------------------------------------------------------------------
 %% Error tuple format.
 %% -------------------------------------------------------------------
