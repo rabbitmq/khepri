@@ -87,6 +87,9 @@
 %% <li>Started to cache the list of cluster member nodenames in the machine
 %% state. The machine state was modified to add the `cached_members' list at
 %% its end.</li>
+%% <li>Added the `where' option for triggers, to allow the caller to decide on
+%% which cluster member(s) the trigger action is executed. See {@link
+%% khepri:trigger_options()}.</li>
 %% </ul>
 %% </td>
 %% </tr>
@@ -752,7 +755,7 @@ handle_tx_exception(
       TriggerId :: khepri:trigger_id(),
       EventFilter :: khepri_evf:event_filter_or_compat(),
       StoredProcPath :: khepri_path:path(),
-      Options :: khepri:command_options(),
+      Options :: khepri:command_options() | khepri:trigger_options(),
       Ret :: ok | khepri:error().
 %% @doc Registers a trigger.
 %%
@@ -762,6 +765,7 @@ handle_tx_exception(
 %%        stored procedure.
 %% @param StoredProcPath the path to the stored procedure to execute when the
 %%        corresponding event occurs.
+%% @param Options command and trigger options map.
 %%
 %% @returns `ok' if the trigger was registered, an `{error, Reason}' tuple
 %% otherwise.
@@ -772,35 +776,63 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options)
     EventFilter1 = khepri_evf:wrap(EventFilter),
     StoredProcPath1 = khepri_path:from_string(StoredProcPath),
     khepri_path:ensure_is_valid(StoredProcPath1),
+    {CommandOptions, NonCommandOptions} = split_command_options(
+                                            StoreId, Options),
     case does_api_comply_with(uniform_commands, StoreId) of
         true ->
             register_trigger_versioned(
               StoreId, TriggerId, EventFilter1, StoredProcPath1,
-              Options);
+              CommandOptions, NonCommandOptions);
         false ->
             register_trigger_nonversioned(
               StoreId, TriggerId, EventFilter1, StoredProcPath1,
-              Options)
+              CommandOptions, NonCommandOptions)
     end.
 
 register_trigger_nonversioned(
-  StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
-    Command = #register_trigger{id = TriggerId,
-                                event_filter = EventFilter,
-                                sproc = StoredProcPath},
-    process_command(StoreId, Command, Options).
+  StoreId, TriggerId, EventFilter, StoredProcPath,
+  CommandOptions, NonCommandOptions) ->
+    UnsupportedOptions = maps:filter(
+                           fun
+                               (where, _) -> true;
+                               (_, _)     -> false
+                           end, NonCommandOptions),
+    if
+        UnsupportedOptions =:= #{} ->
+            Command = #register_trigger{id = TriggerId,
+                                        event_filter = EventFilter,
+                                        sproc = StoredProcPath},
+            process_command(StoreId, Command, CommandOptions);
+        true ->
+            ?khepri_misuse(
+               unsupported_trigger_options,
+               #{trigger_id => TriggerId,
+                 event_filter => EventFilter,
+                 options => UnsupportedOptions})
+    end.
 
 register_trigger_versioned(
-  StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
+  StoreId, TriggerId, EventFilter, StoredProcPath,
+  CommandOptions, NonCommandOptions) ->
     ?assert(does_api_comply_with(extended_trigger, StoreId)),
     StoredProcPath1 = khepri_path:realpath(StoredProcPath),
     Action = {sproc, StoredProcPath1},
+    NonCommandOptions1 = case NonCommandOptions of
+                             #{where := local} ->
+                                 %% Interpret the `local' value and replace it
+                                 %% with this node name.
+                                 Where = {member, node()},
+                                 NonCommandOptions#{where => Where};
+                             _ ->
+                                 NonCommandOptions
+                         end,
     CommandArgs = #register_trigger_v1{
                      id = TriggerId,
                      event_filter = EventFilter,
-                     action = Action},
+                     action = Action,
+                     options = NonCommandOptions1},
     Command = #register_trigger_v{args = CommandArgs},
-    process_command(StoreId, Command, Options).
+    process_command(StoreId, Command, CommandOptions).
 
 -spec register_projection(StoreId, PathPattern, Projection, Options) ->
     Ret when
@@ -1015,7 +1047,9 @@ split_query_options(StoreId, Options) ->
       StoreId :: khepri:store_id(),
       Options :: CommandOptions | NonCommandOptions,
       CommandOptions :: khepri:command_options(),
-      NonCommandOptions :: khepri:tree_options() | khepri:put_options().
+      NonCommandOptions :: khepri:tree_options() |
+                           khepri:put_options() |
+                           khepri:trigger_options().
 %% @private
 
 split_command_options(StoreId, Options) ->
@@ -1043,6 +1077,11 @@ split_command_options(StoreId, Options) ->
               KeepWhile1 = khepri_condition:ensure_native_keep_while(
                              KeepWhile),
               NC1 = NC#{keep_while => KeepWhile1},
+              {C, NC1};
+          (where, Where, {C, NC}) ->
+              %% `where' is kept in `NonCommandOptions' here. The state
+              %% machine will extract it in `apply()'.
+              NC1 = NC#{where => Where},
               {C, NC1}
       end, {#{}, #{}}, Options1).
 
@@ -1606,8 +1645,9 @@ init_aux(StoreId) ->
       Command :: any(),
       AuxState :: aux_state(),
       IntState :: ra_aux:internal_state(),
-      Ret :: {no_reply, AuxState, IntState} |
-             {no_reply, AuxState, IntState, Effects},
+      Ret :: {no_reply, NewAuxState, IntState} |
+             {no_reply, NewAuxState, IntState, Effects},
+      NewAuxState :: aux_state(),
       Effects :: ra_machine:effects().
 %% @private
 
@@ -1707,8 +1747,34 @@ handle_aux(leader, cast, tick, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
     SideEffects0 = [],
     SideEffects1 = handle_expired_dedups(AuxState1, IntState, SideEffects0),
+    SideEffects2 = handle_irrelevant_triggers(AuxState1, IntState, SideEffects1),
 
-    {no_reply, AuxState1, IntState, SideEffects1};
+    {no_reply, AuxState1, IntState, SideEffects2};
+handle_aux(
+  RaState, cast,
+  {handle_triggered_actions, TriggeredActions},
+  #khepri_machine_aux{store_id = StoreId} = AuxState,
+  IntState) ->
+    AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+
+    Cluster = ra_aux:members_info(IntState),
+    TriggeredActions1 = lists:filter(
+                          fun
+                              (#triggered_v2{where = {member, MemberNode}}) ->
+                                  %% If the target member is not a cluster
+                                  %% member, we run the trigger on the leader.
+                                  MemberNode =:= node() orelse
+                                  (RaState =:= leader andalso
+                                   begin
+                                       Member = {StoreId, MemberNode},
+                                       IsMember = maps:is_key(Member, Cluster),
+                                       not IsMember
+                                   end);
+                              (#triggered_v2{where = _}) ->
+                                  false
+                          end, TriggeredActions),
+    khepri_event_handler:handle_triggered_actions(StoreId, TriggeredActions1),
+    {no_reply, AuxState1, IntState};
 handle_aux(_RaState, _Type, _Command, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
     {no_reply, AuxState1, IntState}.
@@ -1814,6 +1880,34 @@ handle_expired_dedups(AuxState, IntState, SideEffects) ->
             end;
         _ ->
             SideEffects
+    end.
+
+handle_irrelevant_triggers(AuxState, IntState, SideEffects) ->
+    %% Now that we can run triggers on followers, we need to verify if they
+    %% are still in the cluster at the time of execution. If they are not in
+    %% the cluster anymore, we can remove the non-acked emitted triggers from
+    %% the machine state because they won't be acked.
+    #khepri_machine_aux{store_id = StoreId} = AuxState,
+    Cluster = ra_aux:members_info(IntState),
+    State = ra_aux:machine_state(IntState),
+    EmittedTriggers = get_emitted_triggers(State),
+    CancelledTriggers = lists:filter(
+                          fun
+                              (#triggered_v2{where = {member, Node}}) ->
+                                  PossibleMember = {StoreId, Node},
+                                  not maps:is_key(PossibleMember, Cluster);
+                              (_) ->
+                                  false
+                          end, EmittedTriggers),
+    case CancelledTriggers of
+        [] ->
+            SideEffects;
+        _ ->
+            Command = #ack_triggered_v{
+                         args = #ack_triggered_v1{
+                                   triggered = CancelledTriggers}},
+            SideEffect = {append, Command},
+            [SideEffect | SideEffects]
     end.
 
 restore_projection(Projection, Tree, PathPattern) ->
@@ -1965,13 +2059,15 @@ do_apply(
   #register_trigger_v{
      args = #register_trigger_v1{id = TriggerId,
                                  event_filter = EventFilter,
-                                 action = Action}} = Command,
+                                 action = Action,
+                                 options = Options}} = Command,
   State) ->
     Triggers = get_triggers(State),
     EventFilter1 = normalize_event_filter(EventFilter),
+    Where = maps:get(where, Options, leader),
     Triggers1 = Triggers#{TriggerId => #{event_filter => EventFilter1,
                                          action => Action,
-                                         where => leader}},
+                                         where => Where}},
     State1 = set_triggers(State, Triggers1),
     Ret = {State1, ok},
     post_apply(Ret, Meta, Command);
@@ -2576,7 +2672,7 @@ compute_command_size(Command) ->
 %% @private
 
 state_enter(leader, State) ->
-    SideEffects = emitted_triggers_to_side_effects(State),
+    SideEffects = emitted_triggers_to_side_effects(State, leader),
     SideEffects;
 state_enter(recovered, _State) ->
     SideEffects = [{aux, restore_projections},
@@ -2603,24 +2699,57 @@ snapshot_installed(
     OldState1 = convert_state(OldState, OldMacVer, NewMacVer),
     ok = update_projections(OldState1, NewState),
     ok = clear_compiled_projection_tree(),
-    SideEffects = [{aux, cache_effective_machine_version}],
-    SideEffects.
+
+    SideEffects1 = [{aux, cache_effective_machine_version}],
+
+    %% Triggers might have been emitted to run on this Ra member between the
+    %% old state and the new one. Let's filter all new emitted triggers and
+    %% reschedule execution if any. The fact that they should run on this Ra
+    %% member is verified in the aux handler.
+    EmittedTriggers1 = get_emitted_triggers(OldState),
+    EmittedTriggers2 = get_emitted_triggers(NewState),
+    NewlyEmittedTriggers = EmittedTriggers2 -- EmittedTriggers1,
+    SideEffects2 = emitted_triggers_to_side_effects(
+                     NewState, follower, NewlyEmittedTriggers, SideEffects1),
+
+    SideEffects2.
 
 %% @private
 
-emitted_triggers_to_side_effects(State) ->
+emitted_triggers_to_side_effects(State, RaState) ->
     StoreId = get_store_id(State),
     EmittedTriggers = get_emitted_triggers(State),
-    case EmittedTriggers of
-        [_ | _] ->
-            SideEffect = {mod_call,
-                          khepri_event_handler,
-                          handle_triggered_actions,
-                          [StoreId, EmittedTriggers]},
-            [SideEffect];
-        [] ->
-            []
-    end.
+    emitted_triggers_to_side_effects(StoreId, RaState, EmittedTriggers, []).
+
+emitted_triggers_to_side_effects(
+  StoreId, RaState, TriggeredActions, SideEffects) ->
+    {ModCalls, AuxEvents} = split_actions_executed_on_leader(
+                              TriggeredActions),
+    SideEffects1 = case ModCalls of
+                       [] ->
+                           SideEffects;
+                       _ when RaState =/= leader ->
+                           SideEffects;
+                       _ ->
+                           %% We emit a `mod_call' effect to wake up the event
+                           %% handler process so it doesn't have to poll the
+                           %% internal list.
+                           SideEffect1 = {mod_call,
+                                          khepri_event_handler,
+                                          handle_triggered_actions,
+                                          [StoreId, ModCalls]},
+                           [SideEffect1 | SideEffects]
+                   end,
+    SideEffects2 = case AuxEvents of
+                       [] ->
+                           SideEffects1;
+                       _ ->
+                           SideEffect2 = {aux,
+                                          {handle_triggered_actions,
+                                           AuxEvents}},
+                           [SideEffect2 | SideEffects1]
+                   end,
+    SideEffects2.
 
 -spec overview(State) -> Overview when
       State :: khepri_machine:state(),
@@ -3069,13 +3198,9 @@ add_trigger_side_effects(InitialState, NewState, Events, SideEffects) ->
             NewState1 = set_emitted_triggers(
                           NewState, EmittedTriggers ++ TriggeredActions),
 
-            %% We emit a `mod_call' effect to wake up the event handler
-            %% process so it doesn't have to poll the internal list.
-            SideEffect = {mod_call,
-                          khepri_event_handler,
-                          handle_triggered_actions,
-                          [StoreId, TriggeredActions]},
-            {NewState1, [SideEffect | SideEffects]}
+            SideEffects1 = emitted_triggers_to_side_effects(
+                             StoreId, leader, TriggeredActions, SideEffects),
+            {NewState1, SideEffects1}
     end.
 
 list_triggered_actions(InitialState, NewState, Events, Triggers) ->
@@ -3218,6 +3343,16 @@ get_trigger_id_and_event_filter(
 get_trigger_id_and_event_filter(
   #triggered_v2{id = Id, event_filter = EventFilter}) ->
     {Id, EventFilter}.
+
+split_actions_executed_on_leader(TriggeredActions) ->
+    lists:partition(
+      fun
+          (#triggered{}) ->
+              %% Old triggers are always executed on the leader.
+              true;
+          (#triggered_v2{where = Where}) ->
+              Where =:= leader
+      end, TriggeredActions).
 
 -spec get_compiled_projection_tree(ProjectionTree) -> CompiledProjectionTree
     when
