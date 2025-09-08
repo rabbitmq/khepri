@@ -53,7 +53,12 @@
          projections_are_updated_when_a_snapshot_is_installed/1,
          async_command_leader_change_in_three_node_cluster/1,
          spam_txs_during_election/1,
-         spam_changes_during_unregister_projections/1]).
+         spam_changes_during_unregister_projections/1,
+         trigger_runs_on_leader/1,
+         trigger_runs_on_follower/1,
+         trigger_runs_on_local_member/1,
+         trigger_runs_on_leader_if_non_member_target/1,
+         trigger_options_rejected_before_v3/1]).
 
 all() ->
     [
@@ -69,7 +74,8 @@ groups() ->
          {non_parallel, [],
           [
            can_use_default_store_on_single_node,
-           can_start_store_in_specified_data_dir_on_single_node
+           can_start_store_in_specified_data_dir_on_single_node,
+           trigger_options_rejected_before_v3
           ]},
          {parallel, [parallel],
           [
@@ -106,7 +112,11 @@ groups() ->
            projections_are_updated_when_a_snapshot_is_installed,
            async_command_leader_change_in_three_node_cluster,
            spam_txs_during_election,
-           spam_changes_during_unregister_projections
+           spam_changes_during_unregister_projections,
+           trigger_runs_on_leader,
+           trigger_runs_on_follower,
+           trigger_runs_on_local_member,
+           trigger_runs_on_leader_if_non_member_target
           ]}
         ]}
       ]}
@@ -149,7 +159,8 @@ init_per_testcase(Testcase, Config)
        Testcase =:= fail_to_start_with_bad_ra_server_config orelse
        Testcase =:= initial_members_are_ignored orelse
        Testcase =:= fail_to_join_non_existing_node orelse
-       Testcase =:= can_set_snapshot_interval ->
+       Testcase =:= can_set_snapshot_interval orelse
+       Testcase =:= trigger_options_rejected_before_v3 ->
     {ok, _} = application:ensure_all_started(khepri),
     Props = helpers:start_ra_system(Testcase),
     [{ra_system_props, #{node() => #{props => Props}}} | Config];
@@ -168,7 +179,11 @@ init_per_testcase(Testcase, Config)
        Testcase =:= projections_are_consistent_on_three_node_cluster orelse
        Testcase =:= projections_are_updated_when_a_snapshot_is_installed orelse
        Testcase =:= async_command_leader_change_in_three_node_cluster orelse
-       Testcase =:= spam_changes_during_unregister_projections ->
+       Testcase =:= spam_changes_during_unregister_projections orelse
+       Testcase =:= trigger_runs_on_leader orelse
+       Testcase =:= trigger_runs_on_follower orelse
+       Testcase =:= trigger_runs_on_local_member orelse
+       Testcase =:= trigger_runs_on_leader_if_non_member_target->
     Nodes = start_n_nodes(Testcase, 3),
     PropsPerNode0 = [begin
                          {ok, _} = peer:call(
@@ -2621,6 +2636,268 @@ spam_async_changes(Config, Parent, Node, StoreId, Path, Runs) ->
               spam_async_changes(
                 Config, Parent, Node, StoreId, Path, NewRuns)
     end.
+
+trigger_runs_on_leader(Config) ->
+    trigger_runs_on_where(Config, ?FUNCTION_NAME, leader).
+
+trigger_runs_on_follower(Config) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    [Node1 | _] = maps:keys(PropsPerNode),
+    trigger_runs_on_where(Config, ?FUNCTION_NAME, {member, Node1}).
+
+trigger_runs_on_local_member(Config) ->
+    trigger_runs_on_where(Config, ?FUNCTION_NAME, local).
+
+trigger_runs_on_leader_if_non_member_target(Config) ->
+    trigger_runs_on_where(Config, ?FUNCTION_NAME, {member, node()}).
+
+trigger_runs_on_where(Config, Testcase, Where) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
+
+    %% We assume all nodes are using the same Ra system name & store ID.
+    RaSystem = get_ra_system_name(Config),
+    StoreId = RaSystem,
+
+    ct:pal("Start database + cluster nodes"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 call(Config, Node, khepri, start, [RaSystem, StoreId]))
+      end, Nodes),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:join() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 call(Config, Node, khepri_cluster, join, [StoreId, Node3]))
+      end, [Node1, Node2]),
+
+    Path = [foo],
+    EventFilter = khepri_evf:tree(Path),
+    StoredProcPath = [sproc],
+
+    ct:pal("Put store procedure"),
+    ?assertEqual(
+       ok,
+       call(
+         Config, Node1,
+         khepri, put,
+         [StoreId, StoredProcPath, make_sproc(self(), Testcase)])),
+
+    ct:pal("Register trigger"),
+    RegisterNode = Node2,
+    ?assertEqual(
+       ok,
+       call(
+         Config, RegisterNode,
+         khepri, register_trigger,
+         [StoreId, Testcase, EventFilter, StoredProcPath,
+          #{where => Where}])),
+
+    ct:pal("Put a value in the store to trigger the stored procedure"),
+    ?assertEqual(
+       ok,
+       call(Config, Node1, khepri, put, [StoreId, Path, value])),
+
+    case Where of
+        leader ->
+            {_, LeaderNode} = get_leader_in_store(Config, StoreId, Nodes),
+
+            ct:pal("Wait for the trigger message from the leader node"),
+            receive
+                {sproc, Testcase, LeaderNode, _Props1} ->
+                    ok
+            after 60000 ->
+                      ct:pal(
+                        "Messages in inbox:~n~p",
+                        [erlang:process_info(self(), messages)]),
+                      ct:fail(
+                        "Did not receive the expected message from the "
+                        "trigger from ~s",
+                        [LeaderNode])
+            end,
+            receive
+                {sproc, Testcase, _MemberNode, _Props2} = Message ->
+                    ct:fail(
+                      "Received an unexpected message from the trigger:~n~p",
+                      [Message])
+            after 1000 ->
+                      ok
+            end;
+        {member, MemberNode}
+          when MemberNode =:= Node1 orelse
+               MemberNode =:= Node2 orelse
+               MemberNode =:= Node3 ->
+            %% We ensure the target member is not the leader.
+            {_, LeaderNode} = get_leader_in_store(Config, StoreId, Nodes),
+            [FutureLeader | _] = Nodes -- [MemberNode, LeaderNode],
+            ct:pal(
+              "Transter leadership from ~s to ~s",
+              [LeaderNode, FutureLeader]),
+            ?assertEqual(
+               ok,
+               call(
+                 Config, Node1, ra, transfer_leadership,
+                 [{StoreId, LeaderNode}, {StoreId, FutureLeader}])),
+
+            WantedLeaderId = {StoreId, FutureLeader},
+            wait_for_leader_to_be(Config, WantedLeaderId),
+            lists:foreach(
+              fun(Node) ->
+                      ?assertEqual(
+                         WantedLeaderId,
+                         get_leader_in_store(Config, StoreId, [Node])),
+                      ?assertNotEqual(FutureLeader, MemberNode)
+              end, Nodes),
+
+            ct:pal("Wait for the trigger message from a follower node"),
+            receive
+                {sproc, Testcase, MemberNode, _Props1} ->
+                    ok
+            after 60000 ->
+                      ct:pal(
+                        "Messages in inbox:~n~p",
+                        [erlang:process_info(self(), messages)]),
+                      ct:fail(
+                        "Did not receive the expected message from the "
+                        "trigger from ~s",
+                        [MemberNode])
+            end,
+            receive
+                {sproc, Testcase, _MemberNode, _Props2} = Message ->
+                    ct:fail(
+                      "Received an unexpected message from the trigger:~n~p",
+                      [Message])
+            after 1000 ->
+                      ok
+            end;
+        {member, _NonMemberNode} ->
+            %% The target node is not part of the cluster. In this case, the
+            %% message comes from the leader.
+            {_, LeaderNode} = get_leader_in_store(Config, StoreId, Nodes),
+
+            ct:pal("Wait for the trigger message from the leader node"),
+            receive
+                {sproc, Testcase, LeaderNode, _Props1} ->
+                    ok
+            after 60000 ->
+                      ct:pal(
+                        "Messages in inbox:~n~p",
+                        [erlang:process_info(self(), messages)]),
+                      ct:fail(
+                        "Did not receive the expected message from the "
+                        "trigger from ~s",
+                        [LeaderNode])
+            end,
+            receive
+                {sproc, Testcase, _MemberNode, _Props2} = Message ->
+                    ct:fail(
+                      "Received an unexpected message from the trigger:~n~p",
+                      [Message])
+            after 1000 ->
+                      ok
+            end;
+        local ->
+            ct:pal("Wait for the trigger message from the local node"),
+            receive
+                {sproc, Testcase, RegisterNode, _Props1} ->
+                    ok
+            after 60000 ->
+                      ct:pal(
+                        "Messages in inbox:~n~p",
+                        [erlang:process_info(self(), messages)]),
+                      ct:fail(
+                        "Did not receive the expected message from the "
+                        "trigger from ~s",
+                        [RegisterNode])
+            end,
+            receive
+                {sproc, Testcase, _MemberNode, _Props2} = Message ->
+                    ct:fail(
+                      "Received an unexpected message from the trigger:~n~p",
+                      [Message])
+            after 1000 ->
+                      ok
+            end
+    end,
+    ok.
+
+make_sproc(Pid, Testcase) ->
+    fun(Props) ->
+            Pid ! {sproc, Testcase, node(), Props}
+    end.
+
+wait_for_leader_to_be(Config, WantedLeaderId) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    Nodes = maps:keys(PropsPerNode),
+    wait_for_leader_to_be(Config, WantedLeaderId, Nodes, 60000).
+
+wait_for_leader_to_be(
+  Config,
+  {StoreId, _LeaderNode} = WantedLeaderId,
+  [Node | Rest] = Nodes,
+  TimeLeft) when TimeLeft >= 0 ->
+    LeaderId = call(Config, Node, ra_leaderboard, lookup_leader, [StoreId]),
+    case LeaderId of
+        WantedLeaderId ->
+            wait_for_leader_to_be(Config, WantedLeaderId, Rest, TimeLeft);
+        _ ->
+            Sleep = 500,
+            timer:sleep(Sleep),
+            TimeLeft1 = TimeLeft - Sleep,
+            wait_for_leader_to_be(Config, WantedLeaderId, Nodes, TimeLeft1)
+    end;
+wait_for_leader_to_be(_Config, _WantedLeaderId, [], _TimeLeft) ->
+    ok;
+wait_for_leader_to_be(_Config, WantedLeaderId, [Node | _], TimeLeft)
+  when TimeLeft < 0 ->
+    ct:fail(
+      "Timeout while waiting for leader to become ~0p on node ~p",
+      [WantedLeaderId, Node]).
+
+trigger_options_rejected_before_v3(Config) ->
+    RaSystem = get_ra_system_name(Config),
+    StoreId = RaSystem,
+
+    MacVer = 2,
+    meck:new(khepri_machine, [passthrough, no_link]),
+    meck:expect(khepri_machine, version, fun() -> MacVer end),
+
+    ct:pal("Start database"),
+    ?assertEqual(
+       {ok, StoreId},
+       khepri:start(RaSystem, StoreId)),
+
+    TriggerId = ?FUNCTION_NAME,
+    Path = [foo],
+    EventFilter = khepri_evf:tree(Path),
+    StoredProcPath = [sproc],
+
+    TriggerOptions = #{where => {member, node()}},
+    ?assertError(
+       ?khepri_exception(
+          unsupported_trigger_options,
+          #{trigger_id := TriggerId,
+            event_filter := EventFilter,
+            options := TriggerOptions}),
+       khepri:register_trigger(
+         StoreId, TriggerId, EventFilter, StoredProcPath, TriggerOptions)),
+
+    ?assertEqual(
+       ok,
+       khepri:register_trigger(
+         StoreId, TriggerId, EventFilter, StoredProcPath)),
+
+    ct:pal("Stop database"),
+    ?assertEqual(
+       ok,
+       khepri:stop(StoreId)),
+
+    meck:unload(khepri_machine),
+    ok.
 
 %% -------------------------------------------------------------------
 %% Internal functions
