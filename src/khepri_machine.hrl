@@ -122,7 +122,8 @@
 -record(register_trigger_v1,
         {id :: khepri:trigger_id(),
          event_filter :: khepri_evf:event_filter(),
-         action :: khepri_event_handler:trigger_action()}).
+         action :: khepri_event_handler:trigger_action(),
+         options = #{} :: khepri:trigger_options()}).
 %% Trigger registration-specific attributes.
 %%
 %% <ul>
