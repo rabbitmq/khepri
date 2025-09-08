@@ -19,7 +19,8 @@
 
 -record(khepri_machine_aux,
         {store_id :: khepri:store_id(),
-         delayed_aux_queries = [] :: [khepri_machine:delayed_aux_query()]}).
+         delayed_aux_queries = [] :: [khepri_machine:delayed_aux_query()],
+         maybe_down_procs = #{}}).
 
 %% State machine commands and aux. effects.
 
