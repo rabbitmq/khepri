@@ -28,7 +28,19 @@
          PathComponent =:= ?PARENT_KHEPRI_NODE)).
 
 -define(IS_KHEPRI_PATH(Path),
-        (Path =:= [] orelse ?IS_KHEPRI_PATH_COMPONENT(hd(Path)))).
+        (is_list(Path) andalso
+         (Path =:= [] orelse ?IS_KHEPRI_PATH_COMPONENT(hd(Path))))).
+
+-define(__K__IS_STRING(String),
+        (is_list(String) andalso
+         (String =:= "" orelse
+          (is_integer(hd(String)) andalso hd(String) >= 0)))).
+
+-define(__K__IS_UNIX_PATH(Path),
+        (?__K__IS_STRING(Path) orelse is_binary(Path))).
+
+-define(IS_KHEPRI_PATH_OR_COMPAT(Path),
+        (?IS_KHEPRI_PATH(Path) orelse ?__K__IS_UNIX_PATH(Path))).
 
 -define(IS_KHEPRI_CONDITION(Condition),
         (is_record(Condition, if_child_list_length) orelse
@@ -50,7 +62,11 @@
          ?IS_KHEPRI_CONDITION(PathCondition))).
 
 -define(IS_KHEPRI_PATH_PATTERN(Path),
-        (Path =:= [] orelse ?IS_KHEPRI_PATH_CONDITION(hd(Path)))).
+        (is_list(Path) andalso
+         (Path =:= [] orelse ?IS_KHEPRI_PATH_CONDITION(hd(Path))))).
+
+-define(IS_KHEPRI_PATH_PATTERN_OR_COMPAT(Path),
+        (?IS_KHEPRI_PATH_PATTERN(Path) orelse ?__K__IS_UNIX_PATH(Path))).
 
 %% -------------------------------------------------------------------
 %% Path conditions.

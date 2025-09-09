@@ -2822,8 +2822,7 @@ clear_many_payloads(StoreId, PathPattern, Options) ->
 
 -spec register_trigger(TriggerId, EventFilter, StoredProcPath) -> Ret when
       TriggerId :: trigger_id(),
-      EventFilter :: khepri_evf:event_filter() |
-                     khepri_path:pattern(),
+      EventFilter :: khepri_evf:event_filter_or_compat(),
       StoredProcPath :: khepri_path:path(),
       Ret :: ok | error().
 %% @doc Registers a trigger.
@@ -2842,14 +2841,12 @@ register_trigger(TriggerId, EventFilter, StoredProcPath) ->
 (StoreId, TriggerId, EventFilter, StoredProcPath) -> Ret when
       StoreId :: khepri:store_id(),
       TriggerId :: trigger_id(),
-      EventFilter :: khepri_evf:event_filter() |
-                     khepri_path:pattern(),
+      EventFilter :: khepri_evf:event_filter_or_compat(),
       StoredProcPath :: khepri_path:path(),
       Ret :: ok | error();
 (TriggerId, EventFilter, StoredProcPath, Options) -> Ret when
       TriggerId :: trigger_id(),
-      EventFilter :: khepri_evf:event_filter() |
-                     khepri_path:pattern(),
+      EventFilter :: khepri_evf:event_filter_or_compat(),
       StoredProcPath :: khepri_path:path(),
       Options :: command_options(),
       Ret :: ok | error().
@@ -2882,8 +2879,7 @@ register_trigger(TriggerId, EventFilter, StoredProcPath, Options)
     Ret when
       StoreId :: khepri:store_id(),
       TriggerId :: trigger_id(),
-      EventFilter :: khepri_evf:event_filter() |
-                     khepri_path:pattern(),
+      EventFilter :: khepri_evf:event_filter_or_compat(),
       StoredProcPath :: khepri_path:path(),
       Options :: command_options(),
       Ret :: ok | error().
