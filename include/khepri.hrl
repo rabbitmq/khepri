@@ -40,7 +40,7 @@
         (?__K__IS_STRING(Path) orelse is_binary(Path))).
 
 -define(IS_KHEPRI_PATH_OR_COMPAT(Path),
-        (?IS_KHEPRI_PATH(Path) orelse ?__K__IS_UNIX_PATH(Path)).
+        (?IS_KHEPRI_PATH(Path) orelse ?__K__IS_UNIX_PATH(Path))).
 
 -define(IS_KHEPRI_CONDITION(Condition),
         (is_record(Condition, if_child_list_length) orelse
