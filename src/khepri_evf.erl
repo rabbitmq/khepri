@@ -65,7 +65,7 @@
 
 -spec tree(PathPattern) -> EventFilter when
       PathPattern :: khepri_path:pattern() | string(),
-      EventFilter :: tree_event_filter().
+      EventFilter :: khepri_evf:tree_event_filter().
 %% @doc Constructs a tree event filter.
 %%
 %% @see tree/2.
@@ -75,8 +75,8 @@ tree(PathPattern) ->
 
 -spec tree(PathPattern, Props) -> EventFilter when
       PathPattern :: khepri_path:pattern() | string(),
-      Props :: tree_event_filter_props(),
-      EventFilter :: tree_event_filter().
+      Props :: khepri_evf:tree_event_filter_props(),
+      EventFilter :: khepri_evf:tree_event_filter().
 %% @doc Constructs a tree event filter.
 %%
 %% @see tree_event_filter().
@@ -87,8 +87,8 @@ tree(PathPattern, Props) ->
               props = Props}.
 
 -spec wrap(Input) -> EventFilter when
-      Input :: event_filter() | khepri_path:pattern() | string(),
-      EventFilter :: event_filter().
+      Input :: khepri_evf:event_filter() | khepri_path:pattern() | string(),
+      EventFilter :: khepri_evf:event_filter().
 %% @doc Automatically detects the event filter type and ensures it is wrapped
 %% in one of the internal types.
 %%
@@ -103,8 +103,8 @@ wrap(PathPattern) when is_list(PathPattern) ->
     tree(PathPattern).
 
 -spec get_priority(EventFilter) -> Priority when
-      EventFilter :: event_filter(),
-      Priority :: priority().
+      EventFilter :: khepri_evf:event_filter(),
+      Priority :: khepri_evf:priority().
 %% @doc Returns the priority of the event filter.
 %%
 %% @param EventFilter the event filter to update.
@@ -118,8 +118,8 @@ get_priority1(#{priority := Priority}) -> Priority;
 get_priority1(_)                       -> 0.
 
 -spec set_priority(EventFilter, Priority) -> EventFilter when
-      EventFilter :: event_filter(),
-      Priority :: priority().
+      EventFilter :: khepri_evf:event_filter(),
+      Priority :: khepri_evf:priority().
 %% @doc Sets the priority of the event filter.
 %%
 %% @param EventFilter the event filter to update.
