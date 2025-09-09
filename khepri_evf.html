@@ -32,6 +32,14 @@
   and converted to an event filter with default properties. See each event
   filter type for more details.</p>
 
+<h3 class="typedecl"><a name="type-event_filter_or_compat">event_filter_or_compat()</a></h3>
+<p><code>event_filter_or_compat() = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter/0">khepri_evf:event_filter()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></p>
+<p><p>  An event filter, or any type that can be automatically converted to an  
+event filter.</p>
+ 
+  For instance, a Khepri path or a string can be converted to a <a docgen-rel="seetype" docgen-href="#tree_event_filter/0" href="#type-tree_event_filter"><code>tree_event_filter()</code></a>.
+ </p>
+
 <h3 class="typedecl"><a name="type-priority">priority()</a></h3>
 <p><code>priority() = integer()</code></p>
 <p><p>  An event filter priority.</p>
@@ -76,16 +84,16 @@ the more it is prioritized. Negative integers are allowed.</p>
 <h3 class="function"><a name="tree-1">tree/1</a></h3>
 <div class="spec">
 <p><code>tree(PathPattern) -&gt; EventFilter</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a> | string()</code></li><li><code>EventFilter = <a href="#type-tree_event_filter" docgen-rel="seetype" docgen-href="#tree_event_filter/0">tree_event_filter()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-tree_event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#tree_event_filter/0">khepri_evf:tree_event_filter()</a></code></li></ul></p>
 <p></p>
 </div><p>Constructs a tree event filter.
  </p>
-<p><b>See also:</b> <a href="#tree-2" docgen-rel="seemfa" docgen-href="#tree/2">tree/2</a>.</p>
+<p><b>See also:</b> <a href="#tree-2" docgen-rel="seemfa" docgen-href="#tree/2">tree/2</a>, <a href="#wrap-1" docgen-rel="seemfa" docgen-href="#wrap/1">wrap/1</a>.</p>
 
 <h3 class="function"><a name="tree-2">tree/2</a></h3>
 <div class="spec">
 <p><code>tree(PathPattern, Props) -&gt; EventFilter</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a> | string()</code></li><li><code>Props = <a href="#type-tree_event_filter_props" docgen-rel="seetype" docgen-href="#tree_event_filter_props/0">tree_event_filter_props()</a></code></li><li><code>EventFilter = <a href="#type-tree_event_filter" docgen-rel="seetype" docgen-href="#tree_event_filter/0">tree_event_filter()</a></code></li></ul></p>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Props = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-tree_event_filter_props" docgen-rel="seetype" docgen-href="khepri:khepri_evf#tree_event_filter_props/0">khepri_evf:tree_event_filter_props()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-tree_event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#tree_event_filter/0">khepri_evf:tree_event_filter()</a></code></li></ul></p>
 <p></p>
 </div><p>Constructs a tree event filter.
  </p>
@@ -94,7 +102,7 @@ the more it is prioritized. Negative integers are allowed.</p>
 <h3 class="function"><a name="wrap-1">wrap/1</a></h3>
 <div class="spec">
 <p><code>wrap(Input) -&gt; EventFilter</code>
-<ul class="definitions"><li><code>Input = <a href="#type-event_filter" docgen-rel="seetype" docgen-href="#event_filter/0">event_filter()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a> | string()</code></li><li><code>EventFilter = <a href="#type-event_filter" docgen-rel="seetype" docgen-href="#event_filter/0">event_filter()</a></code></li></ul></p>
+<ul class="definitions"><li><code>Input = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter_or_compat" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter_or_compat/0">khepri_evf:event_filter_or_compat()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter/0">khepri_evf:event_filter()</a></code></li></ul></p>
 <p><code>Input</code>: an already created event filter, or any term which can be
          automatically converted to an event filter.
  <br>
@@ -107,7 +115,7 @@ the more it is prioritized. Negative integers are allowed.</p>
 <h3 class="function"><a name="get_priority-1">get_priority/1</a></h3>
 <div class="spec">
 <p><code>get_priority(EventFilter) -&gt; Priority</code>
-<ul class="definitions"><li><code>EventFilter = <a href="#type-event_filter" docgen-rel="seetype" docgen-href="#event_filter/0">event_filter()</a></code></li><li><code>Priority = <a href="#type-priority" docgen-rel="seetype" docgen-href="#priority/0">priority()</a></code></li></ul></p>
+<ul class="definitions"><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter/0">khepri_evf:event_filter()</a></code></li><li><code>Priority = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-priority" docgen-rel="seetype" docgen-href="khepri:khepri_evf#priority/0">khepri_evf:priority()</a></code></li></ul></p>
 <p><code>EventFilter</code>: the event filter to update.
  <br>
 </p>
@@ -118,7 +126,7 @@ the more it is prioritized. Negative integers are allowed.</p>
 <h3 class="function"><a name="set_priority-2">set_priority/2</a></h3>
 <div class="spec">
 <p><code>set_priority(EventFilter, Priority) -&gt; EventFilter</code>
-<ul class="definitions"><li><code>EventFilter = <a href="#type-event_filter" docgen-rel="seetype" docgen-href="#event_filter/0">event_filter()</a></code></li><li><code>Priority = <a href="#type-priority" docgen-rel="seetype" docgen-href="#priority/0">priority()</a></code></li></ul></p>
+<ul class="definitions"><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter/0">khepri_evf:event_filter()</a></code></li><li><code>Priority = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-priority" docgen-rel="seetype" docgen-href="khepri:khepri_evf#priority/0">khepri_evf:priority()</a></code></li></ul></p>
 <p><code>EventFilter</code>: the event filter to update.<br>
 <code>Priority</code>: the new priority.
  <br>
