@@ -64,7 +64,7 @@
               priority/0]).
 
 -spec tree(PathPattern) -> EventFilter when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       EventFilter :: khepri_evf:tree_event_filter().
 %% @doc Constructs a tree event filter.
 %%
@@ -74,7 +74,7 @@ tree(PathPattern) ->
     tree(PathPattern, #{}).
 
 -spec tree(PathPattern, Props) -> EventFilter when
-      PathPattern :: khepri_path:pattern() | string(),
+      PathPattern :: khepri_path:pattern(),
       Props :: khepri_evf:tree_event_filter_props(),
       EventFilter :: khepri_evf:tree_event_filter().
 %% @doc Constructs a tree event filter.
@@ -87,7 +87,7 @@ tree(PathPattern, Props) ->
               props = Props}.
 
 -spec wrap(Input) -> EventFilter when
-      Input :: khepri_evf:event_filter() | khepri_path:pattern() | string(),
+      Input :: khepri_evf:event_filter() | khepri_path:pattern(),
       EventFilter :: khepri_evf:event_filter().
 %% @doc Automatically detects the event filter type and ensures it is wrapped
 %% in one of the internal types.
