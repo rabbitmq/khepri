@@ -10,6 +10,7 @@
 
 -module(khepri_evf).
 
+-include("include/khepri.hrl").
 -include("src/khepri_evf.hrl").
 
 -export([tree/1, tree/2,
@@ -50,6 +51,16 @@
 %% and converted to an event filter with default properties. See each event
 %% filter type for more details.
 
+-type event_filter_or_compat() :: khepri_evf:event_filter() |
+                                  khepri_path:pattern().
+%% An event filter, or any type that can be automatically converted to an
+%% event filter.
+%%
+%% For instance, a Khepri path or a string can be converted to a {@link
+%% tree_event_filter()}.
+%%
+%% @see wrap/1.
+
 -type priority() :: integer().
 %% An event filter priority.
 %%
@@ -59,6 +70,7 @@
 %% The default priority is 0.
 
 -export_type([event_filter/0,
+              event_filter_or_compat/0,
               tree_event_filter/0,
               tree_event_filter_props/0,
               priority/0]).
@@ -81,13 +93,13 @@ tree(PathPattern) ->
 %%
 %% @see tree_event_filter().
 
-tree(PathPattern, Props) ->
+tree(PathPattern, Props) when ?IS_KHEPRI_PATH_PATTERN_OR_COMPAT(PathPattern) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     #evf_tree{path = PathPattern1,
               props = Props}.
 
 -spec wrap(Input) -> EventFilter when
-      Input :: khepri_evf:event_filter() | khepri_path:pattern(),
+      Input :: khepri_evf:event_filter_or_compat(),
       EventFilter :: khepri_evf:event_filter().
 %% @doc Automatically detects the event filter type and ensures it is wrapped
 %% in one of the internal types.
@@ -99,7 +111,7 @@ tree(PathPattern, Props) ->
 
 wrap(EventFilter) when ?IS_KHEPRI_EVENT_FILTER(EventFilter) ->
     EventFilter;
-wrap(PathPattern) when is_list(PathPattern) ->
+wrap(PathPattern) when ?IS_KHEPRI_PATH_PATTERN_OR_COMPAT(PathPattern) ->
     tree(PathPattern).
 
 -spec get_priority(EventFilter) -> Priority when
