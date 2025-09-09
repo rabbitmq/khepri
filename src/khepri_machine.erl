@@ -2562,20 +2562,13 @@ evaluate_trigger(
   InitialState, NewState,
   #ev_tree{path = Path, change = Change} = Event, TriggerId,
   #{event_filter := #evf_tree{path = PathPattern,
-                              props = EventFilterProps} = EventFilter
-   } = Trigger,
-  TriggeredActions)
-  when is_map_key(sproc, Trigger) orelse
-       element(1, map_get(action, Trigger)) =:= sproc ->
+                              props = EventFilterProps}} = Trigger,
+  TriggeredActions) ->
     %% For each trigger based on a tree event:
     %%   1. we verify the path of the changed tree node matches the monitored
     %%      path pattern in the event filter.
     %%   2. we verify the type of change matches the change filter in the
     %%      event filter.
-    StoredProcPath = case Trigger of
-                         #{sproc := SPP}           -> SPP;
-                         #{action := {sproc, SPP}} -> SPP
-                     end,
     Tree = case Change of
                delete -> get_tree(InitialState);
                _      -> get_tree(NewState)
@@ -2594,40 +2587,55 @@ evaluate_trigger(
     ChangeMatches = lists:member(Change, WatchedChanges),
     case PathMatches andalso ChangeMatches of
         true ->
-            %% We then locate the stored procedure. If the path doesn't point
-            %% to an existing tree node, or if this tree node is not a stored
-            %% procedure, the trigger is ignored.
-            %%
-            %% TODO: Should we return an error or at least log something? This
-            %% could be considered noise if the trigger exists regardless of
-            %% the presence of the stored procedure on purpose (for instance
-            %% the caller code is being updated).
-            case find_stored_proc(Tree, StoredProcPath) of
-                undefined ->
-                    TriggeredActions;
-                StoredProc ->
-                    Triggered = case Trigger of
-                                    #{sproc := _} ->
-                                        EventProps = #{path => Path,
-                                                       on_action => Change},
-                                        #triggered{
-                                           id = TriggerId,
-                                           event_filter = EventFilter,
-                                           sproc = StoredProc,
-                                           props = EventProps};
-                                    #{action := {sproc, _},
-                                      where := Where} ->
-                                        #triggered_v2{
-                                           id = TriggerId,
-                                           event_filter = EventFilter,
-                                           action = {sproc, StoredProc},
-                                           where = Where,
-                                           event = Event}
-                                end,
-                    [Triggered | TriggeredActions]
-            end;
+            evaluate_action(
+              NewState, Event, TriggerId, Trigger, TriggeredActions);
         false ->
             TriggeredActions
+    end.
+
+evaluate_action(State, Event, TriggerId, Trigger, TriggeredActions)
+  when is_map_key(sproc, Trigger) orelse
+       element(1, map_get(action, Trigger)) =:= sproc ->
+    %% We locate the stored procedure. If the path doesn't point to an
+    %% existing tree node, or if this tree node is not a stored procedure, the
+    %% trigger is ignored.
+    %%
+    %% TODO: Should we return an error or at least log something? This could
+    %% be considered noise if the trigger exists regardless of the presence of
+    %% the stored procedure on purpose (for instance the caller code is being
+    %% updated).
+    Tree = get_tree(State),
+    StoredProcPath = case Trigger of
+                         #{sproc := SPP}           -> SPP;
+                         #{action := {sproc, SPP}} -> SPP
+                     end,
+    case find_stored_proc(Tree, StoredProcPath) of
+        undefined ->
+            TriggeredActions;
+        StoredProc ->
+            EventFilter = maps:get(event_filter, Trigger),
+            Triggered = case Trigger of
+                            #{sproc := _} ->
+                                %% With trigger v1, the only type of event is
+                                %% a tree change.
+                                #ev_tree{path = Path, change = Change} = Event,
+                                EventProps = #{path => Path,
+                                               on_action => Change},
+                                #triggered{
+                                   id = TriggerId,
+                                   event_filter = EventFilter,
+                                   sproc = StoredProc,
+                                   props = EventProps};
+                            #{action := {sproc, _},
+                              where := Where} ->
+                                #triggered_v2{
+                                   id = TriggerId,
+                                   event_filter = EventFilter,
+                                   action = {sproc, StoredProc},
+                                   where = Where,
+                                   event = Event}
+                        end,
+            [Triggered | TriggeredActions]
     end.
 
 find_stored_proc(Tree, StoredProcPath) ->
