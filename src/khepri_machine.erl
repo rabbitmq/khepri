@@ -614,7 +614,7 @@ handle_tx_exception(
     Ret when
       StoreId :: khepri:store_id(),
       TriggerId :: khepri:trigger_id(),
-      EventFilter :: khepri_evf:event_filter() | khepri_path:pattern(),
+      EventFilter :: khepri_evf:event_filter_or_compat(),
       StoredProcPath :: khepri_path:path(),
       Options :: khepri:command_options(),
       Ret :: ok | khepri:error().
