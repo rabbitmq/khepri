@@ -74,6 +74,10 @@
 %% khepri:trigger_options()}.</li>
 %% <li>Added support for process-lifetime-based triggers. The trigger can be
 %% executed when a process exits.</li>
+%% <li>Added support for process-lifetime-based `keep_while' condition. The
+%% `keep_while' put option can take a PID. The tree node will be deleted as
+%% soon as the associated process exits. See {@link
+%% khepri_condition:keep_while()}.</li>
 %% </ul>
 %% </td>
 %% </tr>
@@ -415,10 +419,27 @@ put(StoreId, PathPattern, Payload, Options)
     Payload1 = khepri_payload:prepare(Payload),
     {CommandOptions, NonCommandOptions} = split_command_options(
                                             StoreId, Options),
-    Command = #put{path = PathPattern1,
-                   payload = Payload1,
-                   options = NonCommandOptions},
-    process_command(StoreId, Command, CommandOptions);
+    ValidKeepWhile = case NonCommandOptions of
+                         #{keep_while := KW} when is_pid(KW) ->
+                             does_api_comply_with(
+                               process_based_keep_while, StoreId);
+                         _ ->
+                             true
+                     end,
+    case ValidKeepWhile of
+        true ->
+            Command = #put{path = PathPattern1,
+                           payload = Payload1,
+                           options = NonCommandOptions},
+            process_command(StoreId, Command, CommandOptions);
+        false ->
+            ?khepri_misuse(
+               unsupported_process_based_keep_while,
+               #{store_id => StoreId,
+                 node_path => PathPattern,
+                 payload => Payload,
+                 options => Options})
+    end;
 put(_StoreId, PathPattern, Payload, _Options) ->
     ?khepri_misuse(invalid_payload, #{path => PathPattern,
                                       payload => Payload}).
@@ -1556,7 +1577,8 @@ handle_aux(
 
     %% In `maybe_down_procs', we have processes that run on a member of the
     %% cluster and we are waiting for that node to come back up to monitor
-    %% these processes again (they are referenced by triggers).
+    %% these processes again (they are referenced by triggers and/or
+    %% `keep_while' conditions).
     %%
     %% However, the member might have been removed from the cluster after
     %% going down. Therefore, we need to verify on a regular basis if this
@@ -1774,9 +1796,27 @@ apply(
   #put{path = PathPattern, payload = Payload, options = NonCommandOptions},
   State) ->
     {TreeOptions, PutOptions} = split_put_options(NonCommandOptions),
-    Ret = insert_or_update_node(
-            State, PathPattern, Payload, PutOptions, TreeOptions, []),
-    post_apply(Ret, Meta);
+    Ret1 = insert_or_update_node(
+             State, PathPattern, Payload, PutOptions, TreeOptions, []),
+
+    %% If the operation was a success and the caller set a `keep_while'
+    %% condition on the inserted/updated tree node, we add the side effects
+    %% required by this condition, if any. For example, if the `keep_while'
+    %% condition is a PID, we need to monitor it.
+    Ret2 = case Ret1 of
+               {State1, {ok, _} = Result, SideEffects} ->
+                   case PutOptions of
+                       #{keep_while := KeepWhile} ->
+                           SideEffects1 = keep_while_to_side_effects(
+                                            KeepWhile, SideEffects),
+                           {State1, Result, SideEffects1};
+                       _ ->
+                           Ret1
+                   end;
+               _ ->
+                   Ret1
+           end,
+    post_apply(Ret2, Meta);
 apply(
   Meta,
   #delete{path = PathPattern, options = TreeOptions},
@@ -2003,12 +2043,35 @@ apply(Meta, {down,  _Pid, noconnection} = Command, State) ->
     post_apply(Ret, Meta);
 apply(Meta, {Down,  Pid, Reason}, State)
   when Down =:= down orelse Down =:= really_down ->
+    %% Handle keep_while conditions. We lookup tree nodes watching this exited
+    %% process and add delete them.
+    KeepWhileConds = get_keep_while_conds(State),
+    TreeOptions = #{},
+    {State1,
+     SideEffects1} = maps:fold(
+                       fun
+                           (Watcher, KeepWhile, {S, SE})
+                             when is_pid(KeepWhile) andalso
+                                  KeepWhile =:= Pid ->
+                               %% The process associated with this path
+                               %% exited. Therefore, we delete the
+                               %% corresponding tree node.
+                               %%
+                               %% We ignore the result here, because there is
+                               %% no explicit caller and no-one to return to.
+                               {S1, _R, SE1} = delete_matching_nodes(
+                                                 S, Watcher, TreeOptions, SE),
+                               {S1, SE1};
+                           (_Watcher, _KeepWhile, Acc) ->
+                               Acc
+                       end, {State, []}, KeepWhileConds),
+
     %% Handle triggers. We lookup triggers watching this exited process and add
     %% the side effects to execute the corresponding actions.
     Event = #ev_process{pid = Pid, change = {'DOWN', Reason}},
-    {State1, SideEffects} = add_trigger_side_effects(
-                              State, State, [Event], []),
-    Ret = {State1, Meta, SideEffects},
+    {State2, SideEffects2} = add_trigger_side_effects(
+                               State1, State1, [Event], SideEffects1),
+    Ret = {State2, Meta, SideEffects2},
     post_apply(Ret, Meta);
 apply(Meta, {nodeup, Node}, State) ->
     %% We can stop monitoring this node. If we get a `noconnection' from a
@@ -2018,8 +2081,19 @@ apply(Meta, {nodeup, Node}, State) ->
     %% We need to restore monitoring of processes that are hosted on that
     %% specific node. This will tell us if the process are still there are
     %% gone.
-    Triggers = get_triggers(State),
+    KeepWhileConds = get_keep_while_conds(State),
     SideEffects2 = maps:fold(
+                     fun
+                         (_Watcher, KeepWhile, SE)
+                           when is_pid(KeepWhile) andalso
+                                node(KeepWhile) =:= Node ->
+                             keep_while_to_side_effects(KeepWhile, SE);
+                         (_Watcher, _KeepWhile, SE) ->
+                             SE
+                     end, SideEffects1, KeepWhileConds),
+
+    Triggers = get_triggers(State),
+    SideEffects3 = maps:fold(
                      fun
                          (_TriggerId,
                           #{event_filter :=
@@ -2028,8 +2102,8 @@ apply(Meta, {nodeup, Node}, State) ->
                              event_filter_to_side_effect(EventFilter, SE);
                          (_TriggerId, _Trigger, SE) ->
                              SE
-                     end, SideEffects1, Triggers),
-    Ret = {State, Meta, SideEffects2},
+                     end, SideEffects2, Triggers),
+    Ret = {State, Meta, SideEffects3},
     post_apply(Ret, Meta);
 apply(Meta, {nodedown, _Node}, State) ->
     Ret = {State, Meta},
@@ -2177,7 +2251,8 @@ trigger_delayed_aux_queries_eval({State, Result, SideEffects}, _Meta) ->
 state_enter(leader, State) ->
     SideEffects1 = emitted_triggers_to_side_effects(State, leader),
     SideEffects2 = non_emitted_triggers_to_side_effects(State, SideEffects1),
-    SideEffects2;
+    SideEffects3 = keep_while_conds_to_side_effects(State, SideEffects2),
+    SideEffects3;
 state_enter(recovered, _State) ->
     SideEffect = {aux, restore_projections},
     [SideEffect];
@@ -2391,6 +2466,9 @@ does_api_comply_with(cached_members_list, MacVer)
   when is_integer(MacVer) ->
     MacVer >= 3;
 does_api_comply_with(extended_trigger, MacVer)
+  when is_integer(MacVer) ->
+    MacVer >= 3;
+does_api_comply_with(process_based_keep_while, MacVer)
   when is_integer(MacVer) ->
     MacVer >= 3;
 does_api_comply_with(_Behaviour, MacVer)
@@ -2624,6 +2702,36 @@ evaluate_projection(
                                   projection = Projection},
     Effect = {aux, Trigger},
     [Effect | Effects].
+
+-spec keep_while_conds_to_side_effects(State, SideEffects) ->
+    NewSideEffects when
+      State :: khepri_machine:state(),
+      SideEffects :: ra_machine:effects(),
+      NewSideEffects :: ra_machine:effects().
+%% @private
+
+keep_while_conds_to_side_effects(State, SideEffects) ->
+    KeepWhileConds = get_keep_while_conds(State),
+    SideEffects1 = maps:fold(
+                     fun(_Watcher, KeepWhile, SE) ->
+                             keep_while_to_side_effects(KeepWhile, SE)
+                     end, SideEffects, KeepWhileConds),
+    SideEffects1.
+
+-spec keep_while_to_side_effects(KeepWhile, SideEffects) ->
+    NewSideEffects when
+      KeepWhile :: khepri_condition:native_keep_while(),
+      SideEffects :: ra_machine:effects(),
+      NewSideEffects :: ra_machine:effects().
+%% @private
+
+keep_while_to_side_effects(KeepWhile, SideEffects) when is_map(KeepWhile) ->
+    SideEffects;
+keep_while_to_side_effects(KeepWhile, SideEffects) when is_pid(KeepWhile) ->
+    Pid = KeepWhile,
+    SideEffect = {monitor, process, Pid},
+    SideEffects1 = [SideEffect | SideEffects],
+    SideEffects1.
 
 -spec event_filter_to_side_effect(EventFilter, SideEffects) ->
     NewSideEffects when
