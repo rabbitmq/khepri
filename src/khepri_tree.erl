@@ -385,18 +385,52 @@ squash_version_bumps_after_keep_while1(
 %% Keep-while functions.
 %% -------------------------------------------------------------------
 
+-spec is_keep_while_met_at_insert_time(Tree, Path, Node, KeepWhile) -> IsMet when
+      Tree :: khepri_tree:tree(),
+      Path :: khepri_path:native_path(),
+      Node :: tree_node() | {interrupted, any(), map()},
+      KeepWhile :: khepri_condition:native_keep_while(),
+      IsMet :: true | {false, any()}.
+%% @private
+
+is_keep_while_met_at_insert_time(Tree, Path, Node, KeepWhile)
+  when is_map(KeepWhile) ->
+    AbsKeepWhile0 = to_absolute_keep_while(Path, KeepWhile),
+    AbsKeepWhile1 = filter_out_irrelevant_keep_while_conds(
+                      Path, Node, AbsKeepWhile0),
+    KWMet = are_keep_while_conditions_met(Tree, AbsKeepWhile1),
+    KWMet;
+is_keep_while_met_at_insert_time(_Tree, _Path, _Node, KeepWhile)
+  when is_pid(KeepWhile) ->
+    case node(KeepWhile) =:= node() of
+        true ->
+            case erlang:is_process_alive(KeepWhile) of
+                true  -> true;
+                false -> {false, {process_not_running, KeepWhile}}
+            end;
+        false ->
+            %% This is a remote process and `erlang:is_process_alive/1'
+            %% supports local processes only. It is too expensive and risky to
+            %% make an RPC here, so let's assume the remote process is running
+            %% at insert time. The monitoring will take care of it if that is
+            %% not the case.
+            true
+    end.
+
 -spec to_absolute_keep_while(BasePath, KeepWhile) -> AbsKeepWhile when
       BasePath :: khepri_path:native_path(),
       KeepWhile :: khepri_condition:native_keep_while(),
       AbsKeepWhile :: khepri_condition:native_keep_while().
 %% @private
 
-to_absolute_keep_while(BasePath, KeepWhile) ->
+to_absolute_keep_while(BasePath, KeepWhile) when is_map(KeepWhile) ->
     maps:fold(
       fun(Path, Cond, Acc) ->
               AbsPath = khepri_path:abspath(Path, BasePath),
               Acc#{AbsPath => Cond}
-      end, #{}, KeepWhile).
+      end, #{}, KeepWhile);
+to_absolute_keep_while(_BasePath, KeepWhile) when is_pid(KeepWhile) ->
+    KeepWhile.
 
 -spec are_keep_while_conditions_met(Tree, KeepWhile) -> Ret when
       Tree :: tree(),
@@ -474,13 +508,16 @@ update_keep_while_conds(Tree, Watcher, KeepWhile) ->
 
 update_keep_while_conds_revidx(
   #tree{keep_while_conds_revidx = KeepWhileCondsRevIdx} = Tree,
-  Watcher, KeepWhile) ->
+  Watcher, KeepWhile) when is_map(KeepWhile) ->
     case is_v1_keep_while_conds_revidx(KeepWhileCondsRevIdx) of
         true ->
             update_keep_while_conds_revidx_v1(Tree, Watcher, KeepWhile);
         false ->
             update_keep_while_conds_revidx_v0(Tree, Watcher, KeepWhile)
-    end.
+    end;
+update_keep_while_conds_revidx(Tree, _Watcher, KeepWhile)
+  when is_pid(KeepWhile) ->
+    Tree.
 
 is_v1_keep_while_conds_revidx(KeepWhileCondsRevIdx) ->
     khepri_prefix_tree:is_prefix_tree(KeepWhileCondsRevIdx).
@@ -491,7 +528,7 @@ update_keep_while_conds_revidx_v0(
   Watcher, KeepWhile) ->
     %% First, clean up reversed index where a watched path isn't watched
     %% anymore in the new keep_while.
-    OldWatcheds = maps:get(Watcher, KeepWhileConds, #{}),
+    OldWatcheds = get_watcheds(KeepWhileConds, Watcher),
     KeepWhileCondsRevIdx1 = maps:fold(
                           fun(Watched, _, KWRevIdx) ->
                                   Watchers = maps:get(Watched, KWRevIdx),
@@ -516,7 +553,7 @@ update_keep_while_conds_revidx_v1(
   Watcher, KeepWhile) ->
     %% First, clean up reversed index where a watched path isn't watched
     %% anymore in the new keep_while.
-    OldWatcheds = maps:get(Watcher, KeepWhileConds, #{}),
+    OldWatcheds = get_watcheds(KeepWhileConds, Watcher),
     KeepWhileCondsRevIdx1 = maps:fold(
                           fun(Watched, _, KWRevIdx) ->
                                   khepri_prefix_tree:update(
@@ -540,6 +577,13 @@ update_keep_while_conds_revidx_v1(
                                     end, Watched, KWRevIdx)
                           end, KeepWhileCondsRevIdx1, KeepWhile),
     Tree#tree{keep_while_conds_revidx = KeepWhileCondsRevIdx2}.
+
+get_watcheds(KeepWhileConds, Watcher) ->
+    case KeepWhileConds of
+        #{Watcher := KeepWhile} when is_map(KeepWhile) -> KeepWhile;
+        #{Watcher := KeepWhile} when is_pid(KeepWhile) -> #{};
+        _                                              -> #{}
+    end.
 
 %% -------------------------------------------------------------------
 %% Find matching nodes.
@@ -735,13 +779,8 @@ insert_or_update_node(
                           Path, Node, Payload, TreeOptions, Result),
                   case Ret of
                       {ok, Node1, Result1} when Result1 =/= #{} ->
-                          AbsKeepWhile0 = to_absolute_keep_while(
-                                            Path, KeepWhile),
-                          AbsKeepWhile1 = (
-                            filter_out_irrelevant_keep_while_conds(
-                              Path, Node, AbsKeepWhile0)),
-                          KWMet = are_keep_while_conditions_met(
-                                    Tree, AbsKeepWhile1),
+                          KWMet = is_keep_while_met_at_insert_time(
+                                    Tree, Path, Node, KeepWhile),
                           case KWMet of
                               true ->
                                   {ok, Node1, {updated, Path, Result1}};

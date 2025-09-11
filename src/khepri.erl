@@ -3893,16 +3893,23 @@ info(StoreId, Options) ->
             lists:foreach(
               fun(Watcher) ->
                       io:format("~n\033[1m~p depends on:\033[0m~n", [Watcher]),
-                      WatchedsMap = maps:get(Watcher, KeepWhileConds),
-                      Watcheds = lists:sort(maps:keys(WatchedsMap)),
-                      lists:foreach(
-                        fun(Watched) ->
-                                Condition = maps:get(Watched, WatchedsMap),
-                                io:format(
-                                  "    ~p:~n"
-                                  "        ~p~n",
-                                  [Watched, Condition])
-                        end, Watcheds)
+                      Watched = maps:get(Watcher, KeepWhileConds),
+                      if
+                          is_map(Watched) ->
+                              WatchedPaths = lists:sort(maps:keys(Watched)),
+                              lists:foreach(
+                                fun(WatchedPath) ->
+                                        Condition = maps:get(WatchedPath, Watched),
+                                        io:format(
+                                          "    ~p:~n"
+                                          "        ~p~n",
+                                          [WatchedPath, Condition])
+                                end, WatchedPaths);
+                          is_pid(Watched) ->
+                              io:format(
+                                "    ~0p~n",
+                                [Watched])
+                      end
               end, WatcherList);
         _ ->
             ok
