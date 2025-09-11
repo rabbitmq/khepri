@@ -32,7 +32,8 @@
           uniform_commands            => 4,
           request_snapshot            => 4,
           extended_trigger            => 4,
-          cached_members_list         => 4}).
+          cached_members_list         => 4,
+          process_based_keep_while    => 4}).
 
 %% Get the state machine version the given API behaviour was introduced in.
 %% This is similar to `khepri_machine:api_behaviour_to_machine_version/1' but
