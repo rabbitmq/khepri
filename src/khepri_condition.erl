@@ -290,36 +290,64 @@
                                          if_child_list_version() |
                                          if_child_list_length().
 
--type keep_while() :: #{khepri_path:path() => condition()}.
-%% An association between a path and a condition. As long as the condition
-%% evaluates to true, the tree node is kept. Once the condition evaluates to
-%% false, the tree node is deleted.
+-type keep_while() :: #{khepri_path:path() => condition()} |
+                      pid().
+%% A condition that impacts the lifetime of a tree node.
 %%
-%% If the `keep_while' conditions are false at the time of the insert, the
-%% insert fails. The only exception to that is if the `keep_while' condition
-%% is on the inserted node itself.
+%% As long as the condition evaluates to true, the tree node is kept. Once the
+%% condition evaluates to false, the tree node is deleted.
+%%
+%% There are several types of conditions:
+%% <ul>
+%% <li>An association between a target path and a Khepri condition ({@link
+%% condition()}) that must be true on that target.
 %%
 %% Paths in the map can be native paths or Unix-like paths. However, having
 %% two entries that resolve to the same node (one native path entry and one
-%% Unix-like path entry for instance) is undefined behavior: one of them will
-%% overwrite the other.
+%% Unix-like path entry for instance) is undefined behaviour: one of them will
+%% overwrite the other.</li>
+%% <li>A process PID that must be alive.
 %%
-%% Example:
+%% This can be a process running on a member of the cluster or outside of the
+%% cluster. If the node hosting the process is a member and the connection to
+%% this node is lost, Khepri will wait for the node to come back and monitor
+%% the process again, to ensure they are actually gone. If that node is
+%% removed from the cluster while it is still down, the process is considered
+%% gone. If the node is not a member of the cluster, the process is considered
+%% gone right away.</li>
+%% </ul>
+%%
+%% If the `keep_while' conditions are false at the time of the insert, the
+%% insert fails. The only exception to that is if the `keep_while' condition
+%% is path-based and that path points to the inserted node itself.
+%%
+%% Example with a path/condition combination:
 %% ```
 %% khepri:put(
-%%   StoreId,
-%%   [foo],
-%%   Payload,
+%%   StoreId, [foo], Payload,
+%%
+%%   %% The node `[foo]' will be removed as soon as `[bar]' is removed
+%%   %% because the condition associated with `[bar]' will not be true
+%%   %% anymore.
 %%   #{keep_while => #{
-%%     %% The node `[foo]' will be removed as soon as `[bar]' is removed
-%%     %% because the condition associated with `[bar]' will not be true
-%%     %% anymore.
 %%     [bar] => #if_node_exists{exists = true}
 %%   }}
 %% ).
 %% '''
+%%
+%% Example with a PID:
+%% ```
+%% khepri:put(
+%%   StoreId, [foo], Payload,
+%%
+%%   %% The node `[foo]' will be removed as soon as the process inserting it
+%%   %% exits.
+%%   #{keep_while => self()}}
+%% ).
+%% '''
 
--type native_keep_while() :: #{khepri_path:native_path() => condition()}.
+-type native_keep_while() :: #{khepri_path:native_path() => condition()} |
+                             pid().
 %% An association between a native path and a condition.
 %%
 %% This is the same as {@link keep_while()} but the paths in the map keys were
@@ -354,7 +382,7 @@
       KeepWhile :: keep_while(),
       NativeKeepWhile :: native_keep_while().
 
-ensure_native_keep_while(KeepWhile) ->
+ensure_native_keep_while(KeepWhile) when is_map(KeepWhile) ->
     maps:fold(
       fun(Path, Condition, Acc) ->
               Path1 = khepri_path:from_string(Path),
@@ -364,7 +392,9 @@ ensure_native_keep_while(KeepWhile) ->
               %% Should we merge conditions in a `#if_all{}' condition? Return
               %% an error?
               Acc#{Path1 => Condition}
-      end, #{}, KeepWhile).
+      end, #{}, KeepWhile);
+ensure_native_keep_while(KeepWhile) when is_pid(KeepWhile) ->
+    KeepWhile.
 
 -spec compile(Condition) -> Condition when
       Condition :: khepri_path:pattern_component().
