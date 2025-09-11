@@ -689,6 +689,66 @@ child_list_version_bumped_by_update_and_keep_while_test() ->
        Ret),
     ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
 
+keep_while_on_process_test_() ->
+    Parent = self(),
+    Pid = spawn_link(fun() ->
+                             receive
+                                 _ ->
+                                     erlang:unlink(Parent)
+                             end
+                     end),
+
+    Path = [foo],
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [{"Wait for `process_based_keep_while` behaviour",
+         ?_assertEqual(
+            ok,
+            khepri_cluster:wait_for_effective_behaviour(
+              ?FUNCTION_NAME, process_based_keep_while, infinity))
+        },
+        {"Store a tree node with a keep_while condition",
+         ?_assertMatch(
+            ok,
+            khepri:put(?FUNCTION_NAME, Path, value, #{keep_while => Pid}))},
+        {"Display store info",
+         ?_assertEqual(
+            ok,
+            khepri:info(?FUNCTION_NAME))},
+        {"Terminate process",
+         ?_assert(begin
+                      MRef = erlang:monitor(process, Pid),
+                      Pid ! stop,
+                      receive
+                          {'DOWN', MRef, process, Pid, _Reason} ->
+                              true
+                      end
+                  end)},
+        {"Check that the tree node was removed",
+         ?_assertMatch(
+            {error, ?khepri_error(node_not_found, #{node_path := Path})},
+            begin
+                wait_for_tree_node_removal(?FUNCTION_NAME, Path),
+                khepri:get(?FUNCTION_NAME, Path)
+            end)}]
+      }]}.
+
+wait_for_tree_node_removal(StoreId, Path) ->
+    wait_for_tree_node_removal(StoreId, Path, 10).
+
+wait_for_tree_node_removal(StoreId, Path, Attempts) when Attempts > 0 ->
+    case khepri:get(StoreId, Path) of
+        {ok, _} ->
+            timer:sleep(100),
+            wait_for_tree_node_removal(StoreId, Path, Attempts - 1);
+        {error, _} ->
+            ok
+    end;
+wait_for_tree_node_removal(_StoreId, _Path, 0) ->
+    ok.
+
 %% -------------------------------------------------------------------
 %% Performance testing.
 %% -------------------------------------------------------------------
