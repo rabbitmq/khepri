@@ -478,3 +478,43 @@ keep_while_condition_on_non_existing_tree_node_test() ->
     ?assertEqual({ok, #{[foo] => #{},
                         [bar] => #{delete_reason => keep_while}}}, Ret2),
     ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE2).
+
+keep_while_on_process_test_() ->
+    Parent = self(),
+    Pid = spawn_link(fun() ->
+                             receive
+                                 _ ->
+                                     erlang:unlink(Parent)
+                             end
+                     end),
+
+    Path = [foo],
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [{"Store a tree node with a keep_while condition",
+         ?_assertMatch(
+            ok,
+            khepri:put(?FUNCTION_NAME, Path, value, #{keep_while => Pid}))},
+        {"Terminate process",
+         ?_assert(begin
+                      MRef = erlang:monitor(process, Pid),
+                      Pid ! stop,
+                      receive
+                          {'DOWN', MRef, process, Pid, _Reason} ->
+                              true
+                      end
+                  end)},
+        {"Check that the tree node was removed",
+         ?_assertMatch(
+            {error, ?khepri_error(node_not_found, #{node_path := Path})},
+            khepri:get(?FUNCTION_NAME, Path))},
+        {"Store a tree node with a keep_while condition with a dead PID",
+         ?_assertMatch(
+            {error,
+             ?khepri_error(keep_while_conditions_not_met,
+                           #{node_path := Path,
+                             keep_while_reason := {process_not_running, Pid}})},
+            khepri:put(?FUNCTION_NAME, Path, value, #{keep_while => Pid}))}]
+      }]}.
