@@ -63,6 +63,7 @@
          trigger_runs_on_all_members/1,
          trigger_runs_on_leader_if_non_member_target/1,
          trigger_options_rejected_before_v3/1,
+         process_based_keep_while_rejected_before_v3/1,
 
          start_monitored_proc/0]).
 
@@ -81,7 +82,8 @@ groups() ->
           [
            can_use_default_store_on_single_node,
            can_start_store_in_specified_data_dir_on_single_node,
-           trigger_options_rejected_before_v3
+           trigger_options_rejected_before_v3,
+           process_based_keep_while_rejected_before_v3
           ]},
          {parallel, [parallel],
           [
@@ -2826,21 +2828,32 @@ process_event_is_delayed_during_node_down_1(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 helpers:call(Config, Node, khepri, start, [RaSystem, StoreId]))
+                 helpers:call(
+                   Config, Node, khepri, start, [RaSystem, StoreId]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 helpers:call(Config, Node, khepri_cluster, join, [StoreId, Node1]))
+                 helpers:call(
+                   Config, Node, khepri_cluster, join, [StoreId, Node1]))
       end, Nodes -- [Node1]),
 
     TriggerId = ?FUNCTION_NAME,
     MonitoredProcNode = Node3,
-    Pid = helpers:call(Config, MonitoredProcNode, ?MODULE, start_monitored_proc, []),
+    Pid = helpers:call(
+            Config, MonitoredProcNode, ?MODULE, start_monitored_proc, []),
     EventFilter = khepri_evf:process(Pid),
     StoredProcPath = [sproc],
+    Path = [foo],
+
+    ct:pal("Put a tree node with a keep_while condition on the process"),
+    ?assertEqual(
+       ok,
+       helpers:call(
+         Config, Node1,
+         khepri, put, [StoreId, Path, foo_value, #{keep_while => Pid}])),
 
     ct:pal("Put store procedure"),
     ?assertEqual(
@@ -2863,6 +2876,15 @@ process_event_is_delayed_during_node_down_1(Config) ->
       [MonitoredProcNode]),
     Peer = proplists:get_value(MonitoredProcNode, PeerPerNode),
     ?assertEqual(ok, helpers:stop_erlang_node(MonitoredProcNode, Peer)),
+
+    receive
+        {sproc, TriggerId, _LeaderNode, _Event} ->
+            ct:fail(
+              "Received the stored proc message before the monitored node "
+              "came back up")
+    after 2000 ->
+              ok
+    end,
 
     ct:pal(
       "Restart node ~s to trigger the node monitor",
@@ -2896,6 +2918,9 @@ process_event_is_delayed_during_node_down_1(Config) ->
                 [LeaderNode])
     end,
 
+    ?assertMatch(
+       {error, ?khepri_error(node_not_found, #{node_path := Path})},
+       helpers:call(Config, Node1, khepri, get, [StoreId, Path])),
     ok.
 
 process_event_is_delayed_during_node_down_2(Config) ->
@@ -2913,21 +2938,32 @@ process_event_is_delayed_during_node_down_2(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 helpers:call(Config, Node, khepri, start, [RaSystem, StoreId]))
+                 helpers:call(
+                   Config, Node, khepri, start, [RaSystem, StoreId]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 helpers:call(Config, Node, khepri_cluster, join, [StoreId, Node1]))
+                 helpers:call(
+                   Config, Node, khepri_cluster, join, [StoreId, Node1]))
       end, Nodes -- [Node1]),
 
     TriggerId = ?FUNCTION_NAME,
     MonitoredProcNode = Node3,
-    Pid = helpers:call(Config, MonitoredProcNode, ?MODULE, start_monitored_proc, []),
+    Pid = helpers:call(
+            Config, MonitoredProcNode, ?MODULE, start_monitored_proc, []),
     EventFilter = khepri_evf:process(Pid),
     StoredProcPath = [sproc],
+    Path = [foo],
+
+    ct:pal("Put a tree node with a keep_while condition on the process"),
+    ?assertEqual(
+       ok,
+       helpers:call(
+         Config, Node1,
+         khepri, put, [StoreId, Path, foo_value, #{keep_while => Pid}])),
 
     ct:pal("Put store procedure"),
     ?assertEqual(
@@ -2991,6 +3027,9 @@ process_event_is_delayed_during_node_down_2(Config) ->
                 [LeaderNode])
     end,
 
+    ?assertMatch(
+       {error, ?khepri_error(node_not_found, #{node_path := Path})},
+       helpers:call(Config, Node1, khepri, get, [StoreId, Path])),
     ok.
 
 process_event_is_delayed_during_node_down_3(Config) ->
@@ -3013,21 +3052,32 @@ process_event_is_delayed_during_node_down_3(Config) ->
               ct:pal("- khepri:start() from node ~s", [Node]),
               ?assertEqual(
                  {ok, StoreId},
-                 helpers:call(Config, Node, khepri, start, [RaSystem, StoreId]))
+                 helpers:call(
+                   Config, Node, khepri, start, [RaSystem, StoreId]))
       end, Nodes),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri_cluster:join() from node ~s", [Node]),
               ?assertEqual(
                  ok,
-                 helpers:call(Config, Node, khepri_cluster, join, [StoreId, Node1]))
+                 helpers:call(
+                   Config, Node, khepri_cluster, join, [StoreId, Node1]))
       end, Nodes -- [Node1]),
 
     TriggerId = ?FUNCTION_NAME,
     MonitoredProcNode = Node3,
-    Pid = helpers:call(Config, MonitoredProcNode, ?MODULE, start_monitored_proc, []),
+    Pid = helpers:call(
+            Config, MonitoredProcNode, ?MODULE, start_monitored_proc, []),
     EventFilter = khepri_evf:process(Pid),
     StoredProcPath = [sproc],
+    Path = [foo],
+
+    ct:pal("Put a tree node with a keep_while condition on the process"),
+    ?assertEqual(
+       ok,
+       helpers:call(
+         Config, Node1,
+         khepri, put, [StoreId, Path, foo_value, #{keep_while => Pid}])),
 
     ct:pal("Put store procedure"),
     ?assertEqual(
@@ -3072,6 +3122,9 @@ process_event_is_delayed_during_node_down_3(Config) ->
                 [LeaderNode])
     end,
 
+    ?assertMatch(
+       {error, ?khepri_error(node_not_found, #{node_path := Path})},
+       helpers:call(Config, Node1, khepri, get, [StoreId, Path])),
     ok.
 
 trigger_runs_on_leader(Config) ->
@@ -3375,6 +3428,34 @@ trigger_options_rejected_before_v3(Config) ->
     ?assertEqual(
        ok,
        khepri:stop(StoreId)),
+
+    meck:unload(khepri_machine),
+    ok.
+
+process_based_keep_while_rejected_before_v3(Config) ->
+    RaSystem = helpers:get_ra_system_name(Config),
+    StoreId = RaSystem,
+
+    MacVer = 2,
+    meck:new(khepri_machine, [passthrough, no_link]),
+    meck:expect(khepri_machine, version, fun() -> MacVer end),
+
+    ct:pal("Start database"),
+    ?assertEqual(
+       {ok, StoreId},
+       khepri:start(RaSystem, StoreId)),
+
+    Path = [foo],
+    Value = foo_value,
+
+    ?assertError(
+       ?khepri_exception(
+          unsupported_process_based_keep_while,
+          #{node_path := Path}),
+       khepri:put(StoreId, Path, Value, #{keep_while => self()})),
+
+    ct:pal("Stop database"),
+    ?assertEqual(ok, khepri:stop(StoreId)),
 
     meck:unload(khepri_machine),
     ok.
