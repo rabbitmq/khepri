@@ -109,6 +109,8 @@
          handle_tx_exception/1,
          process_query/3,
          process_command/3,
+         effective_version/1,
+         uses_latest_version/1,
          does_api_comply_with/2]).
 
 %% Internal functions to access the opaque #khepri_machine{} state.
@@ -2002,6 +2004,21 @@ clear_cached_effective_machine_version(StoreId) ->
     Key = ?PT_EFFECTIVE_MACVER(StoreId),
     _ = persistent_term:erase(Key),
     ok.
+
+-spec uses_latest_version(StoreId) -> UsesLatestVersion when
+      StoreId :: khepri:store_id(),
+      UsesLatestVersion :: boolean() | undefined.
+%% @doc Indicates in the state machine process is running the latest machine
+%% version.
+
+uses_latest_version(StoreId) ->
+    case effective_version(StoreId) of
+        {ok, EffectiveMacVer} ->
+            MacVer = version(),
+            EffectiveMacVer =:= MacVer;
+        {error, _Reason} ->
+            undefined
+    end.
 
 -spec does_api_comply_with(Behaviour, MacVer | StoreId) -> DoesUse when
       Behaviour :: khepri_machine:api_behaviour(),
