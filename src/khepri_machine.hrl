@@ -30,7 +30,8 @@
 
           uniform_commands            => 4,
           request_snapshot            => 4,
-          extended_trigger            => 4}).
+          extended_trigger            => 4,
+          cached_members_list         => 4}).
 
 %% Get the state machine version the given API behaviour was introduced in.
 %% This is similar to `khepri_machine:api_behaviour_to_machine_version/1' but
@@ -269,7 +270,7 @@
 %% Arguments to the snapshot request command, version 1.
 %%
 %% <ul>
-%% <li>`reasaon' is string dscribing the reason why a snapshot is
+%% <li>`reason' is string dscribing the reason why a snapshot is
 %% requested.</li>
 %% </ul>
 
@@ -279,6 +280,23 @@
 %%
 %% <ul>
 %% <li>`args' contains the snapshot request-specific attributes.</li>
+%% <li>`common' contains the attributes shared by all commands.</li>
+%% </ul>
+
+-record(cache_members_list_v1,
+        {members :: khepri_machine:cached_members_list()}).
+%% Arguments to cluster members cached list update command.
+%%
+%% <ul>
+%% <li>`members' is a list of clustered Erlang node names.</li>
+%% </ul>
+
+-record(cache_members_list, {args :: #cache_members_list_v1{},
+                             common = none :: #common_v1{} | none}).
+%% Command to update the list of cluster members cached in the machine state.
+%%
+%% <ul>
+%% <li>`args' contains the command-specific attributes.</li>
 %% <li>`common' contains the attributes shared by all commands.</li>
 %% </ul>
 

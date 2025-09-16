@@ -187,7 +187,13 @@ convert_to_uniform_command_test() ->
                 same},
 
                {#drop_dedups_v{args = #drop_dedups_v1{refs = []}},
-                same}],
+                same},
+
+               {#cache_members_list{
+                   args = #cache_members_list_v1{
+                             members = [node()]}},
+                same}
+              ],
     lists:foreach(
       fun({OldRecord, ExpectedNewRecord}) ->
               NewRecord = khepri_machine:convert_to_uniform_command(
