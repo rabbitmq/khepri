@@ -2839,74 +2839,88 @@ clear_many_payloads(StoreId, PathPattern, Options) ->
 %% register_trigger().
 %% -------------------------------------------------------------------
 
--spec register_trigger(TriggerId, EventFilter, StoredProcPath) -> Ret when
+-spec register_trigger(TriggerId, EventFilter, Action) -> Ret when
       TriggerId :: trigger_id(),
       EventFilter :: khepri_evf:event_filter_or_compat(),
+      Action :: StoredProcPath |
+                Pid |
+                khepri_event_handler:trigger_action(),
       StoredProcPath :: khepri_path:path(),
+      Pid :: pid(),
       Ret :: ok | error().
 %% @doc Registers a trigger.
 %%
 %% Calling this function is the same as calling `register_trigger(StoreId,
-%% TriggerId, EventFilter, StoredProcPath)' with the default store ID (see
+%% TriggerId, EventFilter, Action)' with the default store ID (see
 %% {@link khepri_cluster:get_default_store_id/0}).
 %%
 %% @see register_trigger/4.
 
-register_trigger(TriggerId, EventFilter, StoredProcPath) ->
+register_trigger(TriggerId, EventFilter, Action) ->
     StoreId = khepri_cluster:get_default_store_id(),
-    register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath).
+    register_trigger(StoreId, TriggerId, EventFilter, Action).
 
 -spec register_trigger
-(StoreId, TriggerId, EventFilter, StoredProcPath) -> Ret when
+(StoreId, TriggerId, EventFilter, Action) -> Ret when
       StoreId :: khepri:store_id(),
       TriggerId :: trigger_id(),
       EventFilter :: khepri_evf:event_filter_or_compat(),
+      Action :: StoredProcPath |
+                Pid |
+                khepri_event_handler:trigger_action(),
       StoredProcPath :: khepri_path:path(),
+      Pid :: pid(),
       Ret :: ok | error();
-(TriggerId, EventFilter, StoredProcPath, Options) -> Ret when
+(TriggerId, EventFilter, Action, Options) -> Ret when
       TriggerId :: trigger_id(),
       EventFilter :: khepri_evf:event_filter_or_compat(),
+      Action :: StoredProcPath |
+                Pid |
+                khepri_event_handler:trigger_action(),
       StoredProcPath :: khepri_path:path(),
+      Pid :: pid(),
       Options :: command_options() | khepri:trigger_options(),
       Ret :: ok | error().
 %% @doc Registers a trigger.
 %%
 %% This function accepts the following two forms:
 %% <ul>
-%% <li>`register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath)'.
+%% <li>`register_trigger(StoreId, TriggerId, EventFilter, Action)'.
 %% Calling it is the same as calling `register_trigger(StoreId, TriggerId,
-%% EventFilter, StoredProcPath, #{})'.</li>
-%% <li>`register_trigger(TriggerId, EventFilter, StoredProcPath, Options)'.
+%% EventFilter, Action, #{})'.</li>
+%% <li>`register_trigger(TriggerId, EventFilter, Action, Options)'.
 %% Calling it is the same as calling `register_trigger(StoreId, TriggerId,
-%% EventFilter, StoredProcPath, Options)' with the default store ID (see
+%% EventFilter, Action, Options)' with the default store ID (see
 %% {@link khepri_cluster:get_default_store_id/0}).</li>
 %% </ul>
 %%
 %% @see register_trigger/5.
 
-register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath)
+register_trigger(StoreId, TriggerId, EventFilter, Action)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso is_atom(TriggerId) ->
-    register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, #{});
-register_trigger(TriggerId, EventFilter, StoredProcPath, Options)
+    register_trigger(StoreId, TriggerId, EventFilter, Action, #{});
+register_trigger(TriggerId, EventFilter, Action, Options)
   when is_atom(TriggerId) andalso is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
-    register_trigger(
-      StoreId, TriggerId, EventFilter, StoredProcPath, Options).
+    register_trigger(StoreId, TriggerId, EventFilter, Action, Options).
 
--spec register_trigger(
-        StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
+-spec register_trigger(StoreId, TriggerId, EventFilter, Action, Options) ->
     Ret when
       StoreId :: khepri:store_id(),
       TriggerId :: trigger_id(),
       EventFilter :: khepri_evf:event_filter_or_compat(),
+      Action :: StoredProcPath |
+                Pid |
+                khepri_event_handler:trigger_action(),
       StoredProcPath :: khepri_path:path(),
+      Pid :: pid(),
       Options :: command_options() | khepri:trigger_options(),
       Ret :: ok | error().
 %% @doc Registers a trigger.
 %%
-%% A trigger is based on an event filter. It associates an event with a stored
-%% procedure. When an event matching the event filter is emitted, the stored
-%% procedure is executed.
+%% A trigger is based on an event filter. It associates an event with an
+%% action. When an event matching the event filter is emitted, the action is
+%% executed.
 %%
 %% The following event filters are documented by {@link
 %% khepri_evf:event_filter()}.
@@ -2927,8 +2941,9 @@ register_trigger(TriggerId, EventFilter, StoredProcPath, Options)
 %% EventFilter = "/:stock/:wood/oak".
 %% '''
 %%
-%% The stored procedure is expected to accept a single argument. This argument
-%% is a map containing the event properties. Here is an example:
+%% When giving a stored procedure as the action, it is expected to accept a
+%% single argument. This argument is a map containing the event properties.
+%% Here is an example:
 %%
 %% ```
 %% my_stored_procedure(Props) ->
@@ -2938,23 +2953,26 @@ register_trigger(TriggerId, EventFilter, StoredProcPath, Options)
 %%
 %% The stored procedure is executed on the leader's Erlang node.
 %%
+%% When giving a PID as the action, a `#khepri_trigger{}' message is sent to
+%% this process.
+%%
 %% It is guaranteed to run at least once. It could be executed multiple times
-%% if the Ra leader changes, therefore the stored procedure must be
-%% idempotent.
+%% if the Ra leader changes, therefore the action must be idempotent.
 %%
 %% @param StoreId the name of the Khepri store.
 %% @param TriggerId the name of the trigger.
 %% @param EventFilter the event filter used to associate an event with a
 %%        stored procedure.
-%% @param StoredProcPath the path to the stored procedure to execute when the
-%%        corresponding event occurs.
+%% @param Action the path to a stored procedure to execute when the
+%%        corresponding event occurs, or PID to send a message to, or a
+%%        "wrapped action".
 %%
 %% @returns `ok' if the trigger was registered, an `{error, Reason}' tuple
 %% otherwise.
 
-register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
+register_trigger(StoreId, TriggerId, EventFilter, Action, Options) ->
     khepri_machine:register_trigger(
-      StoreId, TriggerId, EventFilter, StoredProcPath, Options).
+      StoreId, TriggerId, EventFilter, Action, Options).
 
 %% -------------------------------------------------------------------
 %% register_projection().

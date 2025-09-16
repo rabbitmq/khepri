@@ -631,3 +631,30 @@ receive_sproc_msg_with_props(Key) ->
     receive {sproc, Key, Props} -> Props
     after 1000                  -> timeout
     end.
+
+event_triggers_message_send_test_() ->
+    EventFilter = khepri_evf:tree([foo]),
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [{"Registering a trigger",
+         ?_assertEqual(
+            ok,
+            khepri:register_trigger(
+              ?FUNCTION_NAME,
+              ?FUNCTION_NAME,
+              EventFilter,
+              self()))},
+
+        {"Updating a node; should trigger the send of the message",
+         ?_assertMatch(
+            ok,
+            khepri:put(?FUNCTION_NAME, [foo], value))},
+
+        {"Checking the procedure was executed",
+         ?_assert(receive
+                      #khepri_trigger{} ->
+                          true
+                  end)}]
+      }]}.
