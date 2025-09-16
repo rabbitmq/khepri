@@ -1591,6 +1591,8 @@ handle_aux(
     Cluster = ra_aux:members_info(IntState),
     TriggeredActions1 = lists:filter(
                           fun
+                              (#triggered_v2{where = all_members}) ->
+                                  true;
                               (#triggered_v2{where = {member, MemberNode}}) ->
                                   %% If the target member is not a cluster
                                   %% member, we run the trigger on the leader.
@@ -1601,7 +1603,8 @@ handle_aux(
                                        IsMember = maps:is_key(Member, Cluster),
                                        not IsMember
                                    end);
-                              (#triggered_v2{where = _}) ->
+                              (#triggered_v2{where = Where}) ->
+                                  ?assertNotEqual(all_members, Where),
                                   false
                           end, TriggeredActions),
     khepri_event_handler:handle_triggered_actions(StoreId, TriggeredActions1),
@@ -2506,6 +2509,9 @@ add_trigger_side_effects(InitialState, NewState, Events, SideEffects) ->
             %% This could lead to multiple execution of the same trigger,
             %% therefore the action must be idempotent.
             EmittedTriggers = get_emitted_triggers(InitialState),
+            %% FIXME: Add several copies of the emitted trigger (or use a
+            %% refcount) if where = all_members. We need that for the ack
+            %% mechanism.
             NewState1 = set_emitted_triggers(
                           NewState, EmittedTriggers ++ TriggeredActions),
 
@@ -2600,8 +2606,24 @@ evaluate_action(State, Event, TriggerId, Trigger, TriggeredActions)
                                    where = Where,
                                    event = Event}
                         end,
-            [Triggered | TriggeredActions]
+            evaluate_where_option(State, Triggered, TriggeredActions)
     end.
+
+evaluate_where_option(
+  _State, #triggered{} = Triggered, TriggeredActions) ->
+    [Triggered | TriggeredActions];
+evaluate_where_option(
+  _State, #triggered_v2{where = Where} = Triggered, TriggeredActions)
+  when Where =/= all_members ->
+    [Triggered | TriggeredActions];
+evaluate_where_option(
+  State, #triggered_v2{where = all_members} = Triggered, TriggeredActions) ->
+    Members = get_cached_members(State),
+    Triggered1 = lists:map(
+                   fun(Member) ->
+                           Triggered#triggered_v2{where = {member, Member}}
+                   end, Members),
+    Triggered1 ++ TriggeredActions.
 
 find_stored_proc(Tree, StoredProcPath) ->
     TreeOptions = #{expect_specific_node => true,

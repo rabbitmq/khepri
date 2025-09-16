@@ -57,6 +57,7 @@
          trigger_runs_on_leader/1,
          trigger_runs_on_follower/1,
          trigger_runs_on_local_member/1,
+         trigger_runs_on_all_members/1,
          trigger_runs_on_leader_if_non_member_target/1,
          trigger_options_rejected_before_v3/1]).
 
@@ -116,6 +117,7 @@ groups() ->
            trigger_runs_on_leader,
            trigger_runs_on_follower,
            trigger_runs_on_local_member,
+           trigger_runs_on_all_members,
            trigger_runs_on_leader_if_non_member_target
           ]}
         ]}
@@ -183,6 +185,7 @@ init_per_testcase(Testcase, Config)
        Testcase =:= trigger_runs_on_leader orelse
        Testcase =:= trigger_runs_on_follower orelse
        Testcase =:= trigger_runs_on_local_member orelse
+       Testcase =:= trigger_runs_on_all_members orelse
        Testcase =:= trigger_runs_on_leader_if_non_member_target->
     Nodes = start_n_nodes(Testcase, 3),
     PropsPerNode0 = [begin
@@ -2648,6 +2651,9 @@ trigger_runs_on_follower(Config) ->
 trigger_runs_on_local_member(Config) ->
     trigger_runs_on_where(Config, ?FUNCTION_NAME, local).
 
+trigger_runs_on_all_members(Config) ->
+    trigger_runs_on_where(Config, ?FUNCTION_NAME, all_members).
+
 trigger_runs_on_leader_if_non_member_target(Config) ->
     trigger_runs_on_where(Config, ?FUNCTION_NAME, {member, node()}).
 
@@ -2814,6 +2820,31 @@ trigger_runs_on_where(Config, Testcase, Where) ->
                         "trigger from ~s",
                         [RegisterNode])
             end,
+            receive
+                {sproc, Testcase, _MemberNode, _Props2} = Message ->
+                    ct:fail(
+                      "Received an unexpected message from the trigger:~n~p",
+                      [Message])
+            after 1000 ->
+                      ok
+            end;
+        all_members ->
+            ct:pal("Wait for the trigger message from members"),
+            lists:foreach(
+              fun(Node) ->
+                      receive
+                          {sproc, Testcase, Node, _Props1} ->
+                              ok
+                      after 60000 ->
+                                ct:pal(
+                                  "Messages in inbox:~n~p",
+                                  [erlang:process_info(self(), messages)]),
+                                ct:fail(
+                                  "Did not receive the expected message "
+                                  "from the trigger from ~s",
+                                  [Node])
+                      end
+              end, Nodes),
             receive
                 {sproc, Testcase, _MemberNode, _Props2} = Message ->
                     ct:fail(
