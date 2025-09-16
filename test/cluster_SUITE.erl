@@ -1949,7 +1949,7 @@ can_set_snapshot_interval(Config) ->
 
     ct:pal("Start database"),
     RaServerConfig = #{cluster_name => StoreId,
-                       machine_config => #{snapshot_interval => 4}},
+                       machine_config => #{snapshot_interval => 5}},
     ?assertEqual(
        {ok, StoreId},
        khepri:start(RaSystem, RaServerConfig)),
@@ -1961,16 +1961,9 @@ can_set_snapshot_interval(Config) ->
 
     ?assertEqual(ok, khepri:fence(StoreId)),
 
-    ct:pal("Verify applied command count is 1 (`machine_version` command)"),
-    ?assertEqual(
-       #{applied_command_count => 1},
-       khepri_machine:process_query(
-         StoreId,
-         fun khepri_machine:get_metrics/1,
-         #{})),
-
-    ct:pal("Submit command 2 (`put`)"),
-    ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
+    %% The first two second "invisible" commands are `machine_version' and
+    %% `#cache_members_list{}' which is appended by the aux handler.
+    await_applied_command_count(RaServer, 2),
 
     ct:pal("Verify applied command count is 2"),
     ?assertEqual(
@@ -1980,12 +1973,23 @@ can_set_snapshot_interval(Config) ->
          fun khepri_machine:get_metrics/1,
          #{})),
 
-    ct:pal("Submit command 3 (`put`)"),
+    ct:pal("Submit command 2 (`put`)"),
     ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
 
     ct:pal("Verify applied command count is 3"),
     ?assertEqual(
        #{applied_command_count => 3},
+       khepri_machine:process_query(
+         StoreId,
+         fun khepri_machine:get_metrics/1,
+         #{})),
+
+    ct:pal("Submit command 3 (`put`)"),
+    ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
+
+    ct:pal("Verify applied command count is 4"),
+    ?assertEqual(
+       #{applied_command_count => 4},
        khepri_machine:process_query(
          StoreId,
          fun khepri_machine:get_metrics/1,
@@ -1998,7 +2002,7 @@ can_set_snapshot_interval(Config) ->
     ct:pal("Submit command 4 (`put`)"),
     ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
 
-    await_snapshot_index(RaServer, 4),
+    await_snapshot_index(RaServer, 5),
 
     ct:pal("Verify applied command count is 0"),
     ?assertEqual(
@@ -2014,6 +2018,30 @@ can_set_snapshot_interval(Config) ->
        khepri:stop(StoreId)),
 
     ok.
+
+await_applied_command_count(RaServer, ExpectedCount) ->
+    await_applied_command_count(RaServer, ExpectedCount, 10).
+
+await_applied_command_count({StoreId, _} = RaServer, ExpectedCount, Retries) ->
+    #{applied_command_count := Count} = khepri_machine:process_query(
+                                          StoreId,
+                                          fun khepri_machine:get_metrics/1,
+                                          #{}),
+    case Count of
+       ExpectedCount ->
+          ok;
+       _ ->
+          case Retries of
+              0 ->
+                 erlang:error({?FUNCTION_NAME,
+                               [{expected, ExpectedCount},
+                                {value, Count}]});
+              _ ->
+                 timer:sleep(10),
+                 await_applied_command_count(
+                   RaServer, ExpectedCount, Retries - 1)
+          end
+    end.
 
 await_snapshot_index(RaServer, ExpectedIndex) ->
     await_snapshot_index(RaServer, ExpectedIndex, 10).

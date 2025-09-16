@@ -68,6 +68,9 @@
 %% `#register_trigger_v2{}' command and `#triggered_v2{}', stored in the
 %% machine state. The extended mechanism continues to support stored procedure
 %% (the previous mechanism is not used with version 3).</li>
+%% <li>Started to cache the list of cluster member nodenames in the machine
+%% state. The machine state was modified to add the `cached_members' list at
+%% its end.</li>
 %% </ul>
 %% </td>
 %% </tr>
@@ -140,6 +143,7 @@
          has_projection/2,
          get_metrics/1,
          get_dedups/1,
+         get_cached_members/1,
          get_store_id/1]).
 
 -ifdef(TEST).
@@ -204,17 +208,18 @@
          metrics = #{} :: khepri_machine:metrics(),
 
          %% Added in machine version 1.
-         dedups = #{} :: khepri_machine:dedups_map()}).
+         dedups = #{} :: khepri_machine:dedups_map(),
 
--opaque state_v1() :: #khepri_machine{}.
-%% State of this Ra state machine, version 1.
-%%
-%% Note that this type is used also for machine version 2. Machine version 2
-%% changes the type of an opaque member of the {@link khepri_tree} record and
-%% doesn't need any changes to the `khepri_machine' type. See the moduledoc of
-%% this module for more information about version 2.
+         %% Added in machine version 3.
+         cached_members :: khepri_machine:cached_members_list() |
+                           undefined}).
 
--type state() :: state_v1() | khepri_machine_v0:state().
+-opaque state_v3() :: #khepri_machine{}.
+%% State of this Ra state machine, version 3.
+
+-type state() :: state_v3() |
+                 khepri_machine_v1:state() |
+                 khepri_machine_v0:state().
 %% State of this Ra state machine.
 
 -type triggers_map() :: #{khepri:trigger_id() =>
@@ -237,6 +242,9 @@
 
 -type dedups_map() :: #{reference() => {any(), integer()}}.
 %% Map to handle command deduplication.
+
+-type cached_members_list() :: [node() | node()].
+%% Non-empty list of cluster member nodenames.
 
 -type aux_state() :: #khepri_machine_aux{}.
 %% Auxiliary state of this Ra state machine.
@@ -279,12 +287,13 @@
 
               machine_init_args/0,
               state/0,
-              state_v1/0,
+              state_v3/0,
               machine_config/0,
               triggers_map/0,
               triggers_map_v2/0,
               metrics/0,
               dedups_map/0,
+              cached_members_list/0,
               props/0,
               triggered/0,
               projection_tree/0,
@@ -1430,6 +1439,34 @@ init_aux(StoreId) ->
       Effects :: ra_machine:effects().
 %% @private
 
+handle_aux(leader, cast, eval, AuxState, IntState) ->
+    AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+
+    EffectiveMacVer = ra_aux:effective_machine_version(IntState),
+    CachesMembersList = does_api_comply_with(
+                          cached_members_list, EffectiveMacVer),
+    SideEffects1 = case CachesMembersList of
+                       true ->
+                           State = ra_aux:machine_state(IntState),
+                           Cluster = ra_aux:members_info(IntState),
+                           Members1 = maps:fold(
+                                        fun({_StoreId, Node}, _, Acc) ->
+                                                [Node | Acc]
+                                        end, [], Cluster),
+                           Members2 = lists:sort(Members1),
+                           case khepri_machine:get_cached_members(State) of
+                               Members2 ->
+                                   [];
+                               _ ->
+                                   Command1 = #cache_members_list{
+                                                 members = Members2},
+                                   SideEffect1 = {append, Command1},
+                                   [SideEffect1]
+                           end;
+                       false ->
+                           []
+                   end,
+    {no_reply, AuxState1, IntState, SideEffects1};
 handle_aux(
   _RaState, {call, From},
   {query, _QueryFun, Options} = AuxQuery,
@@ -1806,6 +1843,16 @@ apply(
     State1 = set_dedups(State, Dedups1),
     Ret = {State1, ok},
     post_apply(Ret, Meta);
+apply(
+  #{machine_version := MacVer} = Meta,
+  #cache_members_list{members = Members},
+  State) when MacVer >= 3 ->
+    %% `#cached_members_list{}' is emitted by the `handle_aux/5' clause for
+    %% the `eval' effect to periodically update our internal copy of the
+    %% cluster member nodenames list.
+    State1 = set_cached_members(State, Members),
+    Ret = {State1, ok},
+    post_apply(Ret, Meta);
 apply(Meta, {machine_version, OldMacVer, NewMacVer}, OldState) ->
     NewState = convert_state(OldState, OldMacVer, NewMacVer),
     Ret = {NewState, ok},
@@ -2126,6 +2173,7 @@ api_behaviour_to_machine_version(indirect_deletes_in_ret)           -> 2;
 api_behaviour_to_machine_version(uniform_write_ret)                 -> 2;
 api_behaviour_to_machine_version(multi_table_projections)           -> 3;
 api_behaviour_to_machine_version(extended_trigger)                  -> 3;
+api_behaviour_to_machine_version(cached_members_list)               -> 3;
 api_behaviour_to_machine_version(Behaviour) when is_atom(Behaviour) ->
     undefined.
 
@@ -2645,7 +2693,7 @@ clear_compiled_projection_tree() ->
 %% @private
 
 is_state(State) ->
-    is_record(State, khepri_machine) orelse khepri_machine_v0:is_state(State).
+    is_record(State, khepri_machine) orelse khepri_machine_v1:is_state(State).
 
 -spec ensure_is_state(State) -> ok when
       State :: khepri_machine:state().
@@ -2667,7 +2715,7 @@ ensure_is_state(State) ->
 get_config(#khepri_machine{config = Config}) ->
     Config;
 get_config(State) ->
-    khepri_machine_v0:get_config(State).
+    khepri_machine_v1:get_config(State).
 
 -spec get_tree(State) -> Tree when
       State :: khepri_machine:state(),
@@ -2679,7 +2727,7 @@ get_config(State) ->
 get_tree(#khepri_machine{tree = Tree}) ->
     Tree;
 get_tree(State) ->
-    khepri_machine_v0:get_tree(State).
+    khepri_machine_v1:get_tree(State).
 
 -spec set_tree(State, Tree) -> NewState when
       State :: khepri_machine:state(),
@@ -2692,7 +2740,7 @@ get_tree(State) ->
 set_tree(#khepri_machine{} = State, Tree) ->
     State#khepri_machine{tree = Tree};
 set_tree(State, Tree) ->
-    khepri_machine_v0:set_tree(State, Tree).
+    khepri_machine_v1:set_tree(State, Tree).
 
 -spec get_root(State) -> Root when
       State :: khepri_machine:state(),
@@ -2742,7 +2790,7 @@ get_keep_while_conds_revidx(State) ->
 get_triggers(#khepri_machine{triggers = Triggers}) ->
     Triggers;
 get_triggers(State) ->
-    khepri_machine_v0:get_triggers(State).
+    khepri_machine_v1:get_triggers(State).
 
 -spec set_triggers(State, Triggers) -> NewState when
       State :: khepri_machine:state(),
@@ -2756,7 +2804,7 @@ get_triggers(State) ->
 set_triggers(#khepri_machine{} = State, Triggers) ->
     State#khepri_machine{triggers = Triggers};
 set_triggers(State, Triggers) ->
-    khepri_machine_v0:set_triggers(State, Triggers).
+    khepri_machine_v1:set_triggers(State, Triggers).
 
 -spec get_emitted_triggers(State) -> EmittedTriggers when
       State :: khepri_machine:state(),
@@ -2768,7 +2816,7 @@ set_triggers(State, Triggers) ->
 get_emitted_triggers(#khepri_machine{emitted_triggers = EmittedTriggers}) ->
     EmittedTriggers;
 get_emitted_triggers(State) ->
-    khepri_machine_v0:get_emitted_triggers(State).
+    khepri_machine_v1:get_emitted_triggers(State).
 
 -spec set_emitted_triggers(State, EmittedTriggers) -> NewState when
       State :: khepri_machine:state(),
@@ -2781,7 +2829,7 @@ get_emitted_triggers(State) ->
 set_emitted_triggers(#khepri_machine{} = State, EmittedTriggers) ->
     State#khepri_machine{emitted_triggers = EmittedTriggers};
 set_emitted_triggers(State, EmittedTriggers) ->
-    khepri_machine_v0:set_emitted_triggers(State, EmittedTriggers).
+    khepri_machine_v1:set_emitted_triggers(State, EmittedTriggers).
 
 -spec get_projections(State) -> Projections when
       State :: khepri_machine:state(),
@@ -2793,7 +2841,7 @@ set_emitted_triggers(State, EmittedTriggers) ->
 get_projections(#khepri_machine{projections = Projections}) ->
     Projections;
 get_projections(State) ->
-    khepri_machine_v0:get_projections(State).
+    khepri_machine_v1:get_projections(State).
 
 -spec has_projection(ProjectionTree, ProjectionName) -> boolean() when
       ProjectionTree :: khepri_machine:projection_tree(),
@@ -2825,7 +2873,7 @@ has_projection(ProjectionTree, Name) when is_atom(Name) ->
 set_projections(#khepri_machine{} = State, Projections) ->
     State#khepri_machine{projections = Projections};
 set_projections(State, Projections) ->
-    khepri_machine_v0:set_projections(State, Projections).
+    khepri_machine_v1:set_projections(State, Projections).
 
 -spec get_metrics(State) -> Metrics when
       State :: khepri_machine:state(),
@@ -2837,7 +2885,7 @@ set_projections(State, Projections) ->
 get_metrics(#khepri_machine{metrics = Metrics}) ->
     Metrics;
 get_metrics(State) ->
-    khepri_machine_v0:get_metrics(State).
+    khepri_machine_v1:get_metrics(State).
 
 -spec set_metrics(State, Metrics) -> NewState when
       State :: khepri_machine:state(),
@@ -2850,7 +2898,7 @@ get_metrics(State) ->
 set_metrics(#khepri_machine{} = State, Metrics) ->
     State#khepri_machine{metrics = Metrics};
 set_metrics(State, Metrics) ->
-    khepri_machine_v0:set_metrics(State, Metrics).
+    khepri_machine_v1:set_metrics(State, Metrics).
 
 -spec get_dedups(State) -> Dedups when
       State :: khepri_machine:state(),
@@ -2861,8 +2909,8 @@ set_metrics(State, Metrics) ->
 
 get_dedups(#khepri_machine{dedups = Dedups}) ->
     Dedups;
-get_dedups(_State) ->
-    #{}.
+get_dedups(State) ->
+    khepri_machine_v1:get_dedups(State).
 
 -spec set_dedups(State, Dedups) -> NewState when
       State :: khepri_machine:state(),
@@ -2874,7 +2922,32 @@ get_dedups(_State) ->
 
 set_dedups(#khepri_machine{} = State, Dedups) ->
     State#khepri_machine{dedups = Dedups};
-set_dedups(State, _Dedups) ->
+set_dedups(State, Dedups) ->
+    khepri_machine_v1:set_dedups(State, Dedups).
+
+-spec get_cached_members(State) -> Members when
+      State :: khepri_machine:state(),
+      Members :: khepri_machine:cached_members_list() | undefined.
+%% @doc Returns the cached list of cluster members from the given state.
+%%
+%% @private
+
+get_cached_members(#khepri_machine{cached_members = Members}) ->
+    Members;
+get_cached_members(_State) ->
+    undefined.
+
+-spec set_cached_members(State, Members) -> NewState when
+      State :: khepri_machine:state(),
+      Members :: khepri_machine:cached_members_list(),
+      NewState :: khepri_machine:state().
+%% @doc Sets the cached list of cluster members in the given state.
+%%
+%% @private
+
+set_cached_members(#khepri_machine{} = State, Members) ->
+    State#khepri_machine{cached_members = Members};
+set_cached_members(State, _Members) ->
     State.
 
 -spec get_store_id(State) -> StoreId when
@@ -2896,7 +2969,7 @@ assert_equal(#khepri_machine{} = State1, #khepri_machine{} = State2) ->
     ?assertEqual(State1, State2),
     ok;
 assert_equal(State1, State2) ->
-    khepri_machine_v0:assert_equal(State1, State2).
+    khepri_machine_v1:assert_equal(State1, State2).
 
 -ifdef(TEST).
 -spec make_virgin_state(Params) -> State when
@@ -2940,12 +3013,21 @@ convert_state1(State, 1, 2) ->
     Tree1 = khepri_tree:convert_tree(Tree, 1, 2),
     set_tree(State, Tree1);
 convert_state1(State, 2, 3) ->
-    Triggers = get_triggers(State),
+    %% To go from version 2 to version 3, we add the `cached_members' fields
+    %% at the end of the record. The default value is `undefined'.
+    ?assert(khepri_machine_v1:is_state(State)),
+    Fields0 = khepri_machine_v1:state_to_list(State),
+    Fields1 = Fields0 ++ [undefined],
+    State1 = list_to_tuple(Fields1),
+    ?assert(is_state(State1)),
+
+    Triggers = get_triggers(State1),
     Triggers1 = maps:map(
                   fun(_TriggerId, Trigger) ->
                           trigger_v1_to_v2(Trigger)
                   end, Triggers),
-    set_triggers(State, Triggers1).
+    State2 = set_triggers(State1, Triggers1),
+    State2.
 
 trigger_v1_to_v2(#{sproc := StoredProcPath} = Trigger) ->
     Trigger1 = Trigger#{action => {sproc, StoredProcPath},
