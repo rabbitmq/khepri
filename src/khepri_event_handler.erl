@@ -28,19 +28,32 @@
          terminate/2,
          code_change/3]).
 
--type trigger_action() :: {sproc, khepri_path:native_path()}.
+-type trigger_action() :: {sproc, khepri_path:native_path()} |
+                          {send, pid(), any()}.
 %% The type of action associated with a trigger.
 %%
-%% It must be the path to a stored procedure.
+%% It can be the following actions:
+%% <ul>
+%% <li>`sproc': the stored procedure pointed to by the given path will be
+%% executed</li>
+%% <li>`send': a message will be sent to the specified PID with the event
+%% details and the given term</li>
+%% </ul>
 %%
 %% The action will get a trigger desccriptor as argument to describe a specific
 %% execution of that trigger. See {@link trigger_descriptor/0}.
 
--type triggered_action() :: {sproc, horus:horus_fun()}.
+-type triggered_action() :: {sproc, horus:horus_fun()} |
+                            {send, pid(), any()}.
 %% The action associated with a trigger once it is triggered.
 %%
-%% It is the stored procedure pointed to by the path in the triggered action's
-%% arguments.
+%% It can be the following actions:
+%% <ul>
+%% <li>`sproc': the stored procedure (extracted from the path given to the
+%% trigger registration) is executed</li>
+%% <li>`send': a message is sent to the specified PID with the event details
+%% and the given term</li>
+%% </ul>
 
 -type trigger_exec_loc() :: leader | {member, node()} | all_members.
 %% Where to execute the triggered action.
@@ -160,7 +173,11 @@ event_to_props(#ev_process{pid = Pid, change = Change}) ->
       change => Change}.
 
 action_to_props({sproc, _StoredProc}) ->
-    #{}.
+    #{};
+action_to_props({send, _Pid, undefined}) ->
+    #{};
+action_to_props({send, _Pid, Priv}) ->
+    #{priv => Priv}.
 
 run_triggered_action(
   StoreId,
@@ -173,7 +190,12 @@ run_triggered_action(
   #triggered_v2{action = {sproc, StoredProc}} = TriggeredAction,
   ActionArg, State) ->
     run_triggered_sproc(
-      StoreId, TriggeredAction, StoredProc, ActionArg, State).
+      StoreId, TriggeredAction, StoredProc, ActionArg, State);
+run_triggered_action(
+  StoreId,
+  #triggered_v2{action = {send, Pid, _Priv}} = TriggeredAction,
+  ActionArg, State) ->
+    run_triggered_send(StoreId, TriggeredAction, Pid, ActionArg, State).
 
 run_triggered_sproc(StoreId, TriggeredAction, StoredProc, ActionArg, State) ->
     Args = [ActionArg],
@@ -225,6 +247,11 @@ handle_action_crash(
             Crashes1 = Crashes#{Key => {Timestamp, 1, Msg}},
             State#?MODULE{trigger_crashes = Crashes1}
     end.
+
+run_triggered_send(_StoreId, _TriggeredAction, Pid, ActionArg, State) ->
+    Message = ActionArg,
+    erlang:send(Pid, Message),
+    State.
 
 log_accumulated_trigger_crashes(
   #?MODULE{trigger_crashes = Crashes} = State)
