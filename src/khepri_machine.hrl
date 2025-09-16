@@ -37,7 +37,8 @@
 
           multi_table_projections     => 3,
 
-          extended_trigger            => 4}).
+          extended_trigger            => 4,
+          cached_members_list         => 4}).
 
 %% Get the state machine version the given API behaviour was introduced in.
 %% This is similar to `khepri_machine:api_behaviour_to_machine_version/1' but
@@ -111,3 +112,5 @@
 %% Old commands, kept for backward-compatibility.
 
 -record(unregister_projection, {name :: khepri_projection:name()}).
+
+-record(cache_members_list, {members :: khepri_machine:cached_members_list()}).
