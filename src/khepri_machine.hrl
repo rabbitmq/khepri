@@ -87,3 +87,5 @@
 %% Old commands, kept for backward-compatibility.
 
 -record(unregister_projection, {name :: khepri_projection:name()}).
+
+-record(cache_members_list, {members :: khepri_machine:cached_members_list()}).
