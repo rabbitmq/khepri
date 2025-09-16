@@ -724,3 +724,104 @@ receive_sproc_msg_with_props(Key) ->
     receive {sproc, Key, Props} -> Props
     after 1000                  -> timeout
     end.
+
+event_triggers_message_send_test_() ->
+    EventFilter = khepri_evf:tree([foo]),
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [{"Wait for `extended_trigger` behaviour",
+         ?_assertEqual(
+            ok,
+            khepri_cluster:wait_for_effective_behaviour(
+              ?FUNCTION_NAME, extended_trigger, infinity))},
+        {"Registering a trigger",
+         ?_assertEqual(
+            ok,
+            khepri:register_trigger(
+              ?FUNCTION_NAME,
+              ?FUNCTION_NAME,
+              EventFilter,
+              self()))},
+
+        {"Updating a node; should trigger the send of the message",
+         ?_assertMatch(
+            ok,
+            khepri:put(?FUNCTION_NAME, [foo], value))},
+
+        {"Checking the procedure was executed",
+         ?_assert(receive
+                      #khepri_trigger{} ->
+                          true
+                  end)}]
+      }]}.
+
+maybe_convert_to_action_with_old_machine_version_test_() ->
+    MacVer = maps:get(extended_trigger, ?API_BEHAV_MACVER_MAP) - 1,
+    StoreId = ?FUNCTION_NAME,
+    TriggerId = my_trigger,
+    EventFilter = khepri_evf:tree([]),
+    Pid = self(),
+    {setup,
+     fun() -> test_ra_server_helpers:setup(
+                ?FUNCTION_NAME, #{machine_version => MacVer})
+     end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [?_assertEqual(
+           [foo],
+           khepri_machine:maybe_convert_to_action(
+             StoreId, TriggerId, EventFilter,
+             "/:foo")),
+        ?_assertEqual(
+           [foo],
+           khepri_machine:maybe_convert_to_action(
+             StoreId, TriggerId, EventFilter,
+             {sproc, [foo]})),
+
+        ?_assertError(
+           ?khepri_exception(unsupported_trigger_action, _),
+           khepri_machine:maybe_convert_to_action(
+             StoreId, TriggerId, EventFilter,
+             Pid)),
+        ?_assertError(
+           ?khepri_exception(unsupported_trigger_action, _),
+           khepri_machine:maybe_convert_to_action(
+             StoreId, TriggerId, EventFilter,
+             {send, Pid, priv}))
+       ]
+      }]}.
+
+maybe_convert_to_action_with_latest_machine_version_test_() ->
+    StoreId = ?FUNCTION_NAME,
+    TriggerId = my_trigger,
+    EventFilter = khepri_evf:tree([]),
+    Pid = self(),
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [?_assertEqual(
+           {sproc, [foo]},
+           khepri_machine:maybe_convert_to_action(
+             StoreId, TriggerId, EventFilter,
+             "/:foo")),
+        ?_assertEqual(
+           {sproc, [foo]},
+           khepri_machine:maybe_convert_to_action(
+             StoreId, TriggerId, EventFilter,
+             {sproc, [foo]})),
+
+        ?_assertEqual(
+           {send, Pid, undefined},
+           khepri_machine:maybe_convert_to_action(
+             StoreId, TriggerId, EventFilter,
+             Pid)),
+        ?_assertEqual(
+           {send, Pid, priv},
+           khepri_machine:maybe_convert_to_action(
+             StoreId, TriggerId, EventFilter,
+             {send, Pid, priv}))
+       ]
+      }]}.
