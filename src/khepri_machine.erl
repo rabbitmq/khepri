@@ -655,12 +655,16 @@ handle_tx_exception(
     erlang:raise(Class, Reason, Stacktrace).
 
 -spec register_trigger(
-        StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
+        StoreId, TriggerId, EventFilter, Action, Options) ->
     Ret when
       StoreId :: khepri:store_id(),
       TriggerId :: khepri:trigger_id(),
       EventFilter :: khepri_evf:event_filter_or_compat(),
+      Action :: StoredProcPath |
+                Pid |
+                khepri_event_handler:trigger_action(),
       StoredProcPath :: khepri_path:path(),
+      Pid :: pid(),
       Options :: khepri:command_options() | khepri:trigger_options(),
       Ret :: ok | khepri:error().
 %% @doc Registers a trigger.
@@ -676,14 +680,12 @@ handle_tx_exception(
 %% @returns `ok' if the trigger was registered, an `{error, Reason}' tuple
 %% otherwise.
 
-register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
-       ?IS_KHEPRI_PATH_OR_COMPAT(StoredProcPath) ->
-    EventFilter1 = khepri_evf:wrap(EventFilter),
-    StoredProcPath1 = khepri_path:from_string(StoredProcPath),
-    khepri_path:ensure_is_valid(StoredProcPath1),
+register_trigger(StoreId, TriggerId, EventFilter, Action, Options)
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
     {CommandOptions, NonCommandOptions} = split_command_options(
                                             StoreId, Options),
+    EventFilter1 = khepri_evf:wrap(EventFilter),
+    Action1 = maybe_convert_to_action(StoreId, TriggerId, EventFilter, Action),
     case does_api_comply_with(extended_trigger, StoreId) of
         false ->
             UnsupportedOptions = maps:filter(
@@ -694,7 +696,7 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options)
             if
                 UnsupportedOptions =:= #{} ->
                     register_trigger_v1(
-                      StoreId, TriggerId, EventFilter1, StoredProcPath1,
+                      StoreId, TriggerId, EventFilter1, Action1,
                       CommandOptions);
                 true ->
                     ?khepri_misuse(
@@ -704,11 +706,33 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options)
                          options => UnsupportedOptions})
             end;
         true ->
-            StoredProcPath2 = khepri_path:realpath(StoredProcPath1),
-            Action = {sproc, StoredProcPath2},
             register_trigger_v2(
-              StoreId, TriggerId, EventFilter1, Action,
+              StoreId, TriggerId, EventFilter1, Action1,
               CommandOptions, NonCommandOptions)
+    end.
+
+maybe_convert_to_action(StoreId, _TriggerId, _EventFilter, StoredProcPath)
+  when ?IS_KHEPRI_PATH_PATTERN(StoredProcPath) ->
+    StoredProcPath1 = khepri_path:from_string(StoredProcPath),
+    khepri_path:ensure_is_valid(StoredProcPath1),
+    case does_api_comply_with(extended_trigger, StoreId) of
+        true ->
+            StoredProcPath2 = khepri_path:realpath(StoredProcPath1),
+            {sproc, StoredProcPath2};
+        false ->
+            StoredProcPath1
+    end;
+maybe_convert_to_action(StoreId, TriggerId, EventFilter, Pid)
+  when is_pid(Pid) ->
+    case does_api_comply_with(extended_trigger, StoreId) of
+        true ->
+            {send, Pid, undefined};
+        false ->
+            ?khepri_misuse(
+               unsupported_trigger_action,
+               #{trigger_id => TriggerId,
+                 event_filter => EventFilter,
+                 action => Pid})
     end.
 
 register_trigger_v1(
@@ -2806,7 +2830,20 @@ evaluate_action(State, Event, TriggerId, Trigger, TriggeredActions)
                                    event = Event}
                         end,
             evaluate_where_option(State, Triggered, TriggeredActions)
-    end.
+    end;
+evaluate_action(
+  State, Event, TriggerId,
+  #{event_filter := EventFilter,
+    action := Action,
+    where := Where},
+  TriggeredActions) ->
+    Triggered = #triggered_v2{
+                   id = TriggerId,
+                   event_filter = EventFilter,
+                   action = Action,
+                   where = Where,
+                   event = Event},
+    evaluate_where_option(State, Triggered, TriggeredActions).
 
 evaluate_where_option(
   _State, #triggered{} = Triggered, TriggeredActions) ->
