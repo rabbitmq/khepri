@@ -619,7 +619,10 @@ make_sproc(Pid, Key) ->
     fun(Props) ->
             case Props of
                 #{path := Path, on_action := OnAction} ->
-                    Pid ! {sproc, Key, {OnAction, Path}}
+                    Pid ! {sproc, Key, {OnAction, Path}};
+                #khepri_trigger{type = tree,
+                                event = #{path := Path, change := Change}} ->
+                    Pid ! {sproc, Key, {Change, Path}}
             end
     end.
 
