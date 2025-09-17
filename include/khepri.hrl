@@ -127,6 +127,16 @@
         {conditions = [] :: [khepri_path:pattern_component()]}).
 
 %% -------------------------------------------------------------------
+%% Trigger action argument.
+%% -------------------------------------------------------------------
+
+-record(khepri_trigger, {type :: tree | process,
+                         store_id :: khepri:store_id(),
+                         trigger_id :: khepri:trigger_id(),
+                         event = #{} :: map(),
+                         action = #{} :: map()}).
+
+%% -------------------------------------------------------------------
 %% Error tuple format.
 %% -------------------------------------------------------------------
 

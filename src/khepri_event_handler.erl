@@ -32,6 +32,9 @@
 %% The type of action associated with a trigger.
 %%
 %% It must be the path to a stored procedure.
+%%
+%% The action will get a trigger desccriptor as argument to describe a specific
+%% execution of that trigger. See {@link trigger_descriptor/0}.
 
 -type triggered_action() :: {sproc, horus:horus_fun()}.
 %% The action associated with a trigger once it is triggered.
@@ -50,9 +53,23 @@
 %% member of the cluster, or the leader otherwise.</li>
 %% </ul>
 
+-type trigger_descriptor() :: #khepri_trigger{}.
+%% Descriptor of the trigger used as an argument to the trigger action.
+%%
+%% The descriptor contains all the properties of a specific instance of that
+%% trigger.
+%%
+%% When the action is a stored procedure or an MFA tuple, the descriptor is
+%% appended to the list of arguments.
+%%
+%% When the action is a PID, the descriptor is send to the PID as a standalone
+%% message. The `action' properties map will contain the `Priv' element of the
+%% `send' tuple under the `priv' field.
+
 -export_type([trigger_action/0,
               triggered_action/0,
-              trigger_exec_loc/0]).
+              trigger_exec_loc/0,
+              trigger_descriptor/0]).
 
 -define(SERVER, ?MODULE).
 
@@ -84,23 +101,9 @@ handle_cast(
   {handle_triggered_actions, StoreId, TriggeredActions}, State) ->
     State1 =
     lists:foldl(
-      fun
-          (#triggered{id = TriggerId,
-                      sproc = StoredProc,
-                      event_filter = EventFilter,
-                      props = Props},
-           S) ->
-              run_triggered_sproc(
-                StoreId, TriggerId, StoredProc, EventFilter, Props, S);
-          (#triggered_v2{id = TriggerId,
-                         action = {sproc, StoredProc},
-                         event_filter = EventFilter,
-                         event = #ev_tree{path = Path, change = Change}},
-           S) ->
-              Props = #{path => Path,
-                        on_action => Change},
-              run_triggered_sproc(
-                StoreId, TriggerId, StoredProc, EventFilter, Props, S)
+      fun(TriggeredAction, S) ->
+              ActionArg = prepare_action_arg(StoreId, TriggeredAction),
+              run_triggered_action(StoreId, TriggeredAction, ActionArg, S)
       end, State, TriggeredActions),
     _ = khepri_machine:ack_triggers_execution(StoreId, TriggeredActions),
     {State2, Timeout} = log_accumulated_trigger_crashes(State1),
@@ -124,42 +127,96 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-run_triggered_sproc(
-  StoreId, TriggerId, StoredProc, EventFilter, Props,
-  #?MODULE{trigger_crashes = Crashes} = State) ->
-    Args = [Props],
+prepare_action_arg(_StoreId, #triggered{props = Props}) ->
+    Arg = Props,
+    Arg;
+prepare_action_arg(
+  StoreId,
+  #triggered_v2{id = TriggerId,
+                event = Event,
+                action = Action}) ->
+    EventType = event_type(Event),
+    EventProps = event_to_props(Event),
+    ActionProps = action_to_props(Action),
+    Arg = #khepri_trigger{type = EventType,
+                          store_id = StoreId,
+                          trigger_id = TriggerId,
+                          event = EventProps,
+                          action = ActionProps},
+    Arg.
+
+event_type(#ev_tree{}) ->
+    tree.
+
+event_to_props(#ev_tree{path = Path, change = Change}) ->
+    #{path => Path,
+     change => Change}.
+
+action_to_props({sproc, _StoredProc}) ->
+    #{}.
+
+run_triggered_action(
+  StoreId,
+  #triggered{sproc = StoredProc} = TriggeredAction,
+  ActionArg, State) ->
+    run_triggered_sproc(
+      StoreId, TriggeredAction, StoredProc, ActionArg, State);
+run_triggered_action(
+  StoreId,
+  #triggered_v2{action = {sproc, StoredProc}} = TriggeredAction,
+  ActionArg, State) ->
+    run_triggered_sproc(
+      StoreId, TriggeredAction, StoredProc, ActionArg, State).
+
+run_triggered_sproc(StoreId, TriggeredAction, StoredProc, ActionArg, State) ->
+    Args = [ActionArg],
     try
         %% TODO: Be flexible and accept a function with an arity of 0.
         _ = khepri_sproc:run(StoredProc, Args),
         State
     catch
         Class:Reason:Stacktrace ->
-            Key = {Class, Reason, Stacktrace},
-            case Crashes of
-                #{Key := {Timestamp, Count, Msg}} ->
-                    Crashes1 = Crashes#{Key => {Timestamp, Count + 1, Msg}},
-                    State#?MODULE{trigger_crashes = Crashes1};
-                _ ->
-                    Msg = io_lib:format(
-                            "Triggered stored procedure crash~n"
-                            "  Store ID: ~s~n"
-                            "  Trigger ID: ~s~n"
-                            "  Event filter:~n"
-                            "    ~p~n"
-                            "  Event props:~n"
-                            "    ~p~n"
-                            "  Crash:~n"
-                            "    ~ts",
-                            [StoreId, TriggerId, EventFilter, Props,
-                             khepri_utils:format_exception(
-                               Class, Reason, Stacktrace,
-                               #{column => 4})]),
-                    ?LOG_ERROR(Msg, []),
+            handle_action_crash(
+              StoreId, TriggeredAction, ActionArg,
+              Class, Reason, Stacktrace, State)
+    end.
 
-                    Timestamp = erlang:monotonic_time(millisecond),
-                    Crashes1 = Crashes#{Key => {Timestamp, 1, Msg}},
-                    State#?MODULE{trigger_crashes = Crashes1}
-            end
+handle_action_crash(
+  StoreId, TriggeredAction, ActionArg, Class, Reason, Stacktrace,
+  #?MODULE{trigger_crashes = Crashes} = State) ->
+    Key = {Class, Reason, Stacktrace},
+    case Crashes of
+        #{Key := {Timestamp, Count, Msg}} ->
+            Crashes1 = Crashes#{Key => {Timestamp, Count + 1, Msg}},
+            State#?MODULE{trigger_crashes = Crashes1};
+        _ ->
+            TriggerId = case TriggeredAction of
+                            #triggered{id = Id}    -> Id;
+                            #triggered_v2{id = Id} -> Id
+                        end,
+            EventFilter = case TriggeredAction of
+                              #triggered{event_filter = EF}    -> EF;
+                              #triggered_v2{event_filter = EF} -> EF
+                          end,
+            Msg = io_lib:format(
+                    "Triggered stored procedure crash~n"
+                    "  Store ID: ~s~n"
+                    "  Trigger ID: ~s~n"
+                    "  Event filter:~n"
+                    "    ~p~n"
+                    "  Action arg:~n"
+                    "    ~p~n"
+                    "  Crash:~n"
+                    "    ~ts",
+                    [StoreId, TriggerId, EventFilter, ActionArg,
+                     khepri_utils:format_exception(
+                       Class, Reason, Stacktrace,
+                       #{column => 4})]),
+            ?LOG_ERROR(Msg, []),
+
+            Timestamp = erlang:monotonic_time(millisecond),
+            Crashes1 = Crashes#{Key => {Timestamp, 1, Msg}},
+            State#?MODULE{trigger_crashes = Crashes1}
     end.
 
 log_accumulated_trigger_crashes(
