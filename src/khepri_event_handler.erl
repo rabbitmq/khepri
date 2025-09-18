@@ -29,6 +29,7 @@
          code_change/3]).
 
 -type trigger_action() :: {sproc, khepri_path:native_path()} |
+                          {apply, {module(), atom(), list()}} |
                           {send, pid(), any()}.
 %% The type of action associated with a trigger.
 %%
@@ -36,6 +37,8 @@
 %% <ul>
 %% <li>`sproc': the stored procedure pointed to by the given path will be
 %% executed</li>
+%% <li>`apply', the function described by the given module/function/arguments
+%% tuple will be executed</li>
 %% <li>`send': a message will be sent to the specified PID with the event
 %% details and the given term</li>
 %% </ul>
@@ -44,6 +47,7 @@
 %% execution of that trigger. See {@link trigger_descriptor/0}.
 
 -type triggered_action() :: {sproc, horus:horus_fun()} |
+                            {apply, {module(), atom(), list()}} |
                             {send, pid(), any()}.
 %% The action associated with a trigger once it is triggered.
 %%
@@ -51,6 +55,8 @@
 %% <ul>
 %% <li>`sproc': the stored procedure (extracted from the path given to the
 %% trigger registration) is executed</li>
+%% <li>`apply': the function described by the given module/function/arguments
+%% tuple is executed</li>
 %% <li>`send': a message is sent to the specified PID with the event details
 %% and the given term</li>
 %% </ul>
@@ -174,6 +180,8 @@ event_to_props(#ev_process{pid = Pid, change = Change}) ->
 
 action_to_props({sproc, _StoredProc}) ->
     #{};
+action_to_props({apply, _MFA}) ->
+    #{};
 action_to_props({send, _Pid, undefined}) ->
     #{};
 action_to_props({send, _Pid, Priv}) ->
@@ -193,6 +201,11 @@ run_triggered_action(
       StoreId, TriggeredAction, StoredProc, ActionArg, State);
 run_triggered_action(
   StoreId,
+  #triggered_v2{action = {apply, MFA}} = TriggeredAction,
+  ActionArg, State) ->
+    run_triggered_apply(StoreId, TriggeredAction, MFA, ActionArg, State);
+run_triggered_action(
+  StoreId,
   #triggered_v2{action = {send, Pid, _Priv}} = TriggeredAction,
   ActionArg, State) ->
     run_triggered_send(StoreId, TriggeredAction, Pid, ActionArg, State).
@@ -202,6 +215,21 @@ run_triggered_sproc(StoreId, TriggeredAction, StoredProc, ActionArg, State) ->
     try
         %% TODO: Be flexible and accept a function with an arity of 0.
         _ = khepri_sproc:run(StoredProc, Args),
+        State
+    catch
+        Class:Reason:Stacktrace ->
+            handle_action_crash(
+              StoreId, TriggeredAction, ActionArg,
+              Class, Reason, Stacktrace, State)
+    end.
+
+run_triggered_apply(StoreId, TriggeredAction, MFA, ActionArg, State) ->
+    try
+        %% TODO: Be flexible and accept a function with an arity of that fits
+        %% `Args0' only.
+        {Mod, Func, Args0} = MFA,
+        Args1 = Args0 ++ [ActionArg],
+        _ = erlang:apply(Mod, Func, Args1),
         State
     catch
         Class:Reason:Stacktrace ->
@@ -228,7 +256,7 @@ handle_action_crash(
                               #triggered_v2{event_filter = EF} -> EF
                           end,
             Msg = io_lib:format(
-                    "Triggered stored procedure crash~n"
+                    "Triggered action crash~n"
                     "  Store ID: ~s~n"
                     "  Trigger ID: ~s~n"
                     "  Event filter:~n"
