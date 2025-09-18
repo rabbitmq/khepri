@@ -491,7 +491,7 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
                                   ok, khepri:put(?FUNCTION_NAME, [foo], 1))
                         end),
                 ?assertMatch(
-                   <<"Triggered stored procedure crash", _/binary>>, Log)
+                   <<"Triggered action crash", _/binary>>, Log)
             end)},
 
         {"Checking the procedure was executed",
@@ -551,7 +551,7 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
                                           khepri:put(?FUNCTION_NAME, [foo], 6)
                                   end),
                 ?assertSubString(
-                  <<"Triggered stored procedure crash">>, Log),
+                  <<"Triggered action crash">>, Log),
                 ?assertSubString(
                   <<"(this crash occurred 6 times in the last 10 seconds)">>,
                   Log),
@@ -631,6 +631,33 @@ receive_sproc_msg_with_props(Key) ->
     receive {sproc, Key, Props} -> Props
     after 1000                  -> timeout
     end.
+
+event_triggers_mfa_apply_test_() ->
+    EventFilter = khepri_evf:tree([foo]),
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [{"Registering a trigger",
+         ?_assertEqual(
+            ok,
+            khepri:register_trigger(
+              ?FUNCTION_NAME,
+              ?FUNCTION_NAME,
+              EventFilter,
+              {erlang, send, [self()]}))},
+
+        {"Updating a node; should trigger the execution of the MFA",
+         ?_assertMatch(
+            ok,
+            khepri:put(?FUNCTION_NAME, [foo], value))},
+
+        {"Checking the procedure was executed",
+         ?_assert(receive
+                      #khepri_trigger{} ->
+                          true
+                  end)}]
+      }]}.
 
 event_triggers_message_send_test_() ->
     EventFilter = khepri_evf:tree([foo]),
