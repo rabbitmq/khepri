@@ -2842,9 +2842,11 @@ clear_many_payloads(StoreId, PathPattern, Options) ->
       TriggerId :: trigger_id(),
       EventFilter :: khepri_evf:event_filter_or_compat(),
       Action :: StoredProcPath |
+                MFA |
                 Pid |
                 khepri_event_handler:trigger_action(),
       StoredProcPath :: khepri_path:path(),
+      MFA :: {module(), atom(), list()},
       Pid :: pid(),
       Ret :: ok | error().
 %% @doc Registers a trigger.
@@ -2865,18 +2867,22 @@ register_trigger(TriggerId, EventFilter, Action) ->
       TriggerId :: trigger_id(),
       EventFilter :: khepri_evf:event_filter_or_compat(),
       Action :: StoredProcPath |
+                MFA |
                 Pid |
                 khepri_event_handler:trigger_action(),
       StoredProcPath :: khepri_path:path(),
+      MFA :: {module(), atom(), list()},
       Pid :: pid(),
       Ret :: ok | error();
 (TriggerId, EventFilter, Action, Options) -> Ret when
       TriggerId :: trigger_id(),
       EventFilter :: khepri_evf:event_filter_or_compat(),
       Action :: StoredProcPath |
+                MFA |
                 Pid |
                 khepri_event_handler:trigger_action(),
       StoredProcPath :: khepri_path:path(),
+      MFA :: {module(), atom(), list()},
       Pid :: pid(),
       Options :: command_options() | khepri:trigger_options(),
       Ret :: ok | error().
@@ -2909,9 +2915,11 @@ register_trigger(TriggerId, EventFilter, Action, Options)
       TriggerId :: trigger_id(),
       EventFilter :: khepri_evf:event_filter_or_compat(),
       Action :: StoredProcPath |
+                MFA |
                 Pid |
                 khepri_event_handler:trigger_action(),
       StoredProcPath :: khepri_path:path(),
+      MFA :: {module(), atom(), list()},
       Pid :: pid(),
       Options :: command_options() | khepri:trigger_options(),
       Ret :: ok | error().
@@ -2951,6 +2959,10 @@ register_trigger(TriggerId, EventFilter, Action, Options)
 %% '''
 %%
 %% The stored procedure is executed on the leader's Erlang node.
+%%
+%% When giving an MFA tuple (`Module, Function, ArgsList}'), the designated
+%% function is executed. The `#khepri_trigger{}' trigger descriptor is
+%% appended to the list of arguments.
 %%
 %% When giving a PID as the action, a `#khepri_trigger{}' message is sent to
 %% this process.
