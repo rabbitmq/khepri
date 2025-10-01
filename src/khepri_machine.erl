@@ -78,6 +78,7 @@
 %% `keep_while' put option can take a PID. The tree node will be deleted as
 %% soon as the associated process exits. See {@link
 %% khepri_condition:keep_while()}.</li>
+%% <li>Added support for "apply MFA" and "send message" trigger actions.</li>
 %% </ul>
 %% </td>
 %% </tr>

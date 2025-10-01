@@ -432,9 +432,7 @@ khepri_import_export} module documentation.
 You can lean more about the provide backend module by reading the documentation
 of {@link khepri_export_erlang}.
 
-== Stored procedures and triggers ==
-
-=== Storing an anonymous function ===
+== Stored procedures ==
 
 This is possible to store an anonymous function as the payload of a tree node:
 
@@ -469,39 +467,51 @@ to {@link khepri:run_sproc/3} must correspond to the stored procedure
 arity.
 
 It's also possible to executed a stored procedure after an event happened; see
-below.
+below to learn more about triggers.
 
-=== Triggering a function after some event ===
+== Triggers ==
 
-Khepri can associate events with an anonymous function to trigger its execution
-when something happens. This is what is usually called a <em>trigger</em> in
+=== Triggering an action after some event ===
+
+Khepri can associate events with an action to trigger its execution when
+something happens. This is what is usually called a <em>trigger</em> in
 databases.
 
 Khepri supports the following types of event:
 <ul>
 <li><em>tree changes</em>. This event is emitted whenever a tree node is being
-created, updated or deleted.</li>
+created, updated or deleted. See {@link khepri_evf:tree_event()}.</li>
 <li><em>process termination</em>. This event is emitted when a monitored
-process exits.</li>
+process exits. See {@link khepri_evf:process_event()}.</li>
+</ul>
+
+Event records are internal: they are not exposed to callers or actions.
+
+Khepri supports the following types of action:
+<ul>
+<li>the execution of a stored procedure</li>
+<li>the execution of an arbitrary module/function/arguments ("MFA")</li>
+<li>the send of a message to an arbitrary process</li>
 </ul>
 
 Here is a summary of what happens when such an event is emitted:
 <ol>
 <li>Khepri looks up any <em>event filters</em> which could match the emitted
 event.</li>
-<li>If one or more event filters are found, their corresponding stored
-procedures are executed.</li>
+<li>If one or more event filters are found, their corresponding action is
+evaluated.</li>
 </ol>
-
-The indicated stored procedure must have been stored in the tree first.
 
 === Configuring a trigger ===
 
-Khepri uses <em>event filters</em> to associate a type of events with a stored
-procedure. Khepri supports tree changes events and thus only supports a single
-event filter called {@link khepri_evf:tree_event_filter()}.
+Khepri uses <em>event filters</em> to associate a type of events with an
+action. Each event type has a corresponding event filter:
+<ul>
+<li>{@link khepri_evf:tree/2} for tree changes.</li>
+<li>{@link khepri_evf:process/2} for process termination.</li>
+</ul>
 
-An event filter is registered using {@link khepri:register_trigger/4}:
+A trigger is registered using {@link khepri:register_trigger/4}:
 
 ```
 %% An event filter can be explicitly created using the `khepri_evf'
@@ -513,94 +523,33 @@ EventFilter = khepri_evf:tree([stock, wood, <<"oak">>], %% Required
 %% For ease of use, some terms can be automatically converted to an event
 %% filter. Here, a Unix-like path could be used as a tree event filter, though
 %% it would have default properties unlike the previous line:
-EventFilter = "/:stock/:wood/oak".
+EventFilter = "/:stock/:wood/oak",
 
 ok = khepri:register_trigger(
        StoreId,
        TriggerId,
        EventFilter,
-       StoredProcPath).
+       Action).
 '''
 
-In this example, the {@link khepri_evf:tree_event_filter()} structure only
-requires the path to monitor. The path can be any path pattern and thus can
-have conditions to monitor several nodes at once.
-
-The `on_actions' property is optional. By default the event filter matches all
-tree changes (`create', `update' or `delete').
-
-The `priority' property is also optional and defaults to 0. When several event
-filters match a given event, they are sorted by priority (a greater integer
-means the event filter will be considered first), then by `TriggerId' in
-alphabetical order.
-
-Neither the monitored path nor the stored procedure (pointed to by
-`StoredProcPath') need to exist when the event filter is registered. If the
-stored procedure doesn't exist when an event occurs, the event filter is
-simply ignored. A stored procedure can change after an event filter is
-registered as well.
-
-A process-based event filter can be created like this:
-```
-EventFilter = khepri_evf:process(Pid,                %% Required
-                                 #{priority => 10}). %% Optional
-'''
-
-This makes the Ra leader of the Khepri cluster monitor the given process. When
-the process exits or if it's not running in the first place, it will trigger
-the execution of the trigger action.
-
-If the monitored process is on a different Erlang node than the Ra leader, the
-loss of connection between the two nodes (i.e. the `noconnection' exit reason)
-is handled in a specific way:
-<ul>
-<li>If the remote node is a member of the Khepri cluster, Khepri will start to
-monitor that node after receiving the `noconnection' exit reaison. Then two
-things can happen:
-<ul>
-<li>The node comes back online. In this case, processes that are supposed to
-run on it are monitored again. If the node was restarted and the processes were
-killed, this new monitoring will detect this situation.</li>
-<li>The node is removed from the cluster. In this case, it is unlikely to come
-back. Thus, the processes that were running on it are considered as dead.</li>
-</ul></li>
-<li>If the remote node is not a member of the Khepri cluster, Khepri will
-consider that the processes supposed to run on this node are dead, even if this
-is network partition and the node and its processes could be reachable again in
-the future.</li>
-</ul>
-
-The stored procedure used for a trigger must accept a single argument, a map
-containing properties of the emitted event:
-
-```
-my_stored_procedure(Props) ->
-    #{path := Path,
-      on_action := Action} = Props.
-'''
-
-`Path' is the path to the tree node created, updated or deleted.
-
-`Action' is the nature of the change (`create', `update' or `delete').
-
-The return value of this stored procedure is ignored in the context of a
-trigger.
+See {@link khepri_evf} to learn more about the various types of events and
+actions.
 
 === Execution guarantees ===
 
 The stored procedure associated with a trigger (event filter) is executed on
 the Ra leader node.
 
-If the stored procedure throws an exception, it is logged and there is no
-retry.
+If the stored procedure or the MFA throw an exception, it is logged and there
+is no retry.
 
-There is an internal ack mechanism to make sure the stored procedure is
-executed at least once. Therefore, if the Ra leader changes before the
-execution of the stored procedure could be confirmed to the Khepri state
-machine, the execution will be retried on the new Ra leader.
+There is an internal ack mechanism to make sure the action is evaluated at
+least once. Therefore, if the Ra leader changes before the evaluation of the
+action could be confirmed to the Khepri state machine, the evaluation will be
+retried on the new Ra leader.
 
-This means that the stored procedure could be executed multiple times.
-Therefore it is important it is idempotent.
+This means that the action could be evaluated multiple times. Therefore it is
+important it is idempotent.
 
 === Differences with triggers in RDBMS ===
 
