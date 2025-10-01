@@ -74,6 +74,7 @@
 %% khepri:trigger_options()}.</li>
 %% <li>Added support for process-lifetime-based triggers. The trigger can be
 %% executed when a process exits.</li>
+%% <li>Added support for "apply MFA" and "send message" trigger actions.</li>
 %% </ul>
 %% </td>
 %% </tr>
