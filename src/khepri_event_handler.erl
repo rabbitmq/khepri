@@ -6,7 +6,7 @@
 %% refers to Broadcom Inc. and/or its subsidiaries.
 %%
 
-%% @hidden
+%% @doc Khepri event handling server.
 
 -module(khepri_event_handler).
 -behaviour(gen_server).
