@@ -7,6 +7,221 @@
 %%
 
 %% @doc Khepri event filters.
+%%
+%% Triggers allow a user to associate an event, described by an event filter,
+%% to an action. When an event matches the registered event filter, the
+%% associated action is evaluated.
+%%
+%% == Events and event filters ==
+%%
+%% === Changes to the tree ===
+%%
+%% When a tree node is created, modified or deleted, a <em>tree change</em> is
+%% emitted.
+%%
+%% To register a trigger that targets tree changes, you can create a
+%% tree-change event filter explicitly:
+%%
+%% ```
+%% EventFilter = khepri_evf:tree([stock, wood, <<"oak">>], %% Required
+%%                               #{on_actions => [delete], %% Optional
+%%                                 priority => 10}),       %% Optional
+%%
+%% ok = khepri:register_trigger(
+%%        StoreId,
+%%        TriggerId,
+%%        EventFilter,
+%%        Action).
+%% '''
+%%
+%% It's possible to pass a path pattern directly as an event filter: this is
+%% the same as creating an explicit tree-change event filter with default
+%% options.
+%%
+%% ```
+%% EventFilter = "/:stock/:wood/oak",
+%%
+%% ok = khepri:register_trigger(
+%%        StoreId,
+%%        TriggerId,
+%%        EventFilter,
+%%        Action).
+%% '''
+%%
+%% The path pattern can match many paths. The monitored paths don't neew to
+%% exist when the trigger is registered.
+%%
+%% === Termination of a process ===
+%%
+%% Khepri can monitor a process. When this process exits, a <em>process</em>
+%% event is emitted.
+%%
+%% To register a trigger that targets process termination, you can create a
+%% process event filter explicitly:
+%%
+%% ```
+%% EventFilter = khepri_evf:process(self(),             %% Required
+%%                                  #{on_reason => '_', %% Optional
+%%                                    priority => 10}), %% Optional
+%%
+%% ok = khepri:register_trigger(
+%%        StoreId,
+%%        TriggerId,
+%%        EventFilter,
+%%        Action).
+%% '''
+%%
+%% It's possible to pass a PID directly as an event filter: this is the same
+%% as creating an explicit process event filter with default options.
+%%
+%% ```
+%% EventFilter = self(),
+%%
+%% ok = khepri:register_trigger(
+%%        StoreId,
+%%        TriggerId,
+%%        EventFilter,
+%%        Action).
+%% '''
+%%
+%% The Khepri leader monitors the given process. When the process exits or if
+%% it's not running in the first place, it will trigger the execution of the
+%% trigger action.
+%%
+%% If the monitored process is on a different Erlang node than the Ra leader,
+%% the loss of connection between the two nodes (i.e. the `noconnection' exit
+%% reason) is handled in a specific way:
+%% <ul>
+%% <li>If the remote node is a member of the Khepri cluster, Khepri will start
+%% to monitor that node after receiving the `noconnection' exit reaison. Then
+%% two things can happen:
+%% <ul>
+%% <li>The node comes back online. In this case, processes that are supposed
+%% to run on it are monitored again. If the node was restarted and the
+%% processes were killed, this new monitoring will detect this situation.</li>
+%% <li>The node is removed from the cluster. In this case, it is unlikely to
+%% come back. Thus, the processes that were running on it are considered as
+%% dead.</li>
+%% </ul></li>
+%% <li>If the remote node is not a member of the Khepri cluster, Khepri will
+%% consider that the processes supposed to run on this node are dead, even if
+%% this is network partition and the node and its processes could be reachable
+%% again in the future.</li>
+%% </ul>
+%%
+%% == Actions ==
+%%
+%% === Trigger descriptor ===
+%%
+%% The trigger descriptor ({@link khepri_event_handler:trigger_descriptor()})
+%% is a record used to encapsulate the properties of a specific triggered
+%% trigger: it contains details about:
+%% <ul>
+%% <li>the originating store and trigger IDs</li>
+%% <li>the originating event</li>
+%% <li>the action properties</li>
+%% </ul>
+%%
+%% This trigger descriptor is passed to the action and allows the action to
+%% distinguish each instance of a trigger.
+%%
+%% === Execution of a stored procedure
+%%
+%% The action takes be a path to a stored procedure.
+%% The action takes the form of:
+%% <ul>
+%% <li>a path to a stored procedure, or</li>
+%% <li>a `{sproc, StoredProcPath}' tuple</li>
+%% </ul>
+%%
+%% The stored procedure must take a single argument, the trigger descriptor.
+%%
+%% The stored procedure does not have to exist when the trigger is registered.
+%% If the trigger is triggered while the stored procedure is missing, the
+%% event will be ignored.
+%%
+%% The return value of the function is ignored.
+%%
+%% Here is an example of a function that can be used as a stored procedure:
+%%
+%% ```
+%% my_stored_procedure(#khepri_trigger{...}) ->
+%%     do_something_with_event().
+%% '''
+%%
+%% === Execution of an arbitrary MFA ===
+%%
+%% The action takes the form of:
+%% <ul>
+%% <li>a `{Module, Function, ArgsList}' tuple, or</li>
+%% <li>a `{apply, {Module, Function, ArgsList}}' tuple</li>
+%% </ul>
+%%
+%% When the action is triggered, the MFA is executed with the given arguments
+%% list with the trigger descriptor appended to it.
+%%
+%% The return value of the function is ignored.
+%%
+%% Here is an example of a function that can be used with `{my_mod, my_func,
+%% [ExtraArg]}':
+%%
+%% ```
+%% -module(my_mod).
+%% -export([my_func/2]).
+%%
+%% my_func(ExtraArg, #khepri_trigger{...}) ->
+%%     do_something_with_event(ExtraArg).
+%% '''
+%%
+%% === Send of a message ===
+%%
+%% The action takes the form of:
+%% <ul>
+%% <li>a PID, or</li>
+%% <li>a `{send, Pid, Priv}' tuple</li>
+%% </ul>
+%%
+%% When the action is triggered, the trigger descriptor is sent as a message
+%% to the given PID. The `Priv' term is added to the action properties. If the
+%% action is the PID alone, `Priv' defaults to `undefined' and nothing is
+%% added to the action properties.
+%%
+%% The target process is not monitored. If it's not running anymore or it is
+%% on a node that is unreachable at the time of the event, the event is
+%% triggered.
+%%
+%% Here is an example of a `receive' block that expects a trigger descriptor:
+%%
+%% ```
+%% receive
+%%     #khepri_trigger{...} ->
+%%         do_something_with_event()
+%% end.
+%% '''
+%%
+%% === Where is the action evaluated? ===
+%%
+%% By default, the action is evaluated by the Khepri leader.
+%%
+%% It's possible to indicate where to evaluate the trigger when the trigger is
+%% registered, using the `where' option (see {@link
+%% khepri:trigger_options()}).
+%%
+%% Here is an example of a trigger where the action will be evaluated on all
+%% members of the Khepri cluster at the time of the event.
+%%
+%% ```
+%% EventFilter = khepri_evf:tree([stock, wood, <<"oak">>], %% Required
+%%                               #{on_actions => [delete], %% Optional
+%%                                 priority => 10}),       %% Optional
+%%
+%% ok = khepri:register_trigger(
+%%        StoreId,
+%%        TriggerId,
+%%        EventFilter,
+%%        Action,
+%%        #{where => all_members}).
+%% '''
 
 -module(khepri_evf).
 
