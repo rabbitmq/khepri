@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: erlef/setup-beam@v1
+      - uses: erlef/setup-beam@566deebc640988a494af16ecdf6f820fe0d3fea4
         id: install-erlang
         with:
           otp-version: ${{ matrix.otp_version }}
