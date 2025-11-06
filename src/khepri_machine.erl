@@ -994,7 +994,7 @@ do_process_sync_command(StoreId, Command, Options) ->
         {error, Reason} = Error
           when ?HAS_TIME_LEFT(Timeout) andalso
                (Reason == noproc orelse Reason == nodedown orelse
-                Reason == shutdown) ->
+                Reason == shutdown orelse Reason == normal) ->
             %% We retry the command if either:
             %% - the command was sent directly to a remote server, or
             %% - the command was sent to the local server and it is still
