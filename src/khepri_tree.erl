@@ -655,11 +655,13 @@ insert_or_update_node(
                           Path, Node, Payload, TreeOptions, Result),
                   case Ret of
                       {ok, Node1, Result1} when Result1 =/= #{} ->
-                          AbsKeepWhile = to_absolute_keep_while(
-                                           Path, KeepWhile),
-                          KeepWhileOnOthers = maps:remove(Path, AbsKeepWhile),
+                          AbsKeepWhile0 = to_absolute_keep_while(
+                                            Path, KeepWhile),
+                          AbsKeepWhile1 = (
+                            filter_out_irrelevant_keep_while_conds(
+                              Path, Node, AbsKeepWhile0)),
                           KWMet = are_keep_while_conditions_met(
-                                    Tree, KeepWhileOnOthers),
+                                    Tree, AbsKeepWhile1),
                           case KWMet of
                               true ->
                                   {ok, Node1, {updated, Path, Result1}};
@@ -738,6 +740,22 @@ insert_or_update_node_cb(
 insert_or_update_node_cb(_, {interrupted, Reason, Info}, _, _, _) ->
     Reason1 = ?khepri_error(Reason, Info),
     {error, Reason1}.
+
+filter_out_irrelevant_keep_while_conds(
+  Path, {interrupted, node_not_found, #{node_is_target := true}}, KeepWhile) ->
+    %% A `keep_while' condition on self is irrelevant if the node does not
+    %% exist yet.
+    KeepWhile1 = maps:remove(Path, KeepWhile),
+    %% Likewise for `keep_while' conditions that apply to children of the
+    %% node.
+    KeepWhile2 = maps:filter(
+                   fun(KWPath, _) ->
+                           not lists:prefix(Path, KWPath)
+                   end, KeepWhile1),
+    KeepWhile2;
+filter_out_irrelevant_keep_while_conds(
+  _Path, _Node, KeepWhile) ->
+    KeepWhile.
 
 gather_node_props_from_old_and_new_nodes(OldNode, NewNode, TreeOptions) ->
     OldNodeProps = case OldNode of

@@ -188,6 +188,29 @@ insert_when_keep_while_false_on_self_test() ->
     ?assertEqual({ok, #{[foo] => #{}}}, Ret),
     ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
 
+insert_when_keep_while_false_on_child_test() ->
+    S0 = khepri_machine:init(?MACH_PARAMS()),
+    KeepWhile = #{[?THIS_KHEPRI_NODE, bar] => #if_has_data{}},
+    Command = #put{path = [foo],
+                   payload = khepri_payload:data(foo_value),
+                   options = #{keep_while => KeepWhile}},
+    {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
+    Root = khepri_machine:get_root(S1),
+
+    ?assertEqual(
+       #node{
+          props =
+          #{payload_version => 1,
+            child_list_version => 2},
+          child_nodes =
+          #{foo =>
+            #node{
+               props = ?INIT_NODE_PROPS,
+               payload = khepri_payload:data(foo_value)}}},
+       Root),
+    ?assertEqual({ok, #{[foo] => #{}}}, Ret),
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
+
 keep_while_still_true_after_command_test() ->
     KeepWhile = #{[foo] => #if_child_list_length{count = 0}},
     Commands = [#put{path = [foo],
