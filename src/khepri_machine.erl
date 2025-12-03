@@ -994,7 +994,7 @@ do_process_sync_command(StoreId, Command, Options) ->
         {error, Reason} = Error
           when ?HAS_TIME_LEFT(Timeout) andalso
                (Reason == noproc orelse Reason == nodedown orelse
-                Reason == shutdown) ->
+                Reason == shutdown orelse Reason == normal) ->
             %% We retry the command if either:
             %% - the command was sent directly to a remote server, or
             %% - the command was sent to the local server and it is still
@@ -1223,7 +1223,8 @@ get_timeout(_)                     -> khepri_app:get_default_timeout().
 %%
 %% @private
 
-clear_cache(_StoreId) ->
+clear_cache(StoreId) ->
+    clear_cached_effective_machine_version(StoreId),
     ok.
 
 -spec sending_sync_command_locally(StoreId) -> ok when
@@ -1310,6 +1311,9 @@ init(Params) ->
     %% Initialize the state. This function always returns the oldest supported
     %% state format.
     State = khepri_machine_v0:init(Params),
+
+    #config{store_id = StoreId} = get_config(State),
+    cache_effective_machine_version(StoreId, 0),
 
     %% Create initial "schema" if provided.
     Commands = maps:get(commands, Params, []),
@@ -1700,6 +1704,12 @@ apply(
 apply(Meta, {machine_version, OldMacVer, NewMacVer}, OldState) ->
     NewState = convert_state(OldState, OldMacVer, NewMacVer),
     Ret = {NewState, ok},
+
+    %% We cache the effective machine version for fast query from any
+    %% processes. This is useful because this machine version is used to
+    %% determine what a user of Khepri can or cannot do.
+    #config{store_id = StoreId} = get_config(NewState),
+    cache_effective_machine_version(StoreId, NewMacVer),
     post_apply(Ret, Meta);
 apply(#{machine_version := MacVer} = Meta, UnknownCommand, State) ->
     Error = ?khepri_exception(
@@ -1926,31 +1936,61 @@ which_module(2) -> ?MODULE;
 which_module(1) -> ?MODULE;
 which_module(0) -> ?MODULE.
 
+-define(
+   PT_EFFECTIVE_MACVER(StoreId),
+   {khepri, effective_machine_version, StoreId}).
+
 -spec effective_version(StoreId) -> Ret when
       StoreId :: khepri:store_id(),
       Ret :: khepri:ok(EffectiveMacVer) | khepri:error(),
       EffectiveMacVer :: ra_machine:version().
 %% @doc Returns the effective state machine version of the local Ra server.
+%%
+%% The effective machine version is queried from a cached value, not from the
+%% actual Ra server, to be more efficient.
 
 effective_version(StoreId) when ?IS_KHEPRI_STORE_ID(StoreId) ->
-    ThisNode = node(),
-    RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
-    case ra_counters:counters(RaServer, [effective_machine_version]) of
-        #{effective_machine_version := EffectiveMacVer} ->
-            {ok, EffectiveMacVer};
-        _ ->
-            case ra:member_overview(RaServer) of
-                {ok, #{effective_machine_version := EffectiveMacVer}, _} ->
-                    {ok, EffectiveMacVer};
-                {error, _} = Error ->
-                    Reason = ?khepri_error(
-                                effective_machine_version_not_defined,
-                                #{store_id => StoreId,
-                                  ra_server => RaServer,
-                                  error => Error}),
-                    {error, Reason}
-            end
+    Key = ?PT_EFFECTIVE_MACVER(StoreId),
+    try
+        EffectiveMacVer = persistent_term:get(Key),
+        {ok, EffectiveMacVer}
+    catch
+        error:badarg ->
+            ThisNode = node(),
+            RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
+            Reason = ?khepri_error(
+                        effective_machine_version_not_defined,
+                        #{store_id => StoreId,
+                          ra_server => RaServer}),
+            {error, Reason}
     end.
+
+-spec cache_effective_machine_version(StoreId, EffectiveMacVer) -> ok when
+      StoreId :: khepri:store_id(),
+      EffectiveMacVer :: ra_machine:version().
+%% @doc Caches effective machine version for fast query.
+%%
+%% The effective machine version is cached whenever the machine is initialised
+%% and upgraded.
+%%
+%% @private
+
+cache_effective_machine_version(StoreId, EffectiveMacVer) ->
+    Key = ?PT_EFFECTIVE_MACVER(StoreId),
+    persistent_term:put(Key, EffectiveMacVer).
+
+-spec clear_cached_effective_machine_version(StoreId) -> ok when
+      StoreId :: khepri:store_id().
+%% @doc Clears the cached effective machine version.
+%%
+%% The cached effective machine version is cleared when the store is stopped.
+%%
+%% @private
+
+clear_cached_effective_machine_version(StoreId) ->
+    Key = ?PT_EFFECTIVE_MACVER(StoreId),
+    _ = persistent_term:erase(Key),
+    ok.
 
 -spec does_api_comply_with(Behaviour, MacVer | StoreId) -> DoesUse when
       Behaviour :: khepri_machine:api_behaviour(),
