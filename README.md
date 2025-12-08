@@ -25,14 +25,14 @@ state machine in a Ra cluster.
 Khepri is still under active development and should be considered *Beta* at
 this stage.
 
-## Fundamental Assumptions
+## Fundamental assumptions
 
 As a Raft-based system, Khepri **requires durable storage**, including
 between node restarts, and stable node (replica) identities.
 
 Likewise, as a Raft-based system, Khepri requires a majority of nodes to be
-online at all times. When this is not the case, the cluster will lose its availability,
-specifically for writes.
+online at all times. When this is not the case, the cluster will lose its
+availability, specifically for writes.
 
 ## Known limitations
 
