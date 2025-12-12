@@ -116,7 +116,11 @@ delete_existing_node_with_child_nodes_test() ->
        Root),
     ?assertEqual({ok, #{[foo] => #{payload_version => 1,
                                    child_list_version => 1,
-                                   child_list_length => 1}}}, Ret),
+                                   child_list_length => 1},
+                        [foo, bar] => #{data => bar_value,
+                                        payload_version => 1,
+                                        child_list_version => 1,
+                                        child_list_length => 0}}}, Ret),
     ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
 
 delete_a_node_deep_into_the_tree_test() ->
@@ -139,7 +143,12 @@ delete_a_node_deep_into_the_tree_test() ->
             child_list_version => 3},
           child_nodes = #{}},
        Root),
-    ?assertEqual({ok, #{[foo, bar, baz] => #{payload_version => 1,
+    ?assertEqual({ok, #{[foo, bar, baz, qux] => #{data => value,
+                                                  payload_version => 1,
+                                                  child_list_version => 1,
+                                                  child_list_length => 0,
+                                                  delete_reason => explicit},
+                        [foo, bar, baz] => #{payload_version => 1,
                                              child_list_version => 1,
                                              child_list_length => 1,
                                              delete_reason => explicit},

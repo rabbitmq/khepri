@@ -616,11 +616,27 @@ add_deleted_node_to_result(
     add_deleted_node_to_result1(
       Path, Node, TreeOptions, DeleteReason, Result).
 
-add_deleted_node_to_result1(Path, Node, TreeOptions, DeleteReason, Result) ->
+add_deleted_node_to_result1(
+  Path, #node{child_nodes = Children} = Node, TreeOptions, DeleteReason,
+  Result) ->
     NodeProps1 = gather_node_props(Node, TreeOptions),
     NodeProps2 = maybe_add_delete_reason_prop(
                    NodeProps1, TreeOptions, DeleteReason),
-    Result#{Path => NodeProps2}.
+    Result1 = Result#{Path => NodeProps2},
+
+    Result3 = maps:fold(
+                fun(ChildName, ChildNode, Result2) ->
+                        ChildPath = Path ++ [ChildName],
+                        case Result2 of
+                            #{ChildPath := _} ->
+                                Result2;
+                            _ ->
+                                add_deleted_node_to_result1(
+                                  ChildPath, ChildNode, TreeOptions,
+                                  DeleteReason, Result2)
+                        end
+                end, Result1, Children),
+    Result3.
 
 maybe_add_delete_reason_prop(
   NodeProps, #{props_to_return := WantedProps}, DeleteReason) ->
