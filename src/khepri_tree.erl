@@ -1373,6 +1373,13 @@ walk_back_up_the_tree(
     Path = lists:reverse(WholeReversedPath),
     AppliedChangesAcc1 = AppliedChangesAcc#{Path => delete},
 
+    %% All children of `Path' are also added recursively to the
+    %% `AppliedChangesAcc1' map.
+    #node{child_nodes = Children} = ParentNode,
+    ChildNode = maps:get(ChildName, Children),
+    AppliedChangesAcc2 = list_deleted_nodes_recursively_from(
+                           Path, ChildNode, AppliedChangesAcc1),
+
     %% Evaluate keep_while of parent node on itself right now (its child_count
     %% has changed).
     ParentNode1 = remove_node_child(ParentNode, ChildName),
@@ -1387,7 +1394,7 @@ walk_back_up_the_tree(
     Walk1 = Walk#walk{node = ParentNode2,
                       reversed_path = ReversedPath,
                       reversed_parent_tree = ReversedParentTree},
-    handle_keep_while_for_parent_update(Walk1, AppliedChangesAcc1);
+    handle_keep_while_for_parent_update(Walk1, AppliedChangesAcc2);
 walk_back_up_the_tree(
   #walk{node = Child,
         reversed_path = [ChildName | ReversedPath] = WholeReversedPath,
@@ -1492,6 +1499,27 @@ handle_keep_while_for_parent_update(
                               fun_acc = Acc1},
             walk_back_up_the_tree(Walk1, AppliedChangesAcc)
     end.
+
+-spec list_deleted_nodes_recursively_from(Path, Node, AppliedChangesAcc) ->
+    NewAppliedChangesAcc when
+      Path :: khepri_path:native_path(),
+      Node :: tree_node(),
+      AppliedChangesAcc :: applied_changes(),
+      NewAppliedChangesAcc :: applied_changes().
+%% @doc Augment the `AppliedChangesAcc' map with all the tree nodes that were
+%% deleted as a consequence of the deletion of a parent.
+%%
+%% @private
+
+list_deleted_nodes_recursively_from(
+  Path, #node{child_nodes = Children}, AppliedChangesAcc) ->
+    maps:fold(
+      fun(ChildName, ChildNode, AppliedChangesAcc1) ->
+              ChildPath = Path ++ [ChildName],
+              AppliedChangesAcc2 = AppliedChangesAcc1#{ChildPath => delete},
+              list_deleted_nodes_recursively_from(
+                ChildPath, ChildNode, AppliedChangesAcc2)
+      end, AppliedChangesAcc, Children).
 
 merge_applied_changes(AppliedChanges1, AppliedChanges2) ->
     maps:fold(

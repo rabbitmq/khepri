@@ -2166,27 +2166,6 @@ create_projection_side_effects(InitialState, NewState, Changes) ->
       end, [], Changes).
 
 create_projection_side_effects1(
-  InitialTree, NewTree, ProjectionTree, Path, delete = Change, Effects) ->
-    %% Deletion changes recursively delete the subtree below the deleted tree
-    %% node. Find any children in the tree that were also deleted by this
-    %% change and trigger any necessary projections for those children.
-    ChildrenFindOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
-                            expect_specific_node => false},
-    ChildrenPattern = Path ++ [?KHEPRI_WILDCARD_STAR_STAR],
-    EffectsForChildrenFun =
-    fun(ChildPath, _NodeProps, EffectAcc) ->
-            create_projection_side_effects2(
-              InitialTree, NewTree, ProjectionTree,
-              ChildPath, Change, EffectAcc)
-    end,
-    {ok, Effects1} = khepri_tree:fold(
-                       InitialTree, ChildrenPattern,
-                       EffectsForChildrenFun, Effects,
-                       ChildrenFindOptions),
-    %% Also trigger a change for the deleted path itself.
-    create_projection_side_effects2(
-      InitialTree, NewTree, ProjectionTree, Path, Change, Effects1);
-create_projection_side_effects1(
   InitialTree, NewTree, ProjectionTree, Path, Change, Effects) ->
     create_projection_side_effects2(
       InitialTree, NewTree, ProjectionTree, Path, Change, Effects).
