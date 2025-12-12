@@ -22,6 +22,7 @@
 -export([new/0,
          get_root/1,
          get_keep_while_conds/1,
+         get_keep_while_conds_revidx/1,
          assert_equal/2,
 
          are_keep_while_conditions_met/2,
@@ -37,6 +38,10 @@
          walk_down_the_tree/5,
 
          convert_tree/3]).
+
+-ifdef(TEST).
+-export([unopacify/1]).
+-endif.
 
 -record(tree, {root = #node{} :: khepri_tree:tree_node(),
                keep_while_conds = #{} :: khepri_tree:keep_while_conds_map(),
@@ -125,6 +130,14 @@ get_root(#tree{root = Root}) ->
 
 get_keep_while_conds(#tree{keep_while_conds = KeepWhileConds}) ->
     KeepWhileConds.
+
+-spec get_keep_while_conds_revidx(Tree) -> KeepWhileCondsRevIdx when
+      Tree :: khepri_tree:tree(),
+      KeepWhileCondsRevIdx :: khepri_tree:keep_while_conds_revidx().
+
+get_keep_while_conds_revidx(
+  #tree{keep_while_conds_revidx = KeepWhileCondsRevIdx}) ->
+    KeepWhileCondsRevIdx.
 
 -spec assert_equal(Tree1, Tree2) -> ok when
       Tree1 :: khepri_tree:tree(),
@@ -1741,3 +1754,12 @@ convert_tree(Tree, 1, 2) ->
     KeepWhileCondsRevIdxV1 = khepri_prefix_tree:from_map(
                                KeepWhileCondsRevIdxV0),
     Tree#tree{keep_while_conds_revidx = KeepWhileCondsRevIdxV1}.
+
+-ifdef(TEST).
+-spec unopacify(Tree) -> Term when
+      Tree :: khepri_tree:keep_while_conds_revidx(),
+      Term :: any().
+
+unopacify(Tree) ->
+    Tree.
+-endif.
