@@ -1692,7 +1692,7 @@ convert_tree(Tree, 0, 1) ->
 convert_tree(Tree, 1, 2) ->
     %% In version 2 the reverse index for keep while conditions was converted
     %% into a prefix tree. See the `keep_while_conds_revidx_v0()' and
-    %% `keep_while_conds_revidx_v1()` types.
+    %% `keep_while_conds_revidx_v1()' types.
     #tree{keep_while_conds_revidx = KeepWhileCondsRevIdxV0} = Tree,
     KeepWhileCondsRevIdxV1 = khepri_prefix_tree:from_map(
                                KeepWhileCondsRevIdxV0),
