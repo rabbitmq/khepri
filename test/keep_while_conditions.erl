@@ -355,7 +355,7 @@ keep_while_now_false_after_delete_command_test() ->
        #node{
           props =
           #{payload_version => 1,
-            child_list_version => 5},
+            child_list_version => 4},
           child_nodes = #{}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => foo_value,
@@ -591,3 +591,99 @@ child_keep_while_conds_cleanup_after_parent_deletion_v1_test() ->
     ?assertEqual(
        khepri_prefix_tree:from_map(#{}),
        khepri_tree:unopacify(KeepWhileCondsRevIdx1)).
+
+parent_and_childen_expire_at_the_same_time_test() ->
+    KeepWhile = #{[foo] => #if_node_exists{exists = true}},
+    Commands = [#put{path = [foo],
+                     payload = khepri_payload:data(foo_value)},
+                #put{path = [parent],
+                     options = #{keep_while => KeepWhile}},
+                #put{path = [parent, child],
+                     options = #{keep_while => KeepWhile}},
+                #put{path = [parent, child, grand_child],
+                     options = #{keep_while => KeepWhile}}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+
+    Command = #delete{path = [foo],
+                      options = #{props_to_return => [delete_reason]}},
+    {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
+    Root = khepri_machine:get_root(S1),
+
+    ?assertEqual(
+       #node{
+          props =
+          #{payload_version => 1,
+            child_list_version => 4},
+          child_nodes = #{}},
+       Root),
+    ?assertEqual(
+       {ok, #{[foo] => #{delete_reason => explicit},
+              [parent] => #{delete_reason => keep_while},
+              [parent, child] => #{delete_reason => keep_while},
+              [parent, child, grand_child] => #{delete_reason => keep_while}}},
+       Ret),
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
+
+siblings_expire_at_the_same_time_test() ->
+    KeepWhile = #{[foo] => #if_node_exists{exists = true}},
+    Commands = [#put{path = [foo],
+                     payload = khepri_payload:data(foo_value)},
+                #put{path = [parent, child1],
+                     options = #{keep_while => KeepWhile}},
+                #put{path = [parent, child2],
+                     options = #{keep_while => KeepWhile}},
+                #put{path = [parent, child3],
+                     options = #{keep_while => KeepWhile}}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+
+    Command = #delete{path = [foo],
+                      options = #{props_to_return => [delete_reason]}},
+    {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
+    Root = khepri_machine:get_root(S1),
+
+    ?assertEqual(
+       #node{
+          props =
+          #{payload_version => 1,
+            child_list_version => 4},
+          child_nodes = #{}},
+       Root),
+    ?assertEqual(
+       {ok, #{[foo] => #{delete_reason => explicit},
+              [parent] => #{delete_reason => keep_while},
+              [parent, child1] => #{delete_reason => keep_while},
+              [parent, child2] => #{delete_reason => keep_while},
+              [parent, child3] => #{delete_reason => keep_while}}},
+       Ret),
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
+
+child_list_version_bumped_by_update_and_keep_while_test() ->
+    KeepWhile = #{[parent, child2] => #if_node_exists{exists = false}},
+    Commands = [#put{path = [parent, child1],
+                     options = #{keep_while => KeepWhile}}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+
+    Command = #put{path = [parent, child2],
+                   payload = khepri_payload:none(),
+                   options = #{props_to_return => [delete_reason]}},
+    {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
+    Root = khepri_machine:get_root(S1),
+
+    ?assertEqual(
+       #node{
+          props =
+          #{payload_version => 1,
+            child_list_version => 2},
+          child_nodes =
+          #{parent =>
+            #node{
+               props = #{payload_version => 1,
+                         child_list_version => 2},
+               child_nodes =
+               #{child2 => #node{props = ?INIT_NODE_PROPS}}}}},
+       Root),
+    ?assertEqual(
+       {ok, #{[parent, child1] => #{delete_reason => keep_while},
+              [parent, child2] => #{}}},
+       Ret),
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).

@@ -307,28 +307,79 @@ squash_version_bumps(
                   child_list_version => CVersion},
     CurrentNode#node{props = Stat1}.
 
+-spec squash_version_bumps_after_keep_while(
+        Tree, AppliedChangesBefore, AppliedChangesAfter) ->
+    NewTree when
+      Tree :: tree(),
+      AppliedChangesBefore :: applied_changes(),
+      AppliedChangesAfter :: applied_changes(),
+      NewTree :: tree().
+%% @doc Squashes `child_list_version' bumps triggered by `keep_while'
+%% conditions if a tree node's version was already bumped after the command
+%% was applied.
+%%
+%% @private
+
 squash_version_bumps_after_keep_while(
-  Path,
-  #node{props = #{child_list_version := CVersion} = Props} = Node,
-  AppliedChanges) ->
-    ChildPathLength = length(Path) + 1,
-    WasModified = maps:fold(
+  #tree{root = Root} = Tree, AppliedChangesBefore, AppliedChangesAfter) ->
+    %% We record all tree nodes that had their `child_list_version' bumped by
+    %% the previous update of the tree.
+    BumpsBefore = maps:fold(
                     fun
-                        (P, {create, _NP}, false) ->
-                            lists:prefix(Path, P) andalso
-                            length(P) =:= ChildPathLength;
-                        (_P, _TaNP, Acc) ->
+                        (Path, Change, Acc)
+                          when Change =:= delete orelse
+                               element(1, Change) =:= create ->
+                            ParentPath = lists:droplast(Path),
+                            Acc#{ParentPath => true};
+                        (_Path, _Change, Acc) ->
                             Acc
-                    end, false, AppliedChanges),
-    case WasModified of
-        false ->
-            Node;
-        true ->
-            CVersion1 = CVersion - 1,
-            ?assert(CVersion1 >= 1),
-            Props1 = Props#{child_list_version => CVersion1},
-            Node#node{props = Props1}
-    end.
+                    end, #{}, AppliedChangesBefore),
+    %% We use the previous map to determine which `keep_while'-induced changes
+    %% should trigger a new bump of `child_list_version'.
+    BumpsAfter = maps:fold(
+                   fun(Path, _Change, Acc) ->
+                           ParentPath = lists:droplast(Path),
+                           case BumpsBefore of
+                               %% `ParentPath' had its `child_list_version'
+                               %% bumped by the walk/update. The application
+                               %% of `keep_while' bumped it again and we don't
+                               %% want that. Mark this path to indicate we
+                               %% want to revert that second bump.
+                               #{ParentPath := _} -> Acc#{ParentPath => -1};
+                               _                  -> Acc
+                           end
+                   end, #{}, AppliedChangesAfter),
+    %% Go through all bump reverts we need and "unbump" the corresponding
+    %% `child_list_version'.
+    Root1 = maps:fold(
+              fun(Path, Bump, Root1) ->
+                      squash_version_bumps_after_keep_while1(Root1, Path, Bump)
+              end, Root, BumpsAfter),
+    Tree1 = Tree#tree{root = Root1},
+    Tree1.
+
+squash_version_bumps_after_keep_while1(
+  #node{child_nodes = Children} = Node,
+  [ChildName | Rest],
+  Bump) ->
+    case Children of
+        #{ChildName := ChildNode} ->
+            ChildNode1 = squash_version_bumps_after_keep_while1(
+                           ChildNode, Rest, Bump),
+            Children1 = Children#{ChildName => ChildNode1},
+            Node1 = Node#node{child_nodes = Children1},
+            Node1;
+        _ ->
+            Node
+    end;
+squash_version_bumps_after_keep_while1(
+  #node{props = #{child_list_version := CVersion} = Props} = Node,
+  [],
+  Bump) ->
+    CVersion1 = CVersion + Bump,
+    Props1 = Props#{child_list_version => CVersion1},
+    Node1 = Node#node{props = Props1},
+    Node1.
 
 %% -------------------------------------------------------------------
 %% Keep-while functions.
@@ -1378,8 +1429,7 @@ walk_back_up_the_tree(Walk) ->
 walk_back_up_the_tree(
   #walk{node = delete,
         reversed_path = [ChildName | ReversedPath] = WholeReversedPath,
-        reversed_parent_tree = [ParentNode | ReversedParentTree],
-        applied_changes = AppliedChanges} = Walk,
+        reversed_parent_tree = [ParentNode | ReversedParentTree]} = Walk,
   AppliedChangesAcc) ->
     %% Evaluate keep_while of nodes which depended on ChildName (it is
     %% removed) at the end of walk_back_up_the_tree().
@@ -1397,14 +1447,7 @@ walk_back_up_the_tree(
     %% has changed).
     ParentNode1 = remove_node_child(ParentNode, ChildName),
 
-    %% If we are handling deletes as part of a `keep_while', it is possible
-    %% that this parent node's child list version was bumped if a node was
-    %% added in the first pass. In this case, we don't want to bump that
-    %% version twice (add + delete), but just once.
-    ParentNode2 = squash_version_bumps_after_keep_while(
-                    lists:reverse(ReversedPath), ParentNode1, AppliedChanges),
-
-    Walk1 = Walk#walk{node = ParentNode2,
+    Walk1 = Walk#walk{node = ParentNode1,
                       reversed_path = ReversedPath,
                       reversed_parent_tree = ReversedParentTree},
     handle_keep_while_for_parent_update(Walk1, AppliedChangesAcc2);
@@ -1726,13 +1769,20 @@ remove_expired_nodes(
                     Path, Node, TreeOptions, keep_while, Result)
           end,
     Result = walk_down_the_tree(
-               Tree, PathToDelete, TreeOptions, AppliedChanges, Fun, Acc),
+               Tree, PathToDelete, TreeOptions, #{}, Fun, Acc),
     case Result of
         {ok, Tree1, AppliedChanges1, Acc1} ->
+            %% When we are handling deletes as part of a `keep_while', it is
+            %% possible that nodes' child list versions were bumped if a child
+            %% was added in the first pass. In this case, we don't want to
+            %% bump that version twice (add + delete), but just once.
+            Tree2 = squash_version_bumps_after_keep_while(
+                      Tree1, AppliedChanges, AppliedChanges1),
+
             AppliedChanges2 = merge_applied_changes(
                                 AppliedChanges, AppliedChanges1),
-            Walk1 = Walk#walk{tree = Tree1,
-                              node = Tree1#tree.root,
+            Walk1 = Walk#walk{tree = Tree2,
+                              node = Tree2#tree.root,
                               applied_changes = AppliedChanges2,
                               fun_acc = Acc1},
             remove_expired_nodes(Rest, Walk1)
