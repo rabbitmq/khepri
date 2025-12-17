@@ -687,3 +687,103 @@ child_list_version_bumped_by_update_and_keep_while_test() ->
               [parent, child2] => #{}}},
        Ret),
     ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
+
+%% -------------------------------------------------------------------
+%% Performance testing.
+%% -------------------------------------------------------------------
+
+%% Delete a single tree node that has many other tree nodes depending on it.
+%% This should complete quickly (milliseconds). However it took dozens of
+%% seconds before the fix in Khepri 0.17.4.
+delete_node_with_many_dependents_test_() ->
+    {timeout, 30, fun delete_node_with_many_dependents/0}.
+
+delete_node_with_many_dependents() ->
+    Commands = [#put{path = [target],
+                     payload = khepri_payload:data(value)}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+
+    NumDependents = 1000,
+    DependentPaths = lists:map(
+                       fun(I) ->
+                               ChildName = integer_to_binary(I),
+                               Path = [dependent, ChildName],
+                               Path
+                       end, lists:seq(1, NumDependents)),
+
+    %% Create many nodes that depend on the target node.
+    KeepWhile = #{[target] => #if_node_exists{exists = true}},
+    S1 = lists:foldl(
+           fun(DependentPath, SAcc) ->
+                   Command = #put{path = DependentPath,
+                                  payload = khepri_payload:none(),
+                                  options = #{keep_while => KeepWhile}},
+                   {SNext, {ok, _}, _SE} = khepri_machine:apply(
+                                             ?META, Command, SAcc),
+                   SNext
+           end, S0, DependentPaths),
+
+    %% Now delete the target node. This should trigger deletion of all
+    %% dependents.
+    Command = #delete{path = [target]},
+    T0 = erlang:monotonic_time(millisecond),
+    {_S2, Ret, _SE} = khepri_machine:apply(?META, Command, S1),
+    T1 = erlang:monotonic_time(millisecond),
+
+    %% Ensure the deletion was fast.
+    DeletionTime = T1 - T0,
+    ?assert(DeletionTime < 1000),
+
+    %% Verify the correct nodes were deleted.
+    {ok, DeletedNodes} = Ret,
+    ?assert(maps:is_key([target], DeletedNodes)),
+    ?assert(maps:is_key([dependent], DeletedNodes)),
+    lists:foreach(
+      fun(DependentPath) ->
+              ?assert(maps:is_key(DependentPath, DeletedNodes))
+      end, DependentPaths).
+
+%% Cascading deletions through a chain of dependencies where each node depends
+%% on the previous one. This should complete quickly (milliseconds). However
+%% it took dozens of seconds before the fix in Khepri 0.17.4.
+delete_node_with_dependency_chain_test_() ->
+    {timeout, 30, fun delete_node_with_dependency_chain/0}.
+
+delete_node_with_dependency_chain() ->
+    HeadPath = [<<"1">>],
+    Commands = [#put{path = HeadPath,
+                     payload = khepri_payload:none()}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+
+    ChainLength = 100,
+    S1 = lists:foldl(
+           fun(I, SAcc) ->
+                   ThisNode = integer_to_binary(I),
+                   PrevNode = integer_to_binary(I - 1),
+                   KeepWhile = #{[PrevNode] => #if_node_exists{exists = true}},
+                   Command = #put{path = [ThisNode],
+                                  payload = khepri_payload:none(),
+                                  options = #{keep_while => KeepWhile}},
+                   {SNext, {ok, _}, _SE} = khepri_machine:apply(
+                                             ?META, Command, SAcc),
+                   SNext
+           end, S0, lists:seq(2, ChainLength)),
+
+    %% Delete the first tree node in the chain.
+    DeleteCommand = #delete{path = HeadPath},
+    T0 = erlang:monotonic_time(millisecond),
+    {_S2, Ret, _SE} = khepri_machine:apply(
+                                       ?META, DeleteCommand, S1),
+    T1 = erlang:monotonic_time(millisecond),
+
+    DeletionTime = T1 - T0,
+    ?assert(DeletionTime < 1000),
+
+    %% Verify the correct nodes were deleted.
+    {ok, DeletedNodes} = Ret,
+    ?assertEqual(ChainLength, maps:size(DeletedNodes)),
+    lists:foreach(
+      fun(I) ->
+              Node = integer_to_binary(I),
+              ?assert(maps:is_key([Node], DeletedNodes))
+      end, lists:seq(1, ChainLength)).
