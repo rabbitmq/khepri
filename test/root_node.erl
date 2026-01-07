@@ -446,7 +446,21 @@ delete_root_node_with_child_nodes_test() ->
        Root),
     ?assertEqual({ok, #{[] => #{payload_version => 1,
                                 child_list_version => 3,
-                                child_list_length => 2}}}, Ret),
+                                child_list_length => 2},
+                        [foo] => #{payload_version => 1,
+                                   child_list_version => 1,
+                                   child_list_length => 1},
+                        [foo, bar] => #{data => bar_value,
+                                        payload_version => 1,
+                                        child_list_version => 1,
+                                        child_list_length => 0},
+                        [baz] => #{payload_version => 1,
+                                   child_list_version => 1,
+                                   child_list_length => 1},
+                        [baz, qux] => #{data => qux_value,
+                                        payload_version => 1,
+                                        child_list_version => 1,
+                                        child_list_length => 0}}}, Ret),
     ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 delete_root_node_with_condition_true_test() ->
@@ -471,7 +485,11 @@ delete_root_node_with_condition_true_test() ->
        Root),
     ?assertEqual({ok, #{[] => #{payload_version => 1,
                                 child_list_version => 2,
-                                child_list_length => 1}}}, Ret),
+                                child_list_length => 1},
+                        [foo] => #{data => foo_value,
+                                   payload_version => 1,
+                                   child_list_version => 1,
+                                   child_list_length => 0}}}, Ret),
     ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 delete_root_node_with_condition_true_using_dot_test() ->
@@ -496,7 +514,11 @@ delete_root_node_with_condition_true_using_dot_test() ->
        Root),
     ?assertEqual({ok, #{[] => #{payload_version => 1,
                                 child_list_version => 2,
-                                child_list_length => 1}}}, Ret),
+                                child_list_length => 1},
+                        [foo] => #{data => foo_value,
+                                   payload_version => 1,
+                                   child_list_version => 1,
+                                   child_list_length => 0}}}, Ret),
     ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 delete_root_node_with_condition_false_test() ->

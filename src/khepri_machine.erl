@@ -117,6 +117,7 @@
          get_tree/1,
          get_root/1,
          get_keep_while_conds/1,
+         get_keep_while_conds_revidx/1,
          get_triggers/1,
          get_emitted_triggers/1,
          get_projections/1,
@@ -163,7 +164,10 @@
 -type machine_init_args() :: #{store_id := khepri:store_id(),
                                member := ra:server_id(),
                                snapshot_interval => non_neg_integer(),
-                               commands => [command()],
+                               commands => [command() |
+                                            {machine_version,
+                                             non_neg_integer(),
+                                             non_neg_integer()}],
                                atom() => any()}.
 %% Structure passed to {@link init/1}.
 
@@ -2166,27 +2170,6 @@ create_projection_side_effects(InitialState, NewState, Changes) ->
       end, [], Changes).
 
 create_projection_side_effects1(
-  InitialTree, NewTree, ProjectionTree, Path, delete = Change, Effects) ->
-    %% Deletion changes recursively delete the subtree below the deleted tree
-    %% node. Find any children in the tree that were also deleted by this
-    %% change and trigger any necessary projections for those children.
-    ChildrenFindOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
-                            expect_specific_node => false},
-    ChildrenPattern = Path ++ [?KHEPRI_WILDCARD_STAR_STAR],
-    EffectsForChildrenFun =
-    fun(ChildPath, _NodeProps, EffectAcc) ->
-            create_projection_side_effects2(
-              InitialTree, NewTree, ProjectionTree,
-              ChildPath, Change, EffectAcc)
-    end,
-    {ok, Effects1} = khepri_tree:fold(
-                       InitialTree, ChildrenPattern,
-                       EffectsForChildrenFun, Effects,
-                       ChildrenFindOptions),
-    %% Also trigger a change for the deleted path itself.
-    create_projection_side_effects2(
-      InitialTree, NewTree, ProjectionTree, Path, Change, Effects1);
-create_projection_side_effects1(
   InitialTree, NewTree, ProjectionTree, Path, Change, Effects) ->
     create_projection_side_effects2(
       InitialTree, NewTree, ProjectionTree, Path, Change, Effects).
@@ -2520,6 +2503,19 @@ get_keep_while_conds(State) ->
     Tree = get_tree(State),
     KeepWhileConds = khepri_tree:get_keep_while_conds(Tree),
     KeepWhileConds.
+
+-spec get_keep_while_conds_revidx(State) -> KeepWhileCondsRevIdx when
+      State :: khepri_machine:state(),
+      KeepWhileCondsRevIdx :: khepri_tree:keep_while_conds_revidx().
+%% @doc Returns the `keep_while' conditions reverse index in the tree from the
+%% given state.
+%%
+%% @private
+
+get_keep_while_conds_revidx(State) ->
+    Tree = get_tree(State),
+    KeepWhileCondsRevIdx = khepri_tree:get_keep_while_conds_revidx(Tree),
+    KeepWhileCondsRevIdx.
 
 -spec get_triggers(State) -> Triggers when
       State :: khepri_machine:state(),

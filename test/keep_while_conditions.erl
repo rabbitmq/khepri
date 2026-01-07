@@ -386,7 +386,8 @@ automatic_reclaim_of_useless_nodes_works_test() ->
             child_list_version => 3},
           child_nodes = #{}},
        Root),
-    ?assertEqual({ok, #{[foo, bar, baz] => #{delete_reason => explicit},
+    ?assertEqual({ok, #{[foo, bar, baz, qux] => #{delete_reason => explicit},
+                        [foo, bar, baz] => #{delete_reason => explicit},
                         [foo, bar] => #{delete_reason => keep_while},
                         [foo] => #{delete_reason => keep_while}}}, Ret),
     ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
@@ -417,7 +418,8 @@ automatic_reclaim_keeps_relevant_nodes_1_test() ->
                   payload = khepri_payload:data(relevant),
                   child_nodes = #{}}}},
        Root),
-    ?assertEqual({ok, #{[foo, bar, baz] => #{delete_reason => explicit},
+    ?assertEqual({ok, #{[foo, bar, baz, qux] => #{delete_reason => explicit},
+                        [foo, bar, baz] => #{delete_reason => explicit},
                         [foo, bar] => #{delete_reason => keep_while}}}, Ret),
     ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
 
@@ -501,3 +503,91 @@ keep_while_condition_on_non_existing_tree_node_test() ->
     ?assertEqual({ok, #{[foo] => #{},
                         [bar] => #{delete_reason => keep_while}}}, Ret2),
     ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE2).
+
+child_keep_while_conds_cleanup_after_parent_deletion_v0_test() ->
+    ParentKeepWhile = #{[parent_dep] => #if_node_exists{exists = true}},
+    ChildKeepWhile = #{[child_dep] => #if_node_exists{exists = true}},
+    Commands = [#put{path = [parent_dep],
+                     payload = khepri_payload:data(parent_dep_value)},
+                #put{path = [child_dep],
+                     payload = khepri_payload:data(child_dep_value)},
+                #put{path = [parent],
+                     payload = khepri_payload:data(parent_value),
+                     options = #{keep_while => ParentKeepWhile}},
+                #put{path = [parent, child],
+                     payload = khepri_payload:data(child_value),
+                     options = #{keep_while => ChildKeepWhile}}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+    KeepWhileConds0 = khepri_machine:get_keep_while_conds(S0),
+    KeepWhileCondsRevIdx0 = (
+      khepri_machine:get_keep_while_conds_revidx(S0)),
+    ?assertEqual(
+       #{[parent] => ParentKeepWhile,
+         [parent, child] => ChildKeepWhile},
+       KeepWhileConds0),
+    ?assertEqual(
+       #{[parent_dep] => #{[parent] => ok},
+         [child_dep] => #{[parent, child] => ok}},
+       khepri_tree:unopacify(KeepWhileCondsRevIdx0)),
+
+    DeleteCommand = #delete{path = [parent_dep],
+                            options =
+                            #{props_to_return => [delete_reason]}},
+    {S1, Ret, _SE} = khepri_machine:apply(?META, DeleteCommand, S0),
+    ?assertEqual(
+       {ok, #{[parent_dep] => #{delete_reason => explicit},
+              [parent] => #{delete_reason => keep_while},
+              [parent, child] => #{delete_reason => keep_while}}},
+       Ret),
+
+    KeepWhileConds1 = khepri_machine:get_keep_while_conds(S1),
+    KeepWhileCondsRevIdx1 = (
+      khepri_machine:get_keep_while_conds_revidx(S1)),
+    ?assertEqual(#{}, KeepWhileConds1),
+    ?assertEqual(#{}, khepri_tree:unopacify(KeepWhileCondsRevIdx1)).
+
+child_keep_while_conds_cleanup_after_parent_deletion_v1_test() ->
+    ParentKeepWhile = #{[parent_dep] => #if_node_exists{exists = true}},
+    ChildKeepWhile = #{[child_dep] => #if_node_exists{exists = true}},
+    Commands = [{machine_version, 0, khepri_machine:version()},
+                #put{path = [parent_dep],
+                     payload = khepri_payload:data(parent_dep_value)},
+                #put{path = [child_dep],
+                     payload = khepri_payload:data(child_dep_value)},
+                #put{path = [parent],
+                     payload = khepri_payload:data(parent_value),
+                     options = #{keep_while => ParentKeepWhile}},
+                #put{path = [parent, child],
+                     payload = khepri_payload:data(child_value),
+                     options = #{keep_while => ChildKeepWhile}}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+    KeepWhileConds0 = khepri_machine:get_keep_while_conds(S0),
+    KeepWhileCondsRevIdx0 = (
+      khepri_machine:get_keep_while_conds_revidx(S0)),
+    ?assertEqual(
+       #{[parent] => ParentKeepWhile,
+         [parent, child] => ChildKeepWhile},
+       KeepWhileConds0),
+    ?assertEqual(
+       khepri_prefix_tree:from_map(
+         #{[parent_dep] => #{[parent] => ok},
+           [child_dep] => #{[parent, child] => ok}}),
+       khepri_tree:unopacify(KeepWhileCondsRevIdx0)),
+
+    DeleteCommand = #delete{path = [parent_dep],
+                            options =
+                            #{props_to_return => [delete_reason]}},
+    {S1, Ret, _SE} = khepri_machine:apply(?META, DeleteCommand, S0),
+    ?assertEqual(
+       {ok, #{[parent_dep] => #{delete_reason => explicit},
+              [parent] => #{delete_reason => keep_while},
+              [parent, child] => #{delete_reason => keep_while}}},
+       Ret),
+
+    KeepWhileConds1 = khepri_machine:get_keep_while_conds(S1),
+    KeepWhileCondsRevIdx1 = (
+      khepri_machine:get_keep_while_conds_revidx(S1)),
+    ?assertEqual(#{}, KeepWhileConds1),
+    ?assertEqual(
+       khepri_prefix_tree:from_map(#{}),
+       khepri_tree:unopacify(KeepWhileCondsRevIdx1)).

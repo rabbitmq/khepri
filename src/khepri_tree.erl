@@ -22,6 +22,7 @@
 -export([new/0,
          get_root/1,
          get_keep_while_conds/1,
+         get_keep_while_conds_revidx/1,
          assert_equal/2,
 
          are_keep_while_conditions_met/2,
@@ -37,6 +38,10 @@
          walk_down_the_tree/5,
 
          convert_tree/3]).
+
+-ifdef(TEST).
+-export([unopacify/1]).
+-endif.
 
 -record(tree, {root = #node{} :: khepri_tree:tree_node(),
                keep_while_conds = #{} :: khepri_tree:keep_while_conds_map(),
@@ -125,6 +130,14 @@ get_root(#tree{root = Root}) ->
 
 get_keep_while_conds(#tree{keep_while_conds = KeepWhileConds}) ->
     KeepWhileConds.
+
+-spec get_keep_while_conds_revidx(Tree) -> KeepWhileCondsRevIdx when
+      Tree :: khepri_tree:tree(),
+      KeepWhileCondsRevIdx :: khepri_tree:keep_while_conds_revidx().
+
+get_keep_while_conds_revidx(
+  #tree{keep_while_conds_revidx = KeepWhileCondsRevIdx}) ->
+    KeepWhileCondsRevIdx.
 
 -spec assert_equal(Tree1, Tree2) -> ok when
       Tree1 :: khepri_tree:tree(),
@@ -616,11 +629,27 @@ add_deleted_node_to_result(
     add_deleted_node_to_result1(
       Path, Node, TreeOptions, DeleteReason, Result).
 
-add_deleted_node_to_result1(Path, Node, TreeOptions, DeleteReason, Result) ->
+add_deleted_node_to_result1(
+  Path, #node{child_nodes = Children} = Node, TreeOptions, DeleteReason,
+  Result) ->
     NodeProps1 = gather_node_props(Node, TreeOptions),
     NodeProps2 = maybe_add_delete_reason_prop(
                    NodeProps1, TreeOptions, DeleteReason),
-    Result#{Path => NodeProps2}.
+    Result1 = Result#{Path => NodeProps2},
+
+    Result3 = maps:fold(
+                fun(ChildName, ChildNode, Result2) ->
+                        ChildPath = Path ++ [ChildName],
+                        case Result2 of
+                            #{ChildPath := _} ->
+                                Result2;
+                            _ ->
+                                add_deleted_node_to_result1(
+                                  ChildPath, ChildNode, TreeOptions,
+                                  DeleteReason, Result2)
+                        end
+                end, Result1, Children),
+    Result3.
 
 maybe_add_delete_reason_prop(
   NodeProps, #{props_to_return := WantedProps}, DeleteReason) ->
@@ -1357,6 +1386,13 @@ walk_back_up_the_tree(
     Path = lists:reverse(WholeReversedPath),
     AppliedChangesAcc1 = AppliedChangesAcc#{Path => delete},
 
+    %% All children of `Path' are also added recursively to the
+    %% `AppliedChangesAcc1' map.
+    #node{child_nodes = Children} = ParentNode,
+    ChildNode = maps:get(ChildName, Children),
+    AppliedChangesAcc2 = list_deleted_nodes_recursively_from(
+                           Path, ChildNode, AppliedChangesAcc1),
+
     %% Evaluate keep_while of parent node on itself right now (its child_count
     %% has changed).
     ParentNode1 = remove_node_child(ParentNode, ChildName),
@@ -1371,7 +1407,7 @@ walk_back_up_the_tree(
     Walk1 = Walk#walk{node = ParentNode2,
                       reversed_path = ReversedPath,
                       reversed_parent_tree = ReversedParentTree},
-    handle_keep_while_for_parent_update(Walk1, AppliedChangesAcc1);
+    handle_keep_while_for_parent_update(Walk1, AppliedChangesAcc2);
 walk_back_up_the_tree(
   #walk{node = Child,
         reversed_path = [ChildName | ReversedPath] = WholeReversedPath,
@@ -1476,6 +1512,27 @@ handle_keep_while_for_parent_update(
                               fun_acc = Acc1},
             walk_back_up_the_tree(Walk1, AppliedChangesAcc)
     end.
+
+-spec list_deleted_nodes_recursively_from(Path, Node, AppliedChangesAcc) ->
+    NewAppliedChangesAcc when
+      Path :: khepri_path:native_path(),
+      Node :: tree_node(),
+      AppliedChangesAcc :: applied_changes(),
+      NewAppliedChangesAcc :: applied_changes().
+%% @doc Augment the `AppliedChangesAcc' map with all the tree nodes that were
+%% deleted as a consequence of the deletion of a parent.
+%%
+%% @private
+
+list_deleted_nodes_recursively_from(
+  Path, #node{child_nodes = Children}, AppliedChangesAcc) ->
+    maps:fold(
+      fun(ChildName, ChildNode, AppliedChangesAcc1) ->
+              ChildPath = Path ++ [ChildName],
+              AppliedChangesAcc2 = AppliedChangesAcc1#{ChildPath => delete},
+              list_deleted_nodes_recursively_from(
+                ChildPath, ChildNode, AppliedChangesAcc2)
+      end, AppliedChangesAcc, Children).
 
 merge_applied_changes(AppliedChanges1, AppliedChanges2) ->
     maps:fold(
@@ -1697,3 +1754,12 @@ convert_tree(Tree, 1, 2) ->
     KeepWhileCondsRevIdxV1 = khepri_prefix_tree:from_map(
                                KeepWhileCondsRevIdxV0),
     Tree#tree{keep_while_conds_revidx = KeepWhileCondsRevIdxV1}.
+
+-ifdef(TEST).
+-spec unopacify(Tree) -> Term when
+      Tree :: khepri_tree:keep_while_conds_revidx(),
+      Term :: any().
+
+unopacify(Tree) ->
+    Tree.
+-endif.
