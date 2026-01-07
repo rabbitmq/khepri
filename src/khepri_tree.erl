@@ -2,7 +2,7 @@
 %% License, v. 2.0. If a copy of the MPL was not distributed with this
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
-%% Copyright © 2021-2025 Broadcom. All Rights Reserved. The term "Broadcom"
+%% Copyright © 2021-2026 Broadcom. All Rights Reserved. The term "Broadcom"
 %% refers to Broadcom Inc. and/or its subsidiaries.
 %%
 
@@ -22,6 +22,7 @@
 -export([new/0,
          get_root/1,
          get_keep_while_conds/1,
+         get_keep_while_conds_revidx/1,
          assert_equal/2,
 
          are_keep_while_conditions_met/2,
@@ -37,6 +38,10 @@
          walk_down_the_tree/5,
 
          convert_tree/3]).
+
+-ifdef(TEST).
+-export([unopacify/1]).
+-endif.
 
 -record(tree, {root = #node{} :: khepri_tree:tree_node(),
                keep_while_conds = #{} :: khepri_tree:keep_while_conds_map(),
@@ -125,6 +130,14 @@ get_root(#tree{root = Root}) ->
 
 get_keep_while_conds(#tree{keep_while_conds = KeepWhileConds}) ->
     KeepWhileConds.
+
+-spec get_keep_while_conds_revidx(Tree) -> KeepWhileCondsRevIdx when
+      Tree :: khepri_tree:tree(),
+      KeepWhileCondsRevIdx :: khepri_tree:keep_while_conds_revidx().
+
+get_keep_while_conds_revidx(
+  #tree{keep_while_conds_revidx = KeepWhileCondsRevIdx}) ->
+    KeepWhileCondsRevIdx.
 
 -spec assert_equal(Tree1, Tree2) -> ok when
       Tree1 :: khepri_tree:tree(),
@@ -294,28 +307,79 @@ squash_version_bumps(
                   child_list_version => CVersion},
     CurrentNode#node{props = Stat1}.
 
+-spec squash_version_bumps_after_keep_while(
+        Tree, AppliedChangesBefore, AppliedChangesAfter) ->
+    NewTree when
+      Tree :: tree(),
+      AppliedChangesBefore :: applied_changes(),
+      AppliedChangesAfter :: applied_changes(),
+      NewTree :: tree().
+%% @doc Squashes `child_list_version' bumps triggered by `keep_while'
+%% conditions if a tree node's version was already bumped after the command
+%% was applied.
+%%
+%% @private
+
 squash_version_bumps_after_keep_while(
-  Path,
-  #node{props = #{child_list_version := CVersion} = Props} = Node,
-  AppliedChanges) ->
-    ChildPathLength = length(Path) + 1,
-    WasModified = maps:fold(
+  #tree{root = Root} = Tree, AppliedChangesBefore, AppliedChangesAfter) ->
+    %% We record all tree nodes that had their `child_list_version' bumped by
+    %% the previous update of the tree.
+    BumpsBefore = maps:fold(
                     fun
-                        (P, {create, _NP}, false) ->
-                            lists:prefix(Path, P) andalso
-                            length(P) =:= ChildPathLength;
-                        (_P, _TaNP, Acc) ->
+                        (Path, Change, Acc)
+                          when Change =:= delete orelse
+                               element(1, Change) =:= create ->
+                            ParentPath = lists:droplast(Path),
+                            Acc#{ParentPath => true};
+                        (_Path, _Change, Acc) ->
                             Acc
-                    end, false, AppliedChanges),
-    case WasModified of
-        false ->
-            Node;
-        true ->
-            CVersion1 = CVersion - 1,
-            ?assert(CVersion1 >= 1),
-            Props1 = Props#{child_list_version => CVersion1},
-            Node#node{props = Props1}
-    end.
+                    end, #{}, AppliedChangesBefore),
+    %% We use the previous map to determine which `keep_while'-induced changes
+    %% should trigger a new bump of `child_list_version'.
+    BumpsAfter = maps:fold(
+                   fun(Path, _Change, Acc) ->
+                           ParentPath = lists:droplast(Path),
+                           case BumpsBefore of
+                               %% `ParentPath' had its `child_list_version'
+                               %% bumped by the walk/update. The application
+                               %% of `keep_while' bumped it again and we don't
+                               %% want that. Mark this path to indicate we
+                               %% want to revert that second bump.
+                               #{ParentPath := _} -> Acc#{ParentPath => -1};
+                               _                  -> Acc
+                           end
+                   end, #{}, AppliedChangesAfter),
+    %% Go through all bump reverts we need and "unbump" the corresponding
+    %% `child_list_version'.
+    Root1 = maps:fold(
+              fun(Path, Bump, Root1) ->
+                      squash_version_bumps_after_keep_while1(Root1, Path, Bump)
+              end, Root, BumpsAfter),
+    Tree1 = Tree#tree{root = Root1},
+    Tree1.
+
+squash_version_bumps_after_keep_while1(
+  #node{child_nodes = Children} = Node,
+  [ChildName | Rest],
+  Bump) ->
+    case Children of
+        #{ChildName := ChildNode} ->
+            ChildNode1 = squash_version_bumps_after_keep_while1(
+                           ChildNode, Rest, Bump),
+            Children1 = Children#{ChildName => ChildNode1},
+            Node1 = Node#node{child_nodes = Children1},
+            Node1;
+        _ ->
+            Node
+    end;
+squash_version_bumps_after_keep_while1(
+  #node{props = #{child_list_version := CVersion} = Props} = Node,
+  [],
+  Bump) ->
+    CVersion1 = CVersion + Bump,
+    Props1 = Props#{child_list_version => CVersion1},
+    Node1 = Node#node{props = Props1},
+    Node1.
 
 %% -------------------------------------------------------------------
 %% Keep-while functions.
@@ -616,11 +680,27 @@ add_deleted_node_to_result(
     add_deleted_node_to_result1(
       Path, Node, TreeOptions, DeleteReason, Result).
 
-add_deleted_node_to_result1(Path, Node, TreeOptions, DeleteReason, Result) ->
+add_deleted_node_to_result1(
+  Path, #node{child_nodes = Children} = Node, TreeOptions, DeleteReason,
+  Result) ->
     NodeProps1 = gather_node_props(Node, TreeOptions),
     NodeProps2 = maybe_add_delete_reason_prop(
                    NodeProps1, TreeOptions, DeleteReason),
-    Result#{Path => NodeProps2}.
+    Result1 = Result#{Path => NodeProps2},
+
+    Result3 = maps:fold(
+                fun(ChildName, ChildNode, Result2) ->
+                        ChildPath = Path ++ [ChildName],
+                        case Result2 of
+                            #{ChildPath := _} ->
+                                Result2;
+                            _ ->
+                                add_deleted_node_to_result1(
+                                  ChildPath, ChildNode, TreeOptions,
+                                  DeleteReason, Result2)
+                        end
+                end, Result1, Children),
+    Result3.
 
 maybe_add_delete_reason_prop(
   NodeProps, #{props_to_return := WantedProps}, DeleteReason) ->
@@ -1349,29 +1429,28 @@ walk_back_up_the_tree(Walk) ->
 walk_back_up_the_tree(
   #walk{node = delete,
         reversed_path = [ChildName | ReversedPath] = WholeReversedPath,
-        reversed_parent_tree = [ParentNode | ReversedParentTree],
-        applied_changes = AppliedChanges} = Walk,
+        reversed_parent_tree = [ParentNode | ReversedParentTree]} = Walk,
   AppliedChangesAcc) ->
     %% Evaluate keep_while of nodes which depended on ChildName (it is
     %% removed) at the end of walk_back_up_the_tree().
     Path = lists:reverse(WholeReversedPath),
     AppliedChangesAcc1 = AppliedChangesAcc#{Path => delete},
 
+    %% All children of `Path' are also added recursively to the
+    %% `AppliedChangesAcc1' map.
+    #node{child_nodes = Children} = ParentNode,
+    ChildNode = maps:get(ChildName, Children),
+    AppliedChangesAcc2 = list_deleted_nodes_recursively_from(
+                           Path, ChildNode, AppliedChangesAcc1),
+
     %% Evaluate keep_while of parent node on itself right now (its child_count
     %% has changed).
     ParentNode1 = remove_node_child(ParentNode, ChildName),
 
-    %% If we are handling deletes as part of a `keep_while', it is possible
-    %% that this parent node's child list version was bumped if a node was
-    %% added in the first pass. In this case, we don't want to bump that
-    %% version twice (add + delete), but just once.
-    ParentNode2 = squash_version_bumps_after_keep_while(
-                    lists:reverse(ReversedPath), ParentNode1, AppliedChanges),
-
-    Walk1 = Walk#walk{node = ParentNode2,
+    Walk1 = Walk#walk{node = ParentNode1,
                       reversed_path = ReversedPath,
                       reversed_parent_tree = ReversedParentTree},
-    handle_keep_while_for_parent_update(Walk1, AppliedChangesAcc1);
+    handle_keep_while_for_parent_update(Walk1, AppliedChangesAcc2);
 walk_back_up_the_tree(
   #walk{node = Child,
         reversed_path = [ChildName | ReversedPath] = WholeReversedPath,
@@ -1476,6 +1555,27 @@ handle_keep_while_for_parent_update(
                               fun_acc = Acc1},
             walk_back_up_the_tree(Walk1, AppliedChangesAcc)
     end.
+
+-spec list_deleted_nodes_recursively_from(Path, Node, AppliedChangesAcc) ->
+    NewAppliedChangesAcc when
+      Path :: khepri_path:native_path(),
+      Node :: tree_node(),
+      AppliedChangesAcc :: applied_changes(),
+      NewAppliedChangesAcc :: applied_changes().
+%% @doc Augment the `AppliedChangesAcc' map with all the tree nodes that were
+%% deleted as a consequence of the deletion of a parent.
+%%
+%% @private
+
+list_deleted_nodes_recursively_from(
+  Path, #node{child_nodes = Children}, AppliedChangesAcc) ->
+    maps:fold(
+      fun(ChildName, ChildNode, AppliedChangesAcc1) ->
+              ChildPath = Path ++ [ChildName],
+              AppliedChangesAcc2 = AppliedChangesAcc1#{ChildPath => delete},
+              list_deleted_nodes_recursively_from(
+                ChildPath, ChildNode, AppliedChangesAcc2)
+      end, AppliedChangesAcc, Children).
 
 merge_applied_changes(AppliedChanges1, AppliedChanges2) ->
     maps:fold(
@@ -1655,7 +1755,82 @@ is_parent_being_removed1([], _) ->
 
 remove_expired_nodes([], Walk) ->
     {ok, Walk};
-remove_expired_nodes(
+remove_expired_nodes(PathsToDelete, Walk) ->
+    %% Sometimes after a `keep_while' condition "expires", we end up deleting
+    %% many siblings. Or we want to delete many children of a tree node that
+    %% is also deleted.
+    %%
+    %% Here, we convert this list of paths to a list of path patterns, trying
+    %% to gather several siblings together in a single pattern, or entirely
+    %% eliminate paths to children of a deleted tree node.
+    PatternsToDelete = paths_to_patterns(PathsToDelete),
+    remove_expired_nodes1(PatternsToDelete, Walk).
+
+-spec paths_to_patterns(PathsToDelete) -> PatternsToDelete when
+      PathsToDelete :: [khepri_path:native_path()],
+      PatternsToDelete :: [khepri_path:native_pattern()].
+%% @private
+
+paths_to_patterns(PathsToDelete) ->
+    %% This sort here is important: shorter paths, and thus parent paths will
+    %% be considered first before their children in the computation below.
+    %% This allows to skip childrend when a (grand-)parent is already
+    %% scheduled for deletion.
+    PathsToDelete1 = lists:sort(PathsToDelete),
+    paths_to_patterns(PathsToDelete1, #{}).
+
+paths_to_patterns([PathToDelete | Rest], PatternsToDelete) ->
+    PatternsToDelete1 = path_to_pattern(PathToDelete, PatternsToDelete),
+    paths_to_patterns(Rest, PatternsToDelete1);
+paths_to_patterns([], PatternsToDelete) ->
+    PatternsToDelete1 = maps:fold(
+                          fun
+                              (ParentPath, [Component], Acc) ->
+                                  %% Only one child is deleted. Let's convert
+                                  %% it back to a regular path.
+                                  Path = ParentPath ++ [Component],
+                                  [Path | Acc];
+                              (ParentPath, Siblings, Acc) ->
+                                  %% Many siblings are deleted. We use a
+                                  %% single pattern that matches any siblings.
+                                  Pattern0 = #if_any{conditions = Siblings},
+                                  Pattern1 = ParentPath ++ [Pattern0],
+                                  [Pattern1 | Acc]
+                          end, [], PatternsToDelete),
+    PatternsToDelete1.
+
+path_to_pattern(PathToDelete, PatternsToDelete) ->
+    ParentPath = [],
+    path_to_pattern(PathToDelete, ParentPath, PatternsToDelete).
+
+path_to_pattern([Component | Rest], ParentPath, PatternsToDelete) ->
+    Siblings = maps:get(ParentPath, PatternsToDelete, []),
+    case Rest of
+        [_ | _] ->
+            case lists:member(Component, Siblings) of
+                true ->
+                    %% A parent is already scheduled for deletion. We can skip
+                    %% this path because it's a child that will go away with
+                    %% the parent.
+                    PatternsToDelete;
+                false ->
+                    %% We are in the middle of the path to delete and this
+                    %% parent is not deleted. Let's continue with the next
+                    %% component.
+                    ThisPath = ParentPath ++ [Component],
+                    path_to_pattern(Rest, ThisPath, PatternsToDelete)
+            end;
+        [] ->
+            %% We reached the last component of a path.
+            %%
+            %% We add it to a list of siblings under the parent's path. Later,
+            %% we can convert this to an actual pattern.
+            Siblings1 = [Component | Siblings],
+            PatternsToDelete1 = PatternsToDelete#{ParentPath => Siblings1},
+            PatternsToDelete1
+    end.
+
+remove_expired_nodes1(
   [PathToDelete | Rest],
   #walk{tree = Tree,
         applied_changes = AppliedChanges,
@@ -1669,17 +1844,26 @@ remove_expired_nodes(
                     Path, Node, TreeOptions, keep_while, Result)
           end,
     Result = walk_down_the_tree(
-               Tree, PathToDelete, TreeOptions, AppliedChanges, Fun, Acc),
+               Tree, PathToDelete, TreeOptions, #{}, Fun, Acc),
     case Result of
         {ok, Tree1, AppliedChanges1, Acc1} ->
+            %% When we are handling deletes as part of a `keep_while', it is
+            %% possible that nodes' child list versions were bumped if a child
+            %% was added in the first pass. In this case, we don't want to
+            %% bump that version twice (add + delete), but just once.
+            Tree2 = squash_version_bumps_after_keep_while(
+                      Tree1, AppliedChanges, AppliedChanges1),
+
             AppliedChanges2 = merge_applied_changes(
                                 AppliedChanges, AppliedChanges1),
-            Walk1 = Walk#walk{tree = Tree1,
-                              node = Tree1#tree.root,
+            Walk1 = Walk#walk{tree = Tree2,
+                              node = Tree2#tree.root,
                               applied_changes = AppliedChanges2,
                               fun_acc = Acc1},
-            remove_expired_nodes(Rest, Walk1)
-    end.
+            remove_expired_nodes1(Rest, Walk1)
+    end;
+remove_expired_nodes1([], Walk) ->
+    {ok, Walk}.
 
 %% -------------------------------------------------------------------
 %% Conversion between tree versions.
@@ -1692,8 +1876,17 @@ convert_tree(Tree, 0, 1) ->
 convert_tree(Tree, 1, 2) ->
     %% In version 2 the reverse index for keep while conditions was converted
     %% into a prefix tree. See the `keep_while_conds_revidx_v0()' and
-    %% `keep_while_conds_revidx_v1()` types.
+    %% `keep_while_conds_revidx_v1()' types.
     #tree{keep_while_conds_revidx = KeepWhileCondsRevIdxV0} = Tree,
     KeepWhileCondsRevIdxV1 = khepri_prefix_tree:from_map(
                                KeepWhileCondsRevIdxV0),
     Tree#tree{keep_while_conds_revidx = KeepWhileCondsRevIdxV1}.
+
+-ifdef(TEST).
+-spec unopacify(Tree) -> Term when
+      Tree :: khepri_tree:keep_while_conds_revidx(),
+      Term :: any().
+
+unopacify(Tree) ->
+    Tree.
+-endif.

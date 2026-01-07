@@ -2,7 +2,7 @@
 %% License, v. 2.0. If a copy of the MPL was not distributed with this
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
-%% Copyright © 2021-2025 Broadcom. All Rights Reserved. The term "Broadcom"
+%% Copyright © 2021-2026 Broadcom. All Rights Reserved. The term "Broadcom"
 %% refers to Broadcom Inc. and/or its subsidiaries.
 %%
 
@@ -446,7 +446,21 @@ delete_root_node_with_child_nodes_test() ->
        Root),
     ?assertEqual({ok, #{[] => #{payload_version => 1,
                                 child_list_version => 3,
-                                child_list_length => 2}}}, Ret),
+                                child_list_length => 2},
+                        [foo] => #{payload_version => 1,
+                                   child_list_version => 1,
+                                   child_list_length => 1},
+                        [foo, bar] => #{data => bar_value,
+                                        payload_version => 1,
+                                        child_list_version => 1,
+                                        child_list_length => 0},
+                        [baz] => #{payload_version => 1,
+                                   child_list_version => 1,
+                                   child_list_length => 1},
+                        [baz, qux] => #{data => qux_value,
+                                        payload_version => 1,
+                                        child_list_version => 1,
+                                        child_list_length => 0}}}, Ret),
     ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 delete_root_node_with_condition_true_test() ->
@@ -471,7 +485,11 @@ delete_root_node_with_condition_true_test() ->
        Root),
     ?assertEqual({ok, #{[] => #{payload_version => 1,
                                 child_list_version => 2,
-                                child_list_length => 1}}}, Ret),
+                                child_list_length => 1},
+                        [foo] => #{data => foo_value,
+                                   payload_version => 1,
+                                   child_list_version => 1,
+                                   child_list_length => 0}}}, Ret),
     ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 delete_root_node_with_condition_true_using_dot_test() ->
@@ -496,7 +514,11 @@ delete_root_node_with_condition_true_using_dot_test() ->
        Root),
     ?assertEqual({ok, #{[] => #{payload_version => 1,
                                 child_list_version => 2,
-                                child_list_length => 1}}}, Ret),
+                                child_list_length => 1},
+                        [foo] => #{data => foo_value,
+                                   payload_version => 1,
+                                   child_list_version => 1,
+                                   child_list_length => 0}}}, Ret),
     ?assertEqual([{aux,trigger_delayed_aux_queries_eval}], SE).
 
 delete_root_node_with_condition_false_test() ->

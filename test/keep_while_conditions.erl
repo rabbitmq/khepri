@@ -2,7 +2,7 @@
 %% License, v. 2.0. If a copy of the MPL was not distributed with this
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
-%% Copyright © 2021-2025 Broadcom. All Rights Reserved. The term "Broadcom"
+%% Copyright © 2021-2026 Broadcom. All Rights Reserved. The term "Broadcom"
 %% refers to Broadcom Inc. and/or its subsidiaries.
 %%
 
@@ -355,7 +355,7 @@ keep_while_now_false_after_delete_command_test() ->
        #node{
           props =
           #{payload_version => 1,
-            child_list_version => 5},
+            child_list_version => 4},
           child_nodes = #{}},
        Root),
     ?assertEqual({ok, #{[foo] => #{data => foo_value,
@@ -386,7 +386,8 @@ automatic_reclaim_of_useless_nodes_works_test() ->
             child_list_version => 3},
           child_nodes = #{}},
        Root),
-    ?assertEqual({ok, #{[foo, bar, baz] => #{delete_reason => explicit},
+    ?assertEqual({ok, #{[foo, bar, baz, qux] => #{delete_reason => explicit},
+                        [foo, bar, baz] => #{delete_reason => explicit},
                         [foo, bar] => #{delete_reason => keep_while},
                         [foo] => #{delete_reason => keep_while}}}, Ret),
     ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
@@ -417,7 +418,8 @@ automatic_reclaim_keeps_relevant_nodes_1_test() ->
                   payload = khepri_payload:data(relevant),
                   child_nodes = #{}}}},
        Root),
-    ?assertEqual({ok, #{[foo, bar, baz] => #{delete_reason => explicit},
+    ?assertEqual({ok, #{[foo, bar, baz, qux] => #{delete_reason => explicit},
+                        [foo, bar, baz] => #{delete_reason => explicit},
                         [foo, bar] => #{delete_reason => keep_while}}}, Ret),
     ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
 
@@ -501,3 +503,287 @@ keep_while_condition_on_non_existing_tree_node_test() ->
     ?assertEqual({ok, #{[foo] => #{},
                         [bar] => #{delete_reason => keep_while}}}, Ret2),
     ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE2).
+
+child_keep_while_conds_cleanup_after_parent_deletion_v0_test() ->
+    ParentKeepWhile = #{[parent_dep] => #if_node_exists{exists = true}},
+    ChildKeepWhile = #{[child_dep] => #if_node_exists{exists = true}},
+    Commands = [#put{path = [parent_dep],
+                     payload = khepri_payload:data(parent_dep_value)},
+                #put{path = [child_dep],
+                     payload = khepri_payload:data(child_dep_value)},
+                #put{path = [parent],
+                     payload = khepri_payload:data(parent_value),
+                     options = #{keep_while => ParentKeepWhile}},
+                #put{path = [parent, child],
+                     payload = khepri_payload:data(child_value),
+                     options = #{keep_while => ChildKeepWhile}}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+    KeepWhileConds0 = khepri_machine:get_keep_while_conds(S0),
+    KeepWhileCondsRevIdx0 = (
+      khepri_machine:get_keep_while_conds_revidx(S0)),
+    ?assertEqual(
+       #{[parent] => ParentKeepWhile,
+         [parent, child] => ChildKeepWhile},
+       KeepWhileConds0),
+    ?assertEqual(
+       #{[parent_dep] => #{[parent] => ok},
+         [child_dep] => #{[parent, child] => ok}},
+       khepri_tree:unopacify(KeepWhileCondsRevIdx0)),
+
+    DeleteCommand = #delete{path = [parent_dep],
+                            options =
+                            #{props_to_return => [delete_reason]}},
+    {S1, Ret, _SE} = khepri_machine:apply(?META, DeleteCommand, S0),
+    ?assertEqual(
+       {ok, #{[parent_dep] => #{delete_reason => explicit},
+              [parent] => #{delete_reason => keep_while},
+              [parent, child] => #{delete_reason => keep_while}}},
+       Ret),
+
+    KeepWhileConds1 = khepri_machine:get_keep_while_conds(S1),
+    KeepWhileCondsRevIdx1 = (
+      khepri_machine:get_keep_while_conds_revidx(S1)),
+    ?assertEqual(#{}, KeepWhileConds1),
+    ?assertEqual(#{}, khepri_tree:unopacify(KeepWhileCondsRevIdx1)).
+
+child_keep_while_conds_cleanup_after_parent_deletion_v1_test() ->
+    ParentKeepWhile = #{[parent_dep] => #if_node_exists{exists = true}},
+    ChildKeepWhile = #{[child_dep] => #if_node_exists{exists = true}},
+    Commands = [{machine_version, 0, khepri_machine:version()},
+                #put{path = [parent_dep],
+                     payload = khepri_payload:data(parent_dep_value)},
+                #put{path = [child_dep],
+                     payload = khepri_payload:data(child_dep_value)},
+                #put{path = [parent],
+                     payload = khepri_payload:data(parent_value),
+                     options = #{keep_while => ParentKeepWhile}},
+                #put{path = [parent, child],
+                     payload = khepri_payload:data(child_value),
+                     options = #{keep_while => ChildKeepWhile}}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+    KeepWhileConds0 = khepri_machine:get_keep_while_conds(S0),
+    KeepWhileCondsRevIdx0 = (
+      khepri_machine:get_keep_while_conds_revidx(S0)),
+    ?assertEqual(
+       #{[parent] => ParentKeepWhile,
+         [parent, child] => ChildKeepWhile},
+       KeepWhileConds0),
+    ?assertEqual(
+       khepri_prefix_tree:from_map(
+         #{[parent_dep] => #{[parent] => ok},
+           [child_dep] => #{[parent, child] => ok}}),
+       khepri_tree:unopacify(KeepWhileCondsRevIdx0)),
+
+    DeleteCommand = #delete{path = [parent_dep],
+                            options =
+                            #{props_to_return => [delete_reason]}},
+    {S1, Ret, _SE} = khepri_machine:apply(?META, DeleteCommand, S0),
+    ?assertEqual(
+       {ok, #{[parent_dep] => #{delete_reason => explicit},
+              [parent] => #{delete_reason => keep_while},
+              [parent, child] => #{delete_reason => keep_while}}},
+       Ret),
+
+    KeepWhileConds1 = khepri_machine:get_keep_while_conds(S1),
+    KeepWhileCondsRevIdx1 = (
+      khepri_machine:get_keep_while_conds_revidx(S1)),
+    ?assertEqual(#{}, KeepWhileConds1),
+    ?assertEqual(
+       khepri_prefix_tree:from_map(#{}),
+       khepri_tree:unopacify(KeepWhileCondsRevIdx1)).
+
+parent_and_childen_expire_at_the_same_time_test() ->
+    KeepWhile = #{[foo] => #if_node_exists{exists = true}},
+    Commands = [#put{path = [foo],
+                     payload = khepri_payload:data(foo_value)},
+                #put{path = [parent],
+                     options = #{keep_while => KeepWhile}},
+                #put{path = [parent, child],
+                     options = #{keep_while => KeepWhile}},
+                #put{path = [parent, child, grand_child],
+                     options = #{keep_while => KeepWhile}}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+
+    Command = #delete{path = [foo],
+                      options = #{props_to_return => [delete_reason]}},
+    {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
+    Root = khepri_machine:get_root(S1),
+
+    ?assertEqual(
+       #node{
+          props =
+          #{payload_version => 1,
+            child_list_version => 4},
+          child_nodes = #{}},
+       Root),
+    ?assertEqual(
+       {ok, #{[foo] => #{delete_reason => explicit},
+              [parent] => #{delete_reason => keep_while},
+              [parent, child] => #{delete_reason => keep_while},
+              [parent, child, grand_child] => #{delete_reason => keep_while}}},
+       Ret),
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
+
+siblings_expire_at_the_same_time_test() ->
+    KeepWhile = #{[foo] => #if_node_exists{exists = true}},
+    Commands = [#put{path = [foo],
+                     payload = khepri_payload:data(foo_value)},
+                #put{path = [parent, child1],
+                     options = #{keep_while => KeepWhile}},
+                #put{path = [parent, child2],
+                     options = #{keep_while => KeepWhile}},
+                #put{path = [parent, child3],
+                     options = #{keep_while => KeepWhile}}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+
+    Command = #delete{path = [foo],
+                      options = #{props_to_return => [delete_reason]}},
+    {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
+    Root = khepri_machine:get_root(S1),
+
+    ?assertEqual(
+       #node{
+          props =
+          #{payload_version => 1,
+            child_list_version => 4},
+          child_nodes = #{}},
+       Root),
+    ?assertEqual(
+       {ok, #{[foo] => #{delete_reason => explicit},
+              [parent] => #{delete_reason => keep_while},
+              [parent, child1] => #{delete_reason => keep_while},
+              [parent, child2] => #{delete_reason => keep_while},
+              [parent, child3] => #{delete_reason => keep_while}}},
+       Ret),
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
+
+child_list_version_bumped_by_update_and_keep_while_test() ->
+    KeepWhile = #{[parent, child2] => #if_node_exists{exists = false}},
+    Commands = [#put{path = [parent, child1],
+                     options = #{keep_while => KeepWhile}}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+
+    Command = #put{path = [parent, child2],
+                   payload = khepri_payload:none(),
+                   options = #{props_to_return => [delete_reason]}},
+    {S1, Ret, SE} = khepri_machine:apply(?META, Command, S0),
+    Root = khepri_machine:get_root(S1),
+
+    ?assertEqual(
+       #node{
+          props =
+          #{payload_version => 1,
+            child_list_version => 2},
+          child_nodes =
+          #{parent =>
+            #node{
+               props = #{payload_version => 1,
+                         child_list_version => 2},
+               child_nodes =
+               #{child2 => #node{props = ?INIT_NODE_PROPS}}}}},
+       Root),
+    ?assertEqual(
+       {ok, #{[parent, child1] => #{delete_reason => keep_while},
+              [parent, child2] => #{}}},
+       Ret),
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
+
+%% -------------------------------------------------------------------
+%% Performance testing.
+%% -------------------------------------------------------------------
+
+%% Delete a single tree node that has many other tree nodes depending on it.
+%% This should complete quickly (milliseconds). However it took dozens of
+%% seconds before the fix in Khepri 0.17.4.
+delete_node_with_many_dependents_test_() ->
+    {timeout, 30, fun delete_node_with_many_dependents/0}.
+
+delete_node_with_many_dependents() ->
+    Commands = [#put{path = [target],
+                     payload = khepri_payload:data(value)}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+
+    NumDependents = 1000,
+    DependentPaths = lists:map(
+                       fun(I) ->
+                               ChildName = integer_to_binary(I),
+                               Path = [dependent, ChildName],
+                               Path
+                       end, lists:seq(1, NumDependents)),
+
+    %% Create many nodes that depend on the target node.
+    KeepWhile = #{[target] => #if_node_exists{exists = true}},
+    S1 = lists:foldl(
+           fun(DependentPath, SAcc) ->
+                   Command = #put{path = DependentPath,
+                                  payload = khepri_payload:none(),
+                                  options = #{keep_while => KeepWhile}},
+                   {SNext, {ok, _}, _SE} = khepri_machine:apply(
+                                             ?META, Command, SAcc),
+                   SNext
+           end, S0, DependentPaths),
+
+    %% Now delete the target node. This should trigger deletion of all
+    %% dependents.
+    Command = #delete{path = [target]},
+    T0 = erlang:monotonic_time(millisecond),
+    {_S2, Ret, _SE} = khepri_machine:apply(?META, Command, S1),
+    T1 = erlang:monotonic_time(millisecond),
+
+    %% Ensure the deletion was fast.
+    DeletionTime = T1 - T0,
+    ?assert(DeletionTime < 1000),
+
+    %% Verify the correct nodes were deleted.
+    {ok, DeletedNodes} = Ret,
+    ?assert(maps:is_key([target], DeletedNodes)),
+    ?assert(maps:is_key([dependent], DeletedNodes)),
+    lists:foreach(
+      fun(DependentPath) ->
+              ?assert(maps:is_key(DependentPath, DeletedNodes))
+      end, DependentPaths).
+
+%% Cascading deletions through a chain of dependencies where each node depends
+%% on the previous one. This should complete quickly (milliseconds). However
+%% it took dozens of seconds before the fix in Khepri 0.17.4.
+delete_node_with_dependency_chain_test_() ->
+    {timeout, 30, fun delete_node_with_dependency_chain/0}.
+
+delete_node_with_dependency_chain() ->
+    HeadPath = [<<"1">>],
+    Commands = [#put{path = HeadPath,
+                     payload = khepri_payload:none()}],
+    S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
+
+    ChainLength = 100,
+    S1 = lists:foldl(
+           fun(I, SAcc) ->
+                   ThisNode = integer_to_binary(I),
+                   PrevNode = integer_to_binary(I - 1),
+                   KeepWhile = #{[PrevNode] => #if_node_exists{exists = true}},
+                   Command = #put{path = [ThisNode],
+                                  payload = khepri_payload:none(),
+                                  options = #{keep_while => KeepWhile}},
+                   {SNext, {ok, _}, _SE} = khepri_machine:apply(
+                                             ?META, Command, SAcc),
+                   SNext
+           end, S0, lists:seq(2, ChainLength)),
+
+    %% Delete the first tree node in the chain.
+    DeleteCommand = #delete{path = HeadPath},
+    T0 = erlang:monotonic_time(millisecond),
+    {_S2, Ret, _SE} = khepri_machine:apply(
+                                       ?META, DeleteCommand, S1),
+    T1 = erlang:monotonic_time(millisecond),
+
+    DeletionTime = T1 - T0,
+    ?assert(DeletionTime < 1000),
+
+    %% Verify the correct nodes were deleted.
+    {ok, DeletedNodes} = Ret,
+    ?assertEqual(ChainLength, maps:size(DeletedNodes)),
+    lists:foreach(
+      fun(I) ->
+              Node = integer_to_binary(I),
+              ?assert(maps:is_key([Node], DeletedNodes))
+      end, lists:seq(1, ChainLength)).
