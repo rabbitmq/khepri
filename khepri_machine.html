@@ -99,7 +99,7 @@ never be called directly outside of Khepri.</p>
 <p>  Configuration record, holding read-only or rarely changing fields.</p>
 
 <h3 class="typedecl"><a name="type-machine_init_args">machine_init_args()</a></h3>
-<p><code>machine_init_args() = #{store_id := <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a>, member := <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id" docgen-rel="seetype" docgen-href="ra:ra#server_id/0">ra:server_id()</a>, snapshot_interval =&gt; non_neg_integer(), commands =&gt; [<a href="#type-command" docgen-rel="seetype" docgen-href="#command/0">command()</a>], atom() =&gt; any()}</code></p>
+<p><code>machine_init_args() = #{store_id := <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a>, member := <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id" docgen-rel="seetype" docgen-href="ra:ra#server_id/0">ra:server_id()</a>, snapshot_interval =&gt; non_neg_integer(), commands =&gt; [<a href="#type-command" docgen-rel="seetype" docgen-href="#command/0">command()</a> | {machine_version, non_neg_integer(), non_neg_integer()}], atom() =&gt; any()}</code></p>
 <p>  Structure passed to <a docgen-rel="seemfa" docgen-href="#init/1" href="#init-1"><code>init/1</code></a>.</p>
 
 <h3 class="typedecl"><a name="type-metrics">metrics()</a></h3>
