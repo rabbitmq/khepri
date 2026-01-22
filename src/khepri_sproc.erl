@@ -29,7 +29,8 @@
       StandaloneFun :: horus:horus_fun().
 
 to_standalone_fun(Fun) when is_function(Fun) ->
-    Options = #{should_process_function => fun should_process_function/4},
+    Options = #{should_process_function => fun should_process_function/4,
+                lazy_compilation => true},
     try
         horus:to_standalone_fun(Fun, Options)
     catch

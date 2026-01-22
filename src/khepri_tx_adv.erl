@@ -524,7 +524,8 @@ to_standalone_fun(Fun, ReadWrite)
       should_process_function =>
       fun should_process_function/4,
       is_standalone_fun_still_needed =>
-      fun(Params) -> is_standalone_fun_still_needed(Params, ReadWrite) end},
+      fun(Params) -> is_standalone_fun_still_needed(Params, ReadWrite) end,
+      lazy_compilation => true},
     try
         horus:to_standalone_fun(Fun, Options)
     catch

@@ -216,7 +216,8 @@ new(Name, ProjectionFun, Options)
                           fun khepri_tx_adv:ensure_instruction_is_permitted/1,
                           should_process_function => ShouldProcessFunction,
                           is_standalone_fun_still_needed =>
-                          fun(_Params) -> true end},
+                          fun(_Params) -> true end,
+                          lazy_compilation => true},
     FunOptions = maps:merge(DefaultFunOptions, CustomFunOptions),
     StandaloneFun = horus:to_standalone_fun(ProjectionFun, FunOptions),
     #khepri_projection{name = Name,
