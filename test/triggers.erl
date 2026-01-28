@@ -442,6 +442,59 @@ filter_on_change_type_test_() ->
          ?_assertEqual(executed, receive_sproc_msg(DeletedKey))}]
       }]}.
 
+filter_on_pattern_test_() ->
+    Path = [foo, bar],
+    EventFilter = khepri_evf:tree([foo, #if_has_data{}]),
+    StoredProcPath = [sproc],
+    Key = ?FUNCTION_NAME,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [{"Storing a procedure",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, StoredProcPath,
+              make_sproc(self(), Key)))},
+
+        {"Registering a trigger",
+         ?_assertEqual(
+            ok,
+            khepri:register_trigger(
+              ?FUNCTION_NAME,
+              ?FUNCTION_NAME,
+              EventFilter,
+              StoredProcPath))},
+
+        {"Creating a node; should trigger the procedure",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, Path, value1))},
+
+        {"Checking the procedure was executed on create",
+         ?_assertEqual(executed, receive_sproc_msg(?FUNCTION_NAME))},
+
+        {"Updating a node; should trigger the procedure",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, Path, value2))},
+
+        {"Checking the procedure was executed on update",
+         ?_assertEqual(executed, receive_sproc_msg(?FUNCTION_NAME))},
+
+        {"Deleting a node; should trigger the procedure",
+         ?_assertMatch(
+            ok,
+            khepri:delete(
+              ?FUNCTION_NAME, Path))},
+
+        {"Checking the procedure was executed on delete",
+         ?_assertEqual(executed, receive_sproc_msg(?FUNCTION_NAME))}]
+      }]}.
+
 a_buggy_sproc_does_not_crash_state_machine_test_() ->
     EventFilter = khepri_evf:tree([foo]),
     StoredProcPath = [sproc],
