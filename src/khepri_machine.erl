@@ -964,9 +964,16 @@ process_sync_command(
 
             %% We acknowledge that we received the reply and all duplicates
             %% can be ignored.
-            ThisNode = node(),
-            RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
-            _ = ra:pipeline_command(RaServer, DedupAck),
+            Dest = case ra_leaderboard:lookup_leader(StoreId) of
+                       LeaderId when LeaderId =/= undefined ->
+                           LeaderId;
+                       undefined ->
+                           ThisNode = node(),
+                           RaServer = khepri_cluster:node_to_member(
+                                        StoreId, ThisNode),
+                           RaServer
+                   end,
+            _ = ra:pipeline_command(Dest, DedupAck),
             Ret;
         false ->
             do_process_sync_command(StoreId, Command, Options)
