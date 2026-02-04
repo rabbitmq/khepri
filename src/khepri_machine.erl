@@ -964,9 +964,16 @@ process_sync_command(
 
             %% We acknowledge that we received the reply and all duplicates
             %% can be ignored.
-            ThisNode = node(),
-            RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
-            _ = ra:pipeline_command(RaServer, DedupAck),
+            Dest = case ra_leaderboard:lookup_leader(StoreId) of
+                       LeaderId when LeaderId =/= undefined ->
+                           LeaderId;
+                       undefined ->
+                           ThisNode = node(),
+                           RaServer = khepri_cluster:node_to_member(
+                                        StoreId, ThisNode),
+                           RaServer
+                   end,
+            _ = ra:pipeline_command(Dest, DedupAck),
             Ret;
         false ->
             do_process_sync_command(StoreId, Command, Options)
@@ -2246,9 +2253,10 @@ add_trigger_side_effects(InitialState, NewState, Changes, SideEffects) ->
         false ->
             EmittedTriggers = get_emitted_triggers(InitialState),
             #config{store_id = StoreId} = get_config(NewState),
-            Tree = get_tree(NewState),
+            InitialTree = get_tree(InitialState),
+            NewTree = get_tree(NewState),
             TriggeredStoredProcs = list_triggered_sprocs(
-                                     Tree, Changes, Triggers),
+                                     InitialTree, NewTree, Changes, Triggers),
 
             %% We record the list of triggered stored procedures in the state
             %% machine's state. This is used to guaranty at-least-once
@@ -2271,11 +2279,17 @@ add_trigger_side_effects(InitialState, NewState, Changes, SideEffects) ->
             {NewState1, [SideEffect | SideEffects]}
     end.
 
-list_triggered_sprocs(Tree, Changes, Triggers) ->
+list_triggered_sprocs(InitialTree, NewTree, Changes, Triggers) ->
     TriggeredStoredProcs =
     maps:fold(
       fun(Path, Change, TSP) ->
               % For each change, we evaluate each trigger.
+              Tree = case Change of
+                         delete ->
+                             InitialTree;
+                         _ ->
+                             NewTree
+                     end,
               maps:fold(
                 fun(TriggerId, TriggerProps, TSP1) ->
                         evaluate_trigger(
