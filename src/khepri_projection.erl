@@ -187,35 +187,33 @@ new(Name, ProjectionFun, Options)
        (is_function(ProjectionFun, 2) orelse
         is_function(ProjectionFun, 4)) ->
     {CustomFunOptions, EtsOptions} =
-    case maps:take(standalone_fun_options, Options) of
-        error ->
-            {#{}, Options};
-        {_CustomFunOptions, _EtsOptions} = Value ->
-            Value
-    end,
+      case maps:take(standalone_fun_options, Options) of
+          error                                    -> {#{}, Options};
+          {_CustomFunOptions, _EtsOptions} = Value -> Value
+      end,
     EtsOptions1 = maps:fold(
                     fun to_ets_options/3, ?DEFAULT_ETS_OPTS, EtsOptions),
     ShouldProcessFunction =
-    if
-        is_function(ProjectionFun, 2) ->
-            %% Ensure that the type is set or ordered_set for simple projection
-            %% funs.
-            case maps:get(type, Options, set) of
-                set ->
-                    ok;
-                ordered_set ->
-                    ok;
-                Type ->
-                    throw({unexpected_option, type, Type})
-            end,
-            fun khepri_tx_adv:should_process_function/4;
-        is_function(ProjectionFun, 4) ->
-            fun (ets, _F, _A, _From) ->
-                    false;
-                (M, F, A, From) ->
-                    khepri_tx_adv:should_process_function(M, F, A, From)
-            end
-    end,
+      if
+          is_function(ProjectionFun, 2) ->
+              %% Ensure that the type is set or ordered_set for simple
+              %% projection funs.
+              case maps:get(type, Options, set) of
+                  set ->
+                      ok;
+                  ordered_set ->
+                      ok;
+                  Type ->
+                      throw({unexpected_option, type, Type})
+              end,
+              fun khepri_tx_adv:should_process_function/4;
+          is_function(ProjectionFun, 4) ->
+              fun (ets, _F, _A, _From) ->
+                      false;
+                  (M, F, A, From) ->
+                      khepri_tx_adv:should_process_function(M, F, A, From)
+              end
+      end,
     DefaultFunOptions = #{ensure_instruction_is_permitted =>
                           fun khepri_tx_adv:ensure_instruction_is_permitted/1,
                           should_process_function => ShouldProcessFunction,
