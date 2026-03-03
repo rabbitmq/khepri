@@ -127,10 +127,14 @@ fun((Table :: ets:tid(),
 %% allowed. {@link extended_projection_fun()}s may use any valid {@link
 %% ets:table_type()}.
 
+-opaque ets_options() :: [atom() | tuple()].
+%% List of ETS options, passed to `ets:new/2'.
+
 -export_type([name/0,
               projection/0,
               projection_fun/0,
-              options/0]).
+              options/0,
+              ets_options/0]).
 
 -ifdef(TEST).
 %% In testing we will cover failure scenarios like an ETS table being deleted
@@ -227,7 +231,7 @@ new(Name, ProjectionFun, Options)
     when
       Key :: atom(),
       Value :: atom() | pos_integer() | boolean(),
-      Acc :: [tuple() | atom()].
+      Acc :: khepri_projection:ets_options().
 %% @hidden
 
 to_ets_options(type, Type, Acc)
