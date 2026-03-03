@@ -67,7 +67,7 @@ fun((Path :: khepri_path:native_path(),
 %% inputs, this function must consistently return the same `Record'.
 
 -type extended_projection_fun() ::
-fun((Table :: ets:tid(),
+fun((Tids :: ets:tid(),
      Path :: khepri_path:native_path(),
      OldPayload :: khepri:node_props(),
      NewPayload :: khepri:node_props()) -> any()).
@@ -308,35 +308,37 @@ delete(#khepri_projection{name = Name}) ->
 trigger(
   #khepri_projection{name = Name, projection_fun = ProjectionFun},
   Path, OldProps, NewProps) ->
-    case ets:whereis(Name) of
-        undefined ->
-            %% A table might have been deleted by an `unregister_projections'
-            %% effect in between when a `trigger_projection' effect is created
-            %% and when it is handled in `khepri_machine:handle_aux/5`. In this
-            %% case we should no-op the trigger effect.
-            ok;
-        Table ->
+    Tid = ets:whereis(Name),
+    TableExists = Tid =/= undefined,
+    case TableExists of
+        true ->
             case ProjectionFun of
                 copy ->
-                    trigger_copy_projection(Name, Table, OldProps, NewProps);
+                    trigger_copy_projection(Name, Tid, OldProps, NewProps);
                 StandaloneFun ->
                     case ?HORUS_STANDALONE_FUN_ARITY(StandaloneFun) of
                         2 ->
                             trigger_simple_projection(
-                              Table, Name, StandaloneFun, Path,
+                              Name, Tid, StandaloneFun, Path,
                               OldProps, NewProps);
                         4 ->
                             trigger_extended_projection(
-                              Table, Name, StandaloneFun, Path,
+                              Name, Tid, StandaloneFun, Path,
                               OldProps, NewProps)
                     end
-            end
+            end;
+        false ->
+            %% A table might have been deleted by an `unregister_projections'
+            %% effect in between when a `trigger_projection' effect is created
+            %% and when it is handled in `khepri_machine:handle_aux/5`. In this
+            %% case we should no-op the trigger effect.
+            ok
     end.
 
 -spec trigger_extended_projection(
-        Table, Name, StandaloneFun, Path, OldProps, NewProps) ->
+        Name, Tid, StandaloneFun, Path, OldProps, NewProps) ->
     Ret when
-      Table :: ets:tid(),
+      Tid :: ets:tid(),
       Name :: khepri_projection:name(),
       StandaloneFun :: horus:horus_fun(),
       Path :: khepri_path:native_path(),
@@ -346,8 +348,8 @@ trigger(
 %% @hidden
 
 trigger_extended_projection(
-  Table, Name, StandaloneFun, Path, OldProps, NewProps) ->
-    Args = [Table, Path, OldProps, NewProps],
+  Name, Tid, StandaloneFun, Path, OldProps, NewProps) ->
+    Args = [Tid, Path, OldProps, NewProps],
     try
         horus:exec(StandaloneFun, Args)
     catch
@@ -371,10 +373,10 @@ trigger_extended_projection(
     ok.
 
 -spec trigger_simple_projection(
-        Table, Name, StandaloneFun, Path, OldProps, NewProps) ->
+        Name, Tid, StandaloneFun, Path, OldProps, NewProps) ->
     Ret when
-      Table :: ets:tid(),
       Name :: khepri_projection:name(),
+      Tid :: ets:tid(),
       StandaloneFun :: horus:horus_fun(),
       Path :: khepri_path:native_path(),
       OldProps :: khepri:node_props(),
@@ -383,7 +385,7 @@ trigger_extended_projection(
 %% @hidden
 
 trigger_simple_projection(
-  Table, Name, StandaloneFun, Path, OldProps, NewProps) ->
+  Name, Tid, StandaloneFun, Path, OldProps, NewProps) ->
     TryExec =
     fun(Args) ->
         try
@@ -417,14 +419,14 @@ trigger_simple_projection(
         {_, #{data := NewPayload}} ->
             case TryExec([Path, NewPayload]) of
                 {ok, Record} ->
-                    try_ets_insert(Name, Table, Record);
+                    try_ets_insert(Name, Tid, Record);
                 error ->
                     ok
             end;
         {#{data := OldPayload}, _} ->
             case TryExec([Path, OldPayload]) of
                 {ok, Record} ->
-                    try_ets_delete_object(Name, Table, Record);
+                    try_ets_delete_object(Name, Tid, Record);
                 error ->
                     ok
             end;
@@ -433,32 +435,32 @@ trigger_simple_projection(
     end,
     ok.
 
--spec trigger_copy_projection(Name, Table, OldProps, NewProps) -> Ret when
+-spec trigger_copy_projection(Name, Tid, OldProps, NewProps) -> Ret when
       Name :: khepri_projection:name(),
-      Table :: ets:tid(),
+      Tid :: ets:tid(),
       OldProps :: khepri:node_props(),
       NewProps :: khepri:node_props(),
       Ret :: ok.
 %% @hidden
 
-trigger_copy_projection(Name, Table, _OldProps, #{data := NewPayload}) ->
-    try_ets_insert(Name, Table, NewPayload),
+trigger_copy_projection(Name, Tid, _OldProps, #{data := NewPayload}) ->
+    try_ets_insert(Name, Tid, NewPayload),
     ok;
-trigger_copy_projection(Name, Table, #{data := OldPayload}, _NewProps) ->
-    try_ets_delete_object(Name, Table, OldPayload),
+trigger_copy_projection(Name, Tid, #{data := OldPayload}, _NewProps) ->
+    try_ets_delete_object(Name, Tid, OldPayload),
     ok;
 trigger_copy_projection(_Name, _Table, _OldProps, _NewProps) ->
     ok.
 
--spec try_ets_insert(Name, Table, Record) -> ok when
+-spec try_ets_insert(Name, Tid, Record) -> ok when
       Name :: khepri_projection:name(),
-      Table :: ets:tid(),
+      Tid :: ets:tid(),
       Record :: any().
 %% @hidden
 
-try_ets_insert(Name, Table, Record) ->
+try_ets_insert(Name, Tid, Record) ->
     try
-        ets:insert(Table, Record)
+        ets:insert(Tid, Record)
     catch
         Class:Reason:Stacktrace ->
             Exception = khepri_utils:format_exception(
@@ -474,15 +476,15 @@ try_ets_insert(Name, Table, Record) ->
     end,
     ok.
 
--spec try_ets_delete_object(Name, Table, Record) -> ok when
+-spec try_ets_delete_object(Name, Tid, Record) -> ok when
       Name :: khepri_projection:name(),
-      Table :: ets:tid(),
+      Tid :: ets:tid(),
       Record :: any().
 %% @hidden
 
-try_ets_delete_object(Name, Table, Record) ->
+try_ets_delete_object(Name, Tid, Record) ->
     try
-        ets:delete_object(Table, Record)
+        ets:delete_object(Tid, Record)
     catch
         Class:Reason:Stacktrace ->
             Exception = khepri_utils:format_exception(
