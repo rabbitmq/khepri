@@ -34,8 +34,9 @@
 
 -include_lib("horus/include/horus.hrl").
 
--include("src/khepri_projection.hrl").
+-include("src/khepri_error.hrl").
 -include("src/khepri_machine.hrl").
+-include("src/khepri_projection.hrl").
 
 -export([new/2, new/3, name/1]).
 
@@ -204,7 +205,10 @@ new(Name, ProjectionFun, Options)
                   ordered_set ->
                       ok;
                   Type ->
-                      throw({unexpected_option, type, Type})
+                      ?khepri_misuse(
+                         unexpected_projection_option,
+                         #{name => type,
+                           value => Type})
               end,
               fun khepri_tx_adv:should_process_function/4;
           is_function(ProjectionFun, 4) ->
@@ -249,7 +253,10 @@ to_ets_options(compressed, true, Acc) ->
 to_ets_options(compressed, false, Acc) ->
     Acc;
 to_ets_options(Key, Value, _Acc) ->
-    throw({unexpected_option, Key, Value}).
+    ?khepri_misuse(
+       unexpected_projection_option,
+       #{name => Key,
+         value => Value}).
 
 -spec name(Projection) -> Name when
       Projection :: projection(),

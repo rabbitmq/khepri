@@ -349,15 +349,21 @@ unknown_options_are_rejected_test() ->
     ProjectFun = fun(Path, Data) -> {Path, Data} end,
     %% `ordered_bag' is not a real ets table type.
     Options1 = #{type => ordered_bag, read_concurrency => true},
-    ?assertThrow(
-      {unexpected_option, type, ordered_bag},
-      khepri_projection:new(ProjectionName, ProjectFun, Options1)),
+    ?assertError(
+       ?khepri_exception(
+          unexpected_projection_option,
+          #{name := type,
+            value := ordered_bag}),
+       khepri_projection:new(ProjectionName, ProjectFun, Options1)),
     %% `bag' is a valid ets table type but is not valid for use with
     %% simple projection funs.
     Options2 = #{type => bag},
-    ?assertThrow(
-      {unexpected_option, type, bag},
-      khepri_projection:new(ProjectionName, ProjectFun, Options2)).
+    ?assertError(
+       ?khepri_exception(
+          unexpected_projection_option,
+          #{name := type,
+            value := bag}),
+       khepri_projection:new(ProjectionName, ProjectFun, Options2)).
 
 registration_triggers_projections_retroactively_test_() ->
     ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
