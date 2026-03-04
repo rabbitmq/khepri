@@ -268,7 +268,7 @@ name(#khepri_projection{name = Name}) ->
 
 -spec init(Projection) -> Ret when
       Projection :: projection(),
-      Ret :: ok | {error, exists}.
+      Ret :: ok.
 %% @hidden
 %% Initializes a projection. The current implementation creates an ETS
 %% table using the projection's `name/1' and {@link options()}.
@@ -276,10 +276,10 @@ name(#khepri_projection{name = Name}) ->
 init(#khepri_projection{name = Name, ets_options = EtsOptions}) ->
     case ets:info(Name) of
         undefined ->
-            _ = ets:new(Name, EtsOptions),
+            _Tid = ets:new(Name, EtsOptions),
             ok;
         _Info ->
-            {error, exists}
+            ok
     end.
 
 -spec delete(Projection) -> Ret when
