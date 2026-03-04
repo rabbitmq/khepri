@@ -57,6 +57,15 @@
 %% </ul>
 %% </td>
 %% </tr>
+%% <tr>
+%% <td style="text-align: right; vertical-align: top;">2</td>
+%% <td>
+%% <ul>
+%% <li>Added support for multi-table projections (see {@link
+%% khepri_projection}).</li>
+%% </ul>
+%% </td>
+%% </tr>
 %% </table>
 
 -module(khepri_machine).
@@ -668,14 +677,26 @@ register_projection(
                      ets_options = EtsOptions} = Projection,
   Options)
   when is_atom(Name) andalso
-       is_list(EtsOptions) andalso
+       ?ARE_PROJECTION_ETS_OPTIONS(EtsOptions) andalso
        (?IS_HORUS_STANDALONE_FUN(ProjectionFun) orelse
         ProjectionFun =:= copy) ->
-    PathPattern = khepri_path:from_string(PathPattern0),
-    khepri_path:ensure_is_valid(PathPattern),
-    Command = #register_projection{pattern = PathPattern,
-                                   projection = Projection},
-    process_command(StoreId, Command, Options).
+    Timeout = get_timeout(Options),
+    T0 = khepri_utils:start_timeout_window(Timeout),
+    Compatible = khepri_projection:check_compatibility_with_store(
+                   StoreId, Projection, Timeout),
+    case Compatible of
+        ok ->
+            NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+            Options1 = Options#{timeout => NewTimeout},
+
+            PathPattern = khepri_path:from_string(PathPattern0),
+            khepri_path:ensure_is_valid(PathPattern),
+            Command = #register_projection{pattern = PathPattern,
+                                           projection = Projection},
+            process_command(StoreId, Command, Options1);
+        {error, _Reason} = Error ->
+            Error
+    end.
 
 -spec unregister_projections(StoreId, Names, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -1957,17 +1978,18 @@ overview(State) ->
       keep_while_conds => KeepWhileConds}.
 
 -spec version() -> MacVer when
-      MacVer :: 2.
+      MacVer :: 3.
 %% @doc Returns the state machine version.
 
 version() ->
-    2.
+    3.
 
 -spec which_module(MacVer) -> Module when
-      MacVer :: 0..2,
+      MacVer :: 0..3,
       Module :: ?MODULE.
 %% @doc Returns the state machine module corresponding to the given version.
 
+which_module(3) -> ?MODULE;
 which_module(2) -> ?MODULE;
 which_module(1) -> ?MODULE;
 which_module(0) -> ?MODULE.
@@ -2041,6 +2063,7 @@ api_behaviour_to_machine_version(dedup_protection)                  -> 1;
 api_behaviour_to_machine_version(delete_reason_in_node_props)       -> 2;
 api_behaviour_to_machine_version(indirect_deletes_in_ret)           -> 2;
 api_behaviour_to_machine_version(uniform_write_ret)                 -> 2;
+api_behaviour_to_machine_version(multi_table_projections)           -> 3;
 api_behaviour_to_machine_version(Behaviour) when is_atom(Behaviour) ->
     undefined.
 
@@ -2830,7 +2853,9 @@ convert_state1(State, 0, 1) ->
 convert_state1(State, 1, 2) ->
     Tree = get_tree(State),
     Tree1 = khepri_tree:convert_tree(Tree, 1, 2),
-    set_tree(State, Tree1).
+    set_tree(State, Tree1);
+convert_state1(State, 2, 3) ->
+    State.
 
 -spec update_projections(OldState, NewState) -> ok when
       OldState :: khepri_machine:state(),
