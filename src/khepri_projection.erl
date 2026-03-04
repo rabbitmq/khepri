@@ -31,6 +31,7 @@
 -module(khepri_projection).
 
 -include_lib("kernel/include/logger.hrl").
+-include_lib("stdlib/include/assert.hrl").
 
 -include_lib("horus/include/horus.hrl").
 
@@ -41,7 +42,7 @@
 -export([new/2, new/3, name/1]).
 
  %% For internal use only
--export([init/1, trigger/4, delete/1]).
+-export([check_compatibility_with_store/3, init/1, trigger/4, delete/1]).
 
 -type name() :: atom().
 %% The name of a projection.
@@ -68,15 +69,16 @@ fun((Path :: khepri_path:native_path(),
 %% inputs, this function must consistently return the same `Record'.
 
 -type extended_projection_fun() ::
-fun((Tids :: ets:tid(),
+fun((Tids :: ets:tid() | #{atom() => ets:tid()},
      Path :: khepri_path:native_path(),
      OldPayload :: khepri:node_props(),
      NewPayload :: khepri:node_props()) -> any()).
 %% An extended projection function.
 %%
 %% In some cases, a tree node in the store might correspond to many objects in
-%% a projection table. Extended projection functions are allowed to call ETS
-%% functions directly in order to build the projection table.
+%% one or more projection tables. Extended projection functions are allowed and
+%% expected to call ETS functions directly in order to build the projection
+%% table.
 %%
 %% `OldPayload' or `NewPayload' are empty maps if there is no tree node. For
 %% example, a newly created tree node will have an empty map for `OldPayload'
@@ -110,12 +112,34 @@ fun((Tids :: ets:tid(),
 %% function should be as simple and fast as possible to avoid slowing down the
 %% server.
 
--type options() :: #{type => ets:table_type(),
+-type overridable_ets_options() :: #{type => ets:table_type(),
+                                     keypos => pos_integer(),
+                                     read_concurrency => boolean(),
+                                     write_concurrency => boolean() | auto,
+                                     compressed => boolean()}.
+%% Overrideable ETS options.
+%%
+%% They can be used for single-table and multi-table projections. For the
+%% latter, each per-table option takes precedence over the global option if
+%% specified twice.
+%%
+%% When a projection is created from a {@link simple_projection_fun()}, the
+%% `type' option may only be `set' or `ordered_set': `bag' types are not
+%% allowed. {@link extended_projection_fun()}s may use any valid {@link
+%% ets:table_type()}.
+
+-type options() :: #{tables => multi_table_options(),
+                     standalone_fun_options => horus:options(),
+
+                     %% Overridable ETS options used for all tables, for both
+                     %% single-table and multi-table projections. These are the
+                     %% same as `{@link overridable_ets_options()}' and must be
+                     %% kept in sync.
+                     type => ets:table_type(),
                      keypos => pos_integer(),
                      read_concurrency => boolean(),
                      write_concurrency => boolean() | auto,
-                     compressed => boolean(),
-                     standalone_fun_options => horus:options()}.
+                     compressed => boolean()}.
 %% Options which control the created ETS table.
 %%
 %% If provided, `standalone_fun_options' are merged with defaults and passed to
@@ -123,10 +147,14 @@ fun((Tids :: ets:tid(),
 %% options available to {@link ets:new/2}. Refer to the {@link ets:new/2}
 %% documentation for a reference on each type and available values.
 %%
-%% When a projection is created from a {@link simple_projection_fun()}, the
-%% `type' option may only be `set' or `ordered_set': `bag' types are not
-%% allowed. {@link extended_projection_fun()}s may use any valid {@link
-%% ets:table_type()}.
+%% See {@link overridable_ets_options()} for more details about overridable ETS
+%% options.
+
+-type multi_table_options() :: #{atom() => overridable_ets_options()}.
+%% Options which control multiple created ETS tables.
+%%
+%% When the projection needs multiple ETS options, this map associates a
+%% specific ETS table to its options.
 
 -opaque ets_options() :: [atom() | tuple()].
 %% List of ETS options, passed to `ets:new/2'.
@@ -134,7 +162,9 @@ fun((Tids :: ets:tid(),
 -export_type([name/0,
               projection/0,
               projection_fun/0,
+              overridable_ets_options/0,
               options/0,
+              multi_table_options/0,
               ets_options/0]).
 
 -ifdef(TEST).
@@ -179,24 +209,43 @@ new(Name, ProjectionFun) ->
 %% @returns a {@link projection()} resource.
 
 new(Name, copy, Options) when is_map(Options) ->
-    EtsOptions = maps:fold(fun to_ets_options/3, ?DEFAULT_ETS_OPTS, Options),
-    #khepri_projection{name = Name,
-                       projection_fun = copy,
-                       ets_options = EtsOptions};
+    case is_single_table_projection(Options) of
+        true ->
+            EtsOptions = prepare_ets_options(Options),
+            #khepri_projection{name = Name,
+                               projection_fun = copy,
+                               ets_options = EtsOptions};
+        false ->
+            ?khepri_misuse(
+               multi_table_projection_incompatible_with_copy_func,
+               #{name => Name,
+                 projection_fun => copy,
+                 options => Options})
+    end;
 new(Name, ProjectionFun, Options)
   when is_map(Options) andalso
        (is_function(ProjectionFun, 2) orelse
         is_function(ProjectionFun, 4)) ->
-    {CustomFunOptions, EtsOptions} =
+    {CustomFunOptions, OtherOptions} =
       case maps:take(standalone_fun_options, Options) of
-          error                                    -> {#{}, Options};
-          {_CustomFunOptions, _EtsOptions} = Value -> Value
+          error                                      -> {#{}, Options};
+          {_CustomFunOptions, _OtherOptions} = Value -> Value
       end,
-    EtsOptions1 = maps:fold(
-                    fun to_ets_options/3, ?DEFAULT_ETS_OPTS, EtsOptions),
     ShouldProcessFunction =
       if
           is_function(ProjectionFun, 2) ->
+              %% Ensure the options map is for a single-table projection.
+              case is_single_table_projection(Options) of
+                  true ->
+                      ok;
+                  false ->
+                      ?khepri_misuse(
+                         multi_table_projection_incompatible_with_simple_func,
+                         #{name => Name,
+                           projection_fun => ProjectionFun,
+                           options => Options})
+              end,
+
               %% Ensure that the type is set or ordered_set for simple
               %% projection funs.
               case maps:get(type, Options, set) of
@@ -225,9 +274,46 @@ new(Name, ProjectionFun, Options)
                           fun(_Params) -> true end},
     FunOptions = maps:merge(DefaultFunOptions, CustomFunOptions),
     StandaloneFun = horus:to_standalone_fun(ProjectionFun, FunOptions),
+
+    EtsOptions = prepare_ets_options(OtherOptions),
     #khepri_projection{name = Name,
                        projection_fun = StandaloneFun,
-                       ets_options = EtsOptions1}.
+                       ets_options = EtsOptions}.
+
+-spec is_single_table_projection(Options) -> IsSingleTableProjection when
+      Options :: khepri_projection:options() | khepri_projection:projection(),
+      IsSingleTableProjection :: boolean().
+%% @doc Returns if the given options map corresponds to a single-table
+%% projection.
+%%
+%% The presence of the `tables' option determines if the projection is a
+%% single-table or a multi-table projection.
+%%
+%% @private
+
+is_single_table_projection(Options) when is_map(Options) ->
+    not maps:is_key(tables, Options);
+is_single_table_projection(#khepri_projection{ets_options = EtsOptions}) ->
+    is_list(EtsOptions).
+
+prepare_ets_options(Options) ->
+    case is_single_table_projection(Options) of
+        true  -> prepare_single_table_ets_options(Options);
+        false -> prepare_multi_table_ets_options(Options)
+    end.
+
+prepare_single_table_ets_options(EtsOptions) ->
+    ?assert(is_single_table_projection(EtsOptions)),
+    maps:fold(fun to_ets_options/3, ?DEFAULT_ETS_OPTS, EtsOptions).
+
+prepare_multi_table_ets_options(Options) ->
+    ?assertNot(is_single_table_projection(Options)),
+    {TablesMap, GlobalEtsOptions} = maps:take(tables, Options),
+    maps:map(
+      fun(_Table, PerTableEtsOptions) ->
+              EtsOptions = maps:merge(GlobalEtsOptions, PerTableEtsOptions),
+              prepare_single_table_ets_options(EtsOptions)
+      end, TablesMap).
 
 -spec to_ets_options(Key, Value, Acc) -> Acc
     when
@@ -266,14 +352,50 @@ to_ets_options(Key, Value, _Acc) ->
 name(#khepri_projection{name = Name}) ->
     Name.
 
+-spec check_compatibility_with_store(StoreId, Projection, Timeout) -> Ret when
+      StoreId :: khepri:store_id(),
+      Projection :: khepri_projection:projection(),
+      Timeout :: timeout(),
+      Ret :: ok | {error, any()}.
+%% @doc Checks if a projection is compatible with the given store.
+%%
+%% @private
+
+check_compatibility_with_store(StoreId, Projection, Timeout) ->
+    case is_single_table_projection(Projection) of
+        true ->
+            ok;
+        false ->
+            %% Ensure the Khepri cluster runs a new enough version to support
+            %% multi-table projections.
+            khepri_machine:wait_for_effective_behaviour(
+              StoreId, multi_table_projections, Timeout)
+    end.
+
 -spec init(Projection) -> Ret when
       Projection :: projection(),
       Ret :: ok.
-%% @hidden
-%% Initializes a projection. The current implementation creates an ETS
-%% table using the projection's `name/1' and {@link options()}.
+%% @doc Initializes a projection.
+%%
+%% If it is a single-table projection, it creates an ETS table using the
+%% projection's `name' and {@link options()}.
+%%
+%% If it is a multi-table projection, it creates many ETS tables with their
+%% specific {@link options()}.
+%%
+%% @private
 
-init(#khepri_projection{name = Name, ets_options = EtsOptions}) ->
+init(#khepri_projection{name = Name, ets_options = EtsOptions})
+  when is_list(EtsOptions) ->
+    create_table(Name, EtsOptions);
+init(#khepri_projection{ets_options = MultiEtsOptions})
+  when is_map(MultiEtsOptions) ->
+    maps:foreach(
+      fun(Table, EtsOptions) ->
+              create_table(Table, EtsOptions)
+      end, MultiEtsOptions).
+
+create_table(Name, EtsOptions) ->
     case ets:info(Name) of
         undefined ->
             _Tid = ets:new(Name, EtsOptions),
@@ -291,9 +413,19 @@ init(#khepri_projection{name = Name, ets_options = EtsOptions}) ->
 %% @returns `ok' if the table is successfully deleted or `{error,
 %% does_not_exist}' if the table does not exist.
 
-delete(#khepri_projection{name = Name}) ->
+delete(#khepri_projection{} = Projection) ->
     try
-        ets:delete(Name),
+        case is_single_table_projection(Projection) of
+            true ->
+                #khepri_projection{name = Name} = Projection,
+                ets:delete(Name);
+            false ->
+                #khepri_projection{ets_options = EtsOptions} = Projection,
+                maps:foreach(
+                  fun(Table, _) ->
+                          ets:delete(Table)
+                  end, EtsOptions)
+        end,
         ok
     catch
         error:badarg:_Stacktrace ->
@@ -311,24 +443,43 @@ delete(#khepri_projection{name = Name}) ->
 %% a projected record. This projected record is then applied to the ETS table.
 
 trigger(
-  #khepri_projection{name = Name, projection_fun = ProjectionFun},
+  #khepri_projection{
+     name = Name,
+     projection_fun = ProjectionFun,
+     ets_options = EtsOptions},
   Path, OldProps, NewProps) ->
-    Tid = ets:whereis(Name),
-    TableExists = Tid =/= undefined,
-    case TableExists of
+    Tids = case is_list(EtsOptions) of
+               true ->
+                   ets:whereis(Name);
+               false ->
+                   maps:fold(
+                     fun
+                         (Table, _EtsOptions, Acc) when is_map(Acc) ->
+                             case ets:whereis(Table) of
+                                 undefined -> undefined;
+                                 Tid       -> Acc#{Table => Tid}
+                             end;
+                         (_Table, _EtsOptions, undefined = Acc) ->
+                             Acc
+                     end, #{}, EtsOptions)
+           end,
+    AllTablesExist = Tids =/= undefined,
+    case AllTablesExist of
         true ->
             case ProjectionFun of
                 copy ->
-                    trigger_copy_projection(Name, Tid, OldProps, NewProps);
+                    ?assert(not is_map(Tids)),
+                    trigger_copy_projection(Name, Tids, OldProps, NewProps);
                 StandaloneFun ->
                     case ?HORUS_STANDALONE_FUN_ARITY(StandaloneFun) of
                         2 ->
+                            ?assert(not is_map(Tids)),
                             trigger_simple_projection(
-                              Name, Tid, StandaloneFun, Path,
+                              Name, Tids, StandaloneFun, Path,
                               OldProps, NewProps);
                         4 ->
                             trigger_extended_projection(
-                              Name, Tid, StandaloneFun, Path,
+                              Name, Tids, StandaloneFun, Path,
                               OldProps, NewProps)
                     end
             end;
@@ -341,9 +492,9 @@ trigger(
     end.
 
 -spec trigger_extended_projection(
-        Name, Tid, StandaloneFun, Path, OldProps, NewProps) ->
+        Name, Tids, StandaloneFun, Path, OldProps, NewProps) ->
     Ret when
-      Tid :: ets:tid(),
+      Tids :: ets:tid() | #{atom() => ets:tid()},
       Name :: khepri_projection:name(),
       StandaloneFun :: horus:horus_fun(),
       Path :: khepri_path:native_path(),
@@ -353,8 +504,8 @@ trigger(
 %% @hidden
 
 trigger_extended_projection(
-  Name, Tid, StandaloneFun, Path, OldProps, NewProps) ->
-    Args = [Tid, Path, OldProps, NewProps],
+  Name, Tids, StandaloneFun, Path, OldProps, NewProps) ->
+    Args = [Tids, Path, OldProps, NewProps],
     try
         horus:exec(StandaloneFun, Args)
     catch
