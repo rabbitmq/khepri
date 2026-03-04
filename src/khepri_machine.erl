@@ -966,11 +966,13 @@ process_sync_command(
             %% can be ignored.
             Dest = case ra_leaderboard:lookup_leader(StoreId) of
                        LeaderId when LeaderId =/= undefined ->
+                           sending_command_remotely(StoreId),
                            LeaderId;
                        undefined ->
                            ThisNode = node(),
                            RaServer = khepri_cluster:node_to_member(
                                         StoreId, ThisNode),
+                           sending_async_command_locally(StoreId),
                            RaServer
                    end,
             _ = ra:pipeline_command(Dest, DedupAck),
