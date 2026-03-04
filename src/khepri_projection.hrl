@@ -17,4 +17,8 @@
          %% node's payload as the record in the ETS table.
          projection_fun :: copy | horus:horus_fun(),
          %% Options passed to `ets:new/2'.
-         ets_options :: khepri_projection:ets_options()}).
+         ets_options :: khepri_projection:ets_options() |
+                        #{atom() => khepri_projection:ets_options()}}).
+
+-define(ARE_PROJECTION_ETS_OPTIONS(EtsOptions),
+        (is_list(EtsOptions) orelse is_map(EtsOptions))).
