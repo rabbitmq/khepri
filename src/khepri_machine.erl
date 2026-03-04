@@ -109,6 +109,7 @@
          handle_tx_exception/1,
          process_query/3,
          process_command/3,
+         wait_for_latest_machine_version/2,
          does_api_comply_with/2]).
 
 %% Internal functions to access the opaque #khepri_machine{} state.
@@ -2002,6 +2003,34 @@ clear_cached_effective_machine_version(StoreId) ->
     Key = ?PT_EFFECTIVE_MACVER(StoreId),
     _ = persistent_term:erase(Key),
     ok.
+
+-spec wait_for_latest_machine_version(StoreId, Timeout) -> Ret when
+      StoreId :: khepri:store_id(),
+      Timeout :: timeout(),
+      Ret :: ok | {error, Reason},
+      Reason :: timeout |
+                ?khepri_error(effective_machine_version_not_defined, map()).
+%% @doc Waits for the specified store to run the latest machine version.
+
+wait_for_latest_machine_version(StoreId, Timeout) ->
+    T0 = khepri_utils:start_timeout_window(Timeout),
+    MacVer = version(),
+    case effective_version(StoreId) of
+        {ok, EffectiveMacVer} ->
+            ?assertNot(EffectiveMacVer > MacVer),
+            case EffectiveMacVer =:= MacVer of
+                true ->
+                    ok;
+                false when ?HAS_TIME_LEFT(Timeout) ->
+                    timer:sleep(50),
+                    NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+                    wait_for_latest_machine_version(StoreId, NewTimeout);
+                false ->
+                    {error, timeout}
+            end;
+        {error, _} = Error ->
+            Error
+    end.
 
 -spec does_api_comply_with(Behaviour, MacVer | StoreId) -> DoesUse when
       Behaviour :: khepri_machine:api_behaviour(),

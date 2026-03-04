@@ -25,6 +25,7 @@ setup(Testcase, CustomConfig) ->
     #{ra_system := RaSystem} = Props = helpers:start_ra_system(Testcase),
     RaServerConfig = maps:put(cluster_name, Testcase, CustomConfig),
     {ok, StoreId} = khepri:start(RaSystem, RaServerConfig),
+    ok = khepri_machine:wait_for_latest_machine_version(StoreId, 10000),
     Props#{store_id => StoreId}.
 
 cleanup(#{store_id := StoreId} = Props) ->
