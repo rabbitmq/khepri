@@ -300,6 +300,153 @@ trigger_extended_projection_on_path_test_() ->
           ?_assertEqual([], ets:tab2list(?MODULE))}]
       }]}.
 
+multi_table_fun(Tables, Path, _OldProps, #{data := NewPayload}) ->
+    maps:foreach(
+      fun(_Table, Tid) ->
+              ets:insert(Tid, {Path, NewPayload})
+      end, Tables);
+multi_table_fun(Tables, Path, #{data := _OldPayload}, _NewProps) ->
+    maps:foreach(
+      fun(_Table, Tid) ->
+              ets:delete(Tid, Path)
+      end, Tables);
+multi_table_fun(_Tables, _Path, OldProps, NewProps) ->
+    throw({OldProps, NewProps}).
+
+multi_table_projection_works_test_() ->
+    ProjectFun = fun multi_table_fun/4,
+    PathPattern = [stock, wood, <<"oak">>],
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Register the projection",
+          ?_test(
+              begin
+                  Options = #{tables =>
+                              #{mtp_all => #{type => bag},
+                                mtp_latest => #{type => set}}},
+                  Projection = khepri_projection:new(
+                                 ?MODULE, ProjectFun, Options),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)},
+
+         {"Trigger a create in the projection",
+          ?_assertEqual(
+            ok,
+            khepri:put(?FUNCTION_NAME, PathPattern, value1))},
+
+         {"The projection contains the created records",
+          ?_test(
+              begin
+                  ?assertEqual(
+                     value1,
+                     ets:lookup_element(mtp_latest, PathPattern, 2)),
+                  ?assertEqual(
+                     [value1],
+                     ets:lookup_element(mtp_all, PathPattern, 2))
+              end)},
+
+         {"Trigger an update in the projection",
+          ?_assertEqual(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, PathPattern, value2))},
+
+         {"The projection contains the updated records",
+          ?_test(
+              begin
+                  ?assertEqual(
+                     value2,
+                     ets:lookup_element(mtp_latest, PathPattern, 2)),
+                  ?assertEqual(
+                     [value1, value2],
+                     ets:lookup_element(mtp_all, PathPattern, 2))
+              end)},
+
+         {"Trigger a delete in the projection",
+          ?_assertEqual(
+            ok,
+            khepri:delete(?FUNCTION_NAME, PathPattern))},
+
+         {"The projection is empty",
+          ?_test(
+             begin
+                 ?assertEqual([], ets:tab2list(mtp_all)),
+                 ?assertEqual([], ets:tab2list(mtp_latest))
+             end)}]
+      }]}.
+
+multi_table_projection_with_global_ets_options_works_test_() ->
+    ProjectFun = fun multi_table_fun/4,
+    PathPattern = [stock, wood, <<"oak">>],
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Register the projection",
+          ?_test(
+              begin
+                  Options = #{type => ordered_set,
+                              tables =>
+                              #{mtp_ordered => #{},
+                                mtp_bag => #{type => bag}}},
+                  Projection = khepri_projection:new(
+                                 ?MODULE, ProjectFun, Options),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)},
+
+         {"The ETS tables have the expected type",
+          ?_test(
+              begin
+                  ?assertEqual(
+                     ordered_set,
+                     ets:info(mtp_ordered, type)),
+                  ?assertEqual(
+                     bag,
+                     ets:info(mtp_bag, type))
+              end)}]
+      }]}.
+
+multi_table_projection_with_invalid_func_is_denied_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Create a multi-table projection with copy function",
+          ?_test(
+              begin
+                  Options = #{tables =>
+                              #{mtp_all => #{type => bag},
+                                mtp_latest => #{type => set}}},
+                  ?assertError(
+                     ?khepri_exception(
+                        multi_table_projection_incompatible_with_copy_func,
+                        _),
+                     khepri_projection:new(?MODULE, copy, Options))
+              end)},
+
+         {"Create a multi-table projection with simple function",
+          ?_test(
+              begin
+                  Options = #{tables =>
+                              #{mtp_all => #{type => bag},
+                                mtp_latest => #{type => set}}},
+                  ?assertError(
+                     ?khepri_exception(
+                        multi_table_projection_incompatible_with_simple_func,
+                        _),
+                     khepri_projection:new(
+                       ?MODULE, fun(_, _) -> ok end, Options))
+              end)}]
+      }]}.
+
 duplicate_registrations_give_an_error_test_() ->
     ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
     PathPattern = [stock, wood, <<"oak">>],
