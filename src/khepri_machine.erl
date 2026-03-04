@@ -109,7 +109,8 @@
          handle_tx_exception/1,
          process_query/3,
          process_command/3,
-         does_api_comply_with/2]).
+         does_api_comply_with/2,
+         wait_for_effective_machine_version/3]).
 
 %% Internal functions to access the opaque #khepri_machine{} state.
 -export([is_state/1,
@@ -2070,6 +2071,47 @@ does_api_comply_with(Behaviour, StoreId)
     case effective_version(StoreId) of
         {ok, MacVer} -> does_api_comply_with(Behaviour, MacVer);
         _            -> false
+    end.
+
+-spec wait_for_effective_machine_version(StoreId, MacVer, Timeout) -> Ret when
+      StoreId :: khepri:store_id(),
+      MacVer :: ra_machine:version() | latest,
+      Timeout :: timeout(),
+      Ret :: ok | {error, Reason},
+      Reason :: timeout |
+                ?khepri_error(effective_machine_version_not_defined, map()).
+%% @doc Waits for the store to run the given machine version.
+%%
+%% @private
+
+wait_for_effective_machine_version(StoreId, MacVer, Timeout)
+  when MacVer =:= latest orelse
+       (is_integer(MacVer) andalso MacVer >= 0) ->
+    T0 = khepri_utils:start_timeout_window(Timeout),
+    ExpectedMacVer = case MacVer of
+                         latest -> version();
+                         _      -> MacVer
+                     end,
+    case effective_version(StoreId) of
+        {ok, EffectiveMacVer} ->
+            case EffectiveMacVer >= ExpectedMacVer of
+                true ->
+                    ok;
+                false when ?HAS_TIME_LEFT(Timeout) ->
+                    timer:sleep(50),
+                    NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+                    wait_for_effective_machine_version(
+                      StoreId, ExpectedMacVer, NewTimeout);
+                false ->
+                    {error, timeout}
+            end;
+        {error, _} when ?HAS_TIME_LEFT(Timeout) ->
+            timer:sleep(50),
+            NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+            wait_for_effective_machine_version(
+              StoreId, ExpectedMacVer, NewTimeout);
+        {error, _} = Error ->
+            Error
     end.
 
 %% -------------------------------------------------------------------
