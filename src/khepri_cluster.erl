@@ -110,6 +110,8 @@
          members/0, members/1, members/2,
          nodes/0, nodes/1, nodes/2,
          wait_for_leader/0, wait_for_leader/1, wait_for_leader/2,
+         wait_for_effective_machine_version/2,
+         wait_for_effective_machine_version/3,
          get_default_ra_system_or_data_dir/0,
          get_default_store_id/0,
          get_store_ids/0,
@@ -1383,6 +1385,60 @@ do_wait_for_leader(RaServer, WaitForProcToStart, Timeout) ->
         {error, _} = Error ->
             Error
     end.
+
+-spec wait_for_effective_machine_version(StoreIdOrRaServer, MacVer) -> Ret when
+      StoreIdOrRaServer :: StoreId | RaServer,
+      StoreId :: khepri:store_id(),
+      RaServer :: ra:server_id(),
+      MacVer :: ra_machine:version() | latest,
+      Ret :: ok | {error, Reason},
+      Reason :: timeout |
+                ?khepri_error(effective_machine_version_not_defined, map()).
+%% @doc Waits for the store to run the given machine version.
+%%
+%% Calling this function is the same as calling
+%% `wait_for_effective_machine_version(StoreId, MacVer, DefaultTimeout)' where
+%% `DefaultTimeout' is returned by {@link khepri_app:get_default_timeout/0}.
+%%
+%% @see wait_for_effective_machine_version/3.
+
+wait_for_effective_machine_version(StoreIdOrRaServer, MacVer) ->
+    Timeout = khepri_app:get_default_timeout(),
+    wait_for_effective_machine_version(StoreIdOrRaServer, MacVer, Timeout).
+
+-spec wait_for_effective_machine_version(StoreIdOrRaServer, MacVer, Timeout) ->
+    Ret when
+      StoreIdOrRaServer :: StoreId | RaServer,
+      StoreId :: khepri:store_id(),
+      RaServer :: ra:server_id(),
+      MacVer :: ra_machine:version() | latest,
+      Timeout :: timeout(),
+      Ret :: ok | {error, Reason},
+      Reason :: timeout |
+                ?khepri_error(effective_machine_version_not_defined, map()).
+%% @doc Waits for the store to run the given machine version.
+%%
+%% `MacVer' can be an integer if the caller needs to wait for a specific state
+%% machine version. It can also be the atom `latest'. In this case, the version
+%% of the local state machine module is taken as this "latest" version. It is
+%% possible that another node can support a greater version. Therefore, this
+%% functions can wait for the latest version from the point of view of the
+%% local version of Khepri, not the overnall latest version.
+%%
+%% @param StoreId the ID of the store.
+%% @param MacVer the wanted machine version or `latest'.
+%% @param Timeout the timeout.
+%%
+%% @returns `ok' when the state machine of the given store runs at least the
+%% given version or an `{error, Reason}' tuple.
+%%
+%% @private
+
+wait_for_effective_machine_version({StoreId, _Node}, MacVer, Timeout) ->
+    wait_for_effective_machine_version(StoreId, MacVer, Timeout);
+wait_for_effective_machine_version(StoreId, MacVer, Timeout)
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
+    khepri_machine:wait_for_effective_machine_version(StoreId, MacVer, Timeout).
 
 -spec node_to_member(StoreId, Node) -> Member when
       StoreId :: khepri:store_id(),
