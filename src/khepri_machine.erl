@@ -964,15 +964,7 @@ process_sync_command(
 
             %% We acknowledge that we received the reply and all duplicates
             %% can be ignored.
-            Dest = case ra_leaderboard:lookup_leader(StoreId) of
-                       LeaderId when LeaderId =/= undefined ->
-                           LeaderId;
-                       undefined ->
-                           ThisNode = node(),
-                           RaServer = khepri_cluster:node_to_member(
-                                        StoreId, ThisNode),
-                           RaServer
-                   end,
+            Dest = leader_id_or_local(StoreId),
             sending_async_command(Dest),
             _ = ra:pipeline_command(Dest, DedupAck),
             Ret;
@@ -990,12 +982,7 @@ do_process_sync_command(StoreId, Command, Options) ->
     ReplyFrom = maps:get(reply_from, Options, {member, RaServer}),
     CommandOptions = #{timeout => Timeout, reply_from => ReplyFrom},
     T0 = khepri_utils:start_timeout_window(Timeout),
-    Dest = case ra_leaderboard:lookup_leader(StoreId) of
-               LeaderId when LeaderId =/= undefined ->
-                   LeaderId;
-               undefined ->
-                   RaServer
-           end,
+    Dest = leader_id_or(StoreId, RaServer),
     sending_sync_command(Dest),
     case ra:process_command(Dest, Command, CommandOptions) of
         {ok, Ret, _LeaderId} ->
@@ -1037,14 +1024,7 @@ process_async_command(
     ra:pipeline_command(RaServer, Command, Correlation, Priority);
 process_async_command(
   StoreId, Command, Correlation, Priority) ->
-    Dest = case ra_leaderboard:lookup_leader(StoreId) of
-               LeaderId when LeaderId =/= undefined ->
-                   LeaderId;
-               undefined ->
-                   ThisNode = node(),
-                   RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
-                   RaServer
-           end,
+    Dest = leader_id_or_local(StoreId),
     sending_async_command(Dest),
     ra:pipeline_command(Dest, Command, Correlation, Priority).
 
@@ -1332,6 +1312,17 @@ ask_fence_preliminary_query(StoreId) ->
 can_skip_fence_preliminary_query(StoreId) ->
     Key = {khepri, can_skip_fence_preliminary_query, StoreId},
     erlang:get(Key) =:= true.
+
+leader_id_or_local(StoreId) ->
+    ThisNode = node(),
+    RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
+    leader_id_or(StoreId, RaServer).
+
+leader_id_or(StoreId, {_, _} = Default) ->
+    case ra_leaderboard:lookup_leader(StoreId) of
+        LeaderId when LeaderId =/= undefined -> LeaderId;
+        undefined                            -> Default
+    end.
 
 %% -------------------------------------------------------------------
 %% ra_machine callbacks.
