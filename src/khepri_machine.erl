@@ -63,6 +63,8 @@
 %% <ul>
 %% <li>Added support for multi-table projections (see {@link
 %% khepri_projection}).</li>
+%% <li>Changed how `khepri_machine' decides when to request a snapshot; it is
+%% based on the commands added size and the size of the latest snapshot.</li>
 %% </ul>
 %% </td>
 %% </tr>
@@ -110,6 +112,7 @@
 %% For internal use only.
 -export([clear_cache/1,
          ack_triggers_execution/2,
+         request_snapshot/2,
          split_query_options/2,
          split_command_options/2,
          split_put_options/1,
@@ -161,7 +164,8 @@
                    #unregister_projections{} |
                    #dedup{} |
                    #dedup_ack{} |
-                   #drop_dedups{}.
+                   #drop_dedups{} |
+                   #request_snapshot{}.
 %% Commands specific to this Ra machine.
 
 -type old_command() :: #unregister_projection{}.
@@ -215,7 +219,8 @@
                             event_filter := khepri_evf:event_filter()}}.
 %% Internal triggers map in the machine state.
 
--type metrics() :: #{applied_command_count => non_neg_integer()}.
+-type metrics() :: #{applied_command_count => non_neg_integer(),
+                     commands_added_size => non_neg_integer()}.
 %% Internal state machine metrics.
 
 -type dedups_map() :: #{reference() => {any(), integer()}}.
@@ -741,6 +746,19 @@ ack_triggers_execution(StoreId, TriggeredStoredProcs)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
     Command = #ack_triggered{triggered = TriggeredStoredProcs},
     process_command(StoreId, Command, #{async => true}).
+
+-spec request_snapshot(StoreId, Options) ->
+    Ret when
+      StoreId :: khepri:store_id(),
+      Options :: khepri:command_options(),
+      Ret :: ok | khepri:error().
+%% @doc Requests that a snapshot of the machine state is taken.
+%%
+%% @private
+
+request_snapshot(StoreId, Options) when ?IS_KHEPRI_STORE_ID(StoreId) ->
+    Command = #request_snapshot{},
+    process_command(StoreId, Command, Options).
 
 -spec get_keep_while_conds_state(StoreId, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -1358,8 +1376,9 @@ init(Params) ->
     %% state format.
     State = khepri_machine_v0:init(Params),
 
+    InitialMacVer = 0,
     #config{store_id = StoreId} = get_config(State),
-    cache_effective_machine_version(StoreId, 0),
+    cache_effective_machine_version(StoreId, InitialMacVer),
 
     %% Create initial "schema" if provided.
     Commands = maps:get(commands, Params, []),
@@ -1367,7 +1386,8 @@ init(Params) ->
                fun(Command, State1) ->
                        Meta = #{index => 0,
                                 term => 0,
-                                system_time => 0},
+                                system_time => 0,
+                                machine_version => InitialMacVer},
                        {S, _, _} = apply(Meta, Command, State1),
                        S
                end, State, Commands),
@@ -1457,8 +1477,9 @@ handle_aux(leader, cast, tick, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
     SideEffects0 = [],
     SideEffects1 = handle_expired_dedups(IntState, SideEffects0),
+    SideEffects2 = maybe_request_snapshot(IntState, SideEffects1),
 
-    {no_reply, AuxState1, IntState, SideEffects1};
+    {no_reply, AuxState1, IntState, SideEffects2};
 handle_aux(_RaState, _Type, _Command, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
     {no_reply, AuxState1, IntState}.
@@ -1546,6 +1567,26 @@ handle_expired_dedups(IntState, SideEffects) ->
                 _ ->
                     DropDedups = #drop_dedups{refs = RefsToDrop},
                     [{append, DropDedups} | SideEffects]
+            end;
+        _ ->
+            SideEffects
+    end.
+
+maybe_request_snapshot(IntState, SideEffects) ->
+    case ra_aux:effective_machine_version(IntState) of
+        EffectiveMacVer when EffectiveMacVer >= 3 ->
+            SnapshotSize = ra_aux:latest_snapshot_size(IntState),
+            State = ra_aux:machine_state(IntState),
+            Metrics = get_metrics(State),
+            case Metrics of
+                #{commands_added_size := CommandsAddedSize}
+                  when is_integer(SnapshotSize) andalso
+                       SnapshotSize > 0 andalso
+                       CommandsAddedSize >= SnapshotSize ->
+                    RequestSnapshot = #request_snapshot{},
+                    [{append, RequestSnapshot} | SideEffects];
+                _ ->
+                    SideEffects
             end;
         _ ->
             SideEffects
@@ -1765,6 +1806,21 @@ apply(
     Ret = {State1, ok},
     post_apply(Ret, Meta, Command);
 apply(
+  #{machine_version := MacVer,
+    index := RaftIndex} = Meta,
+  #request_snapshot{} = Command,
+  State) when MacVer >= 3 ->
+    Metrics = get_metrics(State),
+    ?LOG_DEBUG(
+       "Move release cursor to request a snapshot~nMetric: ~p",
+       [Metrics],
+       #{domain => [khepri, ra_machine]}),
+    State1 = reset_metrics(State),
+    ReleaseCursor = {release_cursor, RaftIndex, State1},
+    SideEffects = [ReleaseCursor],
+    Ret = {State1, ok, SideEffects},
+    post_apply(Ret, Meta, Command);
+apply(
   Meta,
   {machine_version, OldMacVer, NewMacVer} = Command,
   OldState) ->
@@ -1808,14 +1864,15 @@ apply(
 
 post_apply({State, Result}, Meta, Command) ->
     post_apply({State, Result, []}, Meta, Command);
-post_apply({_State, _Result, _SideEffects} = Ret, Meta, _Command) ->
-    Ret1 = bump_applied_command_count(Ret, Meta),
+post_apply({_State, _Result, _SideEffects} = Ret, Meta, Command) ->
+    Ret1 = track_applied_command_resources(Command, Ret, Meta),
     Ret2 = drop_expired_dedups(Ret1, Meta),
     Ret3 = trigger_delayed_aux_queries_eval(Ret2, Meta),
     Ret3.
 
--spec bump_applied_command_count(ApplyRet, Meta) ->
+-spec track_applied_command_resources(Command, ApplyRet, Meta) ->
     {State, Result, SideEffects} when
+      Command :: command() | old_command() | ra_machine:builtin_command(),
       ApplyRet :: {State, Result, SideEffects},
       State :: state(),
       Result :: any(),
@@ -1823,34 +1880,45 @@ post_apply({_State, _Result, _SideEffects} = Ret, Meta, _Command) ->
       SideEffects :: ra_machine:effects().
 %% @private
 
-bump_applied_command_count(
+track_applied_command_resources(
+  Command,
   {State, Result, SideEffects},
-  #{index := RaftIndex}) ->
+  #{machine_version := MacVer,
+    index := RaftIndex}) ->
     #config{snapshot_interval = SnapshotInterval} = get_config(State),
     Metrics = get_metrics(State),
     AppliedCmdCount0 = maps:get(applied_command_count, Metrics, 0),
     AppliedCmdCount = AppliedCmdCount0 + 1,
-    case AppliedCmdCount < SnapshotInterval of
+    CommandsAddedSize0 = maps:get(commands_added_size, Metrics, 0),
+    CommandsAddedSize = CommandsAddedSize0 + erlang:external_size(Command),
+    Metrics1 = Metrics#{applied_command_count => AppliedCmdCount,
+                        commands_added_size => CommandsAddedSize},
+    State1 = set_metrics(State, Metrics1),
+    case does_api_comply_with(commands_added_size_metric, MacVer) of
         true ->
-            Metrics1 = Metrics#{applied_command_count => AppliedCmdCount},
-            State1 = set_metrics(State, Metrics1),
             {State1, Result, SideEffects};
         false ->
-            ?LOG_DEBUG(
-               "Move release cursor after ~b commands applied "
-               "(>= ~b commands)",
-               [AppliedCmdCount, SnapshotInterval],
-               #{domain => [khepri, ra_machine]}),
-            State1 = reset_metrics(State),
-            ReleaseCursor = {release_cursor, RaftIndex, State1},
-            SideEffects1 = [ReleaseCursor | SideEffects],
-            {State1, Result, SideEffects1}
+            case AppliedCmdCount < SnapshotInterval of
+                true ->
+                    {State1, Result, SideEffects};
+                false ->
+                    ?LOG_DEBUG(
+                       "Move release cursor after ~b commands applied "
+                       "(>= ~b commands)",
+                       [AppliedCmdCount, SnapshotInterval],
+                       #{domain => [khepri, ra_machine]}),
+                    State2 = reset_metrics(State1),
+                    ReleaseCursor = {release_cursor, RaftIndex, State1},
+                    SideEffects1 = [ReleaseCursor | SideEffects],
+                    {State2, Result, SideEffects1}
+            end
     end.
 
 reset_metrics(State) ->
     Metrics = get_metrics(State),
     Metrics1 = maps:remove(applied_command_count, Metrics),
-    set_metrics(State, Metrics1).
+    Metrics2 = maps:remove(commands_added_size, Metrics1),
+    set_metrics(State, Metrics2).
 
 -spec drop_expired_dedups(ApplyRet, Meta) ->
     {State, Result, SideEffects} when
@@ -2079,6 +2147,7 @@ api_behaviour_to_machine_version(delete_reason_in_node_props)       -> 2;
 api_behaviour_to_machine_version(indirect_deletes_in_ret)           -> 2;
 api_behaviour_to_machine_version(uniform_write_ret)                 -> 2;
 api_behaviour_to_machine_version(multi_table_projections)           -> 3;
+api_behaviour_to_machine_version(commands_added_size_metric)        -> 3;
 api_behaviour_to_machine_version(Behaviour) when is_atom(Behaviour) ->
     undefined.
 

@@ -25,8 +25,9 @@ delete_non_existing_node_test() ->
     ?assertEqual(
       khepri_machine:get_root(S0),
       khepri_machine:get_root(S1)),
-    ?assertEqual(
-       #{applied_command_count => 1},
+    ?assertMatch(
+       #{applied_command_count := 1,
+         commands_added_size := _},
        khepri_machine:get_metrics(S1)),
     ?assertEqual({ok, #{}}, Ret),
     ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
@@ -39,8 +40,9 @@ delete_non_existing_node_under_non_existing_parent_test() ->
     ?assertEqual(
       khepri_machine:get_root(S0),
       khepri_machine:get_root(S1)),
-    ?assertEqual(
-       #{applied_command_count => 1},
+    ?assertMatch(
+       #{applied_command_count := 1,
+         commands_added_size := _},
        khepri_machine:get_metrics(S1)),
     ?assertEqual({ok, #{}}, Ret),
     ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE).
@@ -326,7 +328,6 @@ delete_command_bumps_applied_command_count_test() ->
     S0 = khepri_machine:init(#{store_id => ?FUNCTION_NAME,
                                member => khepri_cluster:this_member(
                                            ?FUNCTION_NAME),
-                               snapshot_interval => 3,
                                commands => Commands}),
 
     ?assertEqual(#{}, khepri_machine:get_metrics(S0)),
@@ -334,23 +335,17 @@ delete_command_bumps_applied_command_count_test() ->
     Command1 = #delete{path = [bar]},
     {S1, _, SE1} = khepri_machine:apply(?META, Command1, S0),
 
-    ?assertEqual(
-       #{applied_command_count => 1},
+    ?assertMatch(
+       #{applied_command_count := 1,
+         commands_added_size := _},
        khepri_machine:get_metrics(S1)),
     ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE1),
 
     Command2 = #delete{path = [baz]},
     {S2, _, SE2} = khepri_machine:apply(?META, Command2, S1),
 
-    ?assertEqual(
-       #{applied_command_count => 2},
+    ?assertMatch(
+       #{applied_command_count := 2,
+         commands_added_size := _},
        khepri_machine:get_metrics(S2)),
-    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE2),
-
-    Command3 = #delete{path = [qux]},
-    Meta = ?META,
-    {S3, _, SE3} = khepri_machine:apply(Meta, Command3, S2),
-
-    ?assertEqual(#{}, khepri_machine:get_metrics(S3)),
-    ?assertEqual([{aux, trigger_delayed_aux_queries_eval},
-                  {release_cursor, maps:get(index, Meta), S3}], SE3).
+    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE2).

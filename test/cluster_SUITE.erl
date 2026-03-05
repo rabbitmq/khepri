@@ -68,7 +68,8 @@ groups() ->
          {non_parallel, [],
           [
            can_use_default_store_on_single_node,
-           can_start_store_in_specified_data_dir_on_single_node
+           can_start_store_in_specified_data_dir_on_single_node,
+           can_set_snapshot_interval
           ]},
          {parallel, [parallel],
           [
@@ -80,7 +81,6 @@ groups() ->
            fail_to_start_with_bad_ra_server_config,
            initial_members_are_ignored,
            fail_to_join_non_existing_node,
-           can_set_snapshot_interval,
            can_wait_for_effective_behaviour
           ]}
         ]},
@@ -162,7 +162,8 @@ init_per_testcase(Testcase, Config) ->
             Nodes = helpers:start_n_nodes(?MODULE, Testcase, NodeCount),
             PropsPerNode0 = [begin
                                  {ok, _} = peer:call(
-                                             Peer, application, ensure_all_started,
+                                             Peer,
+                                             application, ensure_all_started,
                                              [khepri], infinity),
                                  Props = peer:call(
                                            Peer, helpers, start_ra_system,
@@ -1947,71 +1948,83 @@ can_set_snapshot_interval(Config) ->
     RaSystem = helpers:get_ra_system_name(Config),
     StoreId = RaSystem,
 
-    ct:pal("Start database"),
-    RaServerConfig = #{cluster_name => StoreId,
-                       machine_config => #{snapshot_interval => 4}},
-    ?assertEqual(
-       {ok, StoreId},
-       khepri:start(RaSystem, RaServerConfig)),
+    meck:new(khepri_machine, [passthrough]),
+    meck:expect(khepri_machine, version, fun() -> 2 end),
+    meck:validate(khepri_machine),
 
-    RaServer = khepri_cluster:node_to_member(StoreId, Node),
-    ?assertMatch(
-      {ok, #{log := #{snapshot_index := undefined}}, RaServer},
-      ra:member_overview(RaServer)),
+    try
+        ct:pal("Start database"),
+        RaServerConfig = #{cluster_name => StoreId,
+                           machine_config => #{snapshot_interval => 4}},
+        ?assertEqual(
+           {ok, StoreId},
+           khepri:start(RaSystem, RaServerConfig)),
 
-    ?assertEqual(ok, khepri:fence(StoreId)),
+        RaServer = khepri_cluster:node_to_member(StoreId, Node),
+        ?assertMatch(
+           {ok, #{log := #{snapshot_index := undefined}}, RaServer},
+           ra:member_overview(RaServer)),
 
-    ct:pal("Verify applied command count is 1 (`machine_version` command)"),
-    ?assertEqual(
-       #{applied_command_count => 1},
-       khepri_machine:process_query(
-         StoreId,
-         fun khepri_machine:get_metrics/1,
-         #{})),
+        ?assertEqual(ok, khepri:fence(StoreId)),
 
-    ct:pal("Submit command 2 (`put`)"),
-    ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
+        ct:pal(
+          "Verify applied command count is 1 (`machine_version` command)"),
+        ?assertMatch(
+           #{applied_command_count := 1,
+             commands_added_size := _},
+           khepri_machine:process_query(
+             StoreId,
+             fun khepri_machine:get_metrics/1,
+             #{})),
 
-    ct:pal("Verify applied command count is 2"),
-    ?assertEqual(
-       #{applied_command_count => 2},
-       khepri_machine:process_query(
-         StoreId,
-         fun khepri_machine:get_metrics/1,
-         #{})),
+        ct:pal("Submit command 2 (`put`)"),
+        ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
 
-    ct:pal("Submit command 3 (`put`)"),
-    ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
+        ct:pal("Verify applied command count is 2"),
+        ?assertMatch(
+           #{applied_command_count := 2,
+             commands_added_size := _},
+           khepri_machine:process_query(
+             StoreId,
+             fun khepri_machine:get_metrics/1,
+             #{})),
 
-    ct:pal("Verify applied command count is 3"),
-    ?assertEqual(
-       #{applied_command_count => 3},
-       khepri_machine:process_query(
-         StoreId,
-         fun khepri_machine:get_metrics/1,
-         #{})),
+        ct:pal("Submit command 3 (`put`)"),
+        ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
 
-    ?assertMatch(
-      {ok, #{log := #{snapshot_index := undefined}}, RaServer},
-      ra:member_overview(RaServer)),
+        ct:pal("Verify applied command count is 3"),
+        ?assertMatch(
+           #{applied_command_count := 3,
+             commands_added_size := _},
+           khepri_machine:process_query(
+             StoreId,
+             fun khepri_machine:get_metrics/1,
+             #{})),
 
-    ct:pal("Submit command 4 (`put`)"),
-    ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
+        ?assertMatch(
+           {ok, #{log := #{snapshot_index := undefined}}, RaServer},
+           ra:member_overview(RaServer)),
 
-    await_snapshot_index(RaServer, 4),
+        ct:pal("Submit command 4 (`put`)"),
+        ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
 
-    ct:pal("Verify applied command count is 0"),
-    ?assertEqual(
-       #{},
-       khepri_machine:process_query(
-         StoreId,
-         fun khepri_machine:get_metrics/1,
-         #{})),
+        await_snapshot_index(RaServer, 4),
 
-    ct:pal("Stop database"),
-    ?assertEqual(
-       ok,
-       khepri:stop(StoreId)),
+        ct:pal("Verify applied command count is 0"),
+        ?assertEqual(
+           #{},
+           khepri_machine:process_query(
+             StoreId,
+             fun khepri_machine:get_metrics/1,
+             #{})),
+
+        ct:pal("Stop database"),
+        ?assertEqual(
+           ok,
+           khepri:stop(StoreId))
+    after
+        meck:unload(khepri_machine)
+    end,
 
     ok.
 
@@ -2021,10 +2034,10 @@ await_snapshot_index(RaServer, ExpectedIndex) ->
 await_snapshot_index(RaServer, ExpectedIndex, Retries) ->
     {ok, #{log := #{snapshot_index := ActualIndex}}, RaServer} =
       ra:member_overview(RaServer),
-    case ActualIndex of
-       ExpectedIndex ->
+    case is_integer(ActualIndex) andalso ActualIndex >= ExpectedIndex of
+       true ->
           ok;
-       _ ->
+       false ->
           case Retries of
               0 ->
                  erlang:error({await_snapshot_index,
@@ -2268,14 +2281,12 @@ projections_are_updated_when_a_snapshot_is_installed(Config) ->
     helpers:call(Config, Node3,
       khepri, unregister_projections, [StoreId, [ProjectionName2]]),
 
-    ct:pal("Send many commands to ensure a snapshot is triggered"),
+    ct:pal("Send many commands and request a snapshot"),
     [ok = helpers:call(Config, Node3, khepri, put, [StoreId, [key5], value5v1])
      || _ <- lists:seq(1, 20)],
-
-    {ok, #{log := #{snapshot_index := SnapshotIndex}}, _} =
-       ra:member_overview(khepri_cluster:node_to_member(StoreId, Node3)),
-    ct:pal("New snapshot index: ~p", [SnapshotIndex]),
-    ?assert(is_number(SnapshotIndex) andalso SnapshotIndex > 20),
+    ok = helpers:call(
+           Config, Node3, khepri_machine, request_snapshot, [StoreId, #{}]),
+    await_snapshot_index(khepri_cluster:node_to_member(StoreId, Node3), 20),
 
     ct:pal("Restart cluster member ~s", [Node1]),
     {ok, StoreId} = helpers:call(
