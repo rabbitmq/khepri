@@ -1749,7 +1749,7 @@ handle_dedup1(Meta, Command, CommandRef, Expiry, State)
     case Dedups of
         #{CommandRef := {Reply, _Expiry}} ->
             Ret = {State, Reply},
-            post_apply(Ret, Meta);
+            post_apply(Ret, Meta, Command);
         _ ->
             {State1, Reply, SideEffects} = do_apply(Meta, Command, State),
             Dedups1 = Dedups#{CommandRef => {Reply, Expiry}},
@@ -1770,37 +1770,38 @@ do_apply(
   #put_v{args = #put_v1{path = PathPattern,
                         payload = Payload,
                         put_options = PutOptions,
-                        tree_options = TreeOptions}},
+                        tree_options = TreeOptions}} = Command,
   State) ->
     Ret = insert_or_update_node(
             State, PathPattern, Payload, PutOptions, TreeOptions, []),
-    post_apply(Ret, Meta);
+    post_apply(Ret, Meta, Command);
 do_apply(
   Meta,
   #delete_v{args = #delete_v1{path = PathPattern,
-                              tree_options = TreeOptions}},
+                              tree_options = TreeOptions}} = Command,
   State) ->
     Ret = delete_matching_nodes(State, PathPattern, TreeOptions, []),
-    post_apply(Ret, Meta);
+    post_apply(Ret, Meta, Command);
 do_apply(
   Meta,
   #tx_v{args = #tx_v1{'fun' = StandaloneFun,
-                      args = Args}},
+                      args = Args}} = Command,
   State) when ?IS_HORUS_FUN(StandaloneFun) ->
     Ret = khepri_tx_adv:run(State, StandaloneFun, Args, true, Meta),
-    post_apply(Ret, Meta);
+    post_apply(Ret, Meta, Command);
 do_apply(
   Meta,
   #tx_v{args = #tx_v1{'fun' = PathPattern,
-                      args = Args}},
+                      args = Args}} = Command,
   State) when ?IS_KHEPRI_PATH_PATTERN(PathPattern) ->
     Ret = locate_sproc_and_execute_tx(State, PathPattern, Args, true, Meta),
-    post_apply(Ret, Meta);
+    post_apply(Ret, Meta, Command);
 do_apply(
   Meta,
-  #register_trigger_v{args = #register_trigger_v1{id = TriggerId,
-                                                  sproc = StoredProcPath,
-                                                  event_filter = EventFilter}},
+  #register_trigger_v{
+     args = #register_trigger_v1{id = TriggerId,
+                                 sproc = StoredProcPath,
+                                 event_filter = EventFilter}} = Command,
   State) ->
     Triggers = get_triggers(State),
     StoredProcPath1 = khepri_path:realpath(StoredProcPath),
@@ -1813,21 +1814,22 @@ do_apply(
                                          event_filter => EventFilter1}},
     State1 = set_triggers(State, Triggers1),
     Ret = {State1, ok},
-    post_apply(Ret, Meta);
+    post_apply(Ret, Meta, Command);
 do_apply(
   Meta,
-  #ack_triggered_v{args = #ack_triggered_v1{triggered = ProcessedTriggers}},
+  #ack_triggered_v{
+     args = #ack_triggered_v1{triggered = ProcessedTriggers}} = Command,
   State) ->
     EmittedTriggers = get_emitted_triggers(State),
     EmittedTriggers1 = EmittedTriggers -- ProcessedTriggers,
     State1 = set_emitted_triggers(State, EmittedTriggers1),
     Ret = {State1, ok},
-    post_apply(Ret, Meta);
+    post_apply(Ret, Meta, Command);
 do_apply(
   Meta,
   #register_projection_v{
      args = #register_projection_v1{pattern = PathPattern,
-                                    projection = Projection}},
+                                    projection = Projection}} = Command,
   State) ->
     ProjectionName = khepri_projection:name(Projection),
     ProjectionTree = get_projections(State),
@@ -1837,7 +1839,7 @@ do_apply(
             Reason = ?khepri_error(projection_already_exists, Info),
             Reply = {error, Reason},
             Ret = {State, Reply},
-            post_apply(Ret, Meta);
+            post_apply(Ret, Meta, Command);
         false ->
             ProjectionTree1 = khepri_pattern_tree:update(
                                 ProjectionTree,
@@ -1855,11 +1857,12 @@ do_apply(
                                             pattern = PathPattern},
             Effects = [{aux, AuxEffect}],
             Ret = {State1, ok, Effects},
-            post_apply(Ret, Meta)
+            post_apply(Ret, Meta, Command)
     end;
 do_apply(
   Meta,
-  #unregister_projections_v{args = #unregister_projections_v1{names = Names}},
+  #unregister_projections_v{
+     args = #unregister_projections_v1{names = Names}} = Command,
   State) ->
     RemoveProjection = case Names of
                            all ->
@@ -1896,10 +1899,10 @@ do_apply(
     clear_compiled_projection_tree(),
     Reply = {ok, RemovedProjectionsMap},
     Ret = {State1, Reply},
-    post_apply(Ret, Meta);
+    post_apply(Ret, Meta, Command);
 do_apply(
   #{machine_version := MacVer} = Meta,
-  #dedup_ack_v{args = #dedup_ack_v1{ref = CommandRef}},
+  #dedup_ack_v{args = #dedup_ack_v1{ref = CommandRef}} = Command,
   State)
   when is_reference(CommandRef) andalso
        MacVer >= ?API_BEHAV_MACVER(dedup_protection) ->
@@ -1912,10 +1915,10 @@ do_apply(
                      State
              end,
     Ret = {State1, ok},
-    post_apply(Ret, Meta);
+    post_apply(Ret, Meta, Command);
 do_apply(
   #{machine_version := MacVer} = Meta,
-  #drop_dedups_v{args = #drop_dedups_v1{refs = RefsToDrop}},
+  #drop_dedups_v{args = #drop_dedups_v1{refs = RefsToDrop}} = Command,
   State) when MacVer >= ?API_BEHAV_MACVER(expire_dedups_from_tick) ->
     %% `#drop_dedups*{}' is emitted by the `handle_aux/5' clause for the `tick'
     %% effect to periodically drop dedups that have expired. This expiration
@@ -1926,8 +1929,8 @@ do_apply(
     Dedups1 = maps:without(RefsToDrop, Dedups),
     State1 = set_dedups(State, Dedups1),
     Ret = {State1, ok},
-    post_apply(Ret, Meta);
-do_apply(Meta, {machine_version, OldMacVer, NewMacVer}, OldState) ->
+    post_apply(Ret, Meta, Command);
+do_apply(Meta, {machine_version, OldMacVer, NewMacVer} = Command, OldState) ->
     NewState = convert_state(OldState, OldMacVer, NewMacVer),
     Ret = {NewState, ok},
 
@@ -1936,7 +1939,7 @@ do_apply(Meta, {machine_version, OldMacVer, NewMacVer}, OldState) ->
     %% determine what a user of Khepri can or cannot do.
     StoreId = get_store_id(NewState),
     cache_effective_machine_version(StoreId, NewMacVer),
-    post_apply(Ret, Meta);
+    post_apply(Ret, Meta, Command);
 do_apply(Meta, NonVersionedCommand, State)
   when is_record(NonVersionedCommand, put) orelse
        is_record(NonVersionedCommand, delete) orelse
@@ -1971,7 +1974,7 @@ handle_unknown_command(
                        file => ?FILE,
                        line => ?LINE}]}],
     Ret = {State, Reply, SideEffects},
-    post_apply(Ret, Meta).
+    post_apply(Ret, Meta, UnknownCommand).
 
 -spec convert_to_uniform_command(Command) -> NewCommand when
       Command :: khepri_machine:command() |
@@ -2066,17 +2069,18 @@ convert_to_uniform_command(Command)
     %% pattern matching.
     Command.
 
--spec post_apply(ApplyRet, Meta) -> {State, Result, SideEffects} when
+-spec post_apply(ApplyRet, Meta, Command) -> {State, Result, SideEffects} when
       ApplyRet :: {State, Result} | {State, Result, SideEffects},
       State :: state(),
       Result :: any(),
       Meta :: ra_machine:command_meta_data(),
+      Command :: command() | old_command() | ra_machine:builtin_command(),
       SideEffects :: ra_machine:effects().
 %% @private
 
-post_apply({State, Result}, Meta) ->
-    post_apply({State, Result, []}, Meta);
-post_apply({_State, _Result, _SideEffects} = Ret, Meta) ->
+post_apply({State, Result}, Meta, Command) ->
+    post_apply({State, Result, []}, Meta, Command);
+post_apply({_State, _Result, _SideEffects} = Ret, Meta, _Command) ->
     Ret1 = bump_applied_command_count(Ret, Meta),
     Ret2 = drop_expired_dedups(Ret1, Meta),
     Ret3 = trigger_delayed_aux_queries_eval(Ret2, Meta),
