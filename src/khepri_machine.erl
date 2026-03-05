@@ -149,7 +149,8 @@
                    #register_projection{} |
                    #unregister_projections{} |
                    #dedup{} |
-                   #dedup_ack{}.
+                   #dedup_ack{} |
+                   #drop_dedups{}.
 %% Commands specific to this Ra machine.
 
 -type old_command() :: #unregister_projection{}.
@@ -964,15 +965,8 @@ process_sync_command(
 
             %% We acknowledge that we received the reply and all duplicates
             %% can be ignored.
-            Dest = case ra_leaderboard:lookup_leader(StoreId) of
-                       LeaderId when LeaderId =/= undefined ->
-                           LeaderId;
-                       undefined ->
-                           ThisNode = node(),
-                           RaServer = khepri_cluster:node_to_member(
-                                        StoreId, ThisNode),
-                           RaServer
-                   end,
+            Dest = leader_id_or_local(StoreId),
+            sending_async_command(Dest),
             _ = ra:pipeline_command(Dest, DedupAck),
             Ret;
         false ->
@@ -989,14 +983,8 @@ do_process_sync_command(StoreId, Command, Options) ->
     ReplyFrom = maps:get(reply_from, Options, {member, RaServer}),
     CommandOptions = #{timeout => Timeout, reply_from => ReplyFrom},
     T0 = khepri_utils:start_timeout_window(Timeout),
-    Dest = case ra_leaderboard:lookup_leader(StoreId) of
-               LeaderId when LeaderId =/= undefined ->
-                   sending_command_remotely(StoreId),
-                   LeaderId;
-               undefined ->
-                   sending_sync_command_locally(StoreId),
-                   RaServer
-           end,
+    Dest = leader_id_or(StoreId, RaServer),
+    sending_sync_command(Dest),
     case ra:process_command(Dest, Command, CommandOptions) of
         {ok, Ret, _LeaderId} ->
             ?raise_exception_if_any(Ret);
@@ -1037,16 +1025,9 @@ process_async_command(
     ra:pipeline_command(RaServer, Command, Correlation, Priority);
 process_async_command(
   StoreId, Command, Correlation, Priority) ->
-    case ra_leaderboard:lookup_leader(StoreId) of
-        LeaderId when LeaderId =/= undefined ->
-            sending_command_remotely(StoreId),
-            ra:pipeline_command(LeaderId, Command, Correlation, Priority);
-        undefined ->
-            ThisNode = node(),
-            RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
-            sending_async_command_locally(StoreId),
-            ra:pipeline_command(RaServer, Command, Correlation, Priority)
-    end.
+    Dest = leader_id_or_local(StoreId),
+    sending_async_command(Dest),
+    ra:pipeline_command(Dest, Command, Correlation, Priority).
 
 -spec select_command_type(Options) -> CommandType when
       Options :: khepri:command_options(),
@@ -1238,6 +1219,18 @@ clear_cache(StoreId) ->
     clear_cached_effective_machine_version(StoreId),
     ok.
 
+-spec sending_sync_command(RaServer) -> ok when
+      RaServer :: ra:server_id().
+%% @doc Records that a synchronous command is about to be sent.
+%%
+%% It determines if it is local or remote.
+
+sending_sync_command({StoreId, Node}) ->
+    case node() of
+        Node -> sending_sync_command_locally(StoreId);
+        _    -> sending_command_remotely(StoreId)
+    end.
+
 -spec sending_sync_command_locally(StoreId) -> ok when
       StoreId :: khepri:store_id().
 %% @doc Records that a synchronous command is about to be sent locally.
@@ -1258,6 +1251,18 @@ sending_sync_command_locally(StoreId) ->
 sending_query_locally(StoreId) ->
     %% Same behavior as a local sync command.
     sending_sync_command_locally(StoreId).
+
+-spec sending_async_command(RaServer) -> ok when
+      RaServer :: ra:server_id().
+%% @doc Records that a asynchronous command is about to be sent.
+%%
+%% It determines if it is local or remote.
+
+sending_async_command({StoreId, Node}) ->
+    case node() of
+        Node -> sending_async_command_locally(StoreId);
+        _    -> sending_command_remotely(StoreId)
+    end.
 
 -spec sending_async_command_locally(StoreId) -> ok when
       StoreId :: khepri:store_id().
@@ -1308,6 +1313,17 @@ ask_fence_preliminary_query(StoreId) ->
 can_skip_fence_preliminary_query(StoreId) ->
     Key = {khepri, can_skip_fence_preliminary_query, StoreId},
     erlang:get(Key) =:= true.
+
+leader_id_or_local(StoreId) ->
+    ThisNode = node(),
+    RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
+    leader_id_or(StoreId, RaServer).
+
+leader_id_or(StoreId, {_, _} = Default) ->
+    case ra_leaderboard:lookup_leader(StoreId) of
+        LeaderId when LeaderId =/= undefined -> LeaderId;
+        undefined                            -> Default
+    end.
 
 %% -------------------------------------------------------------------
 %% ra_machine callbacks.
@@ -1523,7 +1539,7 @@ restore_projection(Projection, Tree, PathPattern) ->
 
 -spec apply(Meta, Command, State) -> {State, Ret, SideEffects} when
       Meta :: ra_machine:command_meta_data(),
-      Command :: command() | old_command(),
+      Command :: command() | old_command() | ra_machine:builtin_command(),
       State :: state(),
       Ret :: any(),
       SideEffects :: ra_machine:effects().
