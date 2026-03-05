@@ -149,7 +149,8 @@
                    #register_projection{} |
                    #unregister_projections{} |
                    #dedup{} |
-                   #dedup_ack{}.
+                   #dedup_ack{} |
+                   #drop_dedups{}.
 %% Commands specific to this Ra machine.
 
 -type old_command() :: #unregister_projection{}.
@@ -1538,7 +1539,7 @@ restore_projection(Projection, Tree, PathPattern) ->
 
 -spec apply(Meta, Command, State) -> {State, Ret, SideEffects} when
       Meta :: ra_machine:command_meta_data(),
-      Command :: command() | old_command(),
+      Command :: command() | old_command() | ra_machine:builtin_command(),
       State :: state(),
       Ret :: any(),
       SideEffects :: ra_machine:effects().
