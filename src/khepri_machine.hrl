@@ -75,3 +75,5 @@
 %% Old commands, kept for backward-compatibility.
 
 -record(unregister_projection, {name :: khepri_projection:name()}).
+
+-record(request_snapshot, {}).

@@ -161,7 +161,8 @@
                    #unregister_projections{} |
                    #dedup{} |
                    #dedup_ack{} |
-                   #drop_dedups{}.
+                   #drop_dedups{} |
+                   #request_snapshot{}.
 %% Commands specific to this Ra machine.
 
 -type old_command() :: #unregister_projection{}.
@@ -215,7 +216,8 @@
                             event_filter := khepri_evf:event_filter()}}.
 %% Internal triggers map in the machine state.
 
--type metrics() :: #{applied_command_count => non_neg_integer()}.
+-type metrics() :: #{applied_command_count => non_neg_integer(),
+                     commands_added_size => non_neg_integer()}.
 %% Internal state machine metrics.
 
 -type dedups_map() :: #{reference() => {any(), integer()}}.
@@ -1457,8 +1459,9 @@ handle_aux(leader, cast, tick, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
     SideEffects0 = [],
     SideEffects1 = handle_expired_dedups(IntState, SideEffects0),
+    SideEffects2 = maybe_request_snapshot(IntState, SideEffects1),
 
-    {no_reply, AuxState1, IntState, SideEffects1};
+    {no_reply, AuxState1, IntState, SideEffects2};
 handle_aux(_RaState, _Type, _Command, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
     {no_reply, AuxState1, IntState}.
@@ -1546,6 +1549,26 @@ handle_expired_dedups(IntState, SideEffects) ->
                 _ ->
                     DropDedups = #drop_dedups{refs = RefsToDrop},
                     [{append, DropDedups} | SideEffects]
+            end;
+        _ ->
+            SideEffects
+    end.
+
+maybe_request_snapshot(IntState, SideEffects) ->
+    case ra_aux:effective_machine_version(IntState) of
+        EffectiveMacVer when EffectiveMacVer >= 3 ->
+            SnapshotSize = ra_aux:latest_snapshot_size(IntState),
+            State = ra_aux:machine_state(IntState),
+            Metrics = get_metrics(State),
+            case Metrics of
+                #{commands_added_size := CommandsAddedSize}
+                  when is_integer(SnapshotSize) andalso
+                       SnapshotSize > 0 andalso
+                       CommandsAddedSize >= SnapshotSize ->
+                    RequestSnapshot = #request_snapshot{},
+                    [{append, RequestSnapshot} | SideEffects];
+                _ ->
+                    SideEffects
             end;
         _ ->
             SideEffects
@@ -1765,6 +1788,16 @@ apply(
     Ret = {State1, ok},
     post_apply(Ret, Meta, Command);
 apply(
+  #{machine_version := MacVer,
+    index := RaftIndex} = Meta,
+  #request_snapshot{} = Command,
+  State) when MacVer >= 3 ->
+    State1 = reset_metrics(State),
+    ReleaseCursor = {release_cursor, RaftIndex, State1},
+    SideEffects = [ReleaseCursor],
+    Ret = {State1, ok, SideEffects},
+    post_apply(Ret, Meta, Command);
+apply(
   Meta,
   {machine_version, OldMacVer, NewMacVer} = Command,
   OldState) ->
@@ -1808,14 +1841,15 @@ apply(
 
 post_apply({State, Result}, Meta, Command) ->
     post_apply({State, Result, []}, Meta, Command);
-post_apply({_State, _Result, _SideEffects} = Ret, Meta, _Command) ->
-    Ret1 = bump_applied_command_count(Ret, Meta),
+post_apply({_State, _Result, _SideEffects} = Ret, Meta, Command) ->
+    Ret1 = track_applied_command_resources(Command, Ret, Meta),
     Ret2 = drop_expired_dedups(Ret1, Meta),
     Ret3 = trigger_delayed_aux_queries_eval(Ret2, Meta),
     Ret3.
 
--spec bump_applied_command_count(ApplyRet, Meta) ->
+-spec track_applied_command_resources(Command, ApplyRet, Meta) ->
     {State, Result, SideEffects} when
+      Command :: command() | old_command() | ra_machine:builtin_command(),
       ApplyRet :: {State, Result, SideEffects},
       State :: state(),
       Result :: any(),
@@ -1823,7 +1857,8 @@ post_apply({_State, _Result, _SideEffects} = Ret, Meta, _Command) ->
       SideEffects :: ra_machine:effects().
 %% @private
 
-bump_applied_command_count(
+track_applied_command_resources(
+  Command,
   {State, Result, SideEffects},
   #{index := RaftIndex}) ->
     #config{snapshot_interval = SnapshotInterval} = get_config(State),
@@ -1832,7 +1867,11 @@ bump_applied_command_count(
     AppliedCmdCount = AppliedCmdCount0 + 1,
     case AppliedCmdCount < SnapshotInterval of
         true ->
-            Metrics1 = Metrics#{applied_command_count => AppliedCmdCount},
+            CommandsAddedSize0 = maps:get(commands_added_size, Metrics, 0),
+            CommandsAddedSize = (
+              CommandsAddedSize0 + erlang:external_size(Command)),
+            Metrics1 = Metrics#{applied_command_count => AppliedCmdCount,
+                                commands_added_size => CommandsAddedSize},
             State1 = set_metrics(State, Metrics1),
             {State1, Result, SideEffects};
         false ->
@@ -1850,7 +1889,8 @@ bump_applied_command_count(
 reset_metrics(State) ->
     Metrics = get_metrics(State),
     Metrics1 = maps:remove(applied_command_count, Metrics),
-    set_metrics(State, Metrics1).
+    Metrics2 = maps:remove(commands_added_size, Metrics1),
+    set_metrics(State, Metrics2).
 
 -spec drop_expired_dedups(ApplyRet, Meta) ->
     {State, Result, SideEffects} when
