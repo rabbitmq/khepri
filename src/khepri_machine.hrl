@@ -8,8 +8,10 @@
 
 -include("src/khepri_node.hrl").
 
-%% TODO: Query this value from Ra itself.
--define(SNAPSHOT_INTERVAL, 4096).
+%% This snapshot interval is kept for backward compatibility. `khepri_machine'
+%% now uses the commands added size to determine when to request a snapshot.
+%% See `khepri_machine:maybe_request_snapshot/2'.
+-define(SNAPSHOT_INTERVAL, 1000000).
 
 %% Record representing the state machine configuration.
 -record(config,
