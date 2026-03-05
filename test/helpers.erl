@@ -292,7 +292,10 @@ call(Config, Node, Module, Func, Args) ->
 get_leader_in_store(Config, StoreId, [Node | _] = _RunningNodes) ->
     %% Query members; this is used to make sure there is an elected leader.
     ct:pal("Trying to figure out who the leader is in \"~s\"", [StoreId]),
-    {ok, Members} = call(Config, Node, khepri_cluster, members, [StoreId]),
+    {ok, Members} = call(
+                      Config, Node,
+                      khepri_cluster, members,
+                      [StoreId, #{timeout => 60000}]),
     Pids = [[Member, catch call(Config, N, erlang, whereis, [RegName])]
             || {RegName, N} = Member <- Members],
     LeaderId = call(Config, Node, ra_leaderboard, lookup_leader, [StoreId]),
