@@ -1373,7 +1373,7 @@ init(Params) ->
                        {S, _, _} = apply(Meta, Command, State1),
                        S
                end, State, Commands),
-    reset_applied_command_count(State3).
+    reset_metrics(State3).
 
 -spec init_aux(StoreId :: khepri:store_id()) -> aux_state().
 %% @private
@@ -1839,13 +1839,13 @@ bump_applied_command_count(
                "(>= ~b commands)",
                [AppliedCmdCount, SnapshotInterval],
                #{domain => [khepri, ra_machine]}),
-            State1 = reset_applied_command_count(State),
+            State1 = reset_metrics(State),
             ReleaseCursor = {release_cursor, RaftIndex, State1},
             SideEffects1 = [ReleaseCursor | SideEffects],
             {State1, Result, SideEffects1}
     end.
 
-reset_applied_command_count(State) ->
+reset_metrics(State) ->
     Metrics = get_metrics(State),
     Metrics1 = maps:remove(applied_command_count, Metrics),
     set_metrics(State, Metrics1).
