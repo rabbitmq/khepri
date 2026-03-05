@@ -149,7 +149,8 @@
                    #register_projection{} |
                    #unregister_projections{} |
                    #dedup{} |
-                   #dedup_ack{}.
+                   #dedup_ack{} |
+                   #drop_dedups{}.
 %% Commands specific to this Ra machine.
 
 -type old_command() :: #unregister_projection{}.
