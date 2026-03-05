@@ -204,7 +204,8 @@
                             event_filter := khepri_evf:event_filter()}}.
 %% Internal triggers map in the machine state.
 
--type metrics() :: #{applied_command_count => non_neg_integer()}.
+-type metrics() :: #{applied_command_count => non_neg_integer(),
+                     commands_added_size => non_neg_integer()}.
 %% Internal state machine metrics.
 
 -type dedups_map() :: #{reference() => {any(), integer()}}.
@@ -1776,14 +1777,15 @@ apply(
 
 post_apply({State, Result}, Meta, Command) ->
     post_apply({State, Result, []}, Meta, Command);
-post_apply({_State, _Result, _SideEffects} = Ret, Meta, _Command) ->
-    Ret1 = bump_applied_command_count(Ret, Meta),
+post_apply({_State, _Result, _SideEffects} = Ret, Meta, Command) ->
+    Ret1 = track_applied_command_resources(Command, Ret, Meta),
     Ret2 = drop_expired_dedups(Ret1, Meta),
     Ret3 = trigger_delayed_aux_queries_eval(Ret2, Meta),
     Ret3.
 
--spec bump_applied_command_count(ApplyRet, Meta) ->
+-spec track_applied_command_resources(Command, ApplyRet, Meta) ->
     {State, Result, SideEffects} when
+      Command :: command() | old_command() | ra_machine:builtin_command(),
       ApplyRet :: {State, Result, SideEffects},
       State :: state(),
       Result :: any(),
@@ -1791,19 +1793,26 @@ post_apply({_State, _Result, _SideEffects} = Ret, Meta, _Command) ->
       SideEffects :: ra_machine:effects().
 %% @private
 
-bump_applied_command_count(
+track_applied_command_resources(
+  Command,
   {State, Result, SideEffects},
   #{index := RaftIndex}) ->
     #config{snapshot_interval = SnapshotInterval} = get_config(State),
     Metrics = get_metrics(State),
     AppliedCmdCount0 = maps:get(applied_command_count, Metrics, 0),
     AppliedCmdCount = AppliedCmdCount0 + 1,
-    case AppliedCmdCount < SnapshotInterval of
-        true ->
-            Metrics1 = Metrics#{applied_command_count => AppliedCmdCount},
+    CommandsAddedSize0 = maps:get(commands_added_size, Metrics, 0),
+    CommandsAddedSize = CommandsAddedSize0 + erlang:external_size(Command),
+    SnapshotNeeded = (
+      AppliedCmdCount >= SnapshotInterval orelse
+      CommandsAddedSize >= 64_000_000),
+    case SnapshotNeeded of
+        false ->
+            Metrics1 = Metrics#{applied_command_count => AppliedCmdCount,
+                                commands_added_size => CommandsAddedSize},
             State1 = set_metrics(State, Metrics1),
             {State1, Result, SideEffects};
-        false ->
+        true ->
             ?LOG_DEBUG(
                "Move release cursor after ~b commands applied "
                "(>= ~b commands)",
@@ -1818,7 +1827,8 @@ bump_applied_command_count(
 reset_metrics(State) ->
     Metrics = get_metrics(State),
     Metrics1 = maps:remove(applied_command_count, Metrics),
-    set_metrics(State, Metrics1).
+    Metrics2 = maps:remove(commands_added_size, Metrics1),
+    set_metrics(State, Metrics2).
 
 -spec drop_expired_dedups(ApplyRet, Meta) ->
     {State, Result, SideEffects} when

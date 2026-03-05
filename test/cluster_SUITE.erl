@@ -1979,8 +1979,9 @@ can_set_snapshot_interval(Config) ->
     ?assertEqual(ok, khepri:fence(StoreId)),
 
     ct:pal("Verify applied command count is 1 (`machine_version` command)"),
-    ?assertEqual(
-       #{applied_command_count => 1},
+    ?assertMatch(
+       #{applied_command_count := 1,
+         commands_added_size := _},
        khepri_machine:process_query(
          StoreId,
          fun khepri_machine:get_metrics/1,
@@ -1990,8 +1991,9 @@ can_set_snapshot_interval(Config) ->
     ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
 
     ct:pal("Verify applied command count is 2"),
-    ?assertEqual(
-       #{applied_command_count => 2},
+    ?assertMatch(
+       #{applied_command_count := 2,
+         commands_added_size := _},
        khepri_machine:process_query(
          StoreId,
          fun khepri_machine:get_metrics/1,
@@ -2001,8 +2003,9 @@ can_set_snapshot_interval(Config) ->
     ?assertEqual(ok, khepri:put(StoreId, [foo], value1)),
 
     ct:pal("Verify applied command count is 3"),
-    ?assertEqual(
-       #{applied_command_count => 3},
+    ?assertMatch(
+       #{applied_command_count := 3,
+         commands_added_size := _},
        khepri_machine:process_query(
          StoreId,
          fun khepri_machine:get_metrics/1,

@@ -106,8 +106,9 @@ insert_when_keep_while_false_test() ->
     ?assertEqual(
       khepri_machine:get_root(S0),
       khepri_machine:get_root(S1)),
-    ?assertEqual(
-       #{applied_command_count => 1},
+    ?assertMatch(
+       #{applied_command_count := 1,
+         commands_added_size := _},
        khepri_machine:get_metrics(S1)),
     ?assertEqual({error,
                   ?khepri_error(
@@ -129,8 +130,9 @@ insert_when_keep_while_false_test() ->
     ?assertEqual(
       khepri_machine:get_root(S0),
       khepri_machine:get_root(S2)),
-    ?assertEqual(
-       #{applied_command_count => 1},
+    ?assertMatch(
+       #{applied_command_count := 1,
+         commands_added_size := _},
        khepri_machine:get_metrics(S2)),
     ?assertEqual({error,
                   ?khepri_error(
