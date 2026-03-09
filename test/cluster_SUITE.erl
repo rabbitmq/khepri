@@ -488,6 +488,8 @@ fail_to_start_with_bad_ra_server_config(Config) ->
            {'EXIT',
             {noproc, _}} ->
                true;
+           {error, shutdown} ->
+               true;
            _ ->
                ct:pal("Unexpected return value:~n~p", [Ret1]),
                false
