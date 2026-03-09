@@ -63,6 +63,8 @@
 %% <ul>
 %% <li>Added support for multi-table projections (see {@link
 %% khepri_projection}).</li>
+%% <li>Changed how `khepri_machine' decides when to request a snapshot; it is
+%% based on the commands added size and the size of the latest snapshot.</li>
 %% </ul>
 %% </td>
 %% </tr>
@@ -1860,30 +1862,35 @@ post_apply({_State, _Result, _SideEffects} = Ret, Meta, Command) ->
 track_applied_command_resources(
   Command,
   {State, Result, SideEffects},
-  #{index := RaftIndex}) ->
+  #{machine_version := MacVer,
+    index := RaftIndex}) ->
     #config{snapshot_interval = SnapshotInterval} = get_config(State),
     Metrics = get_metrics(State),
     AppliedCmdCount0 = maps:get(applied_command_count, Metrics, 0),
     AppliedCmdCount = AppliedCmdCount0 + 1,
-    case AppliedCmdCount < SnapshotInterval of
+    CommandsAddedSize0 = maps:get(commands_added_size, Metrics, 0),
+    CommandsAddedSize = CommandsAddedSize0 + erlang:external_size(Command),
+    Metrics1 = Metrics#{applied_command_count => AppliedCmdCount,
+                        commands_added_size => CommandsAddedSize},
+    State1 = set_metrics(State, Metrics1),
+    case does_api_comply_with(commands_added_size_metric, MacVer) of
         true ->
-            CommandsAddedSize0 = maps:get(commands_added_size, Metrics, 0),
-            CommandsAddedSize = (
-              CommandsAddedSize0 + erlang:external_size(Command)),
-            Metrics1 = Metrics#{applied_command_count => AppliedCmdCount,
-                                commands_added_size => CommandsAddedSize},
-            State1 = set_metrics(State, Metrics1),
             {State1, Result, SideEffects};
         false ->
-            ?LOG_DEBUG(
-               "Move release cursor after ~b commands applied "
-               "(>= ~b commands)",
-               [AppliedCmdCount, SnapshotInterval],
-               #{domain => [khepri, ra_machine]}),
-            State1 = reset_metrics(State),
-            ReleaseCursor = {release_cursor, RaftIndex, State1},
-            SideEffects1 = [ReleaseCursor | SideEffects],
-            {State1, Result, SideEffects1}
+            case AppliedCmdCount < SnapshotInterval of
+                true ->
+                    {State1, Result, SideEffects};
+                false ->
+                    ?LOG_DEBUG(
+                       "Move release cursor after ~b commands applied "
+                       "(>= ~b commands)",
+                       [AppliedCmdCount, SnapshotInterval],
+                       #{domain => [khepri, ra_machine]}),
+                    State2 = reset_metrics(State1),
+                    ReleaseCursor = {release_cursor, RaftIndex, State1},
+                    SideEffects1 = [ReleaseCursor | SideEffects],
+                    {State2, Result, SideEffects1}
+            end
     end.
 
 reset_metrics(State) ->
@@ -2119,6 +2126,7 @@ api_behaviour_to_machine_version(delete_reason_in_node_props) -> 2;
 api_behaviour_to_machine_version(indirect_deletes_in_ret)     -> 2;
 api_behaviour_to_machine_version(uniform_write_ret)           -> 2;
 api_behaviour_to_machine_version(multi_table_projections)     -> 3;
+api_behaviour_to_machine_version(commands_added_size_metric)  -> 3;
 api_behaviour_to_machine_version(Behaviour) when is_atom(Behaviour) ->
     undefined.
 
