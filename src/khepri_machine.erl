@@ -1455,37 +1455,10 @@ handle_aux(
     {no_reply, AuxState1, IntState};
 handle_aux(leader, cast, tick, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+    SideEffects0 = [],
+    SideEffects1 = handle_expired_dedups(IntState, SideEffects0),
 
-    %% Expiring dedups in the tick handler is only available on versions 2
-    %% and greater. In versions 0 and 1, expiration of dedups is done in
-    %% `drop_expired_dedups/2'. This proved to be quite expensive when handling
-    %% a very large batch of transactions at once, so this expiration step was
-    %% moved to the `tick' handler in version 2.
-    case ra_aux:effective_machine_version(IntState) of
-        EffectiveMacVer when EffectiveMacVer >= 2 ->
-            State = ra_aux:machine_state(IntState),
-            Timestamp = erlang:system_time(millisecond),
-            Dedups = get_dedups(State),
-            RefsToDrop = maps:fold(
-                           fun(CommandRef, {_Reply, Expiry}, Acc) ->
-                                   case Expiry =< Timestamp of
-                                       true ->
-                                           [CommandRef | Acc];
-                                       false ->
-                                           Acc
-                                   end
-                           end, [], Dedups),
-            Effects = case RefsToDrop of
-                          [] ->
-                              [];
-                          _ ->
-                              DropDedups = #drop_dedups{refs = RefsToDrop},
-                              [{append, DropDedups}]
-                      end,
-            {no_reply, AuxState1, IntState, Effects};
-        _ ->
-            {no_reply, AuxState1, IntState}
-    end;
+    {no_reply, AuxState1, IntState, SideEffects1};
 handle_aux(_RaState, _Type, _Command, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
     {no_reply, AuxState1, IntState}.
@@ -1546,6 +1519,37 @@ perform_delayed_aux_query(
               2 -> QueryFun(Meta, State)
           end,
     gen_statem:reply(From, Ret).
+
+handle_expired_dedups(IntState, SideEffects) ->
+    %% Expiring dedups in the tick handler is only available on versions 2
+    %% and greater. In versions 0 and 1, expiration of dedups is done in
+    %% `drop_expired_dedups/2'. This proved to be quite expensive when handling
+    %% a very large batch of transactions at once, so this expiration step was
+    %% moved to the `tick' handler in version 2.
+    case ra_aux:effective_machine_version(IntState) of
+        EffectiveMacVer when EffectiveMacVer >= 2 ->
+            State = ra_aux:machine_state(IntState),
+            Timestamp = erlang:system_time(millisecond),
+            Dedups = get_dedups(State),
+            RefsToDrop = maps:fold(
+                           fun(CommandRef, {_Reply, Expiry}, Acc) ->
+                                   case Expiry =< Timestamp of
+                                       true ->
+                                           [CommandRef | Acc];
+                                       false ->
+                                           Acc
+                                   end
+                           end, [], Dedups),
+            case RefsToDrop of
+                [] ->
+                    SideEffects;
+                _ ->
+                    DropDedups = #drop_dedups{refs = RefsToDrop},
+                    [{append, DropDedups} | SideEffects]
+            end;
+        _ ->
+            SideEffects
+    end.
 
 restore_projection(Projection, Tree, PathPattern) ->
     _ = khepri_projection:init(Projection),
