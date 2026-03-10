@@ -18,13 +18,13 @@
 %% Example:
 %% ```
 %% ok = khepri:put(StoreId, "/:stock/:wood/Oak", 100).
-%% ok = khepri:put(StoreId, "/:stock/:wood/Mapple", 55).
+%% ok = khepri:put(StoreId, "/:stock/:wood/Maple", 55).
 %% ok = khepri:export(StoreId, khepri_export_erlang, "export.erl").
 %% '''
 %%
 %% Content of `export.erl':
 %% ```
-%% {put,[stock,wood,<<"Mapple">>],{p_data,55},#{},#{}}.
+%% {put,[stock,wood,<<"Maple">>],{p_data,55},#{},#{}}.
 %% {put,[stock,wood,<<"Oak">>],{p_data,100},#{},#{}}.
 %% '''
 
