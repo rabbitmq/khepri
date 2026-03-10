@@ -27,6 +27,164 @@
 %% Updates to projection tables are immediately consistent for the member of
 %% the cluster on which the change to the store is made and the leader member
 %% but are eventually consistent for all other followers.
+%%
+%% == Projection functions ==
+%%
+%% There are three supported types of projection functions:
+%% <ol>
+%% <li>`copy' (the literal atom)</li>
+%% <li>the simple projection function (identified by its arity of 2)</li>
+%% <li>the extended projection function (identified by its arity of 4)</li>
+%% </ol>
+%%
+%% === copy ===
+%%
+%% This projection "function" inserts the value of a tree node matching the
+%% projection path pattern to the ETS table. The value is expected to be a
+%% tuple or a record that can be inserted in the table.
+%%
+%% If the tree node was deleted, the old value is deleted from the ETS table.
+%%
+%% This is the most efficient projection function as it doesn't rely on an
+%% anonymous function.
+%%
+%% === Simple projection function ===
+%%
+%% This projection function is called to convert the value of a tree node
+%% matching the projection path pattern to some arbitrary term. If the tree
+%% node is created or updated, the value passed to the projection function is
+%% the new value after the creation/update. If the tree node is deleted, the
+%% value is the one of the tree node before the deletion. The result of the
+%% projection function is then inserted in or deleted from the ETS table.
+%%
+%% The projection function is expected to map one path/value to one ETS entry.
+%% There is no way for the projection function to indicate that a path/value
+%% should not be intserted in ETS for instance.
+%%
+%% The simple projection function takes 2 arguments:
+%% <ol>
+%% <li>the tree node path</li>
+%% <li>the tree node value</li>
+%% </ol>
+%%
+%% Example:
+%%
+%% ```
+%% ProjectionName = wood_stocks,
+%% ProjectionFun = fun([stock, wood, Kind] = _Path, Stock) ->
+%%                         {Kind, Stock}
+%%                 end,
+%% Options = #{type => set,
+%%             read_concurrency => true},
+%% Projection = khepri_projection:new(ProjectionName, ProjectionFun, Options).
+%% '''
+%%
+%% The resulting ETS will look like this:
+%%
+%% ```
+%% [
+%%  {<<"oak">>, 100},
+%%  {<<"maple">>, 180}
+%% ] = ets:tab2list(wood_stoks).
+%% '''
+%%
+%% === Extended projection function ===
+%%
+%% This projection function is responsible for managing the content of the ETS
+%% table(s), even though the ETS tables are still created by Khepri.
+%%
+%% This is useful when a tree node value can be mapped to several entries in an
+%% ETS table or it can be mapped to entries in several ETS tables.
+%%
+%% By default, if the projection is created like a simple projection function,
+%% a single ETS table is created, named after the projection. To use several
+%% ETS tables, the caller has to specify the list of ETS tables and their
+%% per-table ETS options.
+%%
+%% The simple projection function takes 4 arguments:
+%% <ol>
+%% <li>the table ID, or the map of table names/IDs if multiple tables where configured</li>
+%% <li>the tree node path</li>
+%% <li>the tree node properies before the update/deletion</li>
+%% <li>the tree node properies after the update/deletion</li>
+%% </ol>
+%%
+%% Example:
+%%
+%% This extended projection function reproduces the behaviour of the simple
+%% projection function from the example above basically.
+%%
+%% ```
+%% ProjectionName = wood_stocks,
+%% ProjectionFun = fun
+%%                     %% Stock update.
+%%                     (Tid, [stock, wood, Kind], _OldProps, #{data := Stock}) ->
+%%                         ets:insert(Tid, {Kind, Stock});
+%%
+%%                     %% Stock deletion.
+%%                     (Tid, [stock, wood, Kind], #{data := Stock}, _NewProps) ->
+%%                         ets:delete(Tid, {Kind, Stock})
+%%                 end,
+%% Options = #{type => set,
+%%             read_concurrency => true},
+%% Projection = khepri_projection:new(ProjectionName, ProjectionFun, Options).
+%% '''
+%%
+%% The resulting ETS will look like this:
+%%
+%% ```
+%% [
+%%  {<<"oak">>, 100},
+%%  {<<"maple">>, 180}
+%% ] = ets:tab2list(wood_stoks).
+%% '''
+%%
+%% A projection function becomes useful when there are more involved mapping of
+%% ETS entries and possibly multiple ETS tables to manage:
+%%
+%% ```
+%% ProjectionName = wood_stocks,
+%% ProjectionFun = fun
+%%                     %% Stock update.
+%%                     (#{wood_stocks := WoodStocksTid,
+%%                        wood_needs := WoodNeedsTid},
+%%                      [stock, wood, Kind],
+%%                      _OldProps,
+%%                      #{data := Stock}) ->
+%%                         ets:insert(WoodStocksTid, {Kind, Stock}),
+%%
+%%                         %% Depending on the stock, we check if we need to order
+%%                         %% new wood.
+%%                         if
+%%                             Stock < 50 ->
+%%                                 ets:insert(WoodNeedsTid, {Kind, true});
+%%                             Stock > 1000 ->
+%%                                 ets:delete(WoodNeedsTid, {Kind, true});
+%%                             true ->
+%%                                 ok
+%%                         end;
+%%
+%%                     %% Stock deletion.
+%%                     (#{wood_stocks := WoodStocksTid,
+%%                        wood_needs := WoodNeedsTid},
+%%                      [stock, wood, Kind],
+%%                      #{data := Stock},
+%%                      _NewProps) ->
+%%                         ets:delete(WoodStocksTid, {Kind, Stock}),
+%%                         %% We definitely need to order wood of this kind.
+%%                         ets:insert(WoodNeedsTid, {Kind, true});
+%%                 end,
+%% Options = #{%% Map of ETS tables and their specific ETS options; here, we don't
+%%             %% need specific ETS options: they will use the globablly defined
+%%             %% options as a fallback.
+%%             tables => #{wood_stocks => #{},
+%%                         wood_needs => #{}},
+%%
+%%             %% Global ETS options used for tables that do not override them.
+%%             type => set,
+%%             read_concurrency => true},
+%% Projection = khepri_projection:new(ProjectionName, ProjectionFun, Options).
+%% '''
 
 -module(khepri_projection).
 
