@@ -148,7 +148,40 @@ trigger_simple_projection_on_compiled_pattern_test_() ->
           ?_assertEqual(Data, ets:lookup_element(?MODULE, Path, 2))}]
       }]}.
 
-projections_skip_sprocs_test_() ->
+copy_projections_skip_sprocs_test_() ->
+    PathPattern = [stock, wood, <<"oak">>],
+    Data = fun() -> return_value end,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Register the projection",
+          ?_test(
+              begin
+                  Projection = khepri_projection:new(?MODULE, copy),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)},
+
+         {"Store the stored procedure",
+          ?_assertEqual(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, PathPattern, Data))},
+
+         {"Call the stored procedure",
+          ?_assertEqual(
+            return_value,
+            khepri:run_sproc(
+              ?FUNCTION_NAME, PathPattern, []))},
+
+         {"The projection does not contain the triggered change",
+          ?_assertEqual([], ets:lookup(?MODULE, PathPattern))}]
+      }]}.
+
+simple_projections_skip_sprocs_test_() ->
     ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
     PathPattern = [stock, wood, <<"oak">>],
     Data = fun() -> return_value end,
@@ -224,6 +257,171 @@ simple_projection_follows_updates_and_deletes_test_() ->
                   ?assertEqual(ok, khepri:delete(?FUNCTION_NAME, Path)),
                   ?assertEqual([], ets:lookup(?MODULE, Path))
               end)}]
+      }]}.
+
+simple_projection_works_with_ordered_set_test_() ->
+    ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
+    PathPattern = [stock, wood, <<"oak">>],
+    Data = 100,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Register the projection",
+          ?_test(
+              begin
+                  Options = #{type => ordered_set},
+                  Projection = khepri_projection:new(
+                                 ?MODULE, ProjectFun, Options),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)},
+
+         {"The store contains the projection",
+          ?_assertEqual(
+            true,
+            khepri:has_projection(?FUNCTION_NAME, ?MODULE))},
+
+         {"Trigger the projection",
+          ?_assertEqual(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, PathPattern, Data))},
+
+         {"The projection contains the triggered change",
+          ?_assertEqual(Data, ets:lookup_element(?MODULE, PathPattern, 2))}]
+      }]}.
+
+projection_with_an_existing_public_ets_table_works_test_() ->
+    ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
+    PathPattern = [stock, wood, <<"oak">>],
+    Data = 100,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Create ETS table",
+          ?_test(ets:new(?MODULE, [named_table, set, public]))},
+
+         {"Register the projection",
+          ?_test(
+              begin
+                  Projection = khepri_projection:new(?MODULE, ProjectFun),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)},
+
+         {"The store contains the projection",
+          ?_assertEqual(
+            true,
+            khepri:has_projection(?FUNCTION_NAME, ?MODULE))},
+
+         {"Trigger the projection",
+          ?_assertEqual(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, PathPattern, Data))},
+
+         {"The projection contains the triggered change",
+          ?_assertEqual(Data, ets:lookup_element(?MODULE, PathPattern, 2))}]
+      }]}.
+
+projection_with_an_existing_protected_ets_table_crashes_test_() ->
+    ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
+    PathPattern = [stock, wood, <<"oak">>],
+    Data = 100,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Create ETS table",
+          ?_test(ets:new(?MODULE, [named_table, set, protected]))},
+
+         {"Register the projection",
+          ?_test(
+              begin
+                  Projection = khepri_projection:new(?MODULE, ProjectFun),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)},
+
+         {"The store contains the projection",
+          ?_assertEqual(
+            true,
+            khepri:has_projection(?FUNCTION_NAME, ?MODULE))},
+
+         {"Trigger the projection",
+          ?_test(
+             begin
+                 Log = helpers:capture_log(
+                         fun() ->
+                                 ?assertEqual(
+                                    ok,
+                                    khepri:put(
+                                      ?FUNCTION_NAME, PathPattern, Data))
+                         end),
+                 ?assertSubString(
+                    <<"Failed to insert record into ETS table">>,
+                    Log),
+                 ?assertSubString(list_to_binary(?MODULE_STRING), Log),
+                 ?assertSubString(<<"bad argument">>, Log)
+             end)},
+
+         {"The projection does not contain the change",
+          ?_assertEqual([], ets:lookup(?MODULE, PathPattern))}]
+      }]}.
+
+projection_with_an_existing_private_ets_table_crashes_test_() ->
+    ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
+    PathPattern = [stock, wood, <<"oak">>],
+    Data = 100,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Create ETS table",
+          ?_test(ets:new(?MODULE, [named_table, set, private]))},
+
+         {"Register the projection",
+          ?_test(
+              begin
+                  Projection = khepri_projection:new(?MODULE, ProjectFun),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)},
+
+         {"The store contains the projection",
+          ?_assertEqual(
+            true,
+            khepri:has_projection(?FUNCTION_NAME, ?MODULE))},
+
+         {"Trigger the projection",
+          ?_test(
+             begin
+                 Log = helpers:capture_log(
+                         fun() ->
+                                 ?assertEqual(
+                                    ok,
+                                    khepri:put(
+                                      ?FUNCTION_NAME, PathPattern, Data))
+                         end),
+                 ?assertSubString(
+                    <<"Failed to insert record into ETS table">>,
+                    Log),
+                 ?assertSubString(list_to_binary(?MODULE_STRING), Log),
+                 ?assertSubString(<<"bad argument">>, Log)
+             end)},
+
+         {"The projection does not contain the change",
+          ?_assertEqual([], ets:lookup(?MODULE, PathPattern))}]
       }]}.
 
 extended_project_fun(
@@ -344,6 +542,86 @@ projection_table_is_destroyed_on_cluster_shutdown_test() ->
 
     ?assertEqual(undefined, ets:info(?MODULE)).
 
+compressed_true_ets_options_is_accepted_test_() ->
+    ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
+    PathPattern = [stock, wood, <<"oak">>],
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Register the projection",
+          ?_test(
+              begin
+                  Options = #{compressed => true},
+                  Projection = khepri_projection:new(
+                                 ?MODULE, ProjectFun, Options),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)}]
+      }]}.
+
+compressed_false_options_is_accepted_test_() ->
+    ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
+    PathPattern = [stock, wood, <<"oak">>],
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Register the projection",
+          ?_test(
+              begin
+                  Options = #{compressed => false},
+                  Projection = khepri_projection:new(
+                                 ?MODULE, ProjectFun, Options),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)}]
+      }]}.
+
+read_concurrency_options_is_accepted_test_() ->
+    ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
+    PathPattern = [stock, wood, <<"oak">>],
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Register the projection",
+          ?_test(
+              begin
+                  Options = #{read_concurrency => true},
+                  Projection = khepri_projection:new(
+                                 ?MODULE, ProjectFun, Options),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)}]
+      }]}.
+
+write_concurrency_options_is_accepted_test_() ->
+    ProjectFun = fun(Path, Payload) -> {Path, Payload} end,
+    PathPattern = [stock, wood, <<"oak">>],
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Register the projection",
+          ?_test(
+              begin
+                  Options = #{write_concurrency => true},
+                  Projection = khepri_projection:new(
+                                 ?MODULE, ProjectFun, Options),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)}]
+      }]}.
+
 unknown_options_are_rejected_test() ->
     ProjectionName = ?FUNCTION_NAME,
     ProjectFun = fun(Path, Data) -> {Path, Data} end,
@@ -459,6 +737,42 @@ projection_which_returns_non_tuple_does_not_cause_machine_to_exit_test_() ->
                   ?assertSubString(list_to_binary(?MODULE_STRING), Log),
                   ?assertSubString(<<"bad argument">>, Log)
               end)},
+         {"The projection does not contain the triggered change",
+          ?_assertEqual([], ets:tab2list(?MODULE))}]}]}.
+
+projection_which_crashes_does_not_cause_machine_to_exit_test_() ->
+    ProjectFun = fun(_, _, _, _) -> throw(oops) end,
+    PathPattern = [stock, wood, <<"oak">>],
+    Data = 100,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+        [{"Register the projection",
+          ?_test(
+              begin
+                  Projection = khepri_projection:new(?MODULE, ProjectFun),
+                  ?assertEqual(
+                    ok,
+                    khepri:register_projection(
+                      ?FUNCTION_NAME, PathPattern, Projection))
+              end)},
+         {"Trigger the projection",
+          ?_test(
+             begin
+                 Log = helpers:capture_log(
+                         fun() ->
+                                 ?assertEqual(
+                                    ok,
+                                    khepri:put(
+                                      ?FUNCTION_NAME, PathPattern, Data))
+                         end),
+                 ?assertSubString(
+                    <<"Failed to trigger extended projection">>,
+                    Log),
+                 ?assertSubString(list_to_binary(?MODULE_STRING), Log),
+                 ?assertSubString(<<"oops">>, Log)
+             end)},
          {"The projection does not contain the triggered change",
           ?_assertEqual([], ets:tab2list(?MODULE))}]}]}.
 
