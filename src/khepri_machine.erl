@@ -1969,8 +1969,9 @@ which_module(0) -> ?MODULE.
 
 -spec effective_version(StoreId) -> Ret when
       StoreId :: khepri:store_id(),
-      Ret :: khepri:ok(EffectiveMacVer) | khepri:error(),
-      EffectiveMacVer :: ra_machine:version().
+      Ret :: khepri:ok(EffectiveMacVer) | {error, Reason},
+      EffectiveMacVer :: ra_machine:version(),
+      Reason :: ?khepri_error(effective_machine_version_not_defined, map()).
 %% @doc Returns the effective state machine version of the local Ra server.
 %%
 %% The effective machine version is queried from a cached value, not from the
