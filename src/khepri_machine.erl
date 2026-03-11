@@ -242,11 +242,7 @@
 %% A mapping between the names of projections and patterns to which each
 %% projection is registered.
 
--type api_behaviour() :: dedup_protection |
-                         delete_reason_in_node_props |
-                         indirect_deletes_in_ret |
-                         uniform_write_ret |
-                         atom().
+-type api_behaviour() :: atom().
 %% Name of a state machine API behaviour.
 
 -export_type([write_ret/0,
