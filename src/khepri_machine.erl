@@ -2053,7 +2053,7 @@ does_api_comply_with(uniform_write_ret, MacVer)
   when is_integer(MacVer) ->
     MacVer >= 2;
 does_api_comply_with(_Behaviour, MacVer)
-  when is_integer(MacVer) ->
+  when is_integer(MacVer) andalso MacVer >= 0 ->
     false;
 does_api_comply_with(Behaviour, StoreId)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
