@@ -2027,6 +2027,21 @@ clear_cached_effective_machine_version(StoreId) ->
     _ = persistent_term:erase(Key),
     ok.
 
+-spec api_behaviour_to_machine_version(Behaviour) -> Ret when
+      Behaviour :: khepri_machine:api_behaviour(),
+      Ret :: MacVer | undefined,
+      MacVer :: 1..2.
+%% @doc Returns the state machine version that implemented the given API behaviour.
+%%
+%% If the behaviour is unknown to this implementation, `undefined' is returned.
+
+api_behaviour_to_machine_version(dedup_protection)                  -> 1;
+api_behaviour_to_machine_version(delete_reason_in_node_props)       -> 2;
+api_behaviour_to_machine_version(indirect_deletes_in_ret)           -> 2;
+api_behaviour_to_machine_version(uniform_write_ret)                 -> 2;
+api_behaviour_to_machine_version(Behaviour) when is_atom(Behaviour) ->
+    undefined.
+
 -spec does_api_comply_with(Behaviour, MacVer | StoreId) -> DoesUse when
       Behaviour :: khepri_machine:api_behaviour(),
       MacVer :: ra_machine:version(),
@@ -2047,21 +2062,9 @@ clear_cached_effective_machine_version(StoreId) ->
 %% @returns true if the given behaviour is activated, false if it is not or if
 %% the behaviour is unknown.
 
-does_api_comply_with(dedup_protection, MacVer)
-  when is_integer(MacVer) ->
-    MacVer >= 1;
-does_api_comply_with(delete_reason_in_node_props, MacVer)
-  when is_integer(MacVer) ->
-    MacVer >= 2;
-does_api_comply_with(indirect_deletes_in_ret, MacVer)
-  when is_integer(MacVer) ->
-    MacVer >= 2;
-does_api_comply_with(uniform_write_ret, MacVer)
-  when is_integer(MacVer) ->
-    MacVer >= 2;
-does_api_comply_with(_Behaviour, MacVer)
-  when is_integer(MacVer) andalso MacVer >= 0 ->
-    false;
+does_api_comply_with(Behaviour, MacVer) when is_integer(MacVer) ->
+    RequiredVersion = api_behaviour_to_machine_version(Behaviour),
+    is_integer(RequiredVersion) andalso MacVer >= RequiredVersion;
 does_api_comply_with(Behaviour, StoreId)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
     case effective_version(StoreId) of
