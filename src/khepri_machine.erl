@@ -242,11 +242,7 @@
 %% A mapping between the names of projections and patterns to which each
 %% projection is registered.
 
--type api_behaviour() :: dedup_protection |
-                         delete_reason_in_node_props |
-                         indirect_deletes_in_ret |
-                         uniform_write_ret |
-                         atom().
+-type api_behaviour() :: atom().
 %% Name of a state machine API behaviour.
 
 -export_type([write_ret/0,
@@ -1969,8 +1965,9 @@ which_module(0) -> ?MODULE.
 
 -spec effective_version(StoreId) -> Ret when
       StoreId :: khepri:store_id(),
-      Ret :: khepri:ok(EffectiveMacVer) | khepri:error(),
-      EffectiveMacVer :: ra_machine:version().
+      Ret :: khepri:ok(EffectiveMacVer) | {error, Reason},
+      EffectiveMacVer :: ra_machine:version(),
+      Reason :: ?khepri_error(effective_machine_version_not_defined, map()).
 %% @doc Returns the effective state machine version of the local Ra server.
 %%
 %% The effective machine version is queried from a cached value, not from the
@@ -2052,7 +2049,7 @@ does_api_comply_with(uniform_write_ret, MacVer)
   when is_integer(MacVer) ->
     MacVer >= 2;
 does_api_comply_with(_Behaviour, MacVer)
-  when is_integer(MacVer) ->
+  when is_integer(MacVer) andalso MacVer >= 0 ->
     false;
 does_api_comply_with(Behaviour, StoreId)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
