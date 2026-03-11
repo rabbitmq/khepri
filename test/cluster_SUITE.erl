@@ -51,7 +51,8 @@
          projections_are_updated_when_a_snapshot_is_installed/1,
          async_command_leader_change_in_three_node_cluster/1,
          spam_txs_during_election/1,
-         spam_changes_during_unregister_projections/1]).
+         spam_changes_during_unregister_projections/1,
+         can_wait_for_effective_behaviour/1]).
 
 all() ->
     [
@@ -79,7 +80,8 @@ groups() ->
            fail_to_start_with_bad_ra_server_config,
            initial_members_are_ignored,
            fail_to_join_non_existing_node,
-           can_set_snapshot_interval
+           can_set_snapshot_interval,
+           can_wait_for_effective_behaviour
           ]}
         ]},
        {cluster, [],
@@ -104,7 +106,8 @@ groups() ->
            projections_are_updated_when_a_snapshot_is_installed,
            async_command_leader_change_in_three_node_cluster,
            spam_txs_during_election,
-           spam_changes_during_unregister_projections
+           spam_changes_during_unregister_projections,
+           can_wait_for_effective_behaviour
           ]}
         ]}
       ]}
@@ -2630,3 +2633,51 @@ spam_async_changes(Config, Parent, Node, StoreId, Path, Runs) ->
               spam_async_changes(
                 Config, Parent, Node, StoreId, Path, NewRuns)
     end.
+
+can_wait_for_effective_behaviour(Config) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    [FirstNode | OtherNodes] = Nodes = maps:keys(PropsPerNode),
+
+    %% We assume all nodes are using the same Ra system name & store ID.
+    RaSystem = helpers:get_ra_system_name(Config),
+    StoreId = RaSystem,
+
+    ct:pal("Start database + cluster nodes"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 helpers:call(
+                   Config, Node, khepri, start, [RaSystem, StoreId]))
+      end, Nodes),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:join() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 helpers:call(
+                   Config, Node, khepri_cluster, join, [StoreId, FirstNode]))
+      end, OtherNodes),
+
+    ct:pal("Wait for the `uniform_write_ret` behaviour"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal(
+                "- khepri_cluster:wait_for_effective_behaviour() from node ~s",
+                [Node]),
+              ?assertEqual(
+                 ok,
+                 helpers:call(
+                   Config, Node,
+                   khepri_cluster, wait_for_effective_behaviour,
+                   [{StoreId, Node}, uniform_write_ret])),
+
+              ?assertMatch(
+                 {error,
+                  ?khepri_error(unknown_api_hehaviour, _)},
+                 helpers:call(
+                   Config, Node,
+                   khepri_cluster, wait_for_effective_behaviour,
+                   [{StoreId, Node}, random_unknown_behaviour]))
+      end, Nodes).

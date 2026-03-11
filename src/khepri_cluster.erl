@@ -112,6 +112,8 @@
          wait_for_leader/0, wait_for_leader/1, wait_for_leader/2,
          wait_for_effective_machine_version/2,
          wait_for_effective_machine_version/3,
+         wait_for_effective_behaviour/2,
+         wait_for_effective_behaviour/3,
          get_default_ra_system_or_data_dir/0,
          get_default_store_id/0,
          get_store_ids/0,
@@ -1439,6 +1441,55 @@ wait_for_effective_machine_version({StoreId, _Node}, MacVer, Timeout) ->
 wait_for_effective_machine_version(StoreId, MacVer, Timeout)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
     khepri_machine:wait_for_effective_machine_version(StoreId, MacVer, Timeout).
+
+-spec wait_for_effective_behaviour(StoreIdOrRaServer, Behaviour) -> Ret when
+      StoreIdOrRaServer :: StoreId | RaServer,
+      StoreId :: khepri:store_id(),
+      RaServer :: ra:server_id(),
+      Behaviour :: khepri_machine:api_behaviour(),
+      Ret :: ok | {error, Reason},
+      Reason :: timeout |
+                ?khepri_error(unknown_api_hehaviour, #{behaviour := atom()}) |
+                ?khepri_error(effective_machine_version_not_defined, map()).
+%% @doc Waits for the store to support the given API behaviour.
+%%
+%% Calling this function is the same as calling
+%% `wait_for_effective_behaviour(StoreId, Behaviour, DefaultTimeout)' where
+%% `DefaultTimeout' is returned by {@link khepri_app:get_default_timeout/0}.
+%%
+%% @see wait_for_effective_behaviour/3.
+
+wait_for_effective_behaviour(StoreIdOrRaServer, Behaviour) ->
+    Timeout = khepri_app:get_default_timeout(),
+    wait_for_effective_behaviour(StoreIdOrRaServer, Behaviour, Timeout).
+
+-spec wait_for_effective_behaviour(StoreIdOrRaServer, Behaviour, Timeout) ->
+    Ret when
+      StoreIdOrRaServer :: StoreId | RaServer,
+      StoreId :: khepri:store_id(),
+      RaServer :: ra:server_id(),
+      Behaviour :: khepri_machine:api_behaviour(),
+      Timeout :: timeout(),
+      Ret :: ok | {error, Reason},
+      Reason :: timeout |
+                ?khepri_error(unknown_api_hehaviour, #{behaviour := atom()}) |
+                ?khepri_error(effective_machine_version_not_defined, map()).
+%% @doc Waits for the store to support the given API behaviour.
+%%
+%% @param StoreId the ID of the store.
+%% @param Behaviour the wanted behaviour.
+%% @param Timeout the timeout.
+%%
+%% @returns `ok' when the state machine of the given store supports the given
+%% API behaviour or an `{error, Reason}' tuple.
+%%
+%% @private
+
+wait_for_effective_behaviour({StoreId, _Node}, Behaviour, Timeout) ->
+    wait_for_effective_behaviour(StoreId, Behaviour, Timeout);
+wait_for_effective_behaviour(StoreId, Behaviour, Timeout)
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
+    khepri_machine:wait_for_effective_behaviour(StoreId, Behaviour, Timeout).
 
 -spec node_to_member(StoreId, Node) -> Member when
       StoreId :: khepri:store_id(),

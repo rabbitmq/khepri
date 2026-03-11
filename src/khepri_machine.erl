@@ -110,7 +110,8 @@
          process_query/3,
          process_command/3,
          does_api_comply_with/2,
-         wait_for_effective_machine_version/3]).
+         wait_for_effective_machine_version/3,
+         wait_for_effective_behaviour/3]).
 
 %% Internal functions to access the opaque #khepri_machine{} state.
 -export([is_state/1,
@@ -2112,6 +2113,30 @@ wait_for_effective_machine_version(StoreId, MacVer, Timeout)
               StoreId, ExpectedMacVer, NewTimeout);
         {error, _} = Error ->
             Error
+    end.
+
+-spec wait_for_effective_behaviour(StoreId, Behaviour, Timeout) -> Ret when
+      StoreId :: khepri:store_id(),
+      Behaviour :: khepri_machine:api_behaviour(),
+      Timeout :: timeout(),
+      Ret :: ok | {error, Reason},
+      Reason :: timeout |
+                ?khepri_error(unknown_api_hehaviour, map()) |
+                ?khepri_error(effective_machine_version_not_defined, map()).
+%% @doc Waits for the store to support the given API behaviour.
+%%
+%% @private
+
+wait_for_effective_behaviour(StoreId, Behaviour, Timeout) ->
+    case api_behaviour_to_machine_version(Behaviour) of
+        RequiredMacVer when is_integer(RequiredMacVer) ->
+            wait_for_effective_machine_version(
+              StoreId, RequiredMacVer, Timeout);
+        undefined ->
+            Reason = ?khepri_error(
+                        unknown_api_hehaviour,
+                        #{behaviour => Behaviour}),
+            {error, Reason}
     end.
 
 %% -------------------------------------------------------------------
