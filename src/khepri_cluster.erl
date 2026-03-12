@@ -870,7 +870,12 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
             %% standalone (after a reset) and needs an election to be in a
             %% working state again. We don't care about the result at this
             %% point.
-            trigger_election(ThisMember, Timeout1),
+            try
+                trigger_election(ThisMember, Timeout1)
+            catch
+                _Class:_Reason:_Stacktrace ->
+                    ok
+            end,
             case Error of
                 {timeout, _} -> {error, timeout};
                 {error, _}   -> Error
