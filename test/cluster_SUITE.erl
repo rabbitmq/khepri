@@ -311,7 +311,7 @@ handle_timeout_during_recovery(Config) ->
                  {ok, ok},
                  khepri:transaction(
                    StoreId,
-                   fun() -> timer:sleep(1000) end, rw))
+                   fun() -> timer:sleep(100) end, rw))
       end, lists:seq(1, TxCount)),
 
     ct:pal("Stop database"),
@@ -324,10 +324,10 @@ handle_timeout_during_recovery(Config) ->
        {ok, StoreId},
        khepri:start(RaSystem, RaServerConfig, infinity)),
 
-    ct:pal("Wait for leader for 60 seconds"),
+    ct:pal("Wait for leader for 6 seconds"),
     ?assertEqual(
        ok,
-       khepri_cluster:wait_for_leader(StoreId, 60000)),
+       khepri_cluster:wait_for_leader(StoreId, 6000)),
 
     ct:pal("Stop database"),
     ?assertEqual(
@@ -339,10 +339,10 @@ handle_timeout_during_recovery(Config) ->
        {ok, StoreId},
        khepri:start(RaSystem, RaServerConfig, infinity)),
 
-    ct:pal("Wait for leader for 30 seconds"),
+    ct:pal("Wait for leader for 3 seconds"),
     ?assertEqual(
        {error, timeout},
-       khepri_cluster:wait_for_leader(StoreId, 30000)),
+       khepri_cluster:wait_for_leader(StoreId, 3000)),
 
     ok.
 
@@ -357,7 +357,7 @@ can_query_members_with_a_single_node(Config) ->
        khepri_cluster:members(StoreId)),
     ?assertEqual(
        {error, noproc},
-       khepri_cluster:members(StoreId, #{timeout => 10000})),
+       khepri_cluster:members(StoreId, #{timeout => 1000})),
     ?assertEqual(
        {error, noproc},
        khepri_cluster:members(StoreId, #{favor => low_latency})),
@@ -368,7 +368,7 @@ can_query_members_with_a_single_node(Config) ->
        khepri_cluster:nodes(StoreId)),
     ?assertEqual(
        {error, noproc},
-       khepri_cluster:nodes(StoreId, #{timeout => 10000})),
+       khepri_cluster:nodes(StoreId, #{timeout => 1000})),
     ?assertEqual(
        {error, noproc},
        khepri_cluster:nodes(StoreId, #{favor => low_latency})),
@@ -384,7 +384,7 @@ can_query_members_with_a_single_node(Config) ->
        khepri_cluster:members(StoreId)),
     ?assertEqual(
        {ok, [{StoreId, Node}]},
-       khepri_cluster:members(StoreId, #{timeout => 10000})),
+       khepri_cluster:members(StoreId, #{timeout => 5000})),
     ?assertEqual(
        {ok, [{StoreId, Node}]},
        khepri_cluster:members(StoreId, #{favor => low_latency})),
@@ -395,7 +395,7 @@ can_query_members_with_a_single_node(Config) ->
        khepri_cluster:nodes(StoreId)),
     ?assertEqual(
        {ok, [Node]},
-       khepri_cluster:nodes(StoreId, #{timeout => 10000})),
+       khepri_cluster:nodes(StoreId, #{timeout => 5000})),
     ?assertEqual(
        {ok, [Node]},
        khepri_cluster:nodes(StoreId, #{favor => low_latency})),
@@ -422,7 +422,7 @@ can_query_members_with_a_single_node(Config) ->
        khepri_cluster:nodes(StoreId)),
     ?assertEqual(
        {error, noproc},
-       khepri_cluster:nodes(StoreId, #{timeout => 10000})),
+       khepri_cluster:nodes(StoreId, #{timeout => 1000})),
     ?assertEqual(
        {error, noproc},
        khepri_cluster:nodes(StoreId, #{favor => low_latency})),
@@ -1325,7 +1325,7 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  {error, noproc},
                  helpers:call(Config,
                    Node,
-                   khepri_cluster, members, [StoreId, #{timeout => 10000}])),
+                   khepri_cluster, members, [StoreId, #{timeout => 1000}])),
               ?assertEqual(
                  {error, noproc},
                  helpers:call(Config,
@@ -1344,7 +1344,7 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  {error, noproc},
                  helpers:call(Config,
                    Node,
-                   khepri_cluster, nodes, [StoreId, #{timeout => 10000}])),
+                   khepri_cluster, nodes, [StoreId, #{timeout => 1000}])),
               ?assertEqual(
                  {error, noproc},
                  helpers:call(Config,
@@ -1381,7 +1381,7 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  {ok, [{StoreId, N} || N <- Nodes]},
                  helpers:call(Config,
                    Node,
-                   khepri_cluster, members, [StoreId, #{timeout => 10000}])),
+                   khepri_cluster, members, [StoreId, #{timeout => 5000}])),
               ?assertEqual(
                  {ok, [{StoreId, N} || N <- Nodes]},
                  helpers:call(Config,
@@ -1400,7 +1400,7 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  {ok, Nodes},
                  helpers:call(Config,
                    Node,
-                   khepri_cluster, nodes, [StoreId, #{timeout => 10000}])),
+                   khepri_cluster, nodes, [StoreId, #{timeout => 5000}])),
               ?assertEqual(
                  {ok, Nodes},
                  helpers:call(Config,
@@ -1425,7 +1425,7 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  {ok, Nodes},
                  helpers:call(Config,
                    Node,
-                   khepri_cluster, nodes, [StoreId, #{timeout => 10000}])),
+                   khepri_cluster, nodes, [StoreId, #{timeout => 5000}])),
               ?assertEqual(
                  {ok, Nodes},
                  helpers:call(Config,
@@ -1451,7 +1451,7 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  {error, timeout},
                  helpers:call(Config,
                    Node,
-                   khepri_cluster, members, [StoreId, #{timeout => 10000}])),
+                   khepri_cluster, members, [StoreId, #{timeout => 1000}])),
               ?assertEqual(
                  {ok, [{StoreId, N} || N <- Nodes]},
                  helpers:call(Config,
@@ -1470,7 +1470,7 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  {error, timeout},
                  helpers:call(Config,
                    Node,
-                   khepri_cluster, nodes, [StoreId, #{timeout => 10000}])),
+                   khepri_cluster, nodes, [StoreId, #{timeout => 1000}])),
               ?assertEqual(
                  {ok, Nodes},
                  helpers:call(Config,
@@ -1499,7 +1499,7 @@ can_wait_for_leader_with_a_three_node_cluster(Config) ->
               ?assertEqual(
                  {error, noproc},
                  helpers:call(Config,
-                   Node, khepri_cluster, wait_for_leader, [StoreId, 2000]))
+                   Node, khepri_cluster, wait_for_leader, [StoreId, 1000]))
       end, Nodes),
 
     ct:pal("Start database + cluster nodes"),
@@ -1530,7 +1530,7 @@ can_wait_for_leader_with_a_three_node_cluster(Config) ->
               ?assertEqual(
                  ok,
                  helpers:call(Config,
-                   Node, khepri_cluster, wait_for_leader, [StoreId, 2000]))
+                   Node, khepri_cluster, wait_for_leader, [StoreId, 5000]))
       end, Nodes),
 
     LeaderId1 = helpers:get_leader_in_store(Config, StoreId, Nodes),
@@ -1550,7 +1550,7 @@ can_wait_for_leader_with_a_three_node_cluster(Config) ->
               ?assertEqual(
                  ok,
                  helpers:call(Config,
-                   Node, khepri_cluster, wait_for_leader, [StoreId, 2000]))
+                   Node, khepri_cluster, wait_for_leader, [StoreId, 5000]))
       end, LeftNodes1),
 
     lists:foreach(
@@ -1571,7 +1571,7 @@ can_wait_for_leader_with_a_three_node_cluster(Config) ->
               ?assertEqual(
                  {error, noproc},
                  helpers:call(Config,
-                   Node, khepri_cluster, wait_for_leader, [StoreId, 2000]))
+                   Node, khepri_cluster, wait_for_leader, [StoreId, 1000]))
       end, LeftNodes1),
 
     ok.
