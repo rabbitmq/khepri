@@ -131,7 +131,10 @@ end_per_suite(Config) ->
 
 init_per_group(single_node, Config) ->
     helpers:setup_node(),
-    Config;
+    [{use_cluster, false} | Config];
+init_per_group(cluster, Config) ->
+    helpers:setup_node(),
+    [{use_cluster, true} | Config];
 init_per_group(_Group, Config) ->
     Config.
 
@@ -139,64 +142,33 @@ end_per_group(_Group, _Config) ->
     ok.
 
 init_per_testcase(Testcase, Config)
-  when Testcase =:= can_start_a_single_node orelse
-       Testcase =:= can_restart_a_single_node_with_ra_server_config orelse
-       Testcase =:= handle_timeout_during_recovery orelse
-       Testcase =:= can_query_members_with_a_single_node orelse
-       Testcase =:= can_wait_for_leader_with_a_single_node orelse
-       Testcase =:= fail_to_start_with_bad_ra_server_config orelse
-       Testcase =:= initial_members_are_ignored orelse
-       Testcase =:= fail_to_join_non_existing_node orelse
-       Testcase =:= can_set_snapshot_interval ->
-    {ok, _} = application:ensure_all_started(khepri),
-    Props = helpers:start_ra_system(Testcase),
-    [{ra_system_props, #{node() => #{props => Props}}} | Config];
-init_per_testcase(Testcase, Config)
-  when Testcase =:= can_start_a_three_node_cluster orelse
-       Testcase =:= can_join_several_times_a_three_node_cluster orelse
-       Testcase =:= can_rejoin_after_a_reset_in_a_three_node_cluster orelse
-       Testcase =:= can_restart_nodes_in_a_three_node_cluster orelse
-       Testcase =:= can_reset_a_cluster_member orelse
-       Testcase =:= can_query_members_with_a_three_node_cluster orelse
-       Testcase =:= can_wait_for_leader_with_a_three_node_cluster orelse
-       Testcase =:= fail_to_join_if_not_started orelse
-       Testcase =:= fail_to_join_non_existing_store orelse
-       Testcase =:= handle_leader_down_on_three_node_cluster_command orelse
-       Testcase =:= handle_leader_down_on_three_node_cluster_response orelse
-       Testcase =:= projections_are_consistent_on_three_node_cluster orelse
-       Testcase =:= projections_are_updated_when_a_snapshot_is_installed orelse
-       Testcase =:= async_command_leader_change_in_three_node_cluster orelse
-       Testcase =:= spam_changes_during_unregister_projections ->
-    Nodes = helpers:start_n_nodes(?MODULE, Testcase, 3),
-    PropsPerNode0 = [begin
-                         {ok, _} = peer:call(
-                                     Peer, application, ensure_all_started,
-                                     [khepri], infinity),
-                         Props = peer:call(
-                                   Peer, helpers, start_ra_system,
-                                   [Testcase], infinity),
-                         {Node, #{peer => Peer, props => Props}}
-                     end || {Node, Peer} <- Nodes],
-    PropsPerNode = maps:from_list(PropsPerNode0),
-    [{ra_system_props, PropsPerNode}, {peer_nodes, Nodes} | Config];
-init_per_testcase(Testcase, Config)
-  when Testcase =:= spam_txs_during_election ->
-    Nodes = helpers:start_n_nodes(?MODULE, Testcase, 2),
-    PropsPerNode0 = [begin
-                         {ok, _} = peer:call(
-                                     Peer, application, ensure_all_started,
-                                     [khepri], infinity),
-                         Props = peer:call(
-                                   Peer, helpers, start_ra_system,
-                                   [Testcase], infinity),
-                         {Node, #{peer => Peer, props => Props}}
-                     end || {Node, Peer} <- Nodes],
-    PropsPerNode = maps:from_list(PropsPerNode0),
-    [{ra_system_props, PropsPerNode}, {peer_nodes, Nodes} | Config];
-init_per_testcase(Testcase, Config)
   when Testcase =:= can_use_default_store_on_single_node orelse
        Testcase =:= can_start_store_in_specified_data_dir_on_single_node ->
-    Config.
+    Config;
+init_per_testcase(Testcase, Config) ->
+    case ?config(use_cluster, Config) of
+        false ->
+            {ok, _} = application:ensure_all_started(khepri),
+            Props = helpers:start_ra_system(Testcase),
+            [{ra_system_props, #{node() => #{props => Props}}} | Config];
+        true ->
+            NodeCount = case Testcase of
+                            spam_txs_during_election -> 2;
+                            _                        -> 3
+                        end,
+            Nodes = helpers:start_n_nodes(?MODULE, Testcase, NodeCount),
+            PropsPerNode0 = [begin
+                                 {ok, _} = peer:call(
+                                             Peer, application, ensure_all_started,
+                                             [khepri], infinity),
+                                 Props = peer:call(
+                                           Peer, helpers, start_ra_system,
+                                           [Testcase], infinity),
+                                 {Node, #{peer => Peer, props => Props}}
+                             end || {Node, Peer} <- Nodes],
+            PropsPerNode = maps:from_list(PropsPerNode0),
+            [{ra_system_props, PropsPerNode}, {peer_nodes, Nodes} | Config]
+    end.
 
 end_per_testcase(Testcase, _Config)
   when Testcase =:= can_use_default_store_on_single_node orelse

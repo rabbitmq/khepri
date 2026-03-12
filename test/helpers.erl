@@ -286,8 +286,12 @@ get_ra_system_name(Config) ->
 
 call(Config, Node, Module, Func, Args) ->
     PropsPerNode = ?config(ra_system_props, Config),
-    #{peer := Peer} = maps:get(Node, PropsPerNode),
-    peer:call(Peer, Module, Func, Args, infinity).
+    case PropsPerNode of
+        #{Node := #{peer := Peer}} ->
+            peer:call(Peer, Module, Func, Args, infinity);
+        #{Node := _} ->
+            erlang:apply(Module, Func, Args)
+    end.
 
 get_leader_in_store(Config, StoreId, [Node | _] = _RunningNodes) ->
     %% Query members; this is used to make sure there is an elected leader.
