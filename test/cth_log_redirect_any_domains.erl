@@ -28,4 +28,9 @@ do_log(Log,Config) ->
                          _ ->
                              ?BACKEND_MODULE
                      end,
-    ok = gen_server:call(CthLogRedirect,{log,Log,Config}).
+    try
+        gen_server:call(CthLogRedirect,{log,Log,Config})
+    catch
+        _Class:_Reason ->
+            ok
+    end.

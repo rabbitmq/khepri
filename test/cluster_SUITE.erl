@@ -82,24 +82,30 @@ groups() ->
            can_set_snapshot_interval
           ]}
         ]},
-       {cluster, [parallel],
+       {cluster, [],
         [
-         can_start_a_three_node_cluster,
-         can_join_several_times_a_three_node_cluster,
-         can_rejoin_after_a_reset_in_a_three_node_cluster,
-         can_restart_nodes_in_a_three_node_cluster,
-         can_reset_a_cluster_member,
-         can_query_members_with_a_three_node_cluster,
-         can_wait_for_leader_with_a_three_node_cluster,
-         fail_to_join_if_not_started,
-         fail_to_join_non_existing_store,
-         handle_leader_down_on_three_node_cluster_command,
-         handle_leader_down_on_three_node_cluster_response,
-         projections_are_consistent_on_three_node_cluster,
-         projections_are_updated_when_a_snapshot_is_installed,
-         async_command_leader_change_in_three_node_cluster,
-         spam_txs_during_election,
-         spam_changes_during_unregister_projections
+         {set1, [parallel],
+          [
+           can_start_a_three_node_cluster,
+           can_join_several_times_a_three_node_cluster,
+           can_rejoin_after_a_reset_in_a_three_node_cluster,
+           can_restart_nodes_in_a_three_node_cluster,
+           can_reset_a_cluster_member,
+           can_query_members_with_a_three_node_cluster,
+           can_wait_for_leader_with_a_three_node_cluster,
+           fail_to_join_if_not_started,
+           fail_to_join_non_existing_store,
+           handle_leader_down_on_three_node_cluster_command
+          ]},
+         {set2, [parallel],
+          [
+           handle_leader_down_on_three_node_cluster_response,
+           projections_are_consistent_on_three_node_cluster,
+           projections_are_updated_when_a_snapshot_is_installed,
+           async_command_leader_change_in_three_node_cluster,
+           spam_txs_during_election,
+           spam_changes_during_unregister_projections
+          ]}
         ]}
       ]}
     ].
@@ -125,7 +131,10 @@ end_per_suite(Config) ->
 
 init_per_group(single_node, Config) ->
     helpers:setup_node(),
-    Config;
+    [{use_cluster, false} | Config];
+init_per_group(cluster, Config) ->
+    helpers:setup_node(),
+    [{use_cluster, true} | Config];
 init_per_group(_Group, Config) ->
     Config.
 
@@ -133,64 +142,33 @@ end_per_group(_Group, _Config) ->
     ok.
 
 init_per_testcase(Testcase, Config)
-  when Testcase =:= can_start_a_single_node orelse
-       Testcase =:= can_restart_a_single_node_with_ra_server_config orelse
-       Testcase =:= handle_timeout_during_recovery orelse
-       Testcase =:= can_query_members_with_a_single_node orelse
-       Testcase =:= can_wait_for_leader_with_a_single_node orelse
-       Testcase =:= fail_to_start_with_bad_ra_server_config orelse
-       Testcase =:= initial_members_are_ignored orelse
-       Testcase =:= fail_to_join_non_existing_node orelse
-       Testcase =:= can_set_snapshot_interval ->
-    {ok, _} = application:ensure_all_started(khepri),
-    Props = helpers:start_ra_system(Testcase),
-    [{ra_system_props, #{node() => #{props => Props}}} | Config];
-init_per_testcase(Testcase, Config)
-  when Testcase =:= can_start_a_three_node_cluster orelse
-       Testcase =:= can_join_several_times_a_three_node_cluster orelse
-       Testcase =:= can_rejoin_after_a_reset_in_a_three_node_cluster orelse
-       Testcase =:= can_restart_nodes_in_a_three_node_cluster orelse
-       Testcase =:= can_reset_a_cluster_member orelse
-       Testcase =:= can_query_members_with_a_three_node_cluster orelse
-       Testcase =:= can_wait_for_leader_with_a_three_node_cluster orelse
-       Testcase =:= fail_to_join_if_not_started orelse
-       Testcase =:= fail_to_join_non_existing_store orelse
-       Testcase =:= handle_leader_down_on_three_node_cluster_command orelse
-       Testcase =:= handle_leader_down_on_three_node_cluster_response orelse
-       Testcase =:= projections_are_consistent_on_three_node_cluster orelse
-       Testcase =:= projections_are_updated_when_a_snapshot_is_installed orelse
-       Testcase =:= async_command_leader_change_in_three_node_cluster orelse
-       Testcase =:= spam_changes_during_unregister_projections ->
-    Nodes = helpers:start_n_nodes(?MODULE, Testcase, 3),
-    PropsPerNode0 = [begin
-                         {ok, _} = peer:call(
-                                     Peer, application, ensure_all_started,
-                                     [khepri], infinity),
-                         Props = peer:call(
-                                   Peer, helpers, start_ra_system,
-                                   [Testcase], infinity),
-                         {Node, #{peer => Peer, props => Props}}
-                     end || {Node, Peer} <- Nodes],
-    PropsPerNode = maps:from_list(PropsPerNode0),
-    [{ra_system_props, PropsPerNode}, {peer_nodes, Nodes} | Config];
-init_per_testcase(Testcase, Config)
-  when Testcase =:= spam_txs_during_election ->
-    Nodes = helpers:start_n_nodes(?MODULE, Testcase, 2),
-    PropsPerNode0 = [begin
-                         {ok, _} = peer:call(
-                                     Peer, application, ensure_all_started,
-                                     [khepri], infinity),
-                         Props = peer:call(
-                                   Peer, helpers, start_ra_system,
-                                   [Testcase], infinity),
-                         {Node, #{peer => Peer, props => Props}}
-                     end || {Node, Peer} <- Nodes],
-    PropsPerNode = maps:from_list(PropsPerNode0),
-    [{ra_system_props, PropsPerNode}, {peer_nodes, Nodes} | Config];
-init_per_testcase(Testcase, Config)
   when Testcase =:= can_use_default_store_on_single_node orelse
        Testcase =:= can_start_store_in_specified_data_dir_on_single_node ->
-    Config.
+    Config;
+init_per_testcase(Testcase, Config) ->
+    case ?config(use_cluster, Config) of
+        false ->
+            {ok, _} = application:ensure_all_started(khepri),
+            Props = helpers:start_ra_system(Testcase),
+            [{ra_system_props, #{node() => #{props => Props}}} | Config];
+        true ->
+            NodeCount = case Testcase of
+                            spam_txs_during_election -> 2;
+                            _                        -> 3
+                        end,
+            Nodes = helpers:start_n_nodes(?MODULE, Testcase, NodeCount),
+            PropsPerNode0 = [begin
+                                 {ok, _} = peer:call(
+                                             Peer, application, ensure_all_started,
+                                             [khepri], infinity),
+                                 Props = peer:call(
+                                           Peer, helpers, start_ra_system,
+                                           [Testcase], infinity),
+                                 {Node, #{peer => Peer, props => Props}}
+                             end || {Node, Peer} <- Nodes],
+            PropsPerNode = maps:from_list(PropsPerNode0),
+            [{ra_system_props, PropsPerNode}, {peer_nodes, Nodes} | Config]
+    end.
 
 end_per_testcase(Testcase, _Config)
   when Testcase =:= can_use_default_store_on_single_node orelse
@@ -311,7 +289,7 @@ handle_timeout_during_recovery(Config) ->
                  {ok, ok},
                  khepri:transaction(
                    StoreId,
-                   fun() -> timer:sleep(1000) end, rw))
+                   fun() -> timer:sleep(100) end, rw))
       end, lists:seq(1, TxCount)),
 
     ct:pal("Stop database"),
@@ -324,10 +302,10 @@ handle_timeout_during_recovery(Config) ->
        {ok, StoreId},
        khepri:start(RaSystem, RaServerConfig, infinity)),
 
-    ct:pal("Wait for leader for 60 seconds"),
+    ct:pal("Wait for leader for 6 seconds"),
     ?assertEqual(
        ok,
-       khepri_cluster:wait_for_leader(StoreId, 60000)),
+       khepri_cluster:wait_for_leader(StoreId, 6000)),
 
     ct:pal("Stop database"),
     ?assertEqual(
@@ -339,10 +317,10 @@ handle_timeout_during_recovery(Config) ->
        {ok, StoreId},
        khepri:start(RaSystem, RaServerConfig, infinity)),
 
-    ct:pal("Wait for leader for 30 seconds"),
+    ct:pal("Wait for leader for 3 seconds"),
     ?assertEqual(
        {error, timeout},
-       khepri_cluster:wait_for_leader(StoreId, 30000)),
+       khepri_cluster:wait_for_leader(StoreId, 3000)),
 
     ok.
 
@@ -357,7 +335,7 @@ can_query_members_with_a_single_node(Config) ->
        khepri_cluster:members(StoreId)),
     ?assertEqual(
        {error, noproc},
-       khepri_cluster:members(StoreId, #{timeout => 10000})),
+       khepri_cluster:members(StoreId, #{timeout => 1000})),
     ?assertEqual(
        {error, noproc},
        khepri_cluster:members(StoreId, #{favor => low_latency})),
@@ -368,7 +346,7 @@ can_query_members_with_a_single_node(Config) ->
        khepri_cluster:nodes(StoreId)),
     ?assertEqual(
        {error, noproc},
-       khepri_cluster:nodes(StoreId, #{timeout => 10000})),
+       khepri_cluster:nodes(StoreId, #{timeout => 1000})),
     ?assertEqual(
        {error, noproc},
        khepri_cluster:nodes(StoreId, #{favor => low_latency})),
@@ -384,7 +362,7 @@ can_query_members_with_a_single_node(Config) ->
        khepri_cluster:members(StoreId)),
     ?assertEqual(
        {ok, [{StoreId, Node}]},
-       khepri_cluster:members(StoreId, #{timeout => 10000})),
+       khepri_cluster:members(StoreId, #{timeout => 5000})),
     ?assertEqual(
        {ok, [{StoreId, Node}]},
        khepri_cluster:members(StoreId, #{favor => low_latency})),
@@ -395,7 +373,7 @@ can_query_members_with_a_single_node(Config) ->
        khepri_cluster:nodes(StoreId)),
     ?assertEqual(
        {ok, [Node]},
-       khepri_cluster:nodes(StoreId, #{timeout => 10000})),
+       khepri_cluster:nodes(StoreId, #{timeout => 5000})),
     ?assertEqual(
        {ok, [Node]},
        khepri_cluster:nodes(StoreId, #{favor => low_latency})),
@@ -422,7 +400,7 @@ can_query_members_with_a_single_node(Config) ->
        khepri_cluster:nodes(StoreId)),
     ?assertEqual(
        {error, noproc},
-       khepri_cluster:nodes(StoreId, #{timeout => 10000})),
+       khepri_cluster:nodes(StoreId, #{timeout => 1000})),
     ?assertEqual(
        {error, noproc},
        khepri_cluster:nodes(StoreId, #{favor => low_latency})),
@@ -1325,7 +1303,7 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  {error, noproc},
                  helpers:call(Config,
                    Node,
-                   khepri_cluster, members, [StoreId, #{timeout => 10000}])),
+                   khepri_cluster, members, [StoreId, #{timeout => 1000}])),
               ?assertEqual(
                  {error, noproc},
                  helpers:call(Config,
@@ -1344,7 +1322,7 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  {error, noproc},
                  helpers:call(Config,
                    Node,
-                   khepri_cluster, nodes, [StoreId, #{timeout => 10000}])),
+                   khepri_cluster, nodes, [StoreId, #{timeout => 1000}])),
               ?assertEqual(
                  {error, noproc},
                  helpers:call(Config,
@@ -1381,7 +1359,7 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  {ok, [{StoreId, N} || N <- Nodes]},
                  helpers:call(Config,
                    Node,
-                   khepri_cluster, members, [StoreId, #{timeout => 10000}])),
+                   khepri_cluster, members, [StoreId, #{timeout => 5000}])),
               ?assertEqual(
                  {ok, [{StoreId, N} || N <- Nodes]},
                  helpers:call(Config,
@@ -1400,7 +1378,7 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  {ok, Nodes},
                  helpers:call(Config,
                    Node,
-                   khepri_cluster, nodes, [StoreId, #{timeout => 10000}])),
+                   khepri_cluster, nodes, [StoreId, #{timeout => 5000}])),
               ?assertEqual(
                  {ok, Nodes},
                  helpers:call(Config,
@@ -1425,7 +1403,7 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  {ok, Nodes},
                  helpers:call(Config,
                    Node,
-                   khepri_cluster, nodes, [StoreId, #{timeout => 10000}])),
+                   khepri_cluster, nodes, [StoreId, #{timeout => 5000}])),
               ?assertEqual(
                  {ok, Nodes},
                  helpers:call(Config,
@@ -1451,7 +1429,7 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  {error, timeout},
                  helpers:call(Config,
                    Node,
-                   khepri_cluster, members, [StoreId, #{timeout => 10000}])),
+                   khepri_cluster, members, [StoreId, #{timeout => 1000}])),
               ?assertEqual(
                  {ok, [{StoreId, N} || N <- Nodes]},
                  helpers:call(Config,
@@ -1470,7 +1448,7 @@ can_query_members_with_a_three_node_cluster(Config) ->
                  {error, timeout},
                  helpers:call(Config,
                    Node,
-                   khepri_cluster, nodes, [StoreId, #{timeout => 10000}])),
+                   khepri_cluster, nodes, [StoreId, #{timeout => 1000}])),
               ?assertEqual(
                  {ok, Nodes},
                  helpers:call(Config,
@@ -1499,7 +1477,7 @@ can_wait_for_leader_with_a_three_node_cluster(Config) ->
               ?assertEqual(
                  {error, noproc},
                  helpers:call(Config,
-                   Node, khepri_cluster, wait_for_leader, [StoreId, 2000]))
+                   Node, khepri_cluster, wait_for_leader, [StoreId, 1000]))
       end, Nodes),
 
     ct:pal("Start database + cluster nodes"),
@@ -1530,7 +1508,7 @@ can_wait_for_leader_with_a_three_node_cluster(Config) ->
               ?assertEqual(
                  ok,
                  helpers:call(Config,
-                   Node, khepri_cluster, wait_for_leader, [StoreId, 2000]))
+                   Node, khepri_cluster, wait_for_leader, [StoreId, 5000]))
       end, Nodes),
 
     LeaderId1 = helpers:get_leader_in_store(Config, StoreId, Nodes),
@@ -1550,7 +1528,7 @@ can_wait_for_leader_with_a_three_node_cluster(Config) ->
               ?assertEqual(
                  ok,
                  helpers:call(Config,
-                   Node, khepri_cluster, wait_for_leader, [StoreId, 2000]))
+                   Node, khepri_cluster, wait_for_leader, [StoreId, 5000]))
       end, LeftNodes1),
 
     lists:foreach(
@@ -1571,7 +1549,7 @@ can_wait_for_leader_with_a_three_node_cluster(Config) ->
               ?assertEqual(
                  {error, noproc},
                  helpers:call(Config,
-                   Node, khepri_cluster, wait_for_leader, [StoreId, 2000]))
+                   Node, khepri_cluster, wait_for_leader, [StoreId, 1000]))
       end, LeftNodes1),
 
     ok.
