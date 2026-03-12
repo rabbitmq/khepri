@@ -200,7 +200,7 @@
 -export([new/2, new/3, name/1]).
 
  %% For internal use only
--export([check_compatibility_with_store/2, init/1, trigger/4, delete/1]).
+-export([check_compatibility_with_store/3, init/1, trigger/4, delete/1]).
 
 -type name() :: atom().
 %% The name of a projection.
@@ -510,33 +510,24 @@ to_ets_options(Key, Value, _Acc) ->
 name(#khepri_projection{name = Name}) ->
     Name.
 
--spec check_compatibility_with_store(StoreId, Projection) -> Ret when
+-spec check_compatibility_with_store(StoreId, Projection, Timeout) -> Ret when
       StoreId :: khepri:store_id(),
       Projection :: khepri_projection:projection(),
+      Timeout :: timeout(),
       Ret :: ok | {error, any()}.
 %% @doc Checks if a projection is compatible with the given store.
 %%
 %% @private
 
-check_compatibility_with_store(StoreId, Projection) ->
+check_compatibility_with_store(StoreId, Projection, Timeout) ->
     case is_single_table_projection(Projection) of
         true ->
             ok;
         false ->
             %% Ensure the Khepri cluster runs a new enough version to support
             %% multi-table projections.
-            Compatible = khepri_machine:does_api_comply_with(
-                           multi_table_projections, StoreId),
-            case Compatible of
-                true ->
-                    ok;
-                false ->
-                    Reason = ?khepri_error(
-                                cluster_incompatible_with_multi_table_projection,
-                                #{store_id => StoreId,
-                                  projection => Projection}),
-                    {error, Reason}
-            end
+            khepri_machine:wait_for_effective_behaviour(
+              StoreId, multi_table_projections, Timeout)
     end.
 
 -spec init(Projection) -> Ret when

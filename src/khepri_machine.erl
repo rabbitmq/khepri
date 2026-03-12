@@ -680,15 +680,20 @@ register_projection(
        ?ARE_PROJECTION_ETS_OPTIONS(EtsOptions) andalso
        (?IS_HORUS_STANDALONE_FUN(ProjectionFun) orelse
         ProjectionFun =:= copy) ->
+    Timeout = get_timeout(Options),
+    T0 = khepri_utils:start_timeout_window(Timeout),
     Compatible = khepri_projection:check_compatibility_with_store(
-                   StoreId, Projection),
+                   StoreId, Projection, Timeout),
     case Compatible of
         ok ->
+            NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+            Options1 = Options#{timeout => NewTimeout},
+
             PathPattern = khepri_path:from_string(PathPattern0),
             khepri_path:ensure_is_valid(PathPattern),
             Command = #register_projection{pattern = PathPattern,
                                            projection = Projection},
-            process_command(StoreId, Command, Options);
+            process_command(StoreId, Command, Options1);
         {error, _Reason} = Error ->
             Error
     end.
