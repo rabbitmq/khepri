@@ -1359,7 +1359,7 @@ wait_for_leader(StoreIdOrRaServer, Timeout) ->
     do_wait_for_leader(StoreIdOrRaServer, true, Timeout).
 
 do_wait_for_leader(StoreId, WaitForProcToStart, Timeout)
-  when is_atom(StoreId) ->
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
     ThisMember = this_member(StoreId),
     do_wait_for_leader(ThisMember, WaitForProcToStart, Timeout);
 do_wait_for_leader(RaServer, WaitForProcToStart, Timeout) ->
