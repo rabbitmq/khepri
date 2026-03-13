@@ -1412,6 +1412,15 @@ handle_aux(
       end),
     {no_reply, AuxState1, IntState};
 handle_aux(
+  _RaState, cast, cache_effective_machine_version, AuxState, IntState) ->
+    #khepri_machine_aux{store_id = StoreId} = AuxState,
+    EffectiveMacVer = ra_aux:effective_machine_version(IntState),
+    cache_effective_machine_version(StoreId, EffectiveMacVer),
+
+    AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+
+    {no_reply, AuxState1, IntState};
+handle_aux(
   _RaState, cast,
   #restore_projection{projection = Projection, pattern = PathPattern},
   AuxState, IntState) ->
@@ -1866,8 +1875,9 @@ state_enter(leader, State) ->
     SideEffects = emitted_triggers_to_side_effects(State),
     SideEffects;
 state_enter(recovered, _State) ->
-    SideEffect = {aux, restore_projections},
-    [SideEffect];
+    SideEffects = [{aux, restore_projections},
+                   {aux, cache_effective_machine_version}],
+    SideEffects;
 state_enter(_StateName, _State) ->
     [].
 
@@ -1889,7 +1899,8 @@ snapshot_installed(
     OldState1 = convert_state(OldState, OldMacVer, NewMacVer),
     ok = update_projections(OldState1, NewState),
     ok = clear_compiled_projection_tree(),
-    [].
+    SideEffects = [{aux, cache_effective_machine_version}],
+    SideEffects.
 
 %% @private
 
