@@ -21,8 +21,8 @@ jobs:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: erlef/setup-beam@566deebc640988a494af16ecdf6f820fe0d3fea4
+      - uses: actions/checkout@v6
+      - uses: erlef/setup-beam@v1
         id: install-erlang
         with:
           otp-version: ${{ matrix.otp_version }}
@@ -41,7 +41,7 @@ jobs:
         run: rebar3 ct --verbose --cover --sname ct
 
       - name: Upload common_test logs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: common-test-logs-${{ matrix.otp_version }}-${{ matrix.os }}
@@ -54,7 +54,7 @@ jobs:
         run: rebar3 as test covertool generate
 
       - name: Upload code coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: _build/test/covertool/khepri.covertool.xml
