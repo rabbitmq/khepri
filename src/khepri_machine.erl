@@ -242,11 +242,7 @@
 %% A mapping between the names of projections and patterns to which each
 %% projection is registered.
 
--type api_behaviour() :: dedup_protection |
-                         delete_reason_in_node_props |
-                         indirect_deletes_in_ret |
-                         uniform_write_ret |
-                         atom().
+-type api_behaviour() :: atom().
 %% Name of a state machine API behaviour.
 
 -export_type([write_ret/0,
@@ -1416,6 +1412,15 @@ handle_aux(
       end),
     {no_reply, AuxState1, IntState};
 handle_aux(
+  _RaState, cast, cache_effective_machine_version, AuxState, IntState) ->
+    #khepri_machine_aux{store_id = StoreId} = AuxState,
+    EffectiveMacVer = ra_aux:effective_machine_version(IntState),
+    cache_effective_machine_version(StoreId, EffectiveMacVer),
+
+    AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+
+    {no_reply, AuxState1, IntState};
+handle_aux(
   _RaState, cast,
   #restore_projection{projection = Projection, pattern = PathPattern},
   AuxState, IntState) ->
@@ -1870,8 +1875,9 @@ state_enter(leader, State) ->
     SideEffects = emitted_triggers_to_side_effects(State),
     SideEffects;
 state_enter(recovered, _State) ->
-    SideEffect = {aux, restore_projections},
-    [SideEffect];
+    SideEffects = [{aux, restore_projections},
+                   {aux, cache_effective_machine_version}],
+    SideEffects;
 state_enter(_StateName, _State) ->
     [].
 
@@ -1893,7 +1899,8 @@ snapshot_installed(
     OldState1 = convert_state(OldState, OldMacVer, NewMacVer),
     ok = update_projections(OldState1, NewState),
     ok = clear_compiled_projection_tree(),
-    [].
+    SideEffects = [{aux, cache_effective_machine_version}],
+    SideEffects.
 
 %% @private
 
@@ -1969,8 +1976,9 @@ which_module(0) -> ?MODULE.
 
 -spec effective_version(StoreId) -> Ret when
       StoreId :: khepri:store_id(),
-      Ret :: khepri:ok(EffectiveMacVer) | khepri:error(),
-      EffectiveMacVer :: ra_machine:version().
+      Ret :: khepri:ok(EffectiveMacVer) | {error, Reason},
+      EffectiveMacVer :: ra_machine:version(),
+      Reason :: ?khepri_error(effective_machine_version_not_defined, map()).
 %% @doc Returns the effective state machine version of the local Ra server.
 %%
 %% The effective machine version is queried from a cached value, not from the
@@ -2052,7 +2060,7 @@ does_api_comply_with(uniform_write_ret, MacVer)
   when is_integer(MacVer) ->
     MacVer >= 2;
 does_api_comply_with(_Behaviour, MacVer)
-  when is_integer(MacVer) ->
+  when is_integer(MacVer) andalso MacVer >= 0 ->
     false;
 does_api_comply_with(Behaviour, StoreId)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->

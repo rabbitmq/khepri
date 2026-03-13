@@ -551,65 +551,70 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
          ?_assertEqual(executed, receive_sproc_msg(Key))},
 
         {"Updating a node; should trigger the procedure",
-         ?_assertMatch(
-            ok,
-            begin
-                timer:sleep(2000),
-                khepri:put(?FUNCTION_NAME, [foo], 2)
-            end)},
+         {timeout, 10,
+          ?_assertMatch(
+             ok,
+             begin
+                 timer:sleep(2000),
+                 khepri:put(?FUNCTION_NAME, [foo], 2)
+             end)}},
 
         {"Checking the procedure was executed",
          ?_assertEqual(executed, receive_sproc_msg(Key))},
 
         {"Updating a node; should trigger the procedure",
-         ?_assertMatch(
-            ok,
-            begin
-                timer:sleep(2000),
-                khepri:put(?FUNCTION_NAME, [foo], 3)
-            end)},
+         {timeout, 10,
+          ?_assertMatch(
+             ok,
+             begin
+                 timer:sleep(2000),
+                 khepri:put(?FUNCTION_NAME, [foo], 3)
+             end)}},
 
         {"Checking the procedure was executed",
          ?_assertEqual(executed, receive_sproc_msg(Key))},
 
         {"Updating a node; should trigger the procedure",
-         ?_assertMatch(
-            ok,
-            begin
-                timer:sleep(2000),
-                khepri:put(?FUNCTION_NAME, [foo], 4)
-            end)},
+         {timeout, 10,
+          ?_assertMatch(
+             ok,
+             begin
+                 timer:sleep(2000),
+                 khepri:put(?FUNCTION_NAME, [foo], 4)
+             end)}},
 
         {"Checking the procedure was executed",
          ?_assertEqual(executed, receive_sproc_msg(Key))},
 
         {"Updating a node; should trigger the procedure",
-         ?_assertMatch(
-            ok,
-            begin
-                timer:sleep(2000),
-                khepri:put(?FUNCTION_NAME, [foo], 5)
-            end)},
+         {timeout, 10,
+          ?_assertMatch(
+             ok,
+             begin
+                 timer:sleep(2000),
+                 khepri:put(?FUNCTION_NAME, [foo], 5)
+             end)}},
 
         {"Checking the procedure was executed",
          ?_assertEqual(executed, receive_sproc_msg(Key))},
 
         {"Updating a node; should trigger the procedure",
-         ?_assertMatch(
-            ok,
-            begin
-                timer:sleep(2000),
-                {Result, Log} = helpers:with_log(
-                                  fun() ->
-                                          khepri:put(?FUNCTION_NAME, [foo], 6)
-                                  end),
-                ?assertSubString(
-                  <<"Triggered stored procedure crash">>, Log),
-                ?assertSubString(
-                  <<"(this crash occurred 6 times in the last 10 seconds)">>,
-                  Log),
-                Result
-            end)},
+         {timeout, 10,
+          ?_assertMatch(
+             ok,
+             begin
+                 timer:sleep(2000),
+                 {Result, Log} = helpers:with_log(
+                                   fun() ->
+                                           khepri:put(?FUNCTION_NAME, [foo], 6)
+                                   end),
+                 ?assertSubString(
+                    <<"Triggered stored procedure crash">>, Log),
+                 ?assertSubString(
+                    <<"(this crash occurred 6 times in the last 10 seconds)">>,
+                    Log),
+                 Result
+             end)}},
 
         {"Checking the procedure was executed",
          ?_assertEqual(executed, receive_sproc_msg(Key))}]
