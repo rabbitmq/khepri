@@ -1843,8 +1843,9 @@ remove_expired_nodes1(
                   delete_matching_nodes_cb(
                     Path, Node, TreeOptions, keep_while, Result)
           end,
+    TreeOptions1 = TreeOptions#{expect_specific_node => false},
     Result = walk_down_the_tree(
-               Tree, PathToDelete, TreeOptions, #{}, Fun, Acc),
+               Tree, PathToDelete, TreeOptions1, #{}, Fun, Acc),
     case Result of
         {ok, Tree1, AppliedChanges1, Acc1} ->
             %% When we are handling deletes as part of a `keep_while', it is
