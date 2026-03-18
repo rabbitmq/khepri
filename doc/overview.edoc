@@ -587,3 +587,7 @@ Projections have some costs though. Expect some increased memory consumption
 since information in the projection tables is duplicated between the Khepri
 store and ETS. Khepri may also take longer to accomplish writes since
 projections are updated by Khepri synchronously when writing to the store.
+
+There are several types of projection functions, ranging from the most
+efficient to the more flexible one capable of managing several ETS tables. See
+{@link khepri_projection} for more details.

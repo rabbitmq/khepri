@@ -57,6 +57,15 @@
 %% </ul>
 %% </td>
 %% </tr>
+%% <tr>
+%% <td style="text-align: right; vertical-align: top;">2</td>
+%% <td>
+%% <ul>
+%% <li>Added support for multi-table projections (see {@link
+%% khepri_projection}).</li>
+%% </ul>
+%% </td>
+%% </tr>
 %% </table>
 
 -module(khepri_machine).
@@ -109,7 +118,9 @@
          handle_tx_exception/1,
          process_query/3,
          process_command/3,
-         does_api_comply_with/2]).
+         does_api_comply_with/2,
+         wait_for_effective_machine_version/3,
+         wait_for_effective_behaviour/3]).
 
 %% Internal functions to access the opaque #khepri_machine{} state.
 -export([is_state/1,
@@ -666,14 +677,26 @@ register_projection(
                      ets_options = EtsOptions} = Projection,
   Options)
   when is_atom(Name) andalso
-       is_list(EtsOptions) andalso
+       ?ARE_PROJECTION_ETS_OPTIONS(EtsOptions) andalso
        (?IS_HORUS_STANDALONE_FUN(ProjectionFun) orelse
         ProjectionFun =:= copy) ->
-    PathPattern = khepri_path:from_string(PathPattern0),
-    khepri_path:ensure_is_valid(PathPattern),
-    Command = #register_projection{pattern = PathPattern,
-                                   projection = Projection},
-    process_command(StoreId, Command, Options).
+    Timeout = get_timeout(Options),
+    T0 = khepri_utils:start_timeout_window(Timeout),
+    Compatible = khepri_projection:check_compatibility_with_store(
+                   StoreId, Projection, Timeout),
+    case Compatible of
+        ok ->
+            NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+            Options1 = Options#{timeout => NewTimeout},
+
+            PathPattern = khepri_path:from_string(PathPattern0),
+            khepri_path:ensure_is_valid(PathPattern),
+            Command = #register_projection{pattern = PathPattern,
+                                           projection = Projection},
+            process_command(StoreId, Command, Options1);
+        {error, _Reason} = Error ->
+            Error
+    end.
 
 -spec unregister_projections(StoreId, Names, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -1955,17 +1978,18 @@ overview(State) ->
       keep_while_conds => KeepWhileConds}.
 
 -spec version() -> MacVer when
-      MacVer :: 2.
+      MacVer :: 3.
 %% @doc Returns the state machine version.
 
 version() ->
-    2.
+    3.
 
 -spec which_module(MacVer) -> Module when
-      MacVer :: 0..2,
+      MacVer :: 0..3,
       Module :: ?MODULE.
 %% @doc Returns the state machine module corresponding to the given version.
 
+which_module(3) -> ?MODULE;
 which_module(2) -> ?MODULE;
 which_module(1) -> ?MODULE;
 which_module(0) -> ?MODULE.
@@ -2027,6 +2051,22 @@ clear_cached_effective_machine_version(StoreId) ->
     _ = persistent_term:erase(Key),
     ok.
 
+-spec api_behaviour_to_machine_version(Behaviour) -> Ret when
+      Behaviour :: khepri_machine:api_behaviour(),
+      Ret :: MacVer | undefined,
+      MacVer :: 1..2.
+%% @doc Returns the state machine version that implemented the given API behaviour.
+%%
+%% If the behaviour is unknown to this implementation, `undefined' is returned.
+
+api_behaviour_to_machine_version(dedup_protection)                  -> 1;
+api_behaviour_to_machine_version(delete_reason_in_node_props)       -> 2;
+api_behaviour_to_machine_version(indirect_deletes_in_ret)           -> 2;
+api_behaviour_to_machine_version(uniform_write_ret)                 -> 2;
+api_behaviour_to_machine_version(multi_table_projections)           -> 3;
+api_behaviour_to_machine_version(Behaviour) when is_atom(Behaviour) ->
+    undefined.
+
 -spec does_api_comply_with(Behaviour, MacVer | StoreId) -> DoesUse when
       Behaviour :: khepri_machine:api_behaviour(),
       MacVer :: ra_machine:version(),
@@ -2047,26 +2087,79 @@ clear_cached_effective_machine_version(StoreId) ->
 %% @returns true if the given behaviour is activated, false if it is not or if
 %% the behaviour is unknown.
 
-does_api_comply_with(dedup_protection, MacVer)
-  when is_integer(MacVer) ->
-    MacVer >= 1;
-does_api_comply_with(delete_reason_in_node_props, MacVer)
-  when is_integer(MacVer) ->
-    MacVer >= 2;
-does_api_comply_with(indirect_deletes_in_ret, MacVer)
-  when is_integer(MacVer) ->
-    MacVer >= 2;
-does_api_comply_with(uniform_write_ret, MacVer)
-  when is_integer(MacVer) ->
-    MacVer >= 2;
-does_api_comply_with(_Behaviour, MacVer)
-  when is_integer(MacVer) andalso MacVer >= 0 ->
-    false;
+does_api_comply_with(Behaviour, MacVer) when is_integer(MacVer) ->
+    RequiredVersion = api_behaviour_to_machine_version(Behaviour),
+    is_integer(RequiredVersion) andalso MacVer >= RequiredVersion;
 does_api_comply_with(Behaviour, StoreId)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
     case effective_version(StoreId) of
         {ok, MacVer} -> does_api_comply_with(Behaviour, MacVer);
         _            -> false
+    end.
+
+-spec wait_for_effective_machine_version(StoreId, MacVer, Timeout) -> Ret when
+      StoreId :: khepri:store_id(),
+      MacVer :: ra_machine:version() | latest,
+      Timeout :: timeout(),
+      Ret :: ok | {error, Reason},
+      Reason :: timeout |
+                ?khepri_error(effective_machine_version_not_defined, map()).
+%% @doc Waits for the store to run the given machine version.
+%%
+%% @private
+
+wait_for_effective_machine_version(StoreId, MacVer, Timeout)
+  when MacVer =:= latest orelse
+       (is_integer(MacVer) andalso MacVer >= 0) ->
+    T0 = khepri_utils:start_timeout_window(Timeout),
+    ExpectedMacVer = case MacVer of
+                         latest -> version();
+                         _      -> MacVer
+                     end,
+    case effective_version(StoreId) of
+        {ok, EffectiveMacVer} ->
+            case EffectiveMacVer >= ExpectedMacVer of
+                true ->
+                    ok;
+                false when ?HAS_TIME_LEFT(Timeout) ->
+                    timer:sleep(50),
+                    NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+                    wait_for_effective_machine_version(
+                      StoreId, ExpectedMacVer, NewTimeout);
+                false ->
+                    {error, timeout}
+            end;
+        {error, _} when ?HAS_TIME_LEFT(Timeout) ->
+            timer:sleep(50),
+            NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+            wait_for_effective_machine_version(
+              StoreId, ExpectedMacVer, NewTimeout);
+        {error, _} = Error ->
+            Error
+    end.
+
+-spec wait_for_effective_behaviour(StoreId, Behaviour, Timeout) -> Ret when
+      StoreId :: khepri:store_id(),
+      Behaviour :: khepri_machine:api_behaviour(),
+      Timeout :: timeout(),
+      Ret :: ok | {error, Reason},
+      Reason :: timeout |
+                ?khepri_error(unknown_api_hehaviour, map()) |
+                ?khepri_error(effective_machine_version_not_defined, map()).
+%% @doc Waits for the store to support the given API behaviour.
+%%
+%% @private
+
+wait_for_effective_behaviour(StoreId, Behaviour, Timeout) ->
+    case api_behaviour_to_machine_version(Behaviour) of
+        RequiredMacVer when is_integer(RequiredMacVer) ->
+            wait_for_effective_machine_version(
+              StoreId, RequiredMacVer, Timeout);
+        undefined ->
+            Reason = ?khepri_error(
+                        unknown_api_hehaviour,
+                        #{behaviour => Behaviour}),
+            {error, Reason}
     end.
 
 %% -------------------------------------------------------------------
@@ -2760,7 +2853,9 @@ convert_state1(State, 0, 1) ->
 convert_state1(State, 1, 2) ->
     Tree = get_tree(State),
     Tree1 = khepri_tree:convert_tree(Tree, 1, 2),
-    set_tree(State, Tree1).
+    set_tree(State, Tree1);
+convert_state1(State, 2, 3) ->
+    State.
 
 -spec update_projections(OldState, NewState) -> ok when
       OldState :: khepri_machine:state(),
