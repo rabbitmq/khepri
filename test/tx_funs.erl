@@ -8,6 +8,7 @@
 
 -module(tx_funs).
 
+-include_lib("kernel/include/logger.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 -include_lib("horus/include/horus.hrl").
@@ -445,7 +446,9 @@ allowed_logger_api_test() ->
            _ = logger:error(""),
            _ = logger:critical(""),
            _ = logger:alert(""),
-           _ = logger:emergency("")
+           _ = logger:emergency(""),
+
+           ?LOG_ALERT("")
        end).
 
 denied_logger_get_config_0_test() ->
