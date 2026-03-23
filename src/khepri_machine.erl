@@ -109,7 +109,9 @@
          handle_tx_exception/1,
          process_query/3,
          process_command/3,
-         does_api_comply_with/2]).
+         does_api_comply_with/2,
+         wait_for_effective_machine_version/3,
+         wait_for_effective_behaviour/3]).
 
 %% Internal functions to access the opaque #khepri_machine{} state.
 -export([is_state/1,
@@ -2027,6 +2029,21 @@ clear_cached_effective_machine_version(StoreId) ->
     _ = persistent_term:erase(Key),
     ok.
 
+-spec api_behaviour_to_machine_version(Behaviour) -> Ret when
+      Behaviour :: khepri_machine:api_behaviour(),
+      Ret :: MacVer | undefined,
+      MacVer :: 1..2.
+%% @doc Returns the state machine version that implemented the given API behaviour.
+%%
+%% If the behaviour is unknown to this implementation, `undefined' is returned.
+
+api_behaviour_to_machine_version(dedup_protection)                  -> 1;
+api_behaviour_to_machine_version(delete_reason_in_node_props)       -> 2;
+api_behaviour_to_machine_version(indirect_deletes_in_ret)           -> 2;
+api_behaviour_to_machine_version(uniform_write_ret)                 -> 2;
+api_behaviour_to_machine_version(Behaviour) when is_atom(Behaviour) ->
+    undefined.
+
 -spec does_api_comply_with(Behaviour, MacVer | StoreId) -> DoesUse when
       Behaviour :: khepri_machine:api_behaviour(),
       MacVer :: ra_machine:version(),
@@ -2047,26 +2064,79 @@ clear_cached_effective_machine_version(StoreId) ->
 %% @returns true if the given behaviour is activated, false if it is not or if
 %% the behaviour is unknown.
 
-does_api_comply_with(dedup_protection, MacVer)
-  when is_integer(MacVer) ->
-    MacVer >= 1;
-does_api_comply_with(delete_reason_in_node_props, MacVer)
-  when is_integer(MacVer) ->
-    MacVer >= 2;
-does_api_comply_with(indirect_deletes_in_ret, MacVer)
-  when is_integer(MacVer) ->
-    MacVer >= 2;
-does_api_comply_with(uniform_write_ret, MacVer)
-  when is_integer(MacVer) ->
-    MacVer >= 2;
-does_api_comply_with(_Behaviour, MacVer)
-  when is_integer(MacVer) andalso MacVer >= 0 ->
-    false;
+does_api_comply_with(Behaviour, MacVer) when is_integer(MacVer) ->
+    RequiredVersion = api_behaviour_to_machine_version(Behaviour),
+    is_integer(RequiredVersion) andalso MacVer >= RequiredVersion;
 does_api_comply_with(Behaviour, StoreId)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
     case effective_version(StoreId) of
         {ok, MacVer} -> does_api_comply_with(Behaviour, MacVer);
         _            -> false
+    end.
+
+-spec wait_for_effective_machine_version(StoreId, MacVer, Timeout) -> Ret when
+      StoreId :: khepri:store_id(),
+      MacVer :: ra_machine:version() | latest,
+      Timeout :: timeout(),
+      Ret :: ok | {error, Reason},
+      Reason :: timeout |
+                ?khepri_error(effective_machine_version_not_defined, map()).
+%% @doc Waits for the store to run the given machine version.
+%%
+%% @private
+
+wait_for_effective_machine_version(StoreId, MacVer, Timeout)
+  when MacVer =:= latest orelse
+       (is_integer(MacVer) andalso MacVer >= 0) ->
+    T0 = khepri_utils:start_timeout_window(Timeout),
+    ExpectedMacVer = case MacVer of
+                         latest -> version();
+                         _      -> MacVer
+                     end,
+    case effective_version(StoreId) of
+        {ok, EffectiveMacVer} ->
+            case EffectiveMacVer >= ExpectedMacVer of
+                true ->
+                    ok;
+                false when ?HAS_TIME_LEFT(Timeout) ->
+                    timer:sleep(50),
+                    NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+                    wait_for_effective_machine_version(
+                      StoreId, ExpectedMacVer, NewTimeout);
+                false ->
+                    {error, timeout}
+            end;
+        {error, _} when ?HAS_TIME_LEFT(Timeout) ->
+            timer:sleep(50),
+            NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+            wait_for_effective_machine_version(
+              StoreId, ExpectedMacVer, NewTimeout);
+        {error, _} = Error ->
+            Error
+    end.
+
+-spec wait_for_effective_behaviour(StoreId, Behaviour, Timeout) -> Ret when
+      StoreId :: khepri:store_id(),
+      Behaviour :: khepri_machine:api_behaviour(),
+      Timeout :: timeout(),
+      Ret :: ok | {error, Reason},
+      Reason :: timeout |
+                ?khepri_error(unknown_api_hehaviour, map()) |
+                ?khepri_error(effective_machine_version_not_defined, map()).
+%% @doc Waits for the store to support the given API behaviour.
+%%
+%% @private
+
+wait_for_effective_behaviour(StoreId, Behaviour, Timeout) ->
+    case api_behaviour_to_machine_version(Behaviour) of
+        RequiredMacVer when is_integer(RequiredMacVer) ->
+            wait_for_effective_machine_version(
+              StoreId, RequiredMacVer, Timeout);
+        undefined ->
+            Reason = ?khepri_error(
+                        unknown_api_hehaviour,
+                        #{behaviour => Behaviour}),
+            {error, Reason}
     end.
 
 %% -------------------------------------------------------------------
