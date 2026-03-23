@@ -67,6 +67,14 @@ never be called directly outside of Khepri.</p>
   </ul>
   </td>
   </tr>
+  <tr>
+  <td style="text-align: right; vertical-align: top;">2</td>
+  <td>
+  <ul>
+  <li>Added support for multi-table projections (see <a docgen-rel="seeerl" docgen-href="khepri_projection" href="khepri_projection.html"><code>khepri_projection</code></a>).</li>
+  </ul>
+  </td>
+  </tr>
   </table>
 <h2><a name="types">Data Types</a></h2>
 
@@ -302,14 +310,14 @@ Khepri.</p>
 <h3 class="function"><a name="version-0">version/0</a></h3>
 <div class="spec">
 <p><code>version() -&gt; MacVer</code>
-<ul class="definitions"><li><code>MacVer = 2</code></li></ul></p>
+<ul class="definitions"><li><code>MacVer = 3</code></li></ul></p>
 <p></p>
 </div><p>Returns the state machine version.</p>
 
 <h3 class="function"><a name="which_module-1">which_module/1</a></h3>
 <div class="spec">
 <p><code>which_module(MacVer) -&gt; Module</code>
-<ul class="definitions"><li><code>MacVer = 0..2</code></li><li><code>Module = khepri_machine</code></li></ul></p>
+<ul class="definitions"><li><code>MacVer = 0..3</code></li><li><code>Module = khepri_machine</code></li></ul></p>
 <p></p>
 </div><p>Returns the state machine module corresponding to the given version.</p>
 

@@ -33,18 +33,171 @@ in the store matching the pattern.</p>
   <p>Projection ETS tables are owned by the Khepri cluster and are deleted when  
 the cluster stops.</p>
  
-  Updates to projection tables are immediately consistent for the member of
-  the cluster on which the change to the store is made and the leader member
-  but are eventually consistent for all other followers.
+  <p>Updates to projection tables are immediately consistent for the member of  
+the cluster on which the change to the store is made and the leader member  
+but are eventually consistent for all other followers.</p>
+ 
+  <h3><a name="Projection_functions">Projection functions</a></h3>
+ 
+  There are three supported types of projection functions:
+  <ol>
+  <li><code>copy</code> (the literal atom)</li>
+  <li>the simple projection function (identified by its arity of 2)</li>
+  <li>the extended projection function (identified by its arity of 4)</li>
+  </ol>
+ 
+  <h4><a name="copy">copy</a></h4>
+ 
+  <p>This projection "function" inserts the value of a tree node matching the  
+projection path pattern to the ETS table. The value is expected to be a  
+tuple or a record that can be inserted in the table.</p>
+ 
+  <p>If the tree node was deleted, the old value is deleted from the ETS table.</p>
+ 
+  <p>This is the most efficient projection function as it doesn't rely on an  
+anonymous function.</p>
+ 
+  <h4><a name="Simple_projection_function">Simple projection function</a></h4>
+ 
+  <p>This projection function is called to convert the value of a tree node  
+matching the projection path pattern to some arbitrary term. If the tree  
+node is created or updated, the value passed to the projection function is  
+the new value after the creation/update. If the tree node is deleted, the  
+value is the one of the tree node before the deletion. The result of the  
+projection function is then inserted in or deleted from the ETS table.</p>
+ 
+  <p>The projection function is expected to map one path/value to one ETS entry.  
+There is no way for the projection function to indicate that a path/value  
+should not be intserted in ETS for instance.</p>
+ 
+  The simple projection function takes 2 arguments:
+  <ol>
+  <li>the tree node path</li>
+  <li>the tree node value</li>
+  </ol>
+ 
+  <p>Example:</p>
+ 
+  <pre><code>ProjectionName = wood_stocks,
+ProjectionFun = fun([stock, wood, Kind] = _Path, Stock) -&gt;
+                        {Kind, Stock}
+                end,
+Options = #{type =&gt; set,
+            read_concurrency =&gt; true},
+Projection = khepri_projection:new(ProjectionName, ProjectionFun, Options).</code></pre>
+ 
+  <p>The resulting ETS will look like this:</p>
+ 
+  <pre><code>[
+ {&lt;&lt;"oak"&gt;&gt;, 100},
+ {&lt;&lt;"maple"&gt;&gt;, 180}
+] = ets:tab2list(wood_stoks).</code></pre>
+ 
+  <h4><a name="Extended_projection_function">Extended projection function</a></h4>
+ 
+  <p>This projection function is responsible for managing the content of the ETS  
+table(s), even though the ETS tables are still created by Khepri.</p>
+ 
+  <p>This is useful when a tree node value can be mapped to several entries in an  
+ETS table or it can be mapped to entries in several ETS tables.</p>
+ 
+  <p>By default, if the projection is created like a simple projection function,  
+a single ETS table is created, named after the projection. To use several  
+ETS tables, the caller has to specify the list of ETS tables and their  
+per-table ETS options.</p>
+ 
+  The simple projection function takes 4 arguments:
+  <ol>
+  <li>the table ID, or the map of table names/IDs if multiple tables where configured</li>
+  <li>the tree node path</li>
+  <li>the tree node properies before the update/deletion</li>
+  <li>the tree node properies after the update/deletion</li>
+  </ol>
+ 
+  <p>Example:</p>
+ 
+  <p>This extended projection function reproduces the behaviour of the simple  
+projection function from the example above basically.</p>
+ 
+  <pre><code>ProjectionName = wood_stocks,
+ProjectionFun = fun
+                    %% Stock update.
+                    (Tid, [stock, wood, Kind], _OldProps, #{data := Stock}) -&gt;
+                        ets:insert(Tid, {Kind, Stock});
+ 
+                    %% Stock deletion.
+                    (Tid, [stock, wood, Kind], #{data := Stock}, _NewProps) -&gt;
+                        ets:delete(Tid, {Kind, Stock})
+                end,
+Options = #{type =&gt; set,
+            read_concurrency =&gt; true},
+Projection = khepri_projection:new(ProjectionName, ProjectionFun, Options).</code></pre>
+ 
+  <p>The resulting ETS will look like this:</p>
+ 
+  <pre><code>[
+ {&lt;&lt;"oak"&gt;&gt;, 100},
+ {&lt;&lt;"maple"&gt;&gt;, 180}
+] = ets:tab2list(wood_stoks).</code></pre>
+ 
+  <p>A projection function becomes useful when there are more involved mapping of  
+ETS entries and possibly multiple ETS tables to manage:</p>
+ 
+  <pre><code>ProjectionName = wood_stocks,
+ProjectionFun = fun
+                    %% Stock update.
+                    (#{wood_stocks := WoodStocksTid,
+                       wood_needs := WoodNeedsTid},
+                     [stock, wood, Kind],
+                     _OldProps,
+                     #{data := Stock}) -&gt;
+                        ets:insert(WoodStocksTid, {Kind, Stock}),
+ 
+                        %% Depending on the stock, we check if we need to order
+                        %% new wood.
+                        if
+                            Stock &lt; 50 -&gt;
+                                ets:insert(WoodNeedsTid, {Kind, true});
+                            Stock &gt; 1000 -&gt;
+                                ets:delete(WoodNeedsTid, {Kind, true});
+                            true -&gt;
+                                ok
+                        end;
+ 
+                    %% Stock deletion.
+                    (#{wood_stocks := WoodStocksTid,
+                       wood_needs := WoodNeedsTid},
+                     [stock, wood, Kind],
+                     #{data := Stock},
+                     _NewProps) -&gt;
+                        ets:delete(WoodStocksTid, {Kind, Stock}),
+                        %% We definitely need to order wood of this kind.
+                        ets:insert(WoodNeedsTid, {Kind, true});
+                end,
+Options = #{%% Map of ETS tables and their specific ETS options; here, we don't
+            %% need specific ETS options: they will use the globablly defined
+            %% options as a fallback.
+            tables =&gt; #{wood_stocks =&gt; #{},
+                        wood_needs =&gt; #{}},
+ 
+            %% Global ETS options used for tables that do not override them.
+            type =&gt; set,
+            read_concurrency =&gt; true},
+Projection = khepri_projection:new(ProjectionName, ProjectionFun, Options).</code></pre>
 <h2><a name="types">Data Types</a></h2>
 
+<h3 class="typedecl"><a name="type-ets_options">ets_options()</a></h3>
+<p><b>abstract datatype</b>: <code>ets_options()</code></p>
+<p>  List of ETS options, passed to <code>ets:new/2</code>.</p>
+
 <h3 class="typedecl"><a name="type-extended_projection_fun">extended_projection_fun()</a></h3>
-<p><code>extended_projection_fun() = fun((Table::<a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-tid" docgen-rel="seetype" docgen-href="stdlib:ets#tid/0">ets:tid()</a>, Path::<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a>, OldPayload::<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-node_props" docgen-rel="seetype" docgen-href="khepri:khepri#node_props/0">khepri:node_props()</a>, NewPayload::<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-node_props" docgen-rel="seetype" docgen-href="khepri:khepri#node_props/0">khepri:node_props()</a>) -&gt; any())</code></p>
+<p><code>extended_projection_fun() = fun((Tids::<a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-tid" docgen-rel="seetype" docgen-href="stdlib:ets#tid/0">ets:tid()</a> | #{atom() =&gt; <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-tid" docgen-rel="seetype" docgen-href="stdlib:ets#tid/0">ets:tid()</a>}, Path::<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a>, OldPayload::<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-node_props" docgen-rel="seetype" docgen-href="khepri:khepri#node_props/0">khepri:node_props()</a>, NewPayload::<a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-node_props" docgen-rel="seetype" docgen-href="khepri:khepri#node_props/0">khepri:node_props()</a>) -&gt; any())</code></p>
 <p><p>  An extended projection function.</p>
  
   <p>In some cases, a tree node in the store might correspond to many objects in  
-a projection table. Extended projection functions are allowed to call ETS  
-functions directly in order to build the projection table.</p>
+one or more projection tables. Extended projection functions are allowed and  
+expected to call ETS functions directly in order to build the projection  
+table.</p>
  
   <p><code>OldPayload</code> or <code>NewPayload</code> are empty maps if there is no tree node. For
   example, a newly created tree node will have an empty map for <code>OldPayload</code>
@@ -55,26 +208,36 @@ functions directly in order to build the projection table.</p>
  
   The return value of this function is ignored.</p>
 
+<h3 class="typedecl"><a name="type-multi_table_options">multi_table_options()</a></h3>
+<p><code>multi_table_options() = #{atom() =&gt; <a href="#type-overridable_ets_options" docgen-rel="seetype" docgen-href="#overridable_ets_options/0">overridable_ets_options()</a>}</code></p>
+<p><p>  Options which control multiple created ETS tables.</p>
+ 
+  When the projection needs multiple ETS options, this map associates a
+  specific ETS table to its options.</p>
+
 <h3 class="typedecl"><a name="type-name">name()</a></h3>
 <p><code>name() = atom()</code></p>
 <p>  The name of a projection.
  </p>
 
 <h3 class="typedecl"><a name="type-options">options()</a></h3>
-<p><code>options() = #{type =&gt; <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-table_type" docgen-rel="seetype" docgen-href="stdlib:ets#table_type/0">ets:table_type()</a>, keypos =&gt; pos_integer(), read_concurrency =&gt; boolean(), write_concurrency =&gt; boolean() | auto, compressed =&gt; boolean(), standalone_fun_options =&gt; <a href="/home/runner/work/khepri/horus/doc/horus.html#type-options" docgen-rel="seetype" docgen-href="horus:horus#options/0">horus:options()</a>}</code></p>
-<p><p>  Options which control the created ETS table.</p>
+<p><code>options() = #{tables =&gt; <a href="#type-multi_table_options" docgen-rel="seetype" docgen-href="#multi_table_options/0">multi_table_options()</a>, standalone_fun_options =&gt; <a href="/home/runner/work/khepri/horus/doc/horus.html#type-options" docgen-rel="seetype" docgen-href="horus:horus#options/0">horus:options()</a>, type =&gt; <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-table_type" docgen-rel="seetype" docgen-href="stdlib:ets#table_type/0">ets:table_type()</a>, keypos =&gt; pos_integer(), read_concurrency =&gt; boolean(), write_concurrency =&gt; boolean() | auto, compressed =&gt; boolean()}</code></p>
+
+
+<h3 class="typedecl"><a name="type-overridable_ets_options">overridable_ets_options()</a></h3>
+<p><code>overridable_ets_options() = #{type =&gt; <a href="/home/runner/work/khepri/stdlib/doc/ets.html#type-table_type" docgen-rel="seetype" docgen-href="stdlib:ets#table_type/0">ets:table_type()</a>, keypos =&gt; pos_integer(), read_concurrency =&gt; boolean(), write_concurrency =&gt; boolean() | auto, compressed =&gt; boolean()}</code></p>
+<p><p>  Overrideable ETS options.</p>
  
-  <p>If provided, <code>standalone_fun_options</code> are merged with defaults and passed to
-  <a docgen-rel="seemfa" docgen-href="horus#to_standalone_fun/2" href="horus.html#to_standalone_fun-2"><code>horus:to_standalone_fun/2</code></a>. The remaining options are a subset of the
-  options available to <a docgen-rel="seemfa" docgen-href="ets#new/2" href="ets.html#new-2"><code>ets:new/2</code></a>. Refer to the <a docgen-rel="seemfa" docgen-href="ets#new/2" href="ets.html#new-2"><code>ets:new/2</code></a>  
-documentation for a reference on each type and available values.</p>
+  <p>They can be used for single-table and multi-table projections. For the  
+latter, each per-table option takes precedence over the global option if  
+specified twice.</p>
  
   When a projection is created from a <a docgen-rel="seetype" docgen-href="#simple_projection_fun/0" href="#type-simple_projection_fun"><code>simple_projection_fun()</code></a>, the
   <code>type</code> option may only be <code>set</code> or <code>ordered_set</code>: <code>bag</code> types are not
   allowed. <a docgen-rel="seetype" docgen-href="#extended_projection_fun/0" href="#type-extended_projection_fun"><code>extended_projection_fun()</code></a>s may use any valid <a docgen-rel="seetype" docgen-href="ets#table_type/0" href="ets.html#type-table_type"><code>ets:table_type()</code></a>.</p>
 
 <h3 class="typedecl"><a name="type-projection">projection()</a></h3>
-<p><code>projection() = #khepri_projection{name = atom(), projection_fun = copy | <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun" docgen-rel="seetype" docgen-href="horus:horus#horus_fun/0">horus:horus_fun()</a>, ets_options = [atom() | tuple()]}</code></p>
+<p><code>projection() = #khepri_projection{name = atom(), projection_fun = copy | <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun" docgen-rel="seetype" docgen-href="horus:horus#horus_fun/0">horus:horus_fun()</a>, ets_options = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-ets_options" docgen-rel="seetype" docgen-href="khepri:khepri_projection#ets_options/0">khepri_projection:ets_options()</a> | #{atom() =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-ets_options" docgen-rel="seetype" docgen-href="khepri:khepri_projection#ets_options/0">khepri_projection:ets_options()</a>}}</code></p>
 <p>  A projection resource.
  </p>
 

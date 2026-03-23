@@ -554,10 +554,14 @@ ets:member(ProjectionName, &lt;&lt;"oak"&gt;&gt;).
 
 <p>Use projections to maximize query throughput and/or minimize query latency.</p>
 
-Projections have some costs though. Expect some increased memory consumption
+<p>Projections have some costs though. Expect some increased memory consumption
 since information in the projection tables is duplicated between the Khepri
 store and ETS. Khepri may also take longer to accomplish writes since
-projections are updated by Khepri synchronously when writing to the store.
+projections are updated by Khepri synchronously when writing to the store.</p>
+
+There are several types of projection functions, ranging from the most
+efficient to the more flexible one capable of managing several ETS tables. See
+<a docgen-rel="seeerl" docgen-href="khepri_projection" href="khepri_projection.html"><code>khepri_projection</code></a> for more details.
 
 <hr>
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
