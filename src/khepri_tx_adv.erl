@@ -898,14 +898,17 @@ is_remote_call_valid(erlang, '=:=', _) -> true;
 is_remote_call_valid(erlang, '=/=', _) -> true;
 
 is_remote_call_valid(dict, _, _) -> true;
+is_remote_call_valid(io_lib, char_list, _) -> true;
 is_remote_call_valid(io_lib, format, _) -> true;
 is_remote_call_valid(lists, _, _) -> true;
 is_remote_call_valid(logger, alert, _) -> true;
+is_remote_call_valid(logger, allow, _) -> true;
 is_remote_call_valid(logger, critical, _) -> true;
 is_remote_call_valid(logger, debug, _) -> true;
 is_remote_call_valid(logger, emergency, _) -> true;
 is_remote_call_valid(logger, error, _) -> true;
 is_remote_call_valid(logger, info, _) -> true;
+is_remote_call_valid(logger, macro_log, _) -> true;
 is_remote_call_valid(logger, notice, _) -> true;
 is_remote_call_valid(logger, warning, _) -> true;
 is_remote_call_valid(maps, _, _) -> true;
