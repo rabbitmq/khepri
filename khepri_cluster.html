@@ -129,6 +129,8 @@ ok = khepri_cluster:reset().</code></pre>
 <tr><td valign="top"><a href="#wait_for_leader-0">wait_for_leader/0</a></td><td>Waits for a leader to be elected.</td></tr>
 <tr><td valign="top"><a href="#wait_for_leader-1">wait_for_leader/1</a></td><td>Waits for a leader to be elected.</td></tr>
 <tr><td valign="top"><a href="#wait_for_leader-2">wait_for_leader/2</a></td><td>Waits for a leader to be elected.</td></tr>
+<tr><td valign="top"><a href="#wait_for_effective_machine_version-2">wait_for_effective_machine_version/2</a></td><td>Waits for the store to run the given machine version.</td></tr>
+<tr><td valign="top"><a href="#wait_for_effective_behaviour-2">wait_for_effective_behaviour/2</a></td><td>Waits for the store to support the given API behaviour.</td></tr>
 <tr><td valign="top"><a href="#get_store_ids-0">get_store_ids/0</a></td><td>Returns the list of running stores.</td></tr>
 <tr><td valign="top"><a href="#is_store_running-1">is_store_running/1</a></td><td>Indicates if <code>StoreId</code> is running or not.</td></tr>
 </table>
@@ -472,6 +474,32 @@ out-of-date result.</p>
   issueing writes and queries. Note that there are obviously no guaranties
   that the Raft quorum will be lost just after this call.
  </p>
+
+<h3 class="function"><a name="wait_for_effective_machine_version-2">wait_for_effective_machine_version/2</a></h3>
+<div class="spec">
+<p><code>wait_for_effective_machine_version(StoreIdOrRaServer, MacVer) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreIdOrRaServer = StoreId | RaServer</code></li><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>RaServer = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id" docgen-rel="seetype" docgen-href="ra:ra#server_id/0">ra:server_id()</a></code></li><li><code>MacVer = <a href="/home/runner/work/khepri/ra/doc/ra_machine.html#type-version" docgen-rel="seetype" docgen-href="ra:ra_machine#version/0">ra_machine:version()</a> | latest</code></li><li><code>Ret = ok | {error, Reason}</code></li><li><code>Reason = timeout | {khepri, effective_machine_version_not_defined, map()}</code></li></ul></p>
+<p></p>
+</div><p><p>Waits for the store to run the given machine version.</p>
+ 
+  Calling this function is the same as calling
+  <code>wait_for_effective_machine_version(StoreId, MacVer, DefaultTimeout)</code> where
+  <code>DefaultTimeout</code> is returned by <a docgen-rel="seemfa" docgen-href="khepri_app#get_default_timeout/0" href="khepri_app.html#get_default_timeout-0"><code>khepri_app:get_default_timeout/0</code></a>.
+ </p>
+<p><b>See also:</b> <a href="#wait_for_effective_machine_version-3" docgen-rel="seemfa" docgen-href="#wait_for_effective_machine_version/3">wait_for_effective_machine_version/3</a>.</p>
+
+<h3 class="function"><a name="wait_for_effective_behaviour-2">wait_for_effective_behaviour/2</a></h3>
+<div class="spec">
+<p><code>wait_for_effective_behaviour(StoreIdOrRaServer, Behaviour) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreIdOrRaServer = StoreId | RaServer</code></li><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>RaServer = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id" docgen-rel="seetype" docgen-href="ra:ra#server_id/0">ra:server_id()</a></code></li><li><code>Behaviour = <a href="/home/runner/work/khepri/khepri/doc/khepri_machine.html#type-api_behaviour" docgen-rel="seetype" docgen-href="khepri:khepri_machine#api_behaviour/0">khepri_machine:api_behaviour()</a></code></li><li><code>Ret = ok | {error, Reason}</code></li><li><code>Reason = timeout | {khepri, unknown_api_hehaviour, #{behaviour := atom()}} | {khepri, effective_machine_version_not_defined, map()}</code></li></ul></p>
+<p></p>
+</div><p><p>Waits for the store to support the given API behaviour.</p>
+ 
+  Calling this function is the same as calling
+  <code>wait_for_effective_behaviour(StoreId, Behaviour, DefaultTimeout)</code> where
+  <code>DefaultTimeout</code> is returned by <a docgen-rel="seemfa" docgen-href="khepri_app#get_default_timeout/0" href="khepri_app.html#get_default_timeout-0"><code>khepri_app:get_default_timeout/0</code></a>.
+ </p>
+<p><b>See also:</b> <a href="#wait_for_effective_behaviour-3" docgen-rel="seemfa" docgen-href="#wait_for_effective_behaviour/3">wait_for_effective_behaviour/3</a>.</p>
 
 <h3 class="function"><a name="get_store_ids-0">get_store_ids/0</a></h3>
 <div class="spec">
