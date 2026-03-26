@@ -1954,7 +1954,7 @@ emitted_triggers_to_side_effects(State) ->
 %% @private
 
 overview(State) ->
-    #config{store_id = StoreId} = get_config(State),
+    #config{store_id = StoreId} = Config = get_config(State),
     Tree = get_tree(State),
     KeepWhileConds = get_keep_while_conds(State),
     Triggers = get_triggers(State),
@@ -1973,6 +1973,7 @@ overview(State) ->
              end,
     NodeTree = khepri_utils:flat_struct_to_tree(NodePropsMap, MapFun),
     #{store_id => StoreId,
+      config => Config,
       tree => NodeTree,
       triggers => Triggers,
       keep_while_conds => KeepWhileConds}.

@@ -9,7 +9,7 @@
 -include("src/khepri_node.hrl").
 
 %% TODO: Query this value from Ra itself.
--define(SNAPSHOT_INTERVAL, 4096).
+-define(SNAPSHOT_INTERVAL, 4096000).
 
 %% Record representing the state machine configuration.
 -record(config,
