@@ -65,6 +65,9 @@
 %% This is emitted internally by the `handle_aux/5' callback clause which
 %% handles the `tick' Ra aux effect.
 
+-record(batch, {commands = [] :: [khepri_machine:command()],
+                options = #{} :: khepri:batch_options()}).
+
 -record(with_annotations, {command :: khepri_machine:command(),
                            annotations = #{} :: khepri_machine:command_annotations()}).
 

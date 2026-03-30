@@ -110,7 +110,8 @@
          transaction/5,
          register_trigger/5,
          register_projection/4,
-         unregister_projections/3]).
+         unregister_projections/3,
+         batch/3]).
 -export([get_keep_while_conds_state/2,
          get_projections_state/2]).
 
@@ -183,6 +184,7 @@
                    #dedup{} |
                    #dedup_ack{} |
                    #drop_dedups{} |
+                   #batch{} |
                    #with_annotations{} |
                    #request_snapshot{}.
 %% Commands specific to this Ra machine.
@@ -787,6 +789,20 @@ ack_triggers_execution(StoreId, TriggeredStoredProcs)
     Command = #ack_triggered{triggered = TriggeredStoredProcs},
     process_command(StoreId, Command, #{async => true}).
 
+-spec batch(StoreId, Commands, Options) ->
+    Ret when
+      StoreId :: khepri:store_id(),
+      Commands :: [khepri_machine:command()],
+      Options :: khepri:command_options() |
+                 khepri:batch_options(),
+      Ret :: {ok, Rets} | khepri:error(),
+      Rets :: [khepri_machine:write_ret() | khepri_machine:tx_ret()].
+
+batch(StoreId, Commands, Options) ->
+    Command = #batch{commands = Commands,
+                     options = Options},
+    process_command(StoreId, Command, #{}).
+
 -spec request_snapshot(StoreId, Reason, Options) ->
     Ret when
       StoreId :: khepri:store_id(),
@@ -1073,7 +1089,7 @@ do_process_sync_command(StoreId, Command, Annotations, Options) ->
     T0 = khepri_utils:start_timeout_window(Timeout),
     Dest = leader_id_or(StoreId, RaServer),
     sending_sync_command(Dest),
-    case ra:process_command(Dest, Command1, CommandOptions) of
+    case process_or_batch_command(Dest, Command, CommandOptions) of
         {ok, Ret, _LeaderId} ->
             ?raise_exception_if_any(Ret);
         {timeout, _LeaderId} ->
@@ -1105,6 +1121,29 @@ do_process_sync_command(StoreId, Command, Annotations, Options) ->
         {error, _} = Error ->
             Error
     end.
+
+process_or_batch_command(
+  {StoreId, _Node} = Dest,
+  Command,
+  #{timeout := Timeout, reply_from := {member, Member}} = Options)
+  when not is_record(Command, batch) andalso Member =:= {StoreId, node()} ->
+    try
+        khepri_batch_proxy:proxy_command(StoreId, Command, Timeout)
+    catch
+        exit:timeout ->
+            LeaderId = ra_leaderboard:lookup_leader(StoreId),
+            {timeout, LeaderId};
+        exit:noproc ->
+            ra:process_command(Dest, Command, Options);
+        exit:shutdown ->
+            {error, shutdown};
+        exit:Reason ->
+            {error, Reason}
+    end;
+process_or_batch_command(
+  Dest, Command, Options) ->
+    sending_sync_command(Dest),
+    ra:process_command(Dest, Command, Options).
 
 process_async_command(
   StoreId, Command, Annotations,
@@ -1880,6 +1919,25 @@ apply(
     Dedups1 = maps:without(RefsToDrop, Dedups),
     State1 = set_dedups(State, Dedups1),
     Ret = {State1, ok},
+    post_apply(Ret, Meta, Command);
+apply(
+  #{machine_version := MacVer} = Meta,
+  #batch{commands = Commands} = Command,
+  State) when MacVer >= 4 ->
+    {State3,
+     Results3,
+     SideEffects3} = lists:foldl(
+                       fun(InnerCommand, {State1, Results1, SideEffects1}) ->
+                               {State2,
+                                SingleResult,
+                                MoreSideEffects} = apply(
+                                                     Meta, InnerCommand,
+                                                     State1),
+                               Results2 = [SingleResult | Results1],
+                               SideEffects2 = SideEffects1 ++ MoreSideEffects,
+                               {State2, Results2, SideEffects2}
+                       end, {State, [], []}, Commands),
+    Ret = {State3, {ok, Results3}, SideEffects3},
     post_apply(Ret, Meta, Command);
 apply(
   #{machine_version := MacVer} = Meta,
