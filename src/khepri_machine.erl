@@ -114,7 +114,8 @@
          transaction/5,
          register_trigger/5,
          register_projection/4,
-         unregister_projections/3]).
+         unregister_projections/3,
+         batch/3]).
 -export([get_keep_while_conds_state/2,
          get_projections_state/2]).
 
@@ -202,7 +203,8 @@
                    #unregister_projections_v{} |
                    #dedup_ack_v{} |
                    #drop_dedups_v{} |
-                   #request_snapshot{}.
+                   #request_snapshot{} |
+                   #batch{}.
 %% Commands specific to this Ra machine.
 
 -type old_command() :: #put{} |
@@ -339,7 +341,8 @@
                          multi_table_projections |
                          uniform_commands |
                          request_snapshot |
-                         extended_trigger.
+                         extended_trigger |
+                         batching.
 %% Name of a state machine API behaviour.
 
 -export_type([write_ret/0,
@@ -902,6 +905,22 @@ ack_triggers_execution(StoreId, TriggeredActions)
               end,
     process_command(StoreId, Command, #{async => true}).
 
+-spec batch(StoreId, Commands, Options) ->
+    Ret when
+      StoreId :: khepri:store_id(),
+      Commands :: [khepri_machine:command()],
+      Options :: khepri:command_options() |
+                 khepri:batch_options(),
+      Ret :: {ok, Rets} | khepri:error(),
+      Rets :: [khepri_machine:write_ret() | khepri_machine:tx_ret()].
+
+batch(StoreId, Commands, Options) ->
+    ?assert(does_api_comply_with(batching, StoreId)),
+    CommandArgs = #batch_v1{commands = Commands,
+                            options = Options},
+    Command = #batch{args = CommandArgs},
+    process_command(StoreId, Command, #{}).
+
 -spec request_snapshot(StoreId, Reason, Options) ->
     Ret when
       StoreId :: khepri:store_id(),
@@ -1204,7 +1223,7 @@ do_process_sync_command(StoreId, Command, Options) ->
     T0 = khepri_utils:start_timeout_window(Timeout),
     Dest = leader_id_or(StoreId, RaServer),
     sending_sync_command(Dest),
-    case ra:process_command(Dest, Command, CommandOptions) of
+    case process_or_batch_command(Dest, Command, CommandOptions) of
         {ok, Ret, _LeaderId} ->
             ?raise_exception_if_any(Ret);
         {timeout, _LeaderId} ->
@@ -1235,6 +1254,29 @@ do_process_sync_command(StoreId, Command, Options) ->
         {error, _} = Error ->
             Error
     end.
+
+process_or_batch_command(
+  {StoreId, _Node} = Dest,
+  Command,
+  #{timeout := Timeout, reply_from := {member, Member}} = Options)
+  when not is_record(Command, batch) andalso Member =:= {StoreId, node()} ->
+    try
+        khepri_batch_proxy:proxy_command(StoreId, Command, Timeout)
+    catch
+        exit:timeout ->
+            LeaderId = ra_leaderboard:lookup_leader(StoreId),
+            {timeout, LeaderId};
+        exit:noproc ->
+            ra:process_command(Dest, Command, Options);
+        exit:shutdown ->
+            {error, shutdown};
+        exit:Reason ->
+            {error, Reason}
+    end;
+process_or_batch_command(
+  Dest, Command, Options) ->
+    sending_sync_command(Dest),
+    ra:process_command(Dest, Command, Options).
 
 process_async_command(
   StoreId, Command, ?DEFAULT_RA_COMMAND_CORRELATION = Correlation, Priority) ->
@@ -2057,6 +2099,25 @@ do_apply(
     {State1, SideEffects} = release_cursor(State, RaftIndex, Reason, []),
     Ret = {State1, ok, SideEffects},
     post_apply(Ret, Meta, Command);
+do_apply(
+  #{machine_version := MacVer} = Meta,
+  #batch{args = #batch_v1{commands = Commands}} = Command,
+  State) when MacVer >= ?API_BEHAV_MACVER(batching) ->
+    {State3,
+     Results3,
+     SideEffects3} = lists:foldl(
+                       fun(InnerCommand, {State1, Results1, SideEffects1}) ->
+                               {State2,
+                                SingleResult,
+                                MoreSideEffects} = do_apply(
+                                                     Meta, InnerCommand,
+                                                     State1),
+                               Results2 = [SingleResult | Results1],
+                               SideEffects2 = SideEffects1 ++ MoreSideEffects,
+                               {State2, Results2, SideEffects2}
+                       end, {State, [], []}, Commands),
+    Ret = {State3, {ok, Results3}, SideEffects3},
+    post_apply(Ret, Meta, Command);
 do_apply(Meta, {machine_version, OldMacVer, NewMacVer} = Command, OldState) ->
     NewState = convert_state(OldState, OldMacVer, NewMacVer),
     Ret = {NewState, ok},
@@ -2193,7 +2254,8 @@ convert_to_uniform_command(Command)
        is_record(Command, unregister_projections_v) orelse
        is_record(Command, dedup_ack_v) orelse
        is_record(Command, drop_dedups_v) orelse
-       is_record(Command, request_snapshot) ->
+       is_record(Command, request_snapshot) orelse
+       is_record(Command, batch) ->
     %% These are all uniform/versioned commands already. We list them
     %% explicitly to reduce the risk of programming errors with wildcard
     %% pattern matching.
@@ -2369,6 +2431,8 @@ does_command_support_common_args(#drop_dedups_v{}) ->
     true;
 does_command_support_common_args(#request_snapshot{}) ->
     true;
+does_command_support_common_args(#batch{}) ->
+    true;
 does_command_support_common_args(#put{}) ->
     false;
 does_command_support_common_args(#delete{}) ->
@@ -2423,6 +2487,8 @@ get_command_common_args(#drop_dedups_v{common = CommonArgs}) ->
     CommonArgs;
 get_command_common_args(#request_snapshot{common = CommonArgs}) ->
     CommonArgs;
+get_command_common_args(#batch{common = CommonArgs}) ->
+    CommonArgs;
 get_command_common_args(#put{}) ->
     none;
 get_command_common_args(#delete{}) ->
@@ -2474,7 +2540,9 @@ set_command_common_args(#dedup_ack_v{} = Command, CommonArgs) ->
 set_command_common_args(#drop_dedups_v{} = Command, CommonArgs) ->
     Command#drop_dedups_v{common = CommonArgs};
 set_command_common_args(#request_snapshot{} = Command, CommonArgs) ->
-    Command#request_snapshot{common = CommonArgs}.
+    Command#request_snapshot{common = CommonArgs};
+set_command_common_args(#batch{} = Command, CommonArgs) ->
+    Command#batch{common = CommonArgs}.
 
 -spec set_dedup_args(Command, CommandRef, Expiry) -> NewCommand when
       Command :: khepri_machine:command(),
