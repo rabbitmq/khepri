@@ -13,7 +13,7 @@
 -include("include/khepri.hrl").
 -include("src/khepri_machine.hrl").
 -include("src/khepri_error.hrl").
--include("src/khepri_tree.hrl").
+-include("src/khepri_path.hrl").
 -include("test/helpers.hrl").
 
 %% khepri:get_root/1 is unexported when compiled without `-DTEST'. Likewise
@@ -749,21 +749,21 @@ delete_node_with_many_dependents() ->
       end, DependentPaths).
 
 siblings_chunks_test() ->
-    ?assertEqual([[a]], khepri_tree:siblings_chunks([a], 2)),
-    ?assertEqual([[a, b]], khepri_tree:siblings_chunks([a, b], 2)),
-    ?assertEqual([[a, b], [c]], khepri_tree:siblings_chunks([a, b, c], 2)),
+    ?assertEqual([[a]], khepri_path:siblings_chunks([a], 2)),
+    ?assertEqual([[a, b]], khepri_path:siblings_chunks([a, b], 2)),
+    ?assertEqual([[a, b], [c]], khepri_path:siblings_chunks([a, b, c], 2)),
     ?assertEqual(
        [[a, b], [c, d]],
-       khepri_tree:siblings_chunks([a, b, c, d], 2)),
+       khepri_path:siblings_chunks([a, b, c, d], 2)),
     ?assertError(
        function_clause,
-       erlang:apply(khepri_tree, siblings_chunks, [[], 2])),
+       erlang:apply(khepri_path, siblings_chunks, [[], 2])),
     ?assertError(
        function_clause,
-       erlang:apply(khepri_tree, siblings_chunks, [[a], 0])),
+       erlang:apply(khepri_path, siblings_chunks, [[a], 0])),
     ?assertError(
        function_clause,
-       erlang:apply(khepri_tree, siblings_chunks, [[a], -1])).
+       erlang:apply(khepri_path, siblings_chunks, [[a], -1])).
 
 %% Cascading deletions through a chain of dependencies where each node depends
 %% on the previous one. This should complete quickly (milliseconds). However

@@ -1141,6 +1141,7 @@ process_command(StoreId, Command, Options) ->
         sync ->
             process_sync_command(StoreId, Command1, Options);
         {async, Correlation, Priority} ->
+            logger:alert("ASYNC ~p", [Command]),
             process_async_command(
               StoreId, Command1, Correlation, Priority)
     end.
@@ -1258,8 +1259,10 @@ do_process_sync_command(StoreId, Command, Options) ->
 process_or_batch_command(
   {StoreId, _Node} = Dest,
   Command,
-  #{timeout := Timeout, reply_from := {member, Member}} = Options)
-  when not is_record(Command, batch) andalso Member =:= {StoreId, node()} ->
+  #{timeout := Timeout, reply_from := ReplyFrom} = Options)
+  when not is_record(Command, batch) andalso
+       (ReplyFrom =:= {member, {StoreId, node()}} orelse
+        ReplyFrom =:= local) ->
     try
         khepri_batch_proxy:proxy_command(StoreId, Command, Timeout)
     catch
@@ -1276,6 +1279,12 @@ process_or_batch_command(
 process_or_batch_command(
   Dest, Command, Options) ->
     sending_sync_command(Dest),
+    case Command of
+        #batch{} ->
+            ok;
+        _ ->
+            logger:alert("NOT BATCHING ~p~n  Dest=~p~n  Options=~p", [Command, Dest, Options])
+    end,
     ra:process_command(Dest, Command, Options).
 
 process_async_command(
@@ -2116,7 +2125,8 @@ do_apply(
                                SideEffects2 = SideEffects1 ++ MoreSideEffects,
                                {State2, Results2, SideEffects2}
                        end, {State, [], []}, Commands),
-    Ret = {State3, {ok, Results3}, SideEffects3},
+    Results4 = lists:reverse(Results3),
+    Ret = {State3, {ok, Results4}, SideEffects3},
     post_apply(Ret, Meta, Command);
 do_apply(Meta, {machine_version, OldMacVer, NewMacVer} = Command, OldState) ->
     NewState = convert_state(OldState, OldMacVer, NewMacVer),

@@ -18,7 +18,6 @@
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
 -include("src/khepri_node.hrl").
--include("src/khepri_tree.hrl").
 
 -export([new/0,
          get_root/1,
@@ -41,8 +40,7 @@
          convert_tree/3]).
 
 -ifdef(TEST).
--export([unopacify/1,
-         siblings_chunks/2]).
+-export([unopacify/1]).
 -endif.
 
 -record(tree, {root = #node{} :: khepri_tree:tree_node(),
@@ -1807,101 +1805,8 @@ remove_expired_nodes(PathsToDelete, Walk) ->
     %% Here, we convert this list of paths to a list of path patterns, trying
     %% to gather several siblings together in a single pattern, or entirely
     %% eliminate paths to children of a deleted tree node.
-    PatternsToDelete = paths_to_patterns(PathsToDelete),
+    PatternsToDelete = khepri_path:paths_to_patterns(PathsToDelete),
     remove_expired_nodes1(PatternsToDelete, Walk).
-
--spec paths_to_patterns(PathsToDelete) -> PatternsToDelete when
-      PathsToDelete :: [khepri_path:native_path()],
-      PatternsToDelete :: [khepri_path:native_pattern()].
-%% @private
-
-paths_to_patterns(PathsToDelete) ->
-    %% This sort here is important: shorter paths, and thus parent paths will
-    %% be considered first before their children in the computation below.
-    %% This allows to skip childrend when a (grand-)parent is already
-    %% scheduled for deletion.
-    PathsToDelete1 = lists:sort(PathsToDelete),
-    paths_to_patterns(PathsToDelete1, #{}).
-
-paths_to_patterns([PathToDelete | Rest], PatternsToDelete) ->
-    PatternsToDelete1 = path_to_pattern(PathToDelete, PatternsToDelete),
-    paths_to_patterns(Rest, PatternsToDelete1);
-paths_to_patterns([], PatternsToDelete) ->
-    PatternsToDelete1 = maps:fold(
-                          fun
-                              (ParentPath, [Component], Acc) ->
-                                  %% Only one child is deleted. Let's convert
-                                  %% it back to a regular path.
-                                  Path = ParentPath ++ [Component],
-                                  [Path | Acc];
-                              (ParentPath, Siblings, Acc) ->
-                                  %% Many siblings are deleted. We use
-                                  %% patterns that match any siblings,
-                                  %% capped at `?MAX_SIBLINGS_PER_PATTERN'
-                                  Chunks = siblings_chunks(
-                                             Siblings,
-                                             ?MAX_SIBLINGS_PER_PATTERN),
-                                  lists:foldl(
-                                    fun(Chunk, Acc1) ->
-                                        Pattern0 = #if_any{conditions = Chunk},
-                                        Pattern1 = ParentPath ++ [Pattern0],
-                                        [Pattern1 | Acc1]
-                                    end, Acc, Chunks)
-                          end, [], PatternsToDelete),
-    PatternsToDelete1.
-
-path_to_pattern(PathToDelete, PatternsToDelete) ->
-    ParentPath = [],
-    path_to_pattern(PathToDelete, ParentPath, PatternsToDelete).
-
-path_to_pattern([Component | Rest], ParentPath, PatternsToDelete) ->
-    Siblings = maps:get(ParentPath, PatternsToDelete, []),
-    case Rest of
-        [_ | _] ->
-            case lists:member(Component, Siblings) of
-                true ->
-                    %% A parent is already scheduled for deletion. We can skip
-                    %% this path because it's a child that will go away with
-                    %% the parent.
-                    PatternsToDelete;
-                false ->
-                    %% We are in the middle of the path to delete and this
-                    %% parent is not deleted. Let's continue with the next
-                    %% component.
-                    ThisPath = ParentPath ++ [Component],
-                    path_to_pattern(Rest, ThisPath, PatternsToDelete)
-            end;
-        [] ->
-            %% We reached the last component of a path.
-            %%
-            %% We add it to a list of siblings under the parent's path. Later,
-            %% we can convert this to an actual pattern.
-            Siblings1 = [Component | Siblings],
-            PatternsToDelete1 = PatternsToDelete#{ParentPath => Siblings1},
-            PatternsToDelete1
-    end.
-
--spec siblings_chunks(List, Count) -> Chunks when
-      List :: [any(), ...],
-      Count :: pos_integer(),
-      Chunks :: [Chunk],
-      Chunk :: [any(), ...].
-%% @private
-
-siblings_chunks(List, Count) when Count > 0 ->
-    siblings_chunks(List, Count, Count, [], []).
-
-siblings_chunks([], _Count, _Remaining, Acc, Chunks) when Acc =/= [] ->
-    Chunk = lists:reverse(Acc),
-    Chunks1 = [Chunk | Chunks],
-    lists:reverse(Chunks1);
-siblings_chunks(List, Count, 0, Acc, Chunks) ->
-    Chunk = lists:reverse(Acc),
-    Chunks1 = [Chunk | Chunks],
-    siblings_chunks(List, Count, Count, [], Chunks1);
-siblings_chunks([Elem | Rest], Count, Remaining, Acc, Chunks) ->
-    Acc1 = [Elem | Acc],
-    siblings_chunks(Rest, Count, Remaining - 1, Acc1, Chunks).
 
 remove_expired_nodes1(
   [PathToDelete | Rest],
