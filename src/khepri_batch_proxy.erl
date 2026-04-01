@@ -30,8 +30,9 @@
          code_change/3]).
 
 -record(?MODULE, {store_id :: khepri:store_id(),
-                  callers = [] :: [gen_server:from()],
-                  commands = [] :: [khepri_machine:command()]}).
+                  commands = [] :: [{gen_server:from(),
+                                     khepri_machine:command()}],
+                  submitter = undefined :: pid()}).
 
 -define(PT_SERVER_PID(StoreId), {?MODULE, StoreId}).
 
@@ -90,13 +91,13 @@ init(#{store_id := StoreId}) ->
 handle_call(
   {proxy_command, Command},
   From,
-  #?MODULE{callers = Callers, commands = Commands} = State) ->
-    Callers1 = [From | Callers],
-    Commands1 = [Command | Commands],
-    State1 = State#?MODULE{callers = Callers1,
-                           commands = Commands1},
-    Timeout = get_new_timeout(State1),
-    {noreply, State1, Timeout};
+  #?MODULE{commands = Commands} = State) ->
+    % logger:alert("PROXY ~p", [Command]),
+    Commands1 = [{From, Command} | Commands],
+    State1 = State#?MODULE{commands = Commands1},
+    State2 = maybe_process_batch(State1),
+    Timeout = get_new_timeout(State2),
+    {noreply, State2, Timeout};
 handle_call(flush_commands, _From, State) ->
     State1 = process_batch(State),
     Timeout = get_new_timeout(State1),
@@ -114,7 +115,11 @@ handle_cast(Request, State) ->
     {noreply, State, Timeout}.
 
 handle_info(timeout, State) ->
-    State1 = process_batch(State),
+    State1 = maybe_process_batch(State),
+    Timeout = get_new_timeout(State1),
+    {noreply, State1, Timeout};
+handle_info({'EXIT', Pid, _Reason}, #?MODULE{submitter = Pid} = State) ->
+    State1 = State#?MODULE{submitter = undefined},
     Timeout = get_new_timeout(State1),
     {noreply, State1, Timeout};
 handle_info(Msg, State) ->
@@ -123,7 +128,7 @@ handle_info(Msg, State) ->
     {noreply, State, Timeout}.
 
 terminate(_Reason, #?MODULE{store_id = StoreId} = State) ->
-    _State = process_batch(State),
+    _State = process_batch(State), % FIXME synchronous
     ThisPid = self(),
     ?LOG_DEBUG(
        "Terminating batch proxy ~p for store \"~s\"",
@@ -140,40 +145,134 @@ get_new_timeout(#?MODULE{commands = Commands}) ->
         _ -> 0
     end.
 
+maybe_process_batch(#?MODULE{submitter = Pid} = State)
+  when is_pid(Pid) ->
+    State;
+maybe_process_batch(State) ->
+    process_batch(State).
+
 process_batch(
-  #?MODULE{callers = [],
-           commands = []} = State) ->
+  #?MODULE{commands = []} = State) ->
     State;
 process_batch(
+  #?MODULE{store_id = StoreId, commands = [_] = Commands} = State) ->
+    do_process_batch(StoreId, Commands),
+    State1 = State#?MODULE{commands = []},
+    State1;
+process_batch(
   #?MODULE{store_id = StoreId,
-           callers = Callers,
            commands = Commands} = State) ->
-    Commands1 = lists:reverse(Commands),
-    case length(Commands1) of
-        N when N > 1 ->
+    Pid = spawn_link(
+            fun() ->
+                    do_process_batch(StoreId, Commands)
+            end),
+    State1 = State#?MODULE{commands = [],
+                           submitter = Pid},
+    State1.
+
+do_process_batch(StoreId, Commands) ->
+    Commands1 = optimize_batch(Commands),
+    OnlyCommands = [Command || {_From, Command} <- Commands1],
+    case length(OnlyCommands) of
+        N when N > 0 ->
             logger:alert("BATCH: ~b commands", [N]);
         _ ->
             ok
     end,
-    Ret = khepri_machine:batch(StoreId, Commands1, #{atomic => false}),
+    Ret = khepri_machine:batch(StoreId, OnlyCommands, #{atomic => false}),
     case Ret of
         {ok, Rets} ->
-            ?assertEqual(length(Callers), length(Rets)),
-            Callers1 = lists:reverse(Callers),
+            ?assertEqual(length(Commands1), length(Rets)),
             LeaderId = ra_leaderboard:lookup_leader(StoreId),
-            send_replies(Callers1, Rets, LeaderId),
-
-            State1 = State#?MODULE{callers = [],
-                                   commands = []},
-            State1;
+            send_replies(Commands1, Rets, LeaderId);
         Error ->
             %% TODO
             ?LOG_ERROR("Error = ~p", [Error]),
-            State
+            ok
     end.
 
-send_replies([From | Callers], [Ret | Rets], LeaderId) ->
-    gen_server:reply(From, {ok, Ret, LeaderId}),
-    send_replies(Callers, Rets, LeaderId);
+optimize_batch([_] = Commands) ->
+    Commands;
+optimize_batch(Commands) ->
+    Commands1 = lists:reverse(Commands),
+    Commands2 = simplify_specific_deletes(Commands1),
+    Commands2.
+
+simplify_specific_deletes(Commands) ->
+    simplify_specific_deletes(Commands, #{other_commands => []}).
+
+simplify_specific_deletes(
+  [{_From, #delete{options = Options}} = Command | Commands],
+  DeletesPerOptions) ->
+    Cmds = maps:get(Options, DeletesPerOptions, []),
+    Cmds1 = [Command | Cmds],
+    DeletesPerOptions1 = DeletesPerOptions#{Options => Cmds1},
+    simplify_specific_deletes(Commands, DeletesPerOptions1);
+simplify_specific_deletes(
+  [Command | Commands],
+  DeletesPerOptions) ->
+    Cmds = maps:get(other_commands, DeletesPerOptions),
+    Cmds1 = [Command | Cmds],
+    DeletesPerOptions1 = DeletesPerOptions#{other_commands => Cmds1},
+    simplify_specific_deletes(Commands, DeletesPerOptions1);
+simplify_specific_deletes(
+  [],
+  DeletesPerOptions) ->
+    maps:fold(
+      fun
+          (#{expect_specific_node := true} = Options, Cmds, Acc) ->
+              Paths = [Path || {_From, #delete{path = Path}} <- Cmds],
+              Patterns = khepri_path:paths_to_patterns(Paths),
+              case Patterns of
+                  [Pattern] ->
+                      Froms = [From || {From, _Cmd} <- Cmds],
+                      Options1 = Options#{expect_specific_node => false},
+                      Cmd1 = #delete{path = Pattern, options = Options1},
+                      Cmd2 = {Froms, Cmd1},
+                      % logger:alert("OPTIMIZE:~n  1: ~p~n  2: ~p", [Cmds, Cmd2]),
+                      Acc ++ [Cmd2];
+                  _ ->
+                      Acc ++ Cmds
+              end;
+          (_, Cmds, Acc) ->
+              Acc ++ Cmds
+      end, [], DeletesPerOptions).
+
+    % DeletesPerOptions = lists:foldl(
+    %                       fun
+    %                           (#delete{options = Options} = Command, Acc) ->
+    %                               Cmds = maps:get(Options, Acc, []),
+    %                               Cmds1 = [Command | Cmds],
+    %                               Acc#{Options => Cmds1};
+    %                           (Command, Acc) ->
+    %                               Cmds = maps:get(other_commands, Acc),
+    %                               Cmds1 = [Command | Cmds],
+    %                               Acc#{other_commands => Cmds1}
+    %                       end, #{other_commands => []}, Commands),
+    % maps:fold(
+    %   fun
+    %       (other_commands, Cmds, {Acc1, Acc2}) ->
+    %           Acc ++ Cmds;
+    %       (#{expect_specific_node := true} = Options, Cmds, Acc) ->
+    %           Paths = [Path || #delete{path = Path} <- Cmds],
+    %           Patterns = khepri_path:paths_to_patterns(Paths),
+    %           Cmds1 = [#delete{path = Pattern, options = Options}
+    %                    || Pattern <- Patterns],
+    %           logger:alert("OPTIMIZE:~n  1: ~p~n  2: ~p", [Cmds, Cmds1]),
+    %           Acc ++ Cmds1
+    %   end, {[], #{}}, DeletesPerOptions).
+
+send_replies([{Froms, _} | Commands], [Ret | Rets], LeaderId) ->
+    % logger:alert("REPLY ~p = ~p", [Command, Ret]),
+    case is_list(Froms) of
+        false ->
+            gen_server:reply(Froms, {ok, Ret, LeaderId});
+        true ->
+            lists:foreach(
+              fun(From) ->
+                      gen_server:reply(From, {ok, Ret, LeaderId})
+              end, Froms)
+    end,
+    send_replies(Commands, Rets, LeaderId);
 send_replies([], [], _LeaderId) ->
     ok.

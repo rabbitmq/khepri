@@ -63,7 +63,8 @@
          ensure_is_valid/1,
          abspath/2,
          realpath/1,
-         pattern_includes_root_node/1]).
+         pattern_includes_root_node/1,
+         paths_to_patterns/1]).
 
 -ifdef(TEST).
 -export([component_to_string/1]).
@@ -650,3 +651,67 @@ realpath([], Result) ->
 
 pattern_includes_root_node(Path) ->
     [] =:= realpath(Path).
+
+-spec paths_to_patterns(PathsToDelete) -> PatternsToDelete when
+      PathsToDelete :: [khepri_path:native_path()],
+      PatternsToDelete :: [khepri_path:native_pattern()].
+%% @private
+
+paths_to_patterns(PathsToDelete) ->
+    %% This sort here is important: shorter paths, and thus parent paths will
+    %% be considered first before their children in the computation below. This
+    %% allows to skip children when a (grand-)parent is already scheduled for
+    %% deletion.
+    PathsToDelete1 = lists:sort(PathsToDelete),
+    paths_to_patterns(PathsToDelete1, #{}).
+
+paths_to_patterns([PathToDelete | Rest], PatternsToDelete) ->
+    PatternsToDelete1 = path_to_pattern(PathToDelete, PatternsToDelete),
+    paths_to_patterns(Rest, PatternsToDelete1);
+paths_to_patterns([], PatternsToDelete) ->
+    PatternsToDelete1 = maps:fold(
+                          fun
+                              (ParentPath, [Component], Acc) ->
+                                  %% Only one child is deleted. Let's convert
+                                  %% it back to a regular path.
+                                  Path = ParentPath ++ [Component],
+                                  [Path | Acc];
+                              (ParentPath, Siblings, Acc) ->
+                                  %% Many siblings are deleted. We use a
+                                  %% single pattern that matches any siblings.
+                                  Pattern0 = #if_any{conditions = Siblings},
+                                  Pattern1 = ParentPath ++ [Pattern0],
+                                  [Pattern1 | Acc]
+                          end, [], PatternsToDelete),
+    PatternsToDelete1.
+
+path_to_pattern(PathToDelete, PatternsToDelete) ->
+    ParentPath = [],
+    path_to_pattern(PathToDelete, ParentPath, PatternsToDelete).
+
+path_to_pattern([Component | Rest], ParentPath, PatternsToDelete) ->
+    Siblings = maps:get(ParentPath, PatternsToDelete, []),
+    case Rest of
+        [_ | _] ->
+            case lists:member(Component, Siblings) of
+                true ->
+                    %% A parent is already scheduled for deletion. We can skip
+                    %% this path because it's a child that will go away with
+                    %% the parent.
+                    PatternsToDelete;
+                false ->
+                    %% We are in the middle of the path to delete and this
+                    %% parent is not deleted. Let's continue with the next
+                    %% component.
+                    ThisPath = ParentPath ++ [Component],
+                    path_to_pattern(Rest, ThisPath, PatternsToDelete)
+            end;
+        [] ->
+            %% We reached the last component of a path.
+            %%
+            %% We add it to a list of siblings under the parent's path. Later,
+            %% we can convert this to an actual pattern.
+            Siblings1 = [Component | Siblings],
+            PatternsToDelete1 = PatternsToDelete#{ParentPath => Siblings1},
+            PatternsToDelete1
+    end.
