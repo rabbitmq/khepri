@@ -22,8 +22,17 @@ state machine in a Ra cluster.
 
 ## Project maturity
 
-Khepri is still under active development and should be considered *Beta* at
-this stage.
+Khepri is still under active development. That said, it is **safe to be used in
+production**. As an example, it is used as the default metadata store in
+RabbitMQ 4.2.x and it is even the only supported one starting from RabbitMQ
+4.3.0.
+
+From an API stand point, the **API will continue to evolve**, sometimes with
+breaking changes, as we are not 100% satisfied with it. That is why Khepri
+1.0.0 is not released yet. When we have to introduce a breaking change:
+1. We try to provide backward compatibility first
+2. When it is not possible, we describe how the change impacts a program
+   depending on Khepri, with examples showing how to adapt the source code.
 
 ## Fundamental assumptions
 
@@ -247,5 +256,11 @@ The logo (`doc/khepri-logo.svg`) and the favicon (`doc/khepri-favicon.svg`) are
 based on the following two resources:
 * https://www.svgrepo.com/svg/55105/rabbit (license: CC0)
 * https://www.svgrepo.com/svg/336625/database-point (license: MIT)
+
+> [!NOTE]
+> [AI-free — *Human Made*](https://ai-free.io/)
+>
+> Khepri is developed by humans and no AI agents were involved in the design or
+> the writing of this library, including its tests and its documentation.
 
 SPDX-License-Identifier: Apache-2.0 OR MPL-2.0
