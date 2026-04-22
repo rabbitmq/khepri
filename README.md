@@ -248,4 +248,10 @@ based on the following two resources:
 * https://www.svgrepo.com/svg/55105/rabbit (license: CC0)
 * https://www.svgrepo.com/svg/336625/database-point (license: MIT)
 
+> [!NOTE]
+> [AI-free — *Human Made*](https://ai-free.io/)
+>
+> Khepri is developed by humans and no AI agents were involved in the design or
+> the writing of this library, including its tests and its documentation.
+
 SPDX-License-Identifier: Apache-2.0 OR MPL-2.0
