@@ -179,9 +179,14 @@ end_per_testcase(_Testcase, Config) ->
     maps:foreach(
       fun
           (Node, #{peer := Peer, props := Props}) ->
-              _ = catch peer:call(
-                          Peer, helpers, stop_ra_system, [Props], infinity),
-              _ = catch helpers:stop_erlang_node(Node, Peer);
+              try
+                  _ = peer:call(
+                        Peer, helpers, stop_ra_system, [Props], infinity),
+                  _ = helpers:stop_erlang_node(Node, Peer)
+              catch
+                  _:_ ->
+                      ok
+              end;
           (_Node, #{props := Props}) ->
               helpers:stop_ra_system(Props)
       end, PropsPerNode),
@@ -452,8 +457,13 @@ fail_to_start_with_bad_ra_server_config(Config) ->
     StoreId = RaSystem,
 
     ct:pal("Start database"),
-    Ret1 = (catch khepri:start(RaSystem, #{cluster_name => StoreId,
-                                           tick_timeout => not_a_timeout})),
+    Ret1 = try
+               khepri:start(RaSystem, #{cluster_name => StoreId,
+                                        tick_timeout => not_a_timeout})
+           catch
+               _Class1:Reason1 ->
+                   {'EXIT', Reason1}
+           end,
     ct:pal("Return value of khepri:start/2: ~p", [Ret1]),
     ?assert(
        case Ret1 of
@@ -477,7 +487,12 @@ fail_to_start_with_bad_ra_server_config(Config) ->
     %% The process is restarted by its supervisor. Depending on the timing, we
     %% may get a `noproc' or an exception.
     ct:pal("Database unusable after failing to start it"),
-    Ret2 = (catch khepri:get(StoreId, [foo])),
+    Ret2 = try
+               khepri:get(StoreId, [foo])
+           catch
+               _Class2:Reason2 ->
+                   {'EXIT', Reason2}
+           end,
     ct:pal("Return value of khepri:get/2: ~p", [Ret2]),
     ?assert(
        case Ret2 of
