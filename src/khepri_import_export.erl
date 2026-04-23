@@ -222,7 +222,12 @@ do_export(State, PathPattern, Module, ModulePriv) ->
                         write(State, Path, Node, Module, ModulePriv2)
                     catch
                         Class:Exception:Stacktrace ->
-                            _ = catch abort_write(Module, ModulePriv2),
+                            _ = try
+                                    abort_write(Module, ModulePriv2)
+                                catch
+                                    _:_ ->
+                                        ok
+                                end,
                             erlang:raise(Class, Exception, Stacktrace)
                     end,
                     case Ret of
@@ -365,7 +370,12 @@ do_import(StoreId, Module, ModulePriv) ->
               read(Module, ModulePriv)
           catch
               Class:Exception:Stacktrace ->
-                  _ = catch close_read(Module, ModulePriv),
+                  _ = try
+                          close_read(Module, ModulePriv)
+                      catch
+                          _:_ ->
+                              ok
+                      end,
                   erlang:raise(Class, Exception, Stacktrace)
           end,
     case Ret of

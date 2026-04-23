@@ -378,7 +378,12 @@ fail_to_start_with_bad_ra_server_config(Config) ->
     %% The process is restarted by its supervisor. Depending on the timing, we
     %% may get a `noproc' or an exception.
     ct:pal("Database unusable after failing to start it"),
-    Ret = (catch khepri:get(StoreId, [foo])),
+    Ret = try
+              khepri:get(StoreId, [foo])
+           catch
+               _Class:Reason ->
+                   {'EXIT', Reason}
+          end,
     ct:pal("Return value of khepri:get/2: ~p", [Ret]),
     ?assert(
        case Ret of
