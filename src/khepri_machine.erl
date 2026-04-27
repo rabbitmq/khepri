@@ -1810,7 +1810,8 @@ post_apply({State, Result, SideEffects}, Meta, _Command) ->
     {State1, SideEffects1} = bump_applied_command_count(State, SideEffects, Meta),
     {State2, SideEffects2} = drop_expired_dedups(State1, SideEffects1, Meta),
     {State3, SideEffects3} = trigger_delayed_aux_queries_eval(State2, SideEffects2, Meta),
-    {State3, Result, SideEffects3}.
+    {State4, SideEffects4} = maybe_request_snapshot(State3, SideEffects3, Meta),
+    {State4, Result, lists:reverse(SideEffects4)}.
 
 -spec bump_applied_command_count(State, SideEffects, Meta) ->
     {NewState, NewSideEffects} when
@@ -1821,27 +1822,13 @@ post_apply({State, Result, SideEffects}, Meta, _Command) ->
       NewSideEffects :: ra_machine:effects().
 %% @private
 
-bump_applied_command_count(State, SideEffects, #{index := RaftIndex}) ->
-    SnapshotInterval = get_snapshot_interval(State),
+bump_applied_command_count(State, SideEffects, _Meta) ->
     Metrics = get_metrics(State),
     AppliedCmdCount0 = maps:get(applied_command_count, Metrics, 0),
     AppliedCmdCount = AppliedCmdCount0 + 1,
-    case AppliedCmdCount < SnapshotInterval of
-        true ->
-            Metrics1 = Metrics#{applied_command_count => AppliedCmdCount},
-            State1 = set_metrics(State, Metrics1),
-            {State1, SideEffects};
-        false ->
-            ?LOG_DEBUG(
-               "Move release cursor after ~b commands applied "
-               "(>= ~b commands)",
-               [AppliedCmdCount, SnapshotInterval],
-               #{domain => [khepri, ra_machine]}),
-            State1 = reset_metrics(State),
-            ReleaseCursor = {release_cursor, RaftIndex, State1},
-            SideEffects1 = [ReleaseCursor | SideEffects],
-            {State1, SideEffects1}
-    end.
+    Metrics1 = Metrics#{applied_command_count => AppliedCmdCount},
+    State1 = set_metrics(State, Metrics1),
+    {State1, SideEffects}.
 
 reset_metrics(State) ->
     Metrics = get_metrics(State),
@@ -3006,3 +2993,40 @@ diff_matching_nodes(OldNodeProps, NewNodeProps) ->
       fun(Path, NewProps, Acc) ->
               Acc#{Path => {#{}, NewProps}}
       end, AllProps, maps:without(CommonPaths, NewNodeProps)).
+
+%% -------------------------------------------------------------------
+%% Snapshot management.
+%% -------------------------------------------------------------------
+
+maybe_request_snapshot(State, SideEffects, #{index := RaftIndex}) ->
+    case should_request_snapshot(State) of
+        false ->
+            {State, SideEffects};
+        {true, Reason} ->
+            release_cursor(State, RaftIndex, Reason, SideEffects)
+    end.
+
+should_request_snapshot(State) ->
+    SnapshotInterval = get_snapshot_interval(State),
+    Metrics = get_metrics(State),
+    AppliedCmdCount = maps:get(applied_command_count, Metrics, 0),
+    case AppliedCmdCount < SnapshotInterval of
+        true ->
+            false;
+        false ->
+            Reason = io_lib:format(
+                       "~b commands applied >= "
+                       "snapshot interval of ~b",
+                       [AppliedCmdCount, SnapshotInterval]),
+            {true, Reason}
+    end.
+
+release_cursor(State, RaftIndex, Reason, SideEffects) ->
+    ?LOG_DEBUG(
+       "Move release cursor, reason: ~ts",
+       [Reason],
+       #{domain => [khepri, ra_machine]}),
+    State1 = reset_metrics(State),
+    ReleaseCursor = {release_cursor, RaftIndex, State1},
+    SideEffects1 = [ReleaseCursor | SideEffects],
+    {State1, SideEffects1}.
