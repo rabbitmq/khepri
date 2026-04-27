@@ -1810,24 +1810,22 @@ apply(
 
 post_apply({State, Result}, Meta, Command) ->
     post_apply({State, Result, []}, Meta, Command);
-post_apply({_State, _Result, _SideEffects} = Ret, Meta, _Command) ->
-    Ret1 = bump_applied_command_count(Ret, Meta),
-    Ret2 = drop_expired_dedups(Ret1, Meta),
-    Ret3 = trigger_delayed_aux_queries_eval(Ret2, Meta),
-    Ret3.
+post_apply({State, Result, SideEffects}, Meta, _Command) ->
+    {State1, SideEffects1} = bump_applied_command_count(State, SideEffects, Meta),
+    {State2, SideEffects2} = drop_expired_dedups(State1, SideEffects1, Meta),
+    {State3, SideEffects3} = trigger_delayed_aux_queries_eval(State2, SideEffects2, Meta),
+    {State3, Result, SideEffects3}.
 
--spec bump_applied_command_count(ApplyRet, Meta) ->
-    {State, Result, SideEffects} when
-      ApplyRet :: {State, Result, SideEffects},
+-spec bump_applied_command_count(State, SideEffects, Meta) ->
+    {NewState, NewSideEffects} when
       State :: state(),
-      Result :: any(),
+      SideEffects :: ra_machine:effects(),
       Meta :: ra_machine:command_meta_data(),
-      SideEffects :: ra_machine:effects().
+      NewState :: state(),
+      NewSideEffects :: ra_machine:effects().
 %% @private
 
-bump_applied_command_count(
-  {State, Result, SideEffects},
-  #{index := RaftIndex}) ->
+bump_applied_command_count(State, SideEffects, #{index := RaftIndex}) ->
     #config{snapshot_interval = SnapshotInterval} = get_config(State),
     Metrics = get_metrics(State),
     AppliedCmdCount0 = maps:get(applied_command_count, Metrics, 0),
@@ -1836,7 +1834,7 @@ bump_applied_command_count(
         true ->
             Metrics1 = Metrics#{applied_command_count => AppliedCmdCount},
             State1 = set_metrics(State, Metrics1),
-            {State1, Result, SideEffects};
+            {State1, SideEffects};
         false ->
             ?LOG_DEBUG(
                "Move release cursor after ~b commands applied "
@@ -1846,7 +1844,7 @@ bump_applied_command_count(
             State1 = reset_metrics(State),
             ReleaseCursor = {release_cursor, RaftIndex, State1},
             SideEffects1 = [ReleaseCursor | SideEffects],
-            {State1, Result, SideEffects1}
+            {State1, SideEffects1}
     end.
 
 reset_metrics(State) ->
@@ -1854,13 +1852,13 @@ reset_metrics(State) ->
     Metrics1 = maps:remove(applied_command_count, Metrics),
     set_metrics(State, Metrics1).
 
--spec drop_expired_dedups(ApplyRet, Meta) ->
-    {State, Result, SideEffects} when
-      ApplyRet :: {State, Result, SideEffects},
+-spec drop_expired_dedups(State, SideEffects, Meta) ->
+    {NewState, NewSideEffects} when
       State :: state(),
-      Result :: any(),
+      SideEffects :: ra_machine:effects(),
       Meta :: ra_machine:command_meta_data(),
-      SideEffects :: ra_machine:effects().
+      NewState :: state(),
+      NewSideEffects :: ra_machine:effects().
 %% @doc Removes any dedups from the `dedups' field in state that have expired
 %% according to the timestamp in the handled command.
 %%
@@ -1872,7 +1870,7 @@ reset_metrics(State) ->
 %% @private
 
 drop_expired_dedups(
-  {State, Result, SideEffects},
+  State, SideEffects,
   #{system_time := Timestamp,
     machine_version := MacVer}) when MacVer =< 1 ->
     Dedups = get_dedups(State),
@@ -1889,25 +1887,25 @@ drop_expired_dedups(
                         Expiry >= Timestamp
                 end, Dedups),
     State1 = set_dedups(State, Dedups1),
-    {State1, Result, SideEffects};
-drop_expired_dedups({State, Result, SideEffects}, _Meta) ->
+    {State1, SideEffects};
+drop_expired_dedups(State, SideEffects, _Meta) ->
     %% No-op on versions 2 and higher.
-    {State, Result, SideEffects}.
+    {State, SideEffects}.
 
--spec trigger_delayed_aux_queries_eval(ApplyRet, Meta) ->
-    {State, Result, SideEffects} when
-      ApplyRet :: {State, Result, SideEffects},
+-spec trigger_delayed_aux_queries_eval(State, SideEffects, Meta) ->
+    {NewState, NewSideEffects} when
       State :: state(),
-      Result :: any(),
+      SideEffects :: ra_machine:effects(),
       Meta :: ra_machine:command_meta_data(),
-      SideEffects :: ra_machine:effects().
+      NewState :: state(),
+      NewSideEffects :: ra_machine:effects().
 %% @doc Add an `aux' side effect to retrigger the eval of delayed aux queries.
 %%
 %% @private
 
-trigger_delayed_aux_queries_eval({State, Result, SideEffects}, _Meta) ->
+trigger_delayed_aux_queries_eval(State, SideEffects, _Meta) ->
     SideEffects1 = [{aux, trigger_delayed_aux_queries_eval} | SideEffects],
-    {State, Result, SideEffects1}.
+    {State, SideEffects1}.
 
 %% @private
 
