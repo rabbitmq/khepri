@@ -66,6 +66,14 @@
 %% </ul>
 %% </td>
 %% </tr>
+%% <tr>
+%% <td style="text-align: right; vertical-align: top;">4</td>
+%% <td>
+%% <ul>
+%% <li>Added `#request_snapshot{}' helper command for tests.</li>
+%% </ul>
+%% </td>
+%% </tr>
 %% </table>
 
 -module(khepri_machine).
@@ -110,6 +118,7 @@
 %% For internal use only.
 -export([clear_cache/1,
          ack_triggers_execution/2,
+         request_snapshot/3,
          split_query_options/2,
          split_command_options/2,
          split_put_options/1,
@@ -161,7 +170,8 @@
                    #unregister_projections{} |
                    #dedup{} |
                    #dedup_ack{} |
-                   #drop_dedups{}.
+                   #drop_dedups{} |
+                   #request_snapshot{}.
 %% Commands specific to this Ra machine.
 
 -type old_command() :: #unregister_projection{}.
@@ -737,6 +747,25 @@ ack_triggers_execution(StoreId, TriggeredStoredProcs)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
     Command = #ack_triggered{triggered = TriggeredStoredProcs},
     process_command(StoreId, Command, #{async => true}).
+
+-spec request_snapshot(StoreId, Reason, Options) ->
+    Ret when
+      StoreId :: khepri:store_id(),
+      Reason :: string(),
+      Options :: khepri:command_options(),
+      Ret :: ok | khepri:error().
+%% @doc Requests that a snapshot of the machine state is taken.
+%%
+%% @private
+
+request_snapshot(StoreId, Reason, Options) when ?IS_KHEPRI_STORE_ID(StoreId) ->
+    case does_api_comply_with(request_snapshot, StoreId) of
+        true ->
+            Command = #request_snapshot{reason = Reason},
+            process_command(StoreId, Command, Options);
+        false ->
+            ok
+    end.
 
 -spec get_keep_while_conds_state(StoreId, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -1763,6 +1792,14 @@ apply(
     Ret = {State1, ok},
     post_apply(Ret, Meta, Command);
 apply(
+  #{machine_version := MacVer,
+    index := RaftIndex} = Meta,
+  #request_snapshot{reason = Reason} = Command,
+  State) when MacVer >= 4 ->
+    {State1, SideEffects} = release_cursor(State, RaftIndex, Reason, []),
+    Ret = {State1, ok, SideEffects},
+    post_apply(Ret, Meta, Command);
+apply(
   Meta,
   {machine_version, OldMacVer, NewMacVer} = Command,
   OldState) ->
@@ -1976,17 +2013,18 @@ overview(State) ->
       keep_while_conds => KeepWhileConds}.
 
 -spec version() -> MacVer when
-      MacVer :: 3.
+      MacVer :: 4.
 %% @doc Returns the state machine version.
 
 version() ->
-    3.
+    4.
 
 -spec which_module(MacVer) -> Module when
-      MacVer :: 0..3,
+      MacVer :: 0..4,
       Module :: ?MODULE.
 %% @doc Returns the state machine module corresponding to the given version.
 
+which_module(4) -> ?MODULE;
 which_module(3) -> ?MODULE;
 which_module(2) -> ?MODULE;
 which_module(1) -> ?MODULE;
@@ -2052,7 +2090,7 @@ clear_cached_effective_machine_version(StoreId) ->
 -spec api_behaviour_to_machine_version(Behaviour) -> Ret when
       Behaviour :: khepri_machine:api_behaviour(),
       Ret :: MacVer | undefined,
-      MacVer :: 1..3.
+      MacVer :: 1..4.
 %% @doc Returns the state machine version that implemented the given API behaviour.
 %%
 %% If the behaviour is unknown to this implementation, `undefined' is returned.
@@ -2062,6 +2100,7 @@ api_behaviour_to_machine_version(delete_reason_in_node_props)       -> 2;
 api_behaviour_to_machine_version(indirect_deletes_in_ret)           -> 2;
 api_behaviour_to_machine_version(uniform_write_ret)                 -> 2;
 api_behaviour_to_machine_version(multi_table_projections)           -> 3;
+api_behaviour_to_machine_version(request_snapshot)                  -> 4;
 api_behaviour_to_machine_version(Behaviour) when is_atom(Behaviour) ->
     undefined.
 
@@ -2866,6 +2905,8 @@ convert_state1(State, 1, 2) ->
     Tree1 = khepri_tree:convert_tree(Tree, 1, 2),
     set_tree(State, Tree1);
 convert_state1(State, 2, 3) ->
+    State;
+convert_state1(State, 3, 4) ->
     State.
 
 -spec update_projections(OldState, NewState) -> ok when

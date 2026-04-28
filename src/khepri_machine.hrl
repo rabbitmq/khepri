@@ -12,7 +12,9 @@
         {store_id :: khepri:store_id(),
          delayed_aux_queries = [] :: [khepri_machine:delayed_aux_query()]}).
 
+%% -------------------------------------------------------------------
 %% State machine commands and aux. effects.
+%% -------------------------------------------------------------------
 
 -record(put, {path :: khepri_path:native_pattern(),
               payload = ?NO_PAYLOAD :: khepri_payload:payload(),
@@ -63,6 +65,10 @@
 %% This is emitted internally by the `handle_aux/5' callback clause which
 %% handles the `tick' Ra aux effect.
 
+-record(request_snapshot, {reason :: string()}).
+
+%% -------------------------------------------------------------------
 %% Old commands, kept for backward-compatibility.
+%% -------------------------------------------------------------------
 
 -record(unregister_projection, {name :: khepri_projection:name()}).
