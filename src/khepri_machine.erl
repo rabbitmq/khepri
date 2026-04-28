@@ -71,6 +71,7 @@
 %% <td>
 %% <ul>
 %% <li>Added uniform commands, replacing all existing commands.</li>
+%% <li>Added `#request_snapshot{}' helper command for tests.</li>
 %% </ul>
 %% </td>
 %% </tr>
@@ -118,6 +119,7 @@
 %% For internal use only.
 -export([clear_cache/1,
          ack_triggers_execution/2,
+         request_snapshot/3,
          split_query_options/2,
          split_command_options/2,
          split_put_options/1,
@@ -169,7 +171,8 @@
                    #register_projection_v{} |
                    #unregister_projections_v{} |
                    #dedup_ack_v{} |
-                   #drop_dedups_v{}.
+                   #drop_dedups_v{} |
+                   #request_snapshot{}.
 %% Commands specific to this Ra machine.
 
 -type old_command() :: #put{} |
@@ -811,6 +814,26 @@ ack_triggers_execution(StoreId, TriggeredStoredProcs)
                       #ack_triggered{triggered = TriggeredStoredProcs}
               end,
     process_command(StoreId, Command, #{async => true}).
+
+-spec request_snapshot(StoreId, Reason, Options) ->
+    Ret when
+      StoreId :: khepri:store_id(),
+      Reason :: string(),
+      Options :: khepri:command_options(),
+      Ret :: ok | khepri:error().
+%% @doc Requests that a snapshot of the machine state is taken.
+%%
+%% @private
+
+request_snapshot(StoreId, Reason, Options) when ?IS_KHEPRI_STORE_ID(StoreId) ->
+    case does_api_comply_with(request_snapshot, StoreId) of
+        true ->
+            CommandArgs = #request_snapshot_v1{reason = Reason},
+            Command = #request_snapshot{args = CommandArgs},
+            process_command(StoreId, Command, Options);
+        false ->
+            ok
+    end.
 
 -spec get_keep_while_conds_state(StoreId, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -1934,6 +1957,14 @@ do_apply(
     State1 = set_dedups(State, Dedups1),
     Ret = {State1, ok},
     post_apply(Ret, Meta, Command);
+do_apply(
+  #{machine_version := MacVer,
+    index := RaftIndex} = Meta,
+  #request_snapshot{args = #request_snapshot_v1{reason = Reason}} = Command,
+  State) when MacVer >= ?API_BEHAV_MACVER(request_snapshot) ->
+    {State1, SideEffects} = release_cursor(State, RaftIndex, Reason, []),
+    Ret = {State1, ok, SideEffects},
+    post_apply(Ret, Meta, Command);
 do_apply(Meta, {machine_version, OldMacVer, NewMacVer} = Command, OldState) ->
     NewState = convert_state(OldState, OldMacVer, NewMacVer),
     Ret = {NewState, ok},
@@ -2067,7 +2098,8 @@ convert_to_uniform_command(Command)
        is_record(Command, register_projection_v) orelse
        is_record(Command, unregister_projections_v) orelse
        is_record(Command, dedup_ack_v) orelse
-       is_record(Command, drop_dedups_v) ->
+       is_record(Command, drop_dedups_v) orelse
+       is_record(Command, request_snapshot) ->
     %% These are all uniform/versioned commands already. We list them
     %% explicitly to reduce the risk of programming errors with wildcard
     %% pattern matching.
@@ -2197,6 +2229,8 @@ get_command_common_args(#dedup_ack_v{common = CommonArgs}) ->
     CommonArgs;
 get_command_common_args(#drop_dedups_v{common = CommonArgs}) ->
     CommonArgs;
+get_command_common_args(#request_snapshot{common = CommonArgs}) ->
+    CommonArgs;
 get_command_common_args(#put{}) ->
     none;
 get_command_common_args(#delete{}) ->
@@ -2246,7 +2280,9 @@ set_command_common_args(#unregister_projections_v{} = Command, CommonArgs) ->
 set_command_common_args(#dedup_ack_v{} = Command, CommonArgs) ->
     Command#dedup_ack_v{common = CommonArgs};
 set_command_common_args(#drop_dedups_v{} = Command, CommonArgs) ->
-    Command#drop_dedups_v{common = CommonArgs}.
+    Command#drop_dedups_v{common = CommonArgs};
+set_command_common_args(#request_snapshot{} = Command, CommonArgs) ->
+    Command#request_snapshot{common = CommonArgs}.
 
 -spec set_dedup_args(Command, CommandRef, Expiry) -> NewCommand when
       Command :: khepri_machine:command(),
