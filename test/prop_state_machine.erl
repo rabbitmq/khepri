@@ -195,15 +195,17 @@ result_is_ok_after_delete({ok, NodePropsMap}, Entries, Path) ->
 result_is_ok_after_delete(_, _Entries, _Path) ->
     false.
 
-result_is_ok_after_put(Result, Entries, Path, Payload, Default) ->
+result_is_ok_after_put(Result, Entries, Path, #p_data{data = Data}, Default) ->
+    result_is_ok_after_put(Result, Entries, Path, Data, Default);
+result_is_ok_after_put(Result, Entries, Path, Data, Default) ->
     case Entries of
-        #{Path := #{data := Payload} = NodeProps} ->
+        #{Path := #{data := Data} = NodeProps} ->
             %% The payload didn't change.
             Expected = {ok, #{Path => NodeProps}},
             Expected =:= Result;
         #{Path := NodeProps}
           when not is_map_key(data, NodeProps) andalso
-               Payload =:= ?NO_PAYLOAD ->
+               Data =:= ?NO_PAYLOAD ->
             %% The payload didn't change; there is still none.
             Expected = {ok, #{Path => NodeProps}},
             Expected =:= Result;
