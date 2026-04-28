@@ -300,7 +300,12 @@ get_leader_in_store(Config, StoreId, [Node | _] = _RunningNodes) ->
                       Config, Node,
                       khepri_cluster, members,
                       [StoreId, #{timeout => 60000}]),
-    Pids = [[Member, catch call(Config, N, erlang, whereis, [RegName])]
+    Pids = [[Member, try
+                         call(Config, N, erlang, whereis, [RegName])
+                     catch
+                         _Class:Reason ->
+                             {'EXIT', Reason}
+                     end]
             || {RegName, N} = Member <- Members],
     LeaderId = call(Config, Node, ra_leaderboard, lookup_leader, [StoreId]),
     ?assertNotEqual(undefined, LeaderId),

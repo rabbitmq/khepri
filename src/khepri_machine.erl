@@ -1358,8 +1358,9 @@ init(Params) ->
     %% state format.
     State = khepri_machine_v0:init(Params),
 
+    InitialMacVer = 0,
     #config{store_id = StoreId} = get_config(State),
-    cache_effective_machine_version(StoreId, 0),
+    cache_effective_machine_version(StoreId, InitialMacVer),
 
     %% Create initial "schema" if provided.
     Commands = maps:get(commands, Params, []),
@@ -1367,7 +1368,8 @@ init(Params) ->
                fun(Command, State1) ->
                        Meta = #{index => 0,
                                 term => 0,
-                                system_time => 0},
+                                system_time => 0,
+                                machine_version => InitialMacVer},
                        {S, _, _} = apply(Meta, Command, State1),
                        S
                end, State, Commands),
@@ -2054,7 +2056,7 @@ clear_cached_effective_machine_version(StoreId) ->
 -spec api_behaviour_to_machine_version(Behaviour) -> Ret when
       Behaviour :: khepri_machine:api_behaviour(),
       Ret :: MacVer | undefined,
-      MacVer :: 1..2.
+      MacVer :: 1..3.
 %% @doc Returns the state machine version that implemented the given API behaviour.
 %%
 %% If the behaviour is unknown to this implementation, `undefined' is returned.
