@@ -76,12 +76,15 @@
 %% <li>Started to record init arguments in the machine state.</li>
 %% <li>Started to track unreleased command footprint in state machine
 %% metrics.</li>
+%% <li>Started to use unreleased command footprint to determine if a snapshot
+%% is needed.</li>
 %% </ul>
 %% </td>
 %% </tr>
 %% </table>
 
 -module(khepri_machine).
+-feature(maybe_expr, enable).
 -behaviour(ra_machine).
 
 -include_lib("kernel/include/logger.hrl").
@@ -2729,6 +2732,21 @@ get_config(#khepri_machine{config = Config}) ->
 get_config(State) ->
     khepri_machine_v0:get_config(State).
 
+-spec set_config(State, Config) -> NewState when
+      State :: khepri_machine:state_v1(),
+      Config :: khepri_config:machine_config_v1(),
+      NewState :: khepri_machine:state_v1().
+%% @doc Replaces the config in the given state.
+%%
+%% There is no need to support `khepri_machine_v0' because the configuration is
+%% never updated with machine versions before 4.
+%%
+%% @private
+
+set_config(#khepri_machine{} = State, Config) ->
+    State1 = State#khepri_machine{config = Config},
+    State1.
+
 -spec get_tree(State) -> Tree when
       State :: khepri_machine:state(),
       Tree :: khepri_tree:tree().
@@ -2986,6 +3004,19 @@ get_snapshot_interval(State) ->
     SnapshotInterval = khepri_config:get_snapshot_interval(Config),
     SnapshotInterval.
 
+-spec get_unreleased_command_footprint_threshold(State) -> Threshold when
+      State :: khepri_machine:state(),
+      Threshold :: non_neg_integer().
+%% @doc Returns the unreleased command footprint threshold from the given state
+%% configuration.
+%%
+%% @private
+
+get_unreleased_command_footprint_threshold(State) ->
+    Config = get_config(State),
+    Threshold = khepri_config:get_unreleased_command_footprint_threshold(Config),
+    Threshold.
+
 -spec assert_equal(State1, State2) -> ok when
       State1 :: khepri_machine:state(),
       State2 :: khepri_machine:state().
@@ -3040,7 +3071,11 @@ convert_state1(State, 1, 2) ->
 convert_state1(State, 2, 3) ->
     State;
 convert_state1(State, 3, 4) ->
-    State.
+    Params = get_init_args(State),
+    Config0 = get_config(State),
+    Config1 = khepri_config:convert_config(Config0, 0, 1, Params),
+    State1 = set_config(State, Config1),
+    State1.
 
 -spec update_projections(OldState, NewState) -> ok when
       OldState :: khepri_machine:state(),
@@ -3181,6 +3216,35 @@ maybe_request_snapshot(State, SideEffects, #{index := RaftIndex}) ->
     end.
 
 should_request_snapshot(State) ->
+    maybe
+        continue ?= request_snapshot_based_on_unreleased_command_footprint(State),
+        request_snapshot_based_on_applied_command_count(State)
+    end.
+
+request_snapshot_based_on_unreleased_command_footprint(State) ->
+    StoreId = get_store_id(State),
+    case does_api_comply_with(command_annotations, StoreId) of
+        true ->
+            Metrics = get_metrics(State),
+            Threshold = get_unreleased_command_footprint_threshold(State),
+            case Metrics of
+                #{unreleased_command_footprint := Footprint}
+                  when Footprint >= Threshold ->
+                    Reason = io_lib:format(
+                               "unreleased command footprint (~b bytes) >= "
+                               "threshold (~b bytes)",
+                               [Footprint, Threshold]),
+                    {true, Reason};
+                #{unreleased_command_footprint := _} ->
+                    false;
+                _ ->
+                    continue
+            end;
+        false ->
+            continue
+    end.
+
+request_snapshot_based_on_applied_command_count(State) ->
     SnapshotInterval = get_snapshot_interval(State),
     Metrics = get_metrics(State),
     AppliedCmdCount = maps:get(applied_command_count, Metrics, 0),

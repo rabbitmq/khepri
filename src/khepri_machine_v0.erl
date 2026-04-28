@@ -31,7 +31,7 @@
          state_to_list/1]).
 
 -record(khepri_machine,
-        {config :: khepri_config:machine_config(),
+        {config :: khepri_config_v0:machine_config(),
          tree = khepri_tree:new() :: khepri_tree:tree_v0(),
          triggers = #{} ::
            #{khepri:trigger_id() =>
@@ -53,7 +53,7 @@
 %% @private
 
 init(InitArgs) ->
-    Config = khepri_config:new(InitArgs),
+    Config = khepri_config_v0:new(InitArgs),
     #khepri_machine{config = Config}.
 
 %% -------------------------------------------------------------------
@@ -72,7 +72,7 @@ is_state(State) ->
 
 -spec get_config(State) -> Config when
       State :: khepri_machine_v0:state(),
-      Config :: khepri_config:machine_config().
+      Config :: khepri_config_v0:machine_config().
 %% @doc Returns the config from the given state.
 %%
 %% @private
