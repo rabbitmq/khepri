@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  REBAR_VERSION: '3.25.1'
+  REBAR_VERSION: '3.27.0'
   LATEST_ERLANG_VERSION: '28'
 
 jobs:
