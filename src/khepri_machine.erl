@@ -1358,8 +1358,9 @@ init(Params) ->
     %% state format.
     State = khepri_machine_v0:init(Params),
 
+    InitialMacVer = 0,
     #config{store_id = StoreId} = get_config(State),
-    cache_effective_machine_version(StoreId, 0),
+    cache_effective_machine_version(StoreId, InitialMacVer),
 
     %% Create initial "schema" if provided.
     Commands = maps:get(commands, Params, []),
@@ -1367,7 +1368,8 @@ init(Params) ->
                fun(Command, State1) ->
                        Meta = #{index => 0,
                                 term => 0,
-                                system_time => 0},
+                                system_time => 0,
+                                machine_version => InitialMacVer},
                        {S, _, _} = apply(Meta, Command, State1),
                        S
                end, State, Commands),
