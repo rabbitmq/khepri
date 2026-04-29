@@ -183,12 +183,9 @@
                                atom() => any()}.
 %% Structure passed to {@link init/1}.
 
--type machine_config() :: #config{}.
-%% Configuration record, holding read-only or rarely changing fields.
-
 %% State machine's internal state record.
 -record(khepri_machine,
-        {config = #config{} :: khepri_machine:machine_config(),
+        {config :: khepri_config:machine_config(),
          tree = khepri_tree:new() :: khepri_tree:tree(),
          triggers = #{} :: khepri_machine:triggers_map(),
          emitted_triggers = [] :: [khepri_machine:triggered()],
@@ -263,7 +260,6 @@
               machine_init_args/0,
               state/0,
               state_v1/0,
-              machine_config/0,
               triggers_map/0,
               metrics/0,
               dedups_map/0,
@@ -1359,7 +1355,7 @@ init(Params) ->
     State = khepri_machine_v0:init(Params),
 
     InitialMacVer = 0,
-    #config{store_id = StoreId} = get_config(State),
+    StoreId = get_store_id(State),
     cache_effective_machine_version(StoreId, InitialMacVer),
 
     %% Create initial "schema" if provided.
@@ -1776,7 +1772,7 @@ apply(
     %% We cache the effective machine version for fast query from any
     %% processes. This is useful because this machine version is used to
     %% determine what a user of Khepri can or cannot do.
-    #config{store_id = StoreId} = get_config(NewState),
+    StoreId = get_store_id(NewState),
     cache_effective_machine_version(StoreId, NewMacVer),
     post_apply(Ret, Meta, Command);
 apply(
@@ -1826,7 +1822,7 @@ post_apply({State, Result, SideEffects}, Meta, _Command) ->
 %% @private
 
 bump_applied_command_count(State, SideEffects, #{index := RaftIndex}) ->
-    #config{snapshot_interval = SnapshotInterval} = get_config(State),
+    SnapshotInterval = get_snapshot_interval(State),
     Metrics = get_metrics(State),
     AppliedCmdCount0 = maps:get(applied_command_count, Metrics, 0),
     AppliedCmdCount = AppliedCmdCount0 + 1,
@@ -1943,7 +1939,7 @@ snapshot_installed(
 %% @private
 
 emitted_triggers_to_side_effects(State) ->
-    #config{store_id = StoreId} = get_config(State),
+    StoreId = get_store_id(State),
     EmittedTriggers = get_emitted_triggers(State),
     case EmittedTriggers of
         [_ | _] ->
@@ -1969,7 +1965,7 @@ emitted_triggers_to_side_effects(State) ->
 %% @private
 
 overview(State) ->
-    #config{store_id = StoreId} = get_config(State),
+    StoreId = get_store_id(State),
     Tree = get_tree(State),
     KeepWhileConds = get_keep_while_conds(State),
     Triggers = get_triggers(State),
@@ -2384,7 +2380,7 @@ add_trigger_side_effects(InitialState, NewState, Changes, SideEffects) ->
             {NewState, SideEffects};
         false ->
             EmittedTriggers = get_emitted_triggers(InitialState),
-            #config{store_id = StoreId} = get_config(NewState),
+            StoreId = get_store_id(NewState),
             InitialTree = get_tree(InitialState),
             NewTree = get_tree(NewState),
             TriggeredStoredProcs = list_triggered_sprocs(
@@ -2591,7 +2587,7 @@ ensure_is_state(State) ->
 
 -spec get_config(State) -> Config when
       State :: khepri_machine:state(),
-      Config :: khepri_machine:machine_config().
+      Config :: khepri_config:machine_config().
 %% @doc Returns the config from the given state.
 %%
 %% @private
@@ -2815,8 +2811,21 @@ set_dedups(State, _Dedups) ->
 %% @private
 
 get_store_id(State) ->
-    #config{store_id = StoreId} = get_config(State),
+    Config = get_config(State),
+    StoreId = khepri_config:get_store_id(Config),
     StoreId.
+
+-spec get_snapshot_interval(State) -> SnapshotInterval when
+      State :: khepri_machine:state(),
+      SnapshotInterval :: non_neg_integer().
+%% @doc Returns the snapshot interval from the given state configuration.
+%%
+%% @private
+
+get_snapshot_interval(State) ->
+    Config = get_config(State),
+    SnapshotInterval = khepri_config:get_snapshot_interval(Config),
+    SnapshotInterval.
 
 -spec assert_equal(State1, State2) -> ok when
       State1 :: khepri_machine:state(),

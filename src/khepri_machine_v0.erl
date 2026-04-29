@@ -31,7 +31,7 @@
          state_to_list/1]).
 
 -record(khepri_machine,
-        {config = #config{} :: khepri_machine:machine_config(),
+        {config :: khepri_config:machine_config(),
          tree = khepri_tree:new() :: khepri_tree:tree_v0(),
          triggers = #{} ::
            #{khepri:trigger_id() =>
@@ -52,17 +52,8 @@
       State :: state().
 %% @private
 
-init(#{store_id := StoreId,
-       member := Member} = Params) ->
-    Config = case Params of
-                 #{snapshot_interval := SnapshotInterval} ->
-                     #config{store_id = StoreId,
-                             member = Member,
-                             snapshot_interval = SnapshotInterval};
-                 _ ->
-                     #config{store_id = StoreId,
-                             member = Member}
-             end,
+init(Params) ->
+    Config = khepri_config:new(Params),
     #khepri_machine{config = Config}.
 
 %% -------------------------------------------------------------------
@@ -81,7 +72,7 @@ is_state(State) ->
 
 -spec get_config(State) -> Config when
       State :: khepri_machine_v0:state(),
-      Config :: khepri_machine:machine_config().
+      Config :: khepri_config:machine_config().
 %% @doc Returns the config from the given state.
 %%
 %% @private

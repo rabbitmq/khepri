@@ -8,15 +8,6 @@
 
 -include("src/khepri_node.hrl").
 
-%% TODO: Query this value from Ra itself.
--define(SNAPSHOT_INTERVAL, 4096).
-
-%% Record representing the state machine configuration.
--record(config,
-        {store_id :: khepri:store_id(),
-         member :: ra:server_id(),
-         snapshot_interval = ?SNAPSHOT_INTERVAL :: non_neg_integer()}).
-
 -record(khepri_machine_aux,
         {store_id :: khepri:store_id(),
          delayed_aux_queries = [] :: [khepri_machine:delayed_aux_query()]}).
