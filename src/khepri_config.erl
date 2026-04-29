@@ -22,6 +22,7 @@
          get_store_id/1,
          get_snapshot_interval/1,
          get_unreleased_command_footprint_threshold/1,
+         get_snapshot_time_interval/1,
          convert_config/4]).
 
 %% Record representing the state machine configuration.
@@ -31,7 +32,9 @@
          snapshot_interval =
          ?SNAPSHOT_INTERVAL :: non_neg_integer(),
          unreleased_command_footprint_threshold =
-         ?UNRELEASED_COMMAND_FOOTPRINT_THRESHOLD :: non_neg_integer()}).
+         ?UNRELEASED_COMMAND_FOOTPRINT_THRESHOLD :: non_neg_integer(),
+         snapshot_time_interval =
+         ?SNAPSHOT_TIME_INTERVAL :: non_neg_integer()}).
 
 -opaque machine_config_v1() :: #config{}.
 %% Configuration record, version 1.
@@ -82,6 +85,17 @@ get_unreleased_command_footprint_threshold(
   #config{unreleased_command_footprint_threshold = Threshold}) ->
     Threshold.
 
+-spec get_snapshot_time_interval(Config) -> TimeInterval when
+      Config :: khepri_config:machine_config(),
+      TimeInterval :: non_neg_integer().
+%% @doc Returns the snapshot time interval in seconds from the given state
+%% configuration.
+%%
+%% @private
+
+get_snapshot_time_interval(#config{snapshot_time_interval = TimeInterval}) ->
+    TimeInterval.
+
 -spec convert_config(Config, OldVersion, NewVersion, InitArgs) ->
     NewConfig when
       Config :: khepri_config:machine_config(),
@@ -110,8 +124,11 @@ convert_config1(Config, 0, 1, InitArgs) ->
     Threshold = maps:get(
                   unreleased_command_footprint_threshold, InitArgs,
                   ?UNRELEASED_COMMAND_FOOTPRINT_THRESHOLD),
+    TimeInterval = maps:get(
+                     snapshot_time_interval, InitArgs,
+                     ?SNAPSHOT_TIME_INTERVAL),
     Fields0 = khepri_config_v0:config_to_list(Config),
-    Fields1 = Fields0 ++ [Threshold],
+    Fields1 = Fields0 ++ [Threshold, TimeInterval],
     Config1 = list_to_tuple(Fields1),
     ?assert(is_config(Config1)),
     Config1.
