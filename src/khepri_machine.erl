@@ -78,6 +78,8 @@
 %% metrics.</li>
 %% <li>Started to use unreleased command footprint to determine if a snapshot
 %% is needed.</li>
+%% <li>Started to use the last snasphot timestamp to determine if a snapshot is
+%% needed.</li>
 %% </ul>
 %% </td>
 %% </tr>
@@ -159,7 +161,8 @@
 -export([do_process_sync_command/4,
          make_virgin_state/1,
          convert_state/3,
-         set_tree/2]).
+         set_tree/2,
+         reset_metrics/1]).
 -endif.
 
 -compile({no_auto_import, [apply/3]}).
@@ -241,6 +244,7 @@
 
 -type metrics() :: #{applied_command_count => non_neg_integer(),
                      unreleased_command_footprint => non_neg_integer(),
+                     last_snapshot_request_timestamp => integer(),
 
                      %% A machine state is always initialised at version 0.
                      %% When a new machine init argument was introduced, it was
@@ -1480,7 +1484,11 @@ init(InitArgs) ->
                        S
                end, State1, Commands),
     State4 = reset_metrics(State3),
-    State4.
+
+    %% Just after the start, we record the timestamp just as if there was a
+    %% snapshot. This is mostly to avoid that a snapshot is taken right away.
+    State5 = record_snapshot_timestamp(State4),
+    State5.
 
 -spec init_aux(StoreId :: khepri:store_id()) -> aux_state().
 %% @private
@@ -1978,7 +1986,8 @@ reset_metrics(State) ->
     Metrics = get_metrics(State),
     Metrics1 = maps:remove(applied_command_count, Metrics),
     Metrics2 = maps:remove(unreleased_command_footprint, Metrics1),
-    set_metrics(State, Metrics2).
+    Metrics3 = maps:remove(last_snapshot_request_timestamp, Metrics2),
+    set_metrics(State, Metrics3).
 
 -spec drop_expired_dedups(State, SideEffects, Meta) ->
     {NewState, NewSideEffects} when
@@ -3017,6 +3026,19 @@ get_unreleased_command_footprint_threshold(State) ->
     Threshold = khepri_config:get_unreleased_command_footprint_threshold(Config),
     Threshold.
 
+-spec get_snapshot_time_interval(State) -> TimeInterval when
+      State :: khepri_machine:state(),
+      TimeInterval :: non_neg_integer().
+%% @doc Returns the snapshot time interval in seconds from the given state
+%% configuration.
+%%
+%% @private
+
+get_snapshot_time_interval(State) ->
+    Config = get_config(State),
+    TimeInterval = khepri_config:get_snapshot_time_interval(Config),
+    TimeInterval.
+
 -spec assert_equal(State1, State2) -> ok when
       State1 :: khepri_machine:state(),
       State2 :: khepri_machine:state().
@@ -3217,8 +3239,33 @@ maybe_request_snapshot(State, SideEffects, #{index := RaftIndex}) ->
 
 should_request_snapshot(State) ->
     maybe
+        continue ?= need_snapshot_after_some_time(State),
         continue ?= request_snapshot_based_on_unreleased_command_footprint(State),
         request_snapshot_based_on_applied_command_count(State)
+    end.
+
+need_snapshot_after_some_time(State) ->
+    StoreId = get_store_id(State),
+    case does_api_comply_with(command_annotations, StoreId) of
+        true ->
+            Metrics = get_metrics(State),
+            Now = erlang:monotonic_time(second),
+            TimeInterval = get_snapshot_time_interval(State),
+            case Metrics of
+                #{last_snapshot_request_timestamp := Last}
+                  when Now - Last >= TimeInterval ->
+                    %% The time since the last snapshot is long enough. We
+                    %% still defer the decision to the functions that follow,
+                    %% to not just take a snapshot every `TimeInterval' just
+                    %% for the sake of it.
+                    continue;
+                #{last_snapshot_request_timestamp := _} ->
+                    false;
+                _ ->
+                    continue
+            end;
+        false ->
+            continue
     end.
 
 request_snapshot_based_on_unreleased_command_footprint(State) ->
@@ -3267,4 +3314,12 @@ release_cursor(State, RaftIndex, Reason, SideEffects) ->
     State1 = reset_metrics(State),
     ReleaseCursor = {release_cursor, RaftIndex, State1},
     SideEffects1 = [ReleaseCursor | SideEffects],
-    {State1, SideEffects1}.
+    State2 = record_snapshot_timestamp(State1),
+    {State2, SideEffects1}.
+
+record_snapshot_timestamp(State) ->
+    Now = erlang:monotonic_time(second),
+    Metrics = get_metrics(State),
+    Metrics1 = Metrics#{last_snapshot_request_timestamp => Now},
+    State1 = set_metrics(State, Metrics1),
+    State1.

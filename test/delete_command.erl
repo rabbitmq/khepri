@@ -361,4 +361,5 @@ delete_command_bumps_applied_command_count_test() ->
               not is_map_key(unreleased_command_footprint, Metrics2),
        khepri_machine:get_metrics(S3)),
     ?assertEqual([{aux, trigger_delayed_aux_queries_eval},
-                  {release_cursor, maps:get(index, Meta), S3}], SE3).
+                  {release_cursor, maps:get(index, Meta),
+                   khepri_machine:reset_metrics(S3)}], SE3).
