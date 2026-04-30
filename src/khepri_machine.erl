@@ -74,6 +74,8 @@
 %% <li>Added command annotations through the `#with_annotations{}'
 %% command.</li>
 %% <li>Started to record init arguments in the machine state.</li>
+%% <li>Started to track unreleased command footprint in state machine
+%% metrics.</li>
 %% </ul>
 %% </td>
 %% </tr>
@@ -188,7 +190,7 @@
 %%
 %% We keep them supported for backward-compatibility.
 
--type command_annotations() :: #{}.
+-type command_annotations() :: #{command_size => non_neg_integer()}.
 %% Command annotations.
 %%
 %% They allow to attach various types of information to an existing command
@@ -235,6 +237,7 @@
 %% Internal triggers map in the machine state.
 
 -type metrics() :: #{applied_command_count => non_neg_integer(),
+                     unreleased_command_footprint => non_neg_integer(),
 
                      %% A machine state is always initialised at version 0.
                      %% When a new machine init argument was introduced, it was
@@ -1146,8 +1149,9 @@ select_command_type(#{async := {Correlation, Priority}})
 %%
 %% @private.
 
-make_command_annotations(_Command) ->
-    Annotations = #{},
+make_command_annotations(Command) ->
+    CommandSize = erlang:external_size(Command),
+    Annotations = #{command_size => CommandSize},
     Annotations.
 
 -spec wrap_command_with_annotations(StoreId, InnerCommand, Annotations) ->
@@ -1868,9 +1872,10 @@ apply(
     post_apply(Ret, Meta, Command);
 apply(
   #{machine_version := MacVer} = Meta,
-  #with_annotations{command = InnerCommand, annotations = _Annotations},
+  #with_annotations{command = InnerCommand, annotations = Annotations},
   State) when MacVer >= 4 ->
-    apply(Meta, InnerCommand, State);
+    State1 = bump_unreleased_command_footprint(State, Annotations),
+    apply(Meta, InnerCommand, State1);
 apply(
   #{machine_version := MacVer,
     index := RaftIndex} = Meta,
@@ -1912,6 +1917,25 @@ apply(
     Ret = {State, Reply, SideEffects},
     post_apply(Ret, Meta, UnknownCommand).
 
+-spec bump_unreleased_command_footprint(State, Annotations) -> NewState when
+      State :: khepri_machine:state(),
+      Annotations :: khepri_machine:command_annotations(),
+      NewState :: khepri_machine:state().
+%% @doc Bump the unreleased command footprint from the command size, present in
+%% the command annotations.
+%%
+%% @private.
+
+bump_unreleased_command_footprint(State, #{command_size := CommandSize}) ->
+    Metrics = get_metrics(State),
+    Footprint = maps:get(unreleased_command_footprint, Metrics, 0),
+    Footprint1 = Footprint + CommandSize,
+    Metrics1 = Metrics#{unreleased_command_footprint => Footprint1},
+    State1 = set_metrics(State, Metrics1),
+    State1;
+bump_unreleased_command_footprint(State, _Annotations) ->
+    State.
+
 -spec post_apply(ApplyRet, Meta, Command) -> {State, Result, SideEffects} when
       ApplyRet :: {State, Result} | {State, Result, SideEffects},
       State :: state(),
@@ -1950,7 +1974,8 @@ bump_applied_command_count(State, SideEffects, _Meta) ->
 reset_metrics(State) ->
     Metrics = get_metrics(State),
     Metrics1 = maps:remove(applied_command_count, Metrics),
-    set_metrics(State, Metrics1).
+    Metrics2 = maps:remove(unreleased_command_footprint, Metrics1),
+    set_metrics(State, Metrics2).
 
 -spec drop_expired_dedups(State, SideEffects, Meta) ->
     {NewState, NewSideEffects} when
