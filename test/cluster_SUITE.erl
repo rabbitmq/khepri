@@ -48,6 +48,7 @@
          handle_leader_down_on_three_node_cluster_response/1,
          requesting_snapshot_on_old_machine_does_not_crash/1,
          can_set_snapshot_interval/1,
+         can_use_snapshot_strategy_from_macver4/1,
          projections_are_consistent_on_three_node_cluster/1,
          projections_are_updated_when_a_snapshot_is_installed/1,
          async_command_leader_change_in_three_node_cluster/1,
@@ -71,7 +72,8 @@ groups() ->
            can_use_default_store_on_single_node,
            can_start_store_in_specified_data_dir_on_single_node,
            requesting_snapshot_on_old_machine_does_not_crash,
-           can_set_snapshot_interval
+           can_set_snapshot_interval,
+           can_use_snapshot_strategy_from_macver4
           ]},
          {parallel, [parallel],
           [
@@ -2071,6 +2073,78 @@ can_set_snapshot_interval(Config) ->
     after
         meck:unload(khepri_machine)
     end,
+    ok.
+
+can_use_snapshot_strategy_from_macver4(Config) ->
+    Node = node(),
+    RaSystem = helpers:get_ra_system_name(Config),
+    StoreId = RaSystem,
+
+    ct:pal("Start database"),
+    Threshold = 100,
+    TimeInterval = 2,
+    RaServerConfig = #{cluster_name => StoreId,
+                       machine_config =>
+                       #{unreleased_command_footprint_threshold => Threshold,
+                         snapshot_time_interval => TimeInterval,
+
+                         %% We set a snapshot interval for this test, even
+                         %% though we do not test it. This is because it used
+                         %% to set the `min_snapshot_interval` Ra parameter
+                         %% which Ra uses to determine if a `release_cursor`
+                         %% command should be handled or ignored.
+                         snapshot_interval => 3}},
+    ?assertEqual(
+       {ok, StoreId},
+       khepri:start(RaSystem, RaServerConfig)),
+
+    RaServer = khepri_cluster:node_to_member(StoreId, Node),
+    ?assertMatch(
+       {ok, #{log := #{snapshot_index := undefined}}, RaServer},
+       ra:member_overview(RaServer)),
+
+    ?assertEqual(ok, khepri:fence(StoreId)),
+
+    ct:pal("Submit large command"),
+    Value = string:pad("", Threshold, trailing, $1),
+    ?assertEqual(ok, khepri:put(StoreId, [foo], Value)),
+
+    ct:pal("Verify unreleased command footprint is above threshold"),
+    ?assertMatch(
+       #{unreleased_command_footprint := Footprint2}
+         when Footprint2 >= Threshold,
+       khepri_machine:process_query(
+         StoreId,
+         fun khepri_machine:get_metrics/1,
+         #{})),
+
+    ct:pal("Still no snapshot taken"),
+    ?assertMatch(
+       {ok, #{log := #{snapshot_index := undefined}}, RaServer},
+       ra:member_overview(RaServer)),
+
+    ct:pal("Wait that the time interval has elapsed"),
+    timer:sleep(TimeInterval * 1000 + 200),
+
+    ct:pal("Submit command after snapshot time interval elapsed"),
+    ?assertEqual(ok, khepri:put(StoreId, [foo], value)),
+
+    await_snapshot_index(RaServer, 3),
+
+    ct:pal("Verify metrics are reset"),
+    ?assertMatch(
+       Metrics
+         when not is_map_key(applied_command_count, Metrics) andalso
+              not is_map_key(unreleased_command_footprint, Metrics),
+       khepri_machine:process_query(
+         StoreId,
+         fun khepri_machine:get_metrics/1,
+         #{})),
+
+    ct:pal("Stop database"),
+    ?assertEqual(
+       ok,
+       khepri:stop(StoreId)),
     ok.
 
 await_snapshot_index(RaServer, ExpectedIndex) ->
