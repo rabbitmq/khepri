@@ -723,7 +723,8 @@ put_command_bumps_applied_command_count_test() ->
 
     ?assertMatch(
        Metrics1
-         when not is_map_key(applied_command_count, Metrics1),
+         when not is_map_key(applied_command_count, Metrics1) andalso
+              not is_map_key(unreleased_command_footprint, Metrics1),
        khepri_machine:get_metrics(S0)),
 
     Command1 = #put{path = [bar],
@@ -751,7 +752,8 @@ put_command_bumps_applied_command_count_test() ->
 
     ?assertMatch(
        Metrics2
-         when not is_map_key(applied_command_count, Metrics2),
+         when not is_map_key(applied_command_count, Metrics2) andalso
+              not is_map_key(unreleased_command_footprint, Metrics2),
        khepri_machine:get_metrics(S3)),
     ?assertEqual([{aux, trigger_delayed_aux_queries_eval},
                   {release_cursor, maps:get(index, Meta), S3}], SE3).

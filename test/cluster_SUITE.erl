@@ -2057,7 +2057,8 @@ can_set_snapshot_interval(Config) ->
         ct:pal("Verify applied command count is reset"),
         ?assertMatch(
            Metrics
-             when not is_map_key(applied_command_count, Metrics),
+             when not is_map_key(applied_command_count, Metrics) andalso
+                  not is_map_key(unreleased_command_footprint, Metrics),
            khepri_machine:process_query(
              StoreId,
              fun khepri_machine:get_metrics/1,
