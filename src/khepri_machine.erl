@@ -71,6 +71,8 @@
 %% <td>
 %% <ul>
 %% <li>Added `#request_snapshot{}' helper command for tests.</li>
+%% <li>Added command annotations through the `#with_annotations{}'
+%% command.</li>
 %% </ul>
 %% </td>
 %% </tr>
@@ -147,7 +149,7 @@
          get_store_id/1]).
 
 -ifdef(TEST).
--export([do_process_sync_command/3,
+-export([do_process_sync_command/4,
          make_virgin_state/1,
          convert_state/3,
          set_tree/2]).
@@ -171,6 +173,7 @@
                    #dedup{} |
                    #dedup_ack{} |
                    #drop_dedups{} |
+                   #with_annotations{} |
                    #request_snapshot{}.
 %% Commands specific to this Ra machine.
 
@@ -182,6 +185,13 @@
 %% Khepri.
 %%
 %% We keep them supported for backward-compatibility.
+
+-type command_annotations() :: #{}.
+%% Command annotations.
+%%
+%% They allow to attach various types of information to an existing command
+%% without having to change the command and thus managing multiple versions of
+%% the command record.
 
 -type machine_init_args() :: #{store_id := khepri:store_id(),
                                member := ra:server_id(),
@@ -280,6 +290,7 @@
               api_behaviour/0,
               command/0,
               old_command/0,
+              command_annotations/0,
               delayed_aux_query/0]).
 
 -define(PROJECTION_PROPS_TO_RETURN, [payload_version,
@@ -962,16 +973,17 @@ set_default_options(StoreId, Options) ->
 
 process_command(StoreId, Command, Options) ->
     CommandType = select_command_type(Options),
+    Annotations = make_command_annotations(Command),
     case CommandType of
         sync ->
-            process_sync_command(StoreId, Command, Options);
+            process_sync_command(StoreId, Command, Annotations, Options);
         {async, Correlation, Priority} ->
             process_async_command(
-              StoreId, Command, Correlation, Priority)
+              StoreId, Command, Annotations, Correlation, Priority)
     end.
 
 process_sync_command(
-  StoreId, Command, #{protect_against_dups := true} = Options) ->
+  StoreId, Command, Annotations, #{protect_against_dups := true} = Options) ->
     %% The deduplication mechanism was added to machine version 1.
     case does_api_comply_with(dedup_protection, StoreId) of
         true ->
@@ -1003,24 +1015,28 @@ process_sync_command(
             DedupCommand = #dedup{ref = CommandRef,
                                   expiry = Expiry,
                                   command = Command},
-            DedupAck = #dedup_ack{ref = CommandRef},
             Ret = do_process_sync_command(
-                    StoreId, DedupCommand, Options),
+                    StoreId, DedupCommand, Annotations, Options),
 
             %% We acknowledge that we received the reply and all duplicates
             %% can be ignored.
+            DedupAck = #dedup_ack{ref = CommandRef},
+            DedupAckAnno = make_command_annotations(DedupAck),
+            DedupAck1 = wrap_command_with_annotations(
+                          StoreId, DedupAck, DedupAckAnno),
             Dest = leader_id_or_local(StoreId),
             sending_async_command(Dest),
-            _ = ra:pipeline_command(Dest, DedupAck),
+            _ = ra:pipeline_command(Dest, DedupAck1),
             Ret;
         false ->
-            do_process_sync_command(StoreId, Command, Options)
+            do_process_sync_command(StoreId, Command, Annotations, Options)
     end;
 process_sync_command(
-  StoreId, Command, Options) ->
-    do_process_sync_command(StoreId, Command, Options).
+  StoreId, Command, Annotations, Options) ->
+    do_process_sync_command(StoreId, Command, Annotations, Options).
 
-do_process_sync_command(StoreId, Command, Options) ->
+do_process_sync_command(StoreId, Command, Annotations, Options) ->
+    Command1 = wrap_command_with_annotations(StoreId, Command, Annotations),
     ThisNode = node(),
     RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
     Timeout = get_timeout(Options),
@@ -1029,7 +1045,7 @@ do_process_sync_command(StoreId, Command, Options) ->
     T0 = khepri_utils:start_timeout_window(Timeout),
     Dest = leader_id_or(StoreId, RaServer),
     sending_sync_command(Dest),
-    case ra:process_command(Dest, Command, CommandOptions) of
+    case ra:process_command(Dest, Command1, CommandOptions) of
         {ok, Ret, _LeaderId} ->
             ?raise_exception_if_any(Ret);
         {timeout, _LeaderId} ->
@@ -1053,7 +1069,8 @@ do_process_sync_command(StoreId, Command, Options) ->
                                    ?TRANSIENT_ERROR_RETRY_INTERVAL,
                                    NewTimeout0),
                     Options1 = Options#{timeout => NewTimeout},
-                    do_process_sync_command(StoreId, Command, Options1);
+                    do_process_sync_command(
+                      StoreId, Command1, Annotations, Options1);
                 false ->
                     Error
             end;
@@ -1062,16 +1079,19 @@ do_process_sync_command(StoreId, Command, Options) ->
     end.
 
 process_async_command(
-  StoreId, Command, ?DEFAULT_RA_COMMAND_CORRELATION = Correlation, Priority) ->
+  StoreId, Command, Annotations,
+  ?DEFAULT_RA_COMMAND_CORRELATION = Correlation, Priority) ->
+    Command1 = wrap_command_with_annotations(StoreId, Command, Annotations),
     ThisNode = node(),
     RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
     sending_async_command_locally(StoreId),
-    ra:pipeline_command(RaServer, Command, Correlation, Priority);
+    ra:pipeline_command(RaServer, Command1, Correlation, Priority);
 process_async_command(
-  StoreId, Command, Correlation, Priority) ->
+  StoreId, Command, Annotations, Correlation, Priority) ->
+    Command1 = wrap_command_with_annotations(StoreId, Command, Annotations),
     Dest = leader_id_or_local(StoreId),
     sending_async_command(Dest),
-    ra:pipeline_command(Dest, Command, Correlation, Priority).
+    ra:pipeline_command(Dest, Command1, Correlation, Priority).
 
 -spec select_command_type(Options) -> CommandType when
       Options :: khepri:command_options(),
@@ -1099,6 +1119,40 @@ select_command_type(#{async := {Correlation, Priority}})
   when ?IS_RA_COMMAND_CORRELATION(Correlation) andalso
        ?IS_RA_COMMAND_PRIORITY(Priority) ->
     {async, Correlation, Priority}.
+
+-spec make_command_annotations(Command) -> Annotations when
+      Command :: khepri_machine:command(),
+      Annotations :: khepri_machine:command_annotations().
+%% @doc Make an annotation map to be added to the `#with_annotations{}'
+%% command.
+%%
+%% @private.
+
+make_command_annotations(_Command) ->
+    Annotations = #{},
+    Annotations.
+
+-spec wrap_command_with_annotations(StoreId, InnerCommand, Annotations) ->
+    Command when
+      StoreId :: khepri:store_id(),
+      InnerCommand :: khepri_machine:command(),
+      Annotations :: khepri_machine:command_annotations(),
+      Command :: khepri_machine:command().
+%% @doc Wrap a command with annotations.
+%%
+%% @private.
+
+wrap_command_with_annotations(_StoreId, #with_annotations{} = Command, _Annotations) ->
+    Command;
+wrap_command_with_annotations(StoreId, InnerCommand, Annotations) ->
+    case does_api_comply_with(command_annotations, StoreId) of
+        true ->
+            Command = #with_annotations{command = InnerCommand,
+                                        annotations = Annotations},
+            Command;
+        false ->
+            InnerCommand
+    end.
 
 -spec process_query(StoreId, QueryFun, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -1792,6 +1846,11 @@ apply(
     Ret = {State1, ok},
     post_apply(Ret, Meta, Command);
 apply(
+  #{machine_version := MacVer} = Meta,
+  #with_annotations{command = InnerCommand, annotations = _Annotations},
+  State) when MacVer >= 4 ->
+    apply(Meta, InnerCommand, State);
+apply(
   #{machine_version := MacVer,
     index := RaftIndex} = Meta,
   #request_snapshot{reason = Reason} = Command,
@@ -2100,6 +2159,7 @@ api_behaviour_to_machine_version(delete_reason_in_node_props)       -> 2;
 api_behaviour_to_machine_version(indirect_deletes_in_ret)           -> 2;
 api_behaviour_to_machine_version(uniform_write_ret)                 -> 2;
 api_behaviour_to_machine_version(multi_table_projections)           -> 3;
+api_behaviour_to_machine_version(command_annotations)               -> 4;
 api_behaviour_to_machine_version(request_snapshot)                  -> 4;
 api_behaviour_to_machine_version(Behaviour) when is_atom(Behaviour) ->
     undefined.
