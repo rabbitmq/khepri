@@ -58,7 +58,7 @@
 %% </td>
 %% </tr>
 %% <tr>
-%% <td style="text-align: right; vertical-align: top;">2</td>
+%% <td style="text-align: right; vertical-align: top;">3</td>
 %% <td>
 %% <ul>
 %% <li>Added support for multi-table projections (see {@link
