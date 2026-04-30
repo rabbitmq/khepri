@@ -196,6 +196,9 @@ convert_to_uniform_command_test() ->
                   same ->
                       ?assertEqual(OldRecord, NewRecord);
                   _ ->
-                      ?assertEqual(ExpectedNewRecord, NewRecord)
+                      ExpectedNewRecord1 = (
+                        khepri_machine:compute_command_size(
+                          ExpectedNewRecord)),
+                      ?assertEqual(ExpectedNewRecord1, NewRecord)
               end
       end, Records).

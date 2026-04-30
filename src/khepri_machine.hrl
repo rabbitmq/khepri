@@ -41,7 +41,8 @@
 %% State machine commands.
 %% -------------------------------------------------------------------
 
--record(common_v1, {dedup_ref = undefined :: reference() | undefined,
+-record(common_v1, {command_size = 0 :: non_neg_integer(),
+                    dedup_ref = undefined :: reference() | undefined,
                     dedup_expiry = undefined :: integer() | undefined}).
 %% Set of attributes shared by all commands.
 

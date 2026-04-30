@@ -73,6 +73,8 @@
 %% <li>Added uniform commands, replacing all existing commands.</li>
 %% <li>Added `#request_snapshot{}' helper command for tests.</li>
 %% <li>Started to record init arguments in the machine state.</li>
+%% <li>Started to track unreleased command footprint in state machine
+%% metrics.</li>
 %% </ul>
 %% </td>
 %% </tr>
@@ -154,7 +156,8 @@
 -export([do_process_sync_command/3,
          make_virgin_state/1,
          convert_state/3,
-         set_tree/2]).
+         set_tree/2,
+         compute_command_size/1]).
 -endif.
 
 -compile({no_auto_import, [apply/3]}).
@@ -237,6 +240,7 @@
 %% Internal triggers map in the machine state.
 
 -type metrics() :: #{applied_command_count => non_neg_integer(),
+                     unreleased_command_footprint => non_neg_integer(),
 
                      %% A machine state is always initialised at version 0.
                      %% When a new machine init argument was introduced, it was
@@ -1047,13 +1051,17 @@ set_default_options(StoreId, Options) ->
 %% @private
 
 process_command(StoreId, Command, Options) ->
+    Command1 = case does_api_comply_with(uniform_commands, StoreId) of
+                   true  -> compute_command_size(Command);
+                   false -> Command
+               end,
     CommandType = select_command_type(Options),
     case CommandType of
         sync ->
-            process_sync_command(StoreId, Command, Options);
+            process_sync_command(StoreId, Command1, Options);
         {async, Correlation, Priority} ->
             process_async_command(
-              StoreId, Command, Correlation, Priority)
+              StoreId, Command1, Correlation, Priority)
     end.
 
 process_sync_command(
@@ -2047,20 +2055,20 @@ convert_to_uniform_command(
                           put_options = PutOptions,
                           tree_options = TreeOptions},
     NewCommand = #put_v{args = CommandArgs},
-    NewCommand;
+    convert_to_uniform_command1(NewCommand);
 convert_to_uniform_command(
   #delete{path = PathPattern,
           options = TreeOptions}) ->
     CommandArgs = #delete_v1{path = PathPattern,
                              tree_options = TreeOptions},
     NewCommand = #delete_v{args = CommandArgs},
-    NewCommand;
+    convert_to_uniform_command1(NewCommand);
 convert_to_uniform_command(
   #tx{'fun' = StandaloneFun, args = Args}) ->
     CommandArgs = #tx_v1{'fun' = StandaloneFun,
                          args = Args},
     NewCommand = #tx_v{args = CommandArgs},
-    NewCommand;
+    convert_to_uniform_command1(NewCommand);
 convert_to_uniform_command(
   #register_trigger{id = TriggerId,
                     sproc = StoredProcPath,
@@ -2069,23 +2077,23 @@ convert_to_uniform_command(
                                        sproc = StoredProcPath,
                                        event_filter = EventFilter},
     NewCommand = #register_trigger_v{args = CommandArgs},
-    NewCommand;
+    convert_to_uniform_command1(NewCommand);
 convert_to_uniform_command(
   #ack_triggered{triggered = ProcessedTriggers}) ->
     CommandArgs = #ack_triggered_v1{triggered = ProcessedTriggers},
     NewCommand = #ack_triggered_v{args = CommandArgs},
-    NewCommand;
+    convert_to_uniform_command1(NewCommand);
 convert_to_uniform_command(
   #register_projection{pattern = PathPattern, projection = Projection}) ->
     CommandArgs = #register_projection_v1{pattern = PathPattern,
                                           projection = Projection},
     NewCommand = #register_projection_v{args = CommandArgs},
-    NewCommand;
+    convert_to_uniform_command1(NewCommand);
 convert_to_uniform_command(
   #unregister_projections{names = Names}) ->
     CommandArgs = #unregister_projections_v1{names = Names},
     NewCommand = #unregister_projections_v{args = CommandArgs},
-    NewCommand;
+    convert_to_uniform_command1(NewCommand);
 convert_to_uniform_command(
   #unregister_projection{name = Name}) ->
     %% This command was replaced by `#unregister_projections{}'. Therefore,
@@ -2094,7 +2102,7 @@ convert_to_uniform_command(
     %% For backward-compatibility; see {@link old_command()}.
     CommandArgs = #unregister_projections_v1{names = [Name]},
     NewCommand = #unregister_projections_v{args = CommandArgs},
-    NewCommand;
+    convert_to_uniform_command1(NewCommand);
 convert_to_uniform_command(
   #dedup{} = Command) ->
     %% This command does not have a uniform/versioned equivalent as it is
@@ -2104,12 +2112,12 @@ convert_to_uniform_command(
   #dedup_ack{ref = CommandRef}) ->
     CommandArgs = #dedup_ack_v1{ref = CommandRef},
     NewCommand = #dedup_ack_v{args = CommandArgs},
-    NewCommand;
+    convert_to_uniform_command1(NewCommand);
 convert_to_uniform_command(
   #drop_dedups{refs = RefsToDrop}) ->
     CommandArgs = #drop_dedups_v1{refs = RefsToDrop},
     NewCommand = #drop_dedups_v{args = CommandArgs},
-    NewCommand;
+    convert_to_uniform_command1(NewCommand);
 convert_to_uniform_command(Command)
   when is_record(Command, put_v) orelse
        is_record(Command, delete_v) orelse
@@ -2126,6 +2134,10 @@ convert_to_uniform_command(Command)
     %% pattern matching.
     Command.
 
+convert_to_uniform_command1(NewCommand) ->
+    NewCommand1 = compute_command_size(NewCommand),
+    NewCommand1.
+
 -spec post_apply(ApplyRet, Meta, Command) -> {State, Result, SideEffects} when
       ApplyRet :: {State, Result} | {State, Result, SideEffects},
       State :: state(),
@@ -2137,12 +2149,13 @@ convert_to_uniform_command(Command)
 
 post_apply({State, Result}, Meta, Command) ->
     post_apply({State, Result, []}, Meta, Command);
-post_apply({State, Result, SideEffects}, Meta, _Command) ->
-    {State1, SideEffects1} = bump_applied_command_count(State, SideEffects, Meta),
-    {State2, SideEffects2} = drop_expired_dedups(State1, SideEffects1, Meta),
-    {State3, SideEffects3} = trigger_delayed_aux_queries_eval(State2, SideEffects2, Meta),
-    {State4, SideEffects4} = maybe_request_snapshot(State3, SideEffects3, Meta),
-    {State4, Result, lists:reverse(SideEffects4)}.
+post_apply({State, Result, SideEffects}, Meta, Command) ->
+    State1 = bump_unreleased_command_footprint(State, Command),
+    {State2, SideEffects2} = bump_applied_command_count(State1, SideEffects, Meta),
+    {State3, SideEffects3} = drop_expired_dedups(State2, SideEffects2, Meta),
+    {State4, SideEffects4} = trigger_delayed_aux_queries_eval(State3, SideEffects3, Meta),
+    {State5, SideEffects5} = maybe_request_snapshot(State4, SideEffects4, Meta),
+    {State5, Result, lists:reverse(SideEffects5)}.
 
 -spec bump_applied_command_count(State, SideEffects, Meta) ->
     {NewState, NewSideEffects} when
@@ -2161,10 +2174,38 @@ bump_applied_command_count(State, SideEffects, _Meta) ->
     State1 = set_metrics(State, Metrics1),
     {State1, SideEffects}.
 
+-spec bump_unreleased_command_footprint(State, Command) -> NewState when
+      State :: khepri_machine:state(),
+      Command :: khepri_machine:command() |
+                 khepri_machine:old_command() |
+                 ra_machine:builtin_command(),
+      NewState :: khepri_machine:state().
+%% @doc Bump the unreleased command footprint from the command size, present in
+%% the command common arguments.
+%%
+%% @private.
+
+bump_unreleased_command_footprint(State, Command) ->
+    case get_command_common_args(Command) of
+        #common_v1{command_size = CommandSize}
+          when is_integer(CommandSize) andalso CommandSize >= 0 ->
+            Metrics = get_metrics(State),
+            Footprint = maps:get(unreleased_command_footprint, Metrics, 0),
+            Footprint1 = Footprint + CommandSize,
+            Metrics1 = Metrics#{unreleased_command_footprint => Footprint1},
+            State1 = set_metrics(State, Metrics1),
+            State1;
+        none ->
+            State;
+        undefined ->
+            State
+    end.
+
 reset_metrics(State) ->
     Metrics = get_metrics(State),
     Metrics1 = maps:remove(applied_command_count, Metrics),
-    set_metrics(State, Metrics1).
+    Metrics2 = maps:remove(unreleased_command_footprint, Metrics1),
+    set_metrics(State, Metrics2).
 
 -spec drop_expired_dedups(State, SideEffects, Meta) ->
     {NewState, NewSideEffects} when
@@ -2325,6 +2366,18 @@ set_dedup_args(Command, CommandRef, Expiry)
                   end,
     Command1 = set_command_common_args(Command, CommonArgs1),
     Command1.
+
+compute_command_size(Command) ->
+    CommonArgs = get_command_common_args(Command),
+    CommonArgs1 = case CommonArgs of
+                      #common_v1{} -> CommonArgs;
+                      none         -> #common_v1{}
+                  end,
+    Command1 = set_command_common_args(Command, CommonArgs1),
+    CommandSize = erlang:external_size(Command1),
+    CommonArgs2 = CommonArgs1#common_v1{command_size = CommandSize},
+    Command2 = set_command_common_args(Command1, CommonArgs2),
+    Command2.
 
 %% @private
 
