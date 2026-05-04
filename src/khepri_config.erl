@@ -34,14 +34,14 @@
 
 -export_type([machine_config/0]).
 
--spec new(Params) -> Config when
-      Params :: khepri_machine:machine_init_args(),
+-spec new(InitArgs) -> Config when
+      InitArgs :: khepri_machine:machine_init_args(),
       Config :: khepri_config:machine_config().
 %% @doc Creates a new opaque configuration record.
 
 new(#{store_id := StoreId,
-      member := Member} = Params) ->
-    Config = case Params of
+      member := Member} = InitArgs) ->
+    Config = case InitArgs of
                  #{snapshot_interval := SnapshotInterval} ->
                      #config{store_id = StoreId,
                              member = Member,

@@ -73,6 +73,7 @@
 %% <li>Added `#request_snapshot{}' helper command for tests.</li>
 %% <li>Added command annotations through the `#with_annotations{}'
 %% command.</li>
+%% <li>Started to record init arguments in the machine state.</li>
 %% </ul>
 %% </td>
 %% </tr>
@@ -145,6 +146,7 @@
          get_projections/1,
          has_projection/2,
          get_metrics/1,
+         get_init_args/1,
          get_dedups/1,
          get_store_id/1]).
 
@@ -232,7 +234,23 @@
                             event_filter := khepri_evf:event_filter()}}.
 %% Internal triggers map in the machine state.
 
--type metrics() :: #{applied_command_count => non_neg_integer()}.
+-type metrics() :: #{applied_command_count => non_neg_integer(),
+
+                     %% A machine state is always initialised at version 0.
+                     %% When a new machine init argument was introduced, it was
+                     %% ignored at init time because it was unsupported by
+                     %% version 0 of the machine state and its configuration.
+                     %% When the machine state was converted to the new version
+                     %% that supports the new init argument, a default value
+                     %% was used because the conversion function had no access
+                     %% to the init arguments.
+                     %%
+                     %% To fix this problem, we abuse the `metrics` map in the
+                     %% machine state to store the init arguments. Thanks to
+                     %% this, the conversion function can use the init
+                     %% arguments again to set the new configuration to the
+                     %% requested value instead of the default one.
+                     init_args => khepri_machine:machine_init_args()}.
 %% Internal state machine metrics.
 
 -type dedups_map() :: #{reference() => {any(), integer()}}.
@@ -1427,32 +1445,35 @@ leader_id_or(StoreId, {_, _} = Default) ->
 %% ra_machine callbacks.
 %% -------------------------------------------------------------------
 
--spec init(Params) -> State when
-      Params :: machine_init_args(),
+-spec init(InitArgs) -> State when
+      InitArgs :: khepri_machine:machine_init_args(),
       State :: khepri_machine_v0:state().
 %% @private
 
-init(Params) ->
+init(InitArgs) ->
     %% Initialize the state. This function always returns the oldest supported
     %% state format.
-    State = khepri_machine_v0:init(Params),
+    State = khepri_machine_v0:init(InitArgs),
 
     InitialMacVer = 0,
     StoreId = get_store_id(State),
     cache_effective_machine_version(StoreId, InitialMacVer),
 
+    State1 = set_init_args(State, InitArgs),
+
     %% Create initial "schema" if provided.
-    Commands = maps:get(commands, Params, []),
+    Commands = maps:get(commands, InitArgs, []),
     State3 = lists:foldl(
-               fun(Command, State1) ->
+               fun(Command, State2) ->
                        Meta = #{index => 0,
                                 term => 0,
                                 system_time => 0,
                                 machine_version => InitialMacVer},
-                       {S, _, _} = apply(Meta, Command, State1),
+                       {S, _, _} = apply(Meta, Command, State2),
                        S
-               end, State, Commands),
-    reset_metrics(State3).
+               end, State1, Commands),
+    State4 = reset_metrics(State3),
+    State4.
 
 -spec init_aux(StoreId :: khepri:store_id()) -> aux_state().
 %% @private
@@ -2864,6 +2885,33 @@ set_metrics(#khepri_machine{} = State, Metrics) ->
 set_metrics(State, Metrics) ->
     khepri_machine_v0:set_metrics(State, Metrics).
 
+-spec get_init_args(State) -> InitArgs when
+      State :: khepri_machine:state(),
+      InitArgs :: khepri_machine:machine_init_args().
+%% @doc Returns the init arguments from the given state.
+%%
+%% If they are unavailable, an empty map is returned.
+%%
+%% @private
+
+get_init_args(State) ->
+    Metrics = get_metrics(State),
+    InitArgs = maps:get(init_args, Metrics, #{}),
+    InitArgs.
+
+-spec set_init_args(State, InitArgs) -> NewState when
+      State :: khepri_machine:state(),
+      InitArgs :: khepri_machine:machine_init_args(),
+      NewState :: khepri_machine:state().
+%% @doc Records the init arguments in the given state.
+%%
+%% @private
+
+set_init_args(State, InitArgs) ->
+    Metrics = get_metrics(State),
+    Metrics1 = Metrics#{init_args => InitArgs},
+    set_metrics(State, Metrics1).
+
 -spec get_dedups(State) -> Dedups when
       State :: khepri_machine:state(),
       Dedups :: khepri_machine:dedups_map().
@@ -2924,12 +2972,12 @@ assert_equal(State1, State2) ->
     khepri_machine_v0:assert_equal(State1, State2).
 
 -ifdef(TEST).
--spec make_virgin_state(Params) -> State when
-      Params :: khepri_machine:machine_init_args(),
+-spec make_virgin_state(InitArgs) -> State when
+      InitArgs :: khepri_machine:machine_init_args(),
       State :: khepri_machine_v0:state().
 
-make_virgin_state(Params) ->
-    khepri_machine_v0:init(Params).
+make_virgin_state(InitArgs) ->
+    khepri_machine_v0:init(InitArgs).
 -endif.
 
 -spec convert_state(OldState, OldMacVer, NewMacVer) -> NewState when
