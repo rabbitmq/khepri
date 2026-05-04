@@ -8,20 +8,13 @@
 
 -include("src/khepri_node.hrl").
 
-%% TODO: Query this value from Ra itself.
--define(SNAPSHOT_INTERVAL, 4096).
-
-%% Record representing the state machine configuration.
--record(config,
-        {store_id :: khepri:store_id(),
-         member :: ra:server_id(),
-         snapshot_interval = ?SNAPSHOT_INTERVAL :: non_neg_integer()}).
-
 -record(khepri_machine_aux,
         {store_id :: khepri:store_id(),
          delayed_aux_queries = [] :: [khepri_machine:delayed_aux_query()]}).
 
+%% -------------------------------------------------------------------
 %% State machine commands and aux. effects.
+%% -------------------------------------------------------------------
 
 -record(put, {path :: khepri_path:native_pattern(),
               payload = ?NO_PAYLOAD :: khepri_payload:payload(),
@@ -72,6 +65,13 @@
 %% This is emitted internally by the `handle_aux/5' callback clause which
 %% handles the `tick' Ra aux effect.
 
+-record(with_annotations, {command :: khepri_machine:command(),
+                           annotations = #{} :: khepri_machine:command_annotations()}).
+
+-record(request_snapshot, {reason :: string()}).
+
+%% -------------------------------------------------------------------
 %% Old commands, kept for backward-compatibility.
+%% -------------------------------------------------------------------
 
 -record(unregister_projection, {name :: khepri_projection:name()}).
