@@ -47,13 +47,13 @@
 
 -export_type([state/0]).
 
--spec init(Params) -> State when
-      Params :: khepri_machine:machine_init_args(),
+-spec init(InitArgs) -> State when
+      InitArgs :: khepri_machine:machine_init_args(),
       State :: state().
 %% @private
 
-init(Params) ->
-    Config = khepri_config:new(Params),
+init(InitArgs) ->
+    Config = khepri_config:new(InitArgs),
     #khepri_machine{config = Config}.
 
 %% -------------------------------------------------------------------
