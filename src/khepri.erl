@@ -414,7 +414,8 @@
 %% khepri_machine:split_command_options/2} and {@link
 %% khepri_machine:split_put_options/2} must be adapted.
 
--type batch_options() :: #{atomic => boolean()}.
+-type batch_options() :: #{atomic => boolean(),
+                           reply_from => any()}. % FIXME
 %% Options specific to batches.
 %%
 %% <ul>
