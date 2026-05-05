@@ -170,73 +170,94 @@ process_batch(
                            submitter = Pid},
     State1.
 
+% do_process_batch(StoreId, Commands) ->
+%     Commands1 = optimize_batch(Commands),
+%     OnlyCommands = [Command || {_From, Command} <- Commands1],
+%     case length(OnlyCommands) of
+%         N when N > 0 ->
+%             logger:alert("BATCH: ~b commands", [N]);
+%         _ ->
+%             ok
+%     end,
+%     Ret = khepri_machine:batch(StoreId, OnlyCommands, #{atomic => false}),
+%     case Ret of
+%         {ok, Rets} ->
+%             ?assertEqual(length(Commands1), length(Rets)),
+%             LeaderId = ra_leaderboard:lookup_leader(StoreId),
+%             send_replies(Commands1, Rets, LeaderId);
+%         Error ->
+%             %% TODO
+%             ?LOG_ERROR("Error = ~p", [Error]),
+%             ok
+%     end.
 do_process_batch(StoreId, Commands) ->
-    Commands1 = optimize_batch(Commands),
-    OnlyCommands = [Command || {_From, Command} <- Commands1],
-    case length(OnlyCommands) of
+    Commands1 = lists:reverse(Commands),
+    case length(Commands1) of
         N when N > 0 ->
-            logger:alert("BATCH: ~b commands", [N]);
+            % logger:alert("BATCH: ~b commands", [N]),
+            ok;
         _ ->
             ok
     end,
-    Ret = khepri_machine:batch(StoreId, OnlyCommands, #{atomic => false}),
+    Ret = khepri_machine:batch(StoreId, Commands1, #{atomic => false, reply_from => {member, {StoreId, node()}}}),
     case Ret of
-        {ok, Rets} ->
-            ?assertEqual(length(Commands1), length(Rets)),
-            LeaderId = ra_leaderboard:lookup_leader(StoreId),
-            send_replies(Commands1, Rets, LeaderId);
+        ok ->
+            ok;
         Error ->
-            %% TODO
             ?LOG_ERROR("Error = ~p", [Error]),
+            lists:foreach(
+              fun({From, _Command}) ->
+                      gen_server:reply(From, Error)
+              end, Commands),
             ok
     end.
 
-optimize_batch([_] = Commands) ->
-    Commands;
-optimize_batch(Commands) ->
-    Commands1 = lists:reverse(Commands),
-    Commands2 = simplify_specific_deletes(Commands1),
-    Commands2.
-
-simplify_specific_deletes(Commands) ->
-    simplify_specific_deletes(Commands, #{other_commands => []}).
-
-simplify_specific_deletes(
-  [{_From, #delete{options = Options}} = Command | Commands],
-  DeletesPerOptions) ->
-    Cmds = maps:get(Options, DeletesPerOptions, []),
-    Cmds1 = [Command | Cmds],
-    DeletesPerOptions1 = DeletesPerOptions#{Options => Cmds1},
-    simplify_specific_deletes(Commands, DeletesPerOptions1);
-simplify_specific_deletes(
-  [Command | Commands],
-  DeletesPerOptions) ->
-    Cmds = maps:get(other_commands, DeletesPerOptions),
-    Cmds1 = [Command | Cmds],
-    DeletesPerOptions1 = DeletesPerOptions#{other_commands => Cmds1},
-    simplify_specific_deletes(Commands, DeletesPerOptions1);
-simplify_specific_deletes(
-  [],
-  DeletesPerOptions) ->
-    maps:fold(
-      fun
-          (#{expect_specific_node := true} = Options, Cmds, Acc) ->
-              Paths = [Path || {_From, #delete{path = Path}} <- Cmds],
-              Patterns = khepri_path:paths_to_patterns(Paths),
-              case Patterns of
-                  [Pattern] ->
-                      Froms = [From || {From, _Cmd} <- Cmds],
-                      Options1 = Options#{expect_specific_node => false},
-                      Cmd1 = #delete{path = Pattern, options = Options1},
-                      Cmd2 = {Froms, Cmd1},
-                      % logger:alert("OPTIMIZE:~n  1: ~p~n  2: ~p", [Cmds, Cmd2]),
-                      Acc ++ [Cmd2];
-                  _ ->
-                      Acc ++ Cmds
-              end;
-          (_, Cmds, Acc) ->
-              Acc ++ Cmds
-      end, [], DeletesPerOptions).
+% optimize_batch([_] = Commands) ->
+%     Commands;
+% optimize_batch(Commands) ->
+%     Commands1 = lists:reverse(Commands),
+%     Commands2 = simplify_specific_deletes(Commands1),
+%     Commands2.
+%
+% simplify_specific_deletes(Commands) ->
+%     simplify_specific_deletes(Commands, #{other_commands => []}).
+%
+% simplify_specific_deletes(
+%   [{_From, #delete{options = Options}} = Command | Commands],
+%   DeletesPerOptions) ->
+%     Cmds = maps:get(Options, DeletesPerOptions, []),
+%     Cmds1 = [Command | Cmds],
+%     DeletesPerOptions1 = DeletesPerOptions#{Options => Cmds1},
+%     simplify_specific_deletes(Commands, DeletesPerOptions1);
+% simplify_specific_deletes(
+%   [Command | Commands],
+%   DeletesPerOptions) ->
+%     Cmds = maps:get(other_commands, DeletesPerOptions),
+%     Cmds1 = [Command | Cmds],
+%     DeletesPerOptions1 = DeletesPerOptions#{other_commands => Cmds1},
+%     simplify_specific_deletes(Commands, DeletesPerOptions1);
+% simplify_specific_deletes(
+%   [],
+%   DeletesPerOptions) ->
+%     maps:fold(
+%       fun
+%           (#{expect_specific_node := true} = Options, Cmds, Acc) ->
+%               Paths = [Path || {_From, #delete{path = Path}} <- Cmds],
+%               Patterns = khepri_path:paths_to_patterns(Paths),
+%               case Patterns of
+%                   [Pattern] ->
+%                       Froms = [From || {From, _Cmd} <- Cmds],
+%                       Options1 = Options#{expect_specific_node => false},
+%                       Cmd1 = #delete{path = Pattern, options = Options1},
+%                       Cmd2 = {Froms, Cmd1},
+%                       % logger:alert("OPTIMIZE:~n  1: ~p~n  2: ~p", [Cmds, Cmd2]),
+%                       Acc ++ [Cmd2];
+%                   _ ->
+%                       Acc ++ Cmds
+%               end;
+%           (_, Cmds, Acc) ->
+%               Acc ++ Cmds
+%       end, [], DeletesPerOptions).
 
     % DeletesPerOptions = lists:foldl(
     %                       fun
@@ -262,17 +283,17 @@ simplify_specific_deletes(
     %           Acc ++ Cmds1
     %   end, {[], #{}}, DeletesPerOptions).
 
-send_replies([{Froms, _} | Commands], [Ret | Rets], LeaderId) ->
-    % logger:alert("REPLY ~p = ~p", [Command, Ret]),
-    case is_list(Froms) of
-        false ->
-            gen_server:reply(Froms, {ok, Ret, LeaderId});
-        true ->
-            lists:foreach(
-              fun(From) ->
-                      gen_server:reply(From, {ok, Ret, LeaderId})
-              end, Froms)
-    end,
-    send_replies(Commands, Rets, LeaderId);
-send_replies([], [], _LeaderId) ->
-    ok.
+% send_replies([{Froms, _} | Commands], [Ret | Rets], LeaderId) ->
+%     % logger:alert("REPLY ~p = ~p", [Command, Ret]),
+%     case is_list(Froms) of
+%         false ->
+%             gen_server:reply(Froms, {ok, Ret, LeaderId});
+%         true ->
+%             lists:foreach(
+%               fun(From) ->
+%                       gen_server:reply(From, {ok, Ret, LeaderId})
+%               end, Froms)
+%     end,
+%     send_replies(Commands, Rets, LeaderId);
+% send_replies([], [], _LeaderId) ->
+%     ok.

@@ -1022,7 +1022,7 @@ process_command(StoreId, Command, Options) ->
         sync ->
             process_sync_command(StoreId, Command, Annotations, Options);
         {async, Correlation, Priority} ->
-            logger:alert("ASYNC ~p", [Command]),
+            % logger:alert("ASYNC ~p", [Command]),
             process_async_command(
               StoreId, Command, Annotations, Correlation, Priority)
     end.
@@ -1092,6 +1092,7 @@ do_process_sync_command(StoreId, Command, Annotations, Options) ->
     sending_sync_command(Dest),
     case process_or_batch_command(Dest, Command, CommandOptions) of
         {ok, Ret, _LeaderId} ->
+            % logger:alert("CLIENT SIDE Command = ~p~nResult = ~p", [Command, Ret]),
             ?raise_exception_if_any(Ret);
         {timeout, _LeaderId} ->
             {error, timeout};
@@ -1145,7 +1146,6 @@ process_or_batch_command(
     end;
 process_or_batch_command(
   Dest, Command, Options) ->
-    sending_sync_command(Dest),
     case Command of
         #batch{} ->
             ok;
@@ -1929,25 +1929,51 @@ apply(
     State1 = set_dedups(State, Dedups1),
     Ret = {State1, ok},
     post_apply(Ret, Meta, Command);
+% apply(
+%   #{machine_version := MacVer} = Meta,
+%   #batch{commands = Commands} = Command,
+%   State) when MacVer >= 4 ->
+%     {State3,
+%      Results3,
+%      SideEffects3} = lists:foldl(
+%                        fun(InnerCommand, {State1, Results1, SideEffects1}) ->
+%                                {State2,
+%                                 SingleResult,
+%                                 MoreSideEffects} = apply(
+%                                                      Meta, InnerCommand,
+%                                                      State1),
+%                                Results2 = [SingleResult | Results1],
+%                                SideEffects2 = SideEffects1 ++ MoreSideEffects,
+%                                {State2, Results2, SideEffects2}
+%                        end, {State, [], []}, Commands),
+%     Results4 = lists:reverse(Results3),
+%     Ret = {State3, {ok, Results4}, SideEffects3},
+%     post_apply(Ret, Meta, Command);
 apply(
   #{machine_version := MacVer} = Meta,
-  #batch{commands = Commands} = Command,
+  #batch{commands = Commands,
+         options = #{reply_from := ReplyFrom}} = Command,
   State) when MacVer >= 4 ->
     {State3,
-     Results3,
+     Replies3,
      SideEffects3} = lists:foldl(
-                       fun(InnerCommand, {State1, Results1, SideEffects1}) ->
+                       fun({From, InnerCommand}, {State1, Replies1, SideEffects1}) ->
                                {State2,
-                                SingleResult,
+                                Result,
                                 MoreSideEffects} = apply(
                                                      Meta, InnerCommand,
                                                      State1),
-                               Results2 = [SingleResult | Results1],
-                               SideEffects2 = SideEffects1 ++ MoreSideEffects,
-                               {State2, Results2, SideEffects2}
+                               % logger:alert("Command = ~p~nResult = ~p", [InnerCommand, Result]),
+                               Reply = {ok, Result, undefined},
+                               % logger:alert("Reply = ~p", [Reply]),
+                               ReplySideEffect = {reply, From, Reply, ReplyFrom},
+                               Replies2 = [ReplySideEffect | Replies1],
+                               SideEffects2 = MoreSideEffects ++ SideEffects1,
+                               {State2, Replies2, SideEffects2}
                        end, {State, [], []}, Commands),
-    Results4 = lists:reverse(Results3),
-    Ret = {State3, {ok, Results4}, SideEffects3},
+    SideEffects4 = Replies3 ++ SideEffects3,
+    % logger:alert("SE = ~p", [SideEffects4]),
+    Ret = {State3, ok, SideEffects4},
     post_apply(Ret, Meta, Command);
 apply(
   #{machine_version := MacVer} = Meta,
