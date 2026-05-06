@@ -34,8 +34,10 @@
                                      khepri_machine:command()}],
                   batch_size = 0,
                   batch_age = undefined,
-                  submitter = undefined :: pid() | undefined}).
+                  submitters = [] :: [pid()]}).
 
+-define(MAX_SIZE, 20).
+-define(MAX_AGE, 10).
 -define(PT_SERVER_PID(StoreId), {?MODULE, StoreId}).
 
 start_link(StoreId) when ?IS_KHEPRI_STORE_ID(StoreId) ->
@@ -129,8 +131,9 @@ handle_info(timeout, State) ->
     State1 = maybe_process_batch(State),
     Timeout = get_new_timeout(State1),
     {noreply, State1, Timeout};
-handle_info({'EXIT', Pid, _Reason}, #?MODULE{submitter = Pid} = State) ->
-    State1 = State#?MODULE{submitter = undefined},
+handle_info({'EXIT', Pid, _Reason}, #?MODULE{submitters = Submitters} = State) ->
+    Submitters1 = Submitters -- [Pid],
+    State1 = State#?MODULE{submitters = Submitters1},
     Timeout = get_new_timeout(State1),
     {noreply, State1, Timeout};
 handle_info(Msg, State) ->
@@ -156,17 +159,17 @@ get_new_timeout(#?MODULE{commands = Commands}) ->
         _ -> 0
     end.
 
-maybe_process_batch(#?MODULE{submitter = Pid} = State)
-  when is_pid(Pid) ->
-    State;
+% maybe_process_batch(#?MODULE{submitter = Pid} = State)
+%   when is_pid(Pid) ->
+%     State;
 maybe_process_batch(#?MODULE{batch_size = Size} = State)
-  when Size >= 100 ->
+  when Size >= ?MAX_SIZE ->
     process_batch(State);
 maybe_process_batch(#?MODULE{batch_age = Age} = State) ->
     Now = erlang:monotonic_time(millisecond),
     Elapsed = Now - Age,
     case Elapsed of
-        _ when Elapsed > 100 ->
+        _ when Elapsed > ?MAX_AGE ->
             process_batch(State);
         _ ->
             State
@@ -177,24 +180,26 @@ maybe_process_batch(State) ->
 process_batch(
   #?MODULE{commands = []} = State) ->
     State;
-process_batch(
-  #?MODULE{store_id = StoreId, commands = [_] = Commands} = State) ->
-    do_process_batch(StoreId, Commands),
-    State1 = State#?MODULE{commands = [],
-                           batch_size = 0,
-                           batch_age = undefined},
-    State1;
+% process_batch(
+%   #?MODULE{store_id = StoreId, commands = [_] = Commands} = State) ->
+%     do_process_batch(StoreId, Commands),
+%     State1 = State#?MODULE{commands = [],
+%                            batch_size = 0,
+%                            batch_age = undefined},
+%     State1;
 process_batch(
   #?MODULE{store_id = StoreId,
-           commands = Commands} = State) ->
+           commands = Commands,
+           submitters = Submitters} = State) ->
     Pid = spawn_link(
             fun() ->
                     do_process_batch(StoreId, Commands)
             end),
+    Submitters1 = [Pid | Submitters],
     State1 = State#?MODULE{commands = [],
                            batch_size = 0,
                            batch_age = undefined,
-                           submitter = Pid},
+                           submitters = Submitters1},
     State1.
 
 % do_process_batch(StoreId, Commands) ->
