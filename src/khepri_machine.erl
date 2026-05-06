@@ -911,8 +911,7 @@ ack_triggers_execution(StoreId, TriggeredActions)
       Commands :: [khepri_machine:command()],
       Options :: khepri:command_options() |
                  khepri:batch_options(),
-      Ret :: {ok, Rets} | khepri:error(),
-      Rets :: [khepri_machine:write_ret() | khepri_machine:tx_ret()].
+      Ret :: ok | khepri:error().
 
 batch(StoreId, Commands, Options) ->
     ?assert(does_api_comply_with(batching, StoreId)),
@@ -1264,18 +1263,23 @@ process_or_batch_command(
   when not is_record(Command, batch) andalso
        (ReplyFrom =:= {member, {StoreId, node()}} orelse
         ReplyFrom =:= local) ->
-    try
-        khepri_batch_proxy:proxy_command(StoreId, Command, Timeout)
-    catch
-        exit:timeout ->
-            LeaderId = ra_leaderboard:lookup_leader(StoreId),
-            {timeout, LeaderId};
-        exit:noproc ->
-            ra:process_command(Dest, Command, Options);
-        exit:shutdown ->
-            {error, shutdown};
-        exit:Reason ->
-            {error, Reason}
+    case does_api_comply_with(batching, StoreId) of
+        true ->
+            try
+                khepri_batch_proxy:proxy_command(StoreId, Command, Timeout)
+            catch
+                exit:timeout ->
+                    LeaderId = ra_leaderboard:lookup_leader(StoreId),
+                    {timeout, LeaderId};
+                exit:noproc ->
+                    ra:process_command(Dest, Command, Options);
+                exit:shutdown ->
+                    {error, shutdown};
+                exit:Reason ->
+                    {error, Reason}
+            end;
+        false ->
+            ra:process_command(Dest, Command, Options)
     end;
 process_or_batch_command(
   Dest, Command, Options) ->
@@ -2131,12 +2135,11 @@ do_apply(
 do_apply(
   #{machine_version := MacVer} = Meta,
   #batch{args = #batch_v1{commands = Commands,
-                          options = #{reply_from := ReplyFrom}}} = Command,
-  State) when MacVer >= ?API_BEHAV_MACVER(batching) ->
+                          options = #{reply_from := ReplyFrom}}},
+  State) when MacVer >= 4 ->
     {State3,
-     Replies3,
      SideEffects3} = lists:foldl(
-                       fun({From, InnerCommand}, {State1, Replies1, SideEffects1}) ->
+                       fun({From, InnerCommand}, {State1, SideEffects1}) ->
                                {State2,
                                 Result,
                                 MoreSideEffects} = do_apply(
@@ -2146,14 +2149,14 @@ do_apply(
                                Reply = {ok, Result, undefined},
                                % logger:alert("Reply = ~p", [Reply]),
                                ReplySideEffect = {reply, From, Reply, ReplyFrom},
-                               Replies2 = [ReplySideEffect | Replies1],
-                               SideEffects2 = MoreSideEffects ++ SideEffects1,
-                               {State2, Replies2, SideEffects2}
-                       end, {State, [], []}, Commands),
-    SideEffects4 = Replies3 ++ SideEffects3,
-    % logger:alert("SE = ~p", [SideEffects4]),
-    Ret = {State3, ok, SideEffects4},
-    post_apply(Ret, Meta, Command);
+                               SideEffects2 = (
+                                 SideEffects1 ++ MoreSideEffects ++ [ReplySideEffect]),
+                               {State2, SideEffects2}
+                       end, {State, []}, Commands),
+    % logger:alert("SE = ~p", [SideEffects3]),
+    Ret = {State3, ok, SideEffects3},
+    %% `post_apply/3' not called because it was called for each inner command.
+    Ret;
 do_apply(Meta, {machine_version, OldMacVer, NewMacVer} = Command, OldState) ->
     NewState = convert_state(OldState, OldMacVer, NewMacVer),
     Ret = {NewState, ok},
@@ -2670,10 +2673,12 @@ emitted_triggers_to_side_effects(State) ->
 -spec overview(State) -> Overview when
       State :: khepri_machine:state(),
       Overview :: #{store_id := StoreId,
+                    config := Config,
                     tree := NodeTree,
                     triggers := Triggers,
                     keep_while_conds := KeepWhileConds},
       StoreId :: khepri:store_id(),
+      Config :: khepri_config:machine_config(),
       NodeTree :: khepri_utils:display_tree(),
       Triggers :: khepri_machine:triggers_map() |
                   khepri_machine:triggers_map_v2(),
