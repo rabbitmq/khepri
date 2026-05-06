@@ -32,6 +32,8 @@
 -record(?MODULE, {store_id :: khepri:store_id(),
                   commands = [] :: [{gen_server:from(),
                                      khepri_machine:command()}],
+                  batch_size = 0,
+                  batch_age = undefined,
                   submitter = undefined :: pid() | undefined}).
 
 -define(PT_SERVER_PID(StoreId), {?MODULE, StoreId}).
@@ -91,10 +93,19 @@ init(#{store_id := StoreId}) ->
 handle_call(
   {proxy_command, Command},
   From,
-  #?MODULE{commands = Commands} = State) ->
+  #?MODULE{commands = Commands, batch_size = Size, batch_age = Age} = State) ->
     % logger:alert("PROXY ~p", [Command]),
     Commands1 = [{From, Command} | Commands],
-    State1 = State#?MODULE{commands = Commands1},
+    Size1 = Size + 1,
+    Age1 = case Age of
+               _ when is_integer(Age) ->
+                   Age;
+               undefined ->
+                   erlang:monotonic_time(millisecond)
+           end,
+    State1 = State#?MODULE{commands = Commands1,
+                           batch_size = Size1,
+                           batch_age = Age1},
     State2 = maybe_process_batch(State1),
     Timeout = get_new_timeout(State2),
     {noreply, State2, Timeout};
@@ -148,8 +159,20 @@ get_new_timeout(#?MODULE{commands = Commands}) ->
 maybe_process_batch(#?MODULE{submitter = Pid} = State)
   when is_pid(Pid) ->
     State;
+maybe_process_batch(#?MODULE{batch_size = Size} = State)
+  when Size >= 100 ->
+    process_batch(State);
+maybe_process_batch(#?MODULE{batch_age = Age} = State) ->
+    Now = erlang:monotonic_time(millisecond),
+    Elapsed = Now - Age,
+    case Elapsed of
+        _ when Elapsed > 100 ->
+            process_batch(State);
+        _ ->
+            State
+    end;
 maybe_process_batch(State) ->
-    process_batch(State).
+    State.
 
 process_batch(
   #?MODULE{commands = []} = State) ->
@@ -157,7 +180,9 @@ process_batch(
 process_batch(
   #?MODULE{store_id = StoreId, commands = [_] = Commands} = State) ->
     do_process_batch(StoreId, Commands),
-    State1 = State#?MODULE{commands = []},
+    State1 = State#?MODULE{commands = [],
+                           batch_size = 0,
+                           batch_age = undefined},
     State1;
 process_batch(
   #?MODULE{store_id = StoreId,
@@ -167,6 +192,8 @@ process_batch(
                     do_process_batch(StoreId, Commands)
             end),
     State1 = State#?MODULE{commands = [],
+                           batch_size = 0,
+                           batch_age = undefined,
                            submitter = Pid},
     State1.
 
@@ -194,7 +221,7 @@ do_process_batch(StoreId, Commands) ->
     Commands1 = lists:reverse(Commands),
     case length(Commands1) of
         N when N > 0 ->
-            % logger:alert("BATCH: ~b commands", [N]),
+            logger:alert("BATCH: ~b commands", [N]),
             ok;
         _ ->
             ok

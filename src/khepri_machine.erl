@@ -2134,7 +2134,7 @@ do_apply(
 %     post_apply(Ret, Meta, Command);
 do_apply(
   #{machine_version := MacVer} = Meta,
-  #batch{args = #batch_v1{commands = Commands,
+  #batch{args = #batch_v1{commands = InnerCommands,
                           options = #{reply_from := ReplyFrom}}},
   State) when MacVer >= 4 ->
     {State3,
@@ -2145,14 +2145,12 @@ do_apply(
                                 MoreSideEffects} = do_apply(
                                                      Meta, InnerCommand,
                                                      State1),
-                               % logger:alert("Command = ~p~nResult = ~p", [InnerCommand, Result]),
                                Reply = {ok, Result, undefined},
-                               % logger:alert("Reply = ~p", [Reply]),
                                ReplySideEffect = {reply, From, Reply, ReplyFrom},
                                SideEffects2 = (
                                  SideEffects1 ++ MoreSideEffects ++ [ReplySideEffect]),
                                {State2, SideEffects2}
-                       end, {State, []}, Commands),
+                       end, {State, []}, InnerCommands),
     % logger:alert("SE = ~p", [SideEffects3]),
     Ret = {State3, ok, SideEffects3},
     %% `post_apply/3' not called because it was called for each inner command.
