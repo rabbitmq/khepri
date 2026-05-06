@@ -134,10 +134,9 @@ dedup_expiry_test_() ->
    Path = [stock, wood, <<"oak">>],
    Command = #tx{'fun' = StoredProcPath, args = []},
    CommandRef = make_ref(),
-   Expiry = erlang:system_time(millisecond),
    DedupCommand = #dedup{ref = CommandRef,
                          command = Command,
-                         expiry = Expiry},
+                         expiry = 0},
    {setup,
     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME, Config) end,
     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
@@ -160,8 +159,12 @@ dedup_expiry_test_() ->
        {"Trigger the transaction",
         ?_assertEqual(
             ok,
-            khepri_machine:do_process_sync_command(
-              ?FUNCTION_NAME, DedupCommand, #{}))},
+            begin
+                Expiry1 = erlang:system_time(millisecond) + TickTimeout,
+                DedupCommand1 = DedupCommand#dedup{expiry = Expiry1},
+                khepri_machine:do_process_sync_command(
+                  ?FUNCTION_NAME, DedupCommand1, #{})
+            end)},
 
        {"The transaction was applied and the data is incremented",
         ?_assertEqual(
@@ -171,8 +174,12 @@ dedup_expiry_test_() ->
        {"Trigger the transaction again before the dedup can be expired",
         ?_assertEqual(
             ok,
-            khepri_machine:do_process_sync_command(
-              ?FUNCTION_NAME, DedupCommand, #{}))},
+            begin
+                Expiry2 = erlang:system_time(millisecond) + TickTimeout,
+                DedupCommand2 = DedupCommand#dedup{expiry = Expiry2},
+                khepri_machine:do_process_sync_command(
+                  ?FUNCTION_NAME, DedupCommand2, #{})
+            end)},
 
        {"The transaction was deduplicated and the data is unchanged",
         ?_assertEqual(
