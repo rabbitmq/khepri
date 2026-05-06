@@ -795,8 +795,7 @@ ack_triggers_execution(StoreId, TriggeredStoredProcs)
       Commands :: [khepri_machine:command()],
       Options :: khepri:command_options() |
                  khepri:batch_options(),
-      Ret :: {ok, Rets} | khepri:error(),
-      Rets :: [khepri_machine:write_ret() | khepri_machine:tx_ret()].
+      Ret :: ok | khepri:error().
 
 batch(StoreId, Commands, Options) ->
     Command = #batch{commands = Commands,
@@ -1090,9 +1089,9 @@ do_process_sync_command(StoreId, Command, Annotations, Options) ->
     T0 = khepri_utils:start_timeout_window(Timeout),
     Dest = leader_id_or(StoreId, RaServer),
     sending_sync_command(Dest),
-    case process_or_batch_command(Dest, Command, CommandOptions) of
+    case process_or_batch_command(Dest, Command1, CommandOptions) of
         {ok, Ret, _LeaderId} ->
-            % logger:alert("CLIENT SIDE Command = ~p~nResult = ~p", [Command, Ret]),
+            % logger:alert("CLIENT SIDE Command1 = ~p~nResult = ~p", [Command1, Ret]),
             ?raise_exception_if_any(Ret);
         {timeout, _LeaderId} ->
             {error, timeout};
@@ -1131,18 +1130,23 @@ process_or_batch_command(
   when not is_record(Command, batch) andalso
        (ReplyFrom =:= {member, {StoreId, node()}} orelse
         ReplyFrom =:= local) ->
-    try
-        khepri_batch_proxy:proxy_command(StoreId, Command, Timeout)
-    catch
-        exit:timeout ->
-            LeaderId = ra_leaderboard:lookup_leader(StoreId),
-            {timeout, LeaderId};
-        exit:noproc ->
-            ra:process_command(Dest, Command, Options);
-        exit:shutdown ->
-            {error, shutdown};
-        exit:Reason ->
-            {error, Reason}
+    case does_api_comply_with(batching, StoreId) of
+        true ->
+            try
+                khepri_batch_proxy:proxy_command(StoreId, Command, Timeout)
+            catch
+                exit:timeout ->
+                    LeaderId = ra_leaderboard:lookup_leader(StoreId),
+                    {timeout, LeaderId};
+                exit:noproc ->
+                    ra:process_command(Dest, Command, Options);
+                exit:shutdown ->
+                    {error, shutdown};
+                exit:Reason ->
+                    {error, Reason}
+            end;
+        false ->
+            ra:process_command(Dest, Command, Options)
     end;
 process_or_batch_command(
   Dest, Command, Options) ->
@@ -1204,6 +1208,8 @@ select_command_type(#{async := {Correlation, Priority}})
 %%
 %% @private.
 
+make_command_annotations(#batch{}) ->
+    #{};
 make_command_annotations(Command) ->
     CommandSize = erlang:external_size(Command),
     Annotations = #{command_size => CommandSize},
@@ -1220,6 +1226,9 @@ make_command_annotations(Command) ->
 %% @private.
 
 wrap_command_with_annotations(_StoreId, #with_annotations{} = Command, _Annotations) ->
+    Command;
+wrap_command_with_annotations(_StoreId, #batch{} = Command, Annotations) ->
+    ?assertEqual(#{}, Annotations),
     Command;
 wrap_command_with_annotations(StoreId, InnerCommand, Annotations) ->
     case does_api_comply_with(command_annotations, StoreId) of
@@ -1952,12 +1961,11 @@ apply(
 apply(
   #{machine_version := MacVer} = Meta,
   #batch{commands = Commands,
-         options = #{reply_from := ReplyFrom}} = Command,
+         options = #{reply_from := ReplyFrom}},
   State) when MacVer >= 4 ->
     {State3,
-     Replies3,
      SideEffects3} = lists:foldl(
-                       fun({From, InnerCommand}, {State1, Replies1, SideEffects1}) ->
+                       fun({From, InnerCommand}, {State1, SideEffects1}) ->
                                {State2,
                                 Result,
                                 MoreSideEffects} = apply(
@@ -1967,14 +1975,14 @@ apply(
                                Reply = {ok, Result, undefined},
                                % logger:alert("Reply = ~p", [Reply]),
                                ReplySideEffect = {reply, From, Reply, ReplyFrom},
-                               Replies2 = [ReplySideEffect | Replies1],
-                               SideEffects2 = MoreSideEffects ++ SideEffects1,
-                               {State2, Replies2, SideEffects2}
-                       end, {State, [], []}, Commands),
-    SideEffects4 = Replies3 ++ SideEffects3,
-    % logger:alert("SE = ~p", [SideEffects4]),
-    Ret = {State3, ok, SideEffects4},
-    post_apply(Ret, Meta, Command);
+                               SideEffects2 = (
+                                 SideEffects1 ++ MoreSideEffects ++ [ReplySideEffect]),
+                               {State2, SideEffects2}
+                       end, {State, []}, Commands),
+    % logger:alert("SE = ~p", [SideEffects3]),
+    Ret = {State3, ok, SideEffects3},
+    %% `post_apply/3' not called because it was called for each inner command.
+    Ret;
 apply(
   #{machine_version := MacVer} = Meta,
   #with_annotations{command = InnerCommand, annotations = Annotations},
@@ -2190,10 +2198,12 @@ emitted_triggers_to_side_effects(State) ->
 -spec overview(State) -> Overview when
       State :: khepri_machine:state(),
       Overview :: #{store_id := StoreId,
+                    config := Config,
                     tree := NodeTree,
                     triggers := Triggers,
                     keep_while_conds := KeepWhileConds},
       StoreId :: khepri:store_id(),
+      Config :: khepri_config:machine_config(),
       NodeTree :: khepri_utils:display_tree(),
       Triggers :: khepri_machine:triggers_map(),
       KeepWhileConds :: khepri_tree:keep_while_conds_map().
@@ -2315,6 +2325,7 @@ api_behaviour_to_machine_version(uniform_write_ret)                 -> 2;
 api_behaviour_to_machine_version(multi_table_projections)           -> 3;
 api_behaviour_to_machine_version(command_annotations)               -> 4;
 api_behaviour_to_machine_version(request_snapshot)                  -> 4;
+api_behaviour_to_machine_version(batching)                          -> 4;
 api_behaviour_to_machine_version(Behaviour) when is_atom(Behaviour) ->
     undefined.
 

@@ -32,7 +32,7 @@
 -record(?MODULE, {store_id :: khepri:store_id(),
                   commands = [] :: [{gen_server:from(),
                                      khepri_machine:command()}],
-                  submitter = undefined :: pid()}).
+                  submitter = undefined :: pid() | undefined}).
 
 -define(PT_SERVER_PID(StoreId), {?MODULE, StoreId}).
 
