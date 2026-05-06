@@ -147,7 +147,7 @@ execute_crashing_sproc_test_() ->
 crashing_sproc_stacktrace_test_() ->
     {ok, Cwd} = file:get_cwd(),
     File1 = filename:join([Cwd, "test/mod_used_for_transactions.erl"]),
-    File2 = "src/khepri_sproc.erl",
+    File2 = filename:join([Cwd, "src/khepri_sproc.erl"]),
     File3 = filename:join([Cwd, "test/stored_procs.erl"]),
     StoredProcPath = [sproc],
     {setup,
