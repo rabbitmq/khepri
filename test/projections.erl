@@ -589,9 +589,11 @@ multi_table_projection_with_global_ets_options_works_test_() ->
           ?_test(
               begin
                   Options = #{type => ordered_set,
+                              protection => protected,
                               tables =>
                               #{mtp_ordered => #{},
-                                mtp_bag => #{type => bag}}},
+                                mtp_bag => #{type => bag,
+                                             protection => public}}},
                   Projection = khepri_projection:new(
                                  ?MODULE, ProjectFun, Options),
                   ?assertEqual(
@@ -602,14 +604,20 @@ multi_table_projection_with_global_ets_options_works_test_() ->
 
          {"The ETS tables have the expected type",
           ?_test(
-              begin
-                  ?assertEqual(
-                     ordered_set,
-                     ets:info(mtp_ordered, type)),
-                  ?assertEqual(
-                     bag,
-                     ets:info(mtp_bag, type))
-              end)}]
+             begin
+                 ?assertEqual(
+                    ordered_set,
+                    ets:info(mtp_ordered, type)),
+                 ?assertEqual(
+                    protected,
+                    ets:info(mtp_ordered, protection)),
+                 ?assertEqual(
+                    bag,
+                    ets:info(mtp_bag, type)),
+                 ?assertEqual(
+                    public,
+                    ets:info(mtp_bag, protection))
+             end)}]
       }]}.
 
 multi_table_projection_with_invalid_func_is_denied_test_() ->
