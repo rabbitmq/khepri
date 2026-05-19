@@ -56,7 +56,13 @@ get_pid(StoreId) ->
 proxy_command(StoreId, Command, Timeout) ->
     try
         ServerPid = get_pid(StoreId),
-        gen_server:call(ServerPid, {?FUNCTION_NAME, Command}, Timeout)
+        Ret = gen_server:call(ServerPid, {?FUNCTION_NAME, Command}, Timeout),
+        case Ret of
+            {error, {timeout, _}} ->
+                {error, timeout};
+            _ ->
+                Ret
+        end
     catch
         error:badarg ->
             {error, noproc}
