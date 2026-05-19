@@ -648,8 +648,14 @@ delete_matching_nodes(Tree, PathPattern, AppliedChanges, TreeOptions) ->
                   delete_matching_nodes_cb(
                     Path, Node, TreeOptions, explicit, Result)
           end,
-    walk_down_the_tree(
-      Tree, PathPattern, TreeOptions, AppliedChanges, Fun, #{}).
+    try
+        walk_down_the_tree(
+          Tree, PathPattern, TreeOptions, AppliedChanges, Fun, #{})
+    catch
+        C:R:S ->
+            logger:alert("CRASH: ~p:~p:~p", [C, R, S]),
+            erlang:raise(C, R, S)
+    end.
 
 delete_matching_nodes_cb(
   [] = Path, #node{} = Node, TreeOptions, DeleteReason, Result) ->
