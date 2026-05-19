@@ -2140,15 +2140,32 @@ do_apply(
     {State3,
      SideEffects3} = lists:foldl(
                        fun({From, InnerCommand}, {State1, SideEffects1}) ->
+                               case is_list(From) of
+                                   true ->
+                                       logger:alert("APPLY: ~0p", [From]);
+                                   false ->
+                                       ok
+                               end,
                                {State2,
                                 Result,
                                 MoreSideEffects} = do_apply(
                                                      Meta, InnerCommand,
                                                      State1),
                                Reply = {ok, Result, undefined},
-                               ReplySideEffect = {reply, From, Reply, ReplyFrom},
+                               ReplySideEffects = case From of
+                                                      _ when is_list(From) ->
+                                                          logger:alert("REPLY: ~0p", [From]),
+                                                          [{reply, F, Reply, ReplyFrom} || F <- From];
+                                                      _ ->
+                                                          [{reply, From, Reply, ReplyFrom}]
+                                                  end,
+                               %% XXX Can we have a batched command that relies
+                               %% on the side effects (like aux handler) of a
+                               %% previous command in the batch? Because all
+                               %% side effects are evaluated after all commands
+                               %% are applied.
                                SideEffects2 = (
-                                 SideEffects1 ++ MoreSideEffects ++ [ReplySideEffect]),
+                                 SideEffects1 ++ MoreSideEffects ++ ReplySideEffects),
                                {State2, SideEffects2}
                        end, {State, []}, InnerCommands),
     % logger:alert("SE = ~p", [SideEffects3]),

@@ -228,74 +228,90 @@ process_batch(
 %             ?LOG_ERROR("Error = ~p", [Error]),
 %             ok
 %     end.
-do_process_batch(StoreId, Commands) ->
+do_process_batch(StoreId, Commands) when Commands =/= [] ->
     Commands1 = lists:reverse(Commands),
-    case length(Commands1) of
-        N when N > 0 ->
-            logger:alert("BATCH: ~b commands", [N]),
-            ok;
-        _ ->
-            ok
-    end,
-    Ret = khepri_machine:batch(StoreId, Commands1, #{atomic => false, reply_from => {member, {StoreId, node()}}}),
+    _Commands2 = optimize_batch(StoreId, Commands1),
+    Commands2 = Commands1,
+    % L1 = length(Commands1),
+    % L2 = length(Commands2),
+    % if
+    %     L2 < L1 ->
+    %         logger:alert("BATCH: ~b commands (optimised from ~b commands)~n~p", [L2, L1, Commands2]);
+    %     L2 =:= L1 ->
+    %         logger:alert("BATCH: ~b commands", [L1])
+    % end,
+    Ret = khepri_machine:batch(StoreId, Commands2, #{atomic => false, reply_from => {member, {StoreId, node()}}}),
     case Ret of
         ok ->
+            % logger:alert("BATCH: returned ok"),
             ok;
         Error ->
-            ?LOG_ERROR("Error = ~p", [Error]),
             lists:foreach(
               fun({From, _Command}) ->
+                      ?LOG_ERROR("Error = ~0p -> ~0p", [Error, From]),
                       gen_server:reply(From, Error)
-              end, Commands),
+              end, Commands1),
             ok
     end.
 
-% optimize_batch([_] = Commands) ->
-%     Commands;
-% optimize_batch(Commands) ->
-%     Commands1 = lists:reverse(Commands),
-%     Commands2 = simplify_specific_deletes(Commands1),
-%     Commands2.
-%
-% simplify_specific_deletes(Commands) ->
-%     simplify_specific_deletes(Commands, #{other_commands => []}).
-%
-% simplify_specific_deletes(
-%   [{_From, #delete{options = Options}} = Command | Commands],
-%   DeletesPerOptions) ->
-%     Cmds = maps:get(Options, DeletesPerOptions, []),
-%     Cmds1 = [Command | Cmds],
-%     DeletesPerOptions1 = DeletesPerOptions#{Options => Cmds1},
-%     simplify_specific_deletes(Commands, DeletesPerOptions1);
-% simplify_specific_deletes(
-%   [Command | Commands],
-%   DeletesPerOptions) ->
-%     Cmds = maps:get(other_commands, DeletesPerOptions),
-%     Cmds1 = [Command | Cmds],
-%     DeletesPerOptions1 = DeletesPerOptions#{other_commands => Cmds1},
-%     simplify_specific_deletes(Commands, DeletesPerOptions1);
-% simplify_specific_deletes(
-%   [],
-%   DeletesPerOptions) ->
-%     maps:fold(
-%       fun
-%           (#{expect_specific_node := true} = Options, Cmds, Acc) ->
-%               Paths = [Path || {_From, #delete{path = Path}} <- Cmds],
-%               Patterns = khepri_path:paths_to_patterns(Paths),
-%               case Patterns of
-%                   [Pattern] ->
-%                       Froms = [From || {From, _Cmd} <- Cmds],
-%                       Options1 = Options#{expect_specific_node => false},
-%                       Cmd1 = #delete{path = Pattern, options = Options1},
-%                       Cmd2 = {Froms, Cmd1},
-%                       % logger:alert("OPTIMIZE:~n  1: ~p~n  2: ~p", [Cmds, Cmd2]),
-%                       Acc ++ [Cmd2];
-%                   _ ->
-%                       Acc ++ Cmds
-%               end;
-%           (_, Cmds, Acc) ->
-%               Acc ++ Cmds
-%       end, [], DeletesPerOptions).
+optimize_batch(_StoreId, [_] = Commands) ->
+    Commands;
+optimize_batch(StoreId, Commands) ->
+    Commands1 = simplify_specific_deletes(StoreId, Commands),
+    case Commands1 of
+        Commands ->
+            % logger:alert("No optimisation"),
+            Commands;
+        _ ->
+            % logger:alert("Optimised:~n  Before: ~p~n  After:  ~p", [Commands, Commands1]),
+            Commands1
+    end.
+
+simplify_specific_deletes(StoreId, Commands) ->
+    simplify_specific_deletes(StoreId, Commands, #{other_commands => []}).
+
+simplify_specific_deletes(
+  StoreId,
+  [{_From, #delete{options = Options}} = Command | Commands],
+  DeletesPerOptions) ->
+    % logger:alert("(delete command: ~0p)", [Command]),
+    Cmds = maps:get(Options, DeletesPerOptions, []),
+    Cmds1 = [Command | Cmds],
+    DeletesPerOptions1 = DeletesPerOptions#{Options => Cmds1},
+    simplify_specific_deletes(StoreId, Commands, DeletesPerOptions1);
+simplify_specific_deletes(
+  StoreId,
+  [Command | Commands],
+  DeletesPerOptions) ->
+    % logger:alert("(other command: ~0p)", [Command]),
+    Cmds = maps:get(other_commands, DeletesPerOptions),
+    Cmds1 = [Command | Cmds],
+    DeletesPerOptions1 = DeletesPerOptions#{other_commands => Cmds1},
+    simplify_specific_deletes(StoreId, Commands, DeletesPerOptions1);
+simplify_specific_deletes(
+  _StoreId,
+  [],
+  DeletesPerOptions) ->
+    maps:fold(
+      fun
+          (#{expect_specific_node := true} = Options, Cmds, Acc) ->
+              Paths = [Path || {_From, #delete{path = Path}} <- Cmds],
+              Patterns = khepri_path:paths_to_patterns(Paths),
+              case Patterns of
+                  [Pattern] ->
+                      Froms = [From || {From, _Cmd} <- Cmds],
+                      Options1 = Options#{expect_specific_node => false},
+                      Cmd1 = #delete{path = Pattern, options = Options1},
+                      Cmd2 = {Froms, Cmd1},
+                      % logger:alert("OPTIMISE: ~0p", [Froms]),
+                      % logger:alert("OPTIMIZE:~n  1: ~p~n  2: ~p", [Cmds, Cmd3]),
+                      Acc ++ [Cmd2];
+                  _ ->
+                      Acc ++ lists:reverse(Cmds)
+              end;
+          (_, Cmds, Acc) ->
+              Acc ++ lists:reverse(Cmds)
+      end, [], DeletesPerOptions).
 
     % DeletesPerOptions = lists:foldl(
     %                       fun
