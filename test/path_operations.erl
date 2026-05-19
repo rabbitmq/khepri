@@ -368,8 +368,7 @@ pattern_component_targets_specific_node_test() ->
          #if_has_data{has_data = true})).
 
 if_not_condition_targets_specific_node_test() ->
-    ?assertEqual(
-       {true, foo},
+    ?assertNot(
        khepri_path:component_targets_specific_node(
          #if_not{condition = foo})),
     ?assertNot(
