@@ -547,8 +547,8 @@ targets_specific_node([], Path) ->
 component_targets_specific_node(ChildName)
   when ?IS_KHEPRI_PATH_COMPONENT(ChildName) ->
     {true, ChildName};
-component_targets_specific_node(#if_not{condition = Cond}) ->
-    component_targets_specific_node(Cond);
+% component_targets_specific_node(#if_not{condition = Cond}) ->
+%     component_targets_specific_node(Cond);
 component_targets_specific_node(#if_all{conditions = []}) ->
     false;
 component_targets_specific_node(#if_all{conditions = Conds}) ->
