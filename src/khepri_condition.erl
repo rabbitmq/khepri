@@ -32,6 +32,8 @@
 
 -module(khepri_condition).
 
+-include_lib("stdlib/include/assert.hrl").
+
 -include("include/khepri.hrl").
 -include("src/khepri_machine.hrl").
 
@@ -391,6 +393,9 @@ compile(#if_name_matches{regex = Re, compiled = undefined} = Cond) ->
     Compiled = re:compile(Re),
     Cond#if_name_matches{compiled = Compiled};
 compile(
+  #if_data_matches{pattern = {element, _I, _Expected}} = Cond) ->
+    Cond;
+compile(
   #if_data_matches{pattern = Pattern,
                    conditions = Conditions,
                    compiled = undefined} = Cond) ->
@@ -565,14 +570,48 @@ is_met(#if_has_sproc{has_sproc = true} = Cond, _ChildName, _Child) ->
     {false, Cond};
 is_met(#if_has_sproc{has_sproc = false}, _ChildName, _Child) ->
     true;
+is_met(#if_data_matches{pattern = {element, I, Expected}} = Cond,
+       _ChildName, #node{payload = #p_data{data = Data}}) ->
+    case is_tuple(Data) of
+        true ->
+            case size(Data) >= I of
+                true ->
+                    case Expected =:= element(I, Data) of
+                        true  -> true;
+                        false -> {false, Cond}
+                    end;
+                false ->
+                    {false, Cond}
+            end;
+        false ->
+            {false, Cond}
+    end;
+is_met(#if_data_matches{pattern = {element, I, Expected}} = Cond,
+       _ChildName, #{data := Data}) ->
+    case is_tuple(Data) of
+        true ->
+            case size(Data) >= I of
+                true ->
+                    case Expected =:= element(I, Data) of
+                        true  -> true;
+                        false -> {false, Cond}
+                    end;
+                false ->
+                    {false, Cond}
+            end;
+        false ->
+            {false, Cond}
+    end;
 is_met(#if_data_matches{compiled = CompMatchSpec} = Cond,
        _ChildName, #node{payload = #p_data{data = Data}}) ->
+    ?assertNotEqual(undefined, CompMatchSpec),
     case term_matches(Data, CompMatchSpec) of
         true  -> true;
         false -> {false, Cond}
     end;
 is_met(#if_data_matches{compiled = CompMatchSpec} = Cond,
        _ChildName, #{data := Data}) ->
+    ?assertNotEqual(undefined, CompMatchSpec),
     case term_matches(Data, CompMatchSpec) of
         true  -> true;
         false -> {false, Cond}
@@ -734,6 +773,9 @@ is_valid(#if_has_data{has_data = HasData}) when is_boolean(HasData) ->
     true;
 is_valid(#if_has_sproc{has_sproc = HasStoredProc})
   when is_boolean(HasStoredProc) ->
+    true;
+is_valid(#if_data_matches{conditions = {element, I, _Expected}})
+  when is_integer(I) andalso I >= 1 ->
     true;
 is_valid(#if_data_matches{conditions = Conditions})
   when is_list(Conditions) ->
