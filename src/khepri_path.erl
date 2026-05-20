@@ -59,6 +59,7 @@
          combine_with_conditions/2,
          targets_specific_node/1,
          component_targets_specific_node/1,
+         component_targets_specific_siblings/1,
          is_valid/1,
          ensure_is_valid/1,
          abspath/2,
@@ -526,6 +527,16 @@ combine_with_conditions(Path, Conditions) ->
       PathPattern :: native_pattern(),
       Ret :: {true, Path} | false,
       Path :: native_path().
+%% @doc Indicates if the given path pattern can only match a specific tree
+%% node.
+%%
+%% In other words, the conditions the path pattern contains can only match a
+%% single specific tree node, even though it uses conditions, and that tree
+%% node path is known from the pattern. That characteristic does not depend on
+%% the content of the tree.
+%%
+%% @returns `{true, Path}' if the path pattern would match a specific tree node
+%% where `Path' is the path to that tree node, `false' otherwise.
 
 targets_specific_node(PathPattern) ->
     targets_specific_node(PathPattern, []).
@@ -542,47 +553,94 @@ targets_specific_node([], Path) ->
       ComponentPattern :: pattern_component(),
       Ret :: {true, Component} | false,
       Component :: component().
+%% @doc Indicates if the given path component pattern can only match a specific
+%% tree node.
+%%
+%% In other words, the conditions used by the pattern can only match a single
+%% specific tree node, even though it uses conditions, and that tree node name
+%% is known from the pattern. That characteristic does not depend on the
+%% content of the tree.
+%%
+%% @returns `{true, Component}' if the path component pattern would match a
+%% specific tree node where `Component' is name of that tree node, `false'
+%% otherwise.
+%%
 %% @private
 
-component_targets_specific_node(ChildName)
+component_targets_specific_node(ComponentPattern) ->
+    case component_targets_specific_siblings(ComponentPattern) of
+        {true, [Component]} -> {true, Component};
+        {true, _Siblings}   -> false;
+        false               -> false
+    end.
+
+-spec component_targets_specific_siblings(ComponentPattern) -> Ret when
+      ComponentPattern :: pattern_component(),
+      Ret :: {true, Components} | false,
+      Components :: [component()].
+%% @doc Indicates if the given path component pattern can only match specific
+%% tree nodes.
+%%
+%% In other words, the conditions used by the pattern can only match specific
+%% tree nodes, even though it uses conditions, and that these tree node names
+%% are known from the pattern. That characteristic does not depend on the
+%% content of the tree.
+%%
+%% @returns `{true, Component}' if the path component pattern would match a
+%% specific tree node where `Component' is name of that tree node, `false'
+%% otherwise.
+%%
+%% @private
+
+component_targets_specific_siblings(ChildName)
   when ?IS_KHEPRI_PATH_COMPONENT(ChildName) ->
-    {true, ChildName};
-component_targets_specific_node(#if_all{conditions = []}) ->
+    {true, [ChildName]};
+component_targets_specific_siblings(#if_all{conditions = []}) ->
     false;
-component_targets_specific_node(#if_all{conditions = Conds}) ->
+component_targets_specific_siblings(#if_all{conditions = Conds}) ->
     lists:foldl(
       fun
-          (Cond, {true, _} = True) ->
-              case component_targets_specific_node(Cond) of
-                  True      -> True;
-                  {true, _} -> false;
-                  false     -> True
+          (Cond, {true, Siblings1} = True) ->
+              case component_targets_specific_siblings(Cond) of
+                  True ->
+                      True;
+                  {true, Siblings2} ->
+                      Siblings3 = lists:usort(Siblings1 ++ Siblings2),
+                      {true, Siblings3};
+                  false ->
+                      True
               end;
           (Cond, false) ->
-              case component_targets_specific_node(Cond) of
-                  {true, _} = True -> True;
-                  false            -> false
+              case component_targets_specific_siblings(Cond) of
+                  {true, _} = True ->
+                      True;
+                  false ->
+                      false
               end;
           (Cond, undefined) ->
-              component_targets_specific_node(Cond)
+              component_targets_specific_siblings(Cond)
       end, undefined, Conds);
-component_targets_specific_node(#if_any{conditions = []}) ->
+component_targets_specific_siblings(#if_any{conditions = []}) ->
     false;
-component_targets_specific_node(#if_any{conditions = Conds}) ->
+component_targets_specific_siblings(#if_any{conditions = Conds}) ->
     lists:foldl(
       fun
-          (Cond, {true, _} = True) ->
-              case component_targets_specific_node(Cond) of
-                  True      -> True;
-                  {true, _} -> false;
-                  false     -> false
+          (Cond, {true, Siblings1} = True) ->
+              case component_targets_specific_siblings(Cond) of
+                  True ->
+                      True;
+                  {true, Siblings2} ->
+                      Siblings3 = lists:usort(Siblings1 ++ Siblings2),
+                      {true, Siblings3};
+                  false ->
+                      false
               end;
           (_, false) ->
               false;
           (Cond, undefined) ->
-              component_targets_specific_node(Cond)
+              component_targets_specific_siblings(Cond)
       end, undefined, Conds);
-component_targets_specific_node(_) ->
+component_targets_specific_siblings(_) ->
     false.
 
 -spec is_valid(PathPattern) -> IsValid when

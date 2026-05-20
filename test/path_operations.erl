@@ -513,6 +513,207 @@ complex_condition_targets_specific_node_test() ->
                                #if_child_list_version{version = 3},
                                #if_all{conditions = [foo]}]})).
 
+simple_component_targets_specific_siblings_test() ->
+    ?assertEqual(
+       {true, [foo]},
+       khepri_path:component_targets_specific_siblings(foo)),
+    ?assertEqual(
+       {true, [<<"foo">>]},
+       khepri_path:component_targets_specific_siblings(<<"foo">>)),
+    ?assertEqual(
+       {true, [?KHEPRI_ROOT_NODE]},
+       khepri_path:component_targets_specific_siblings(?KHEPRI_ROOT_NODE)),
+    ?assertEqual(
+       {true, [?THIS_KHEPRI_NODE]},
+       khepri_path:component_targets_specific_siblings(?THIS_KHEPRI_NODE)),
+    ?assertEqual(
+       {true, [?PARENT_KHEPRI_NODE]},
+       khepri_path:component_targets_specific_siblings(?PARENT_KHEPRI_NODE)),
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(?KHEPRI_WILDCARD_STAR)),
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         ?KHEPRI_WILDCARD_STAR_STAR)).
+
+pattern_component_targets_specific_siblings_test() ->
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_name_matches{regex = any})),
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_name_matches{regex = "a"})),
+    %% The regex matches a specific name but it could match an atom and a
+    %% binary. Anyway, the function doesn't parse the regex.
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_name_matches{regex = "^a$"})),
+
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_path_matches{regex = any})),
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_path_matches{regex = "a"})),
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_path_matches{regex = "^a$"})),
+
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_has_data{has_data = true})).
+
+if_not_condition_targets_specific_siblings_test() ->
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_not{condition = foo})),
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_not{condition = ?KHEPRI_WILDCARD_STAR})).
+
+if_all_condition_targets_specific_siblings_test() ->
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_all{conditions = []})),
+    ?assertEqual(
+       {true, [foo]},
+       khepri_path:component_targets_specific_siblings(
+         #if_all{conditions = [foo]})),
+    ?assertEqual(
+       {true, [foo]},
+       khepri_path:component_targets_specific_siblings(
+         #if_all{conditions = [foo,
+                               foo]})),
+    ?assertEqual(
+       {true, [bar, foo]},
+       khepri_path:component_targets_specific_siblings(
+         #if_all{conditions = [foo,
+                               bar]})),
+    ?assertEqual(
+       {true, [foo]},
+       khepri_path:component_targets_specific_siblings(
+         #if_all{conditions = [foo,
+                               #if_name_matches{regex = "a"},
+                               #if_child_list_version{version = 3}]})),
+    ?assertEqual(
+       {true, [?KHEPRI_ROOT_NODE]},
+       khepri_path:component_targets_specific_siblings(
+         #if_all{conditions = [?KHEPRI_ROOT_NODE,
+                               #if_name_matches{regex = "a"},
+                               #if_child_list_version{version = 3}]})),
+    ?assertEqual(
+       {true, [?THIS_KHEPRI_NODE]},
+       khepri_path:component_targets_specific_siblings(
+         #if_all{conditions = [?THIS_KHEPRI_NODE,
+                               #if_name_matches{regex = "a"},
+                               #if_child_list_version{version = 3}]})),
+    ?assertEqual(
+       {true, [?PARENT_KHEPRI_NODE]},
+       khepri_path:component_targets_specific_siblings(
+         #if_all{conditions = [?PARENT_KHEPRI_NODE,
+                               #if_name_matches{regex = "a"},
+                               #if_child_list_version{version = 3}]})),
+    ?assertEqual(
+       {true, [foo]},
+       khepri_path:component_targets_specific_siblings(
+         #if_all{conditions = [#if_name_matches{regex = "a"},
+                               foo,
+                               #if_child_list_version{version = 3}]})),
+    ?assertEqual(
+       {true, [foo]},
+       khepri_path:component_targets_specific_siblings(
+         #if_all{conditions = [#if_name_matches{regex = "a"},
+                               #if_child_list_version{version = 3},
+                               foo]})),
+    ?assertEqual(
+       {true, [foo]},
+       khepri_path:component_targets_specific_siblings(
+         #if_all{conditions = [foo,
+                               #if_name_matches{regex = "a"},
+                               foo,
+                               #if_child_list_version{version = 3},
+                               foo]})),
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_all{conditions = [#if_name_matches{regex = "a"},
+                               #if_child_list_version{version = 3}]})).
+
+if_any_condition_targets_specific_siblings_test() ->
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_any{conditions = []})),
+    ?assertEqual(
+       {true, [foo]},
+       khepri_path:component_targets_specific_siblings(
+         #if_any{conditions = [foo]})),
+    ?assertEqual(
+       {true, [foo]},
+       khepri_path:component_targets_specific_siblings(
+         #if_any{conditions = [foo,
+                               foo]})),
+    ?assertEqual(
+       {true, [bar, foo]},
+       khepri_path:component_targets_specific_siblings(
+         #if_any{conditions = [foo,
+                               bar]})),
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_any{conditions = [foo,
+                               #if_name_matches{regex = "a"},
+                               #if_child_list_version{version = 3}]})),
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_any{conditions = [?KHEPRI_ROOT_NODE,
+                               #if_name_matches{regex = "a"},
+                               #if_child_list_version{version = 3}]})),
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_any{conditions = [?THIS_KHEPRI_NODE,
+                               #if_name_matches{regex = "a"},
+                               #if_child_list_version{version = 3}]})),
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_any{conditions = [?PARENT_KHEPRI_NODE,
+                               #if_name_matches{regex = "a"},
+                               #if_child_list_version{version = 3}]})),
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_any{conditions = [#if_name_matches{regex = "a"},
+                               foo,
+                               #if_child_list_version{version = 3}]})),
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_any{conditions = [#if_name_matches{regex = "a"},
+                               #if_child_list_version{version = 3},
+                               foo]})),
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_any{conditions = [foo,
+                               #if_name_matches{regex = "a"},
+                               foo,
+                               #if_child_list_version{version = 3},
+                               foo]})),
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_any{conditions = [#if_name_matches{regex = "a"},
+                               #if_child_list_version{version = 3}]})).
+
+complex_condition_targets_specific_siblings_test() ->
+    ?assertEqual(
+       {true, [bar, foo]},
+       khepri_path:component_targets_specific_siblings(
+         #if_all{conditions = [#if_name_matches{regex = "a"},
+                               #if_child_list_version{version = 3},
+                               #if_any{conditions =
+                                       [foo,
+                                        #if_all{conditions = [bar]}]}]})),
+    ?assertNot(
+       khepri_path:component_targets_specific_siblings(
+         #if_any{conditions = [#if_name_matches{regex = "a"},
+                               #if_child_list_version{version = 3},
+                               #if_all{conditions =
+                                       [foo,
+                                        #if_all{conditions = [bar]}]}]})).
+
 path_targets_specific_node_test() ->
     ?assertEqual(
        {true, [foo, bar]},

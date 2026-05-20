@@ -1142,9 +1142,9 @@ walk_down_the_tree1(
     %% distinguish the case where the condition must be verified against the
     %% current node (i.e. the node name is ?KHEPRI_ROOT_NODE or
     %% ?THIS_KHEPRI_NODE in the condition) instead of its child nodes.
-    SpecificNode = khepri_path:component_targets_specific_node(Condition),
+    SpecificNode = khepri_path:component_targets_specific_siblings(Condition),
     case SpecificNode of
-        {true, NodeName}
+        {true, [NodeName]}
           when NodeName =:= ?KHEPRI_ROOT_NODE orelse
                NodeName =:= ?THIS_KHEPRI_NODE ->
             CurrentName = special_component_to_node_name(
@@ -1161,7 +1161,7 @@ walk_down_the_tree1(
                     Walk1 = Walk#walk{node = StartingNode},
                     {ok, Walk1}
             end;
-        {true, ?PARENT_KHEPRI_NODE} ->
+        {true, [?PARENT_KHEPRI_NODE]} ->
             %% TODO: Support calling Fun() with parent node based on
             %% conditions on child nodes.
             BadPathPattern =
@@ -1193,17 +1193,49 @@ walk_down_the_tree1(
             %% The result of the first part (the special case for the root
             %% node if relevant) is used as a starting point for handling all
             %% child nodes.
-            Ret1 = maps:fold(
-                     fun
-                         (ChildName, Child,
-                          {ok, Walk1}) ->
-                             Walk2 = Walk1#walk{path_pattern =
-                                                WholePathPattern,
-                                                reversed_path = ReversedPath},
-                             handle_branch(Walk2, ChildName, Child);
-                         (_, _, Error) ->
-                             Error
-                     end, Ret0, Children),
+            Ret1 = case SpecificNode of
+                       {true, Siblings} ->
+                           %% We know the list of siblings that the pattern can
+                           %% match. Therefore, start from this list to visit
+                           %% specific child tree nodes. This is more efficient
+                           %% than walking the entire children map.
+                           lists:foldl(
+                             fun
+                                 (ChildName,
+                                  {ok, Walk1} = Acc) ->
+                                     case Children of
+                                         #{ChildName := Child} ->
+                                             Walk2 = Walk1#walk{
+                                                       path_pattern =
+                                                       WholePathPattern,
+                                                       reversed_path =
+                                                       ReversedPath},
+                                             handle_branch(
+                                               Walk2, ChildName, Child);
+                                         _ ->
+                                             Acc
+                                     end;
+                                 (_, Error) ->
+                                     Error
+                             end, Ret0, Siblings);
+                       false ->
+                           %% We don't know which child tree nodes could match
+                           %% the pattern. Therefore, we have to walk through
+                           %% the entire children map.
+                           maps:fold(
+                             fun
+                                 (ChildName, Child,
+                                  {ok, Walk1}) ->
+                                     Walk2 = Walk1#walk{
+                                               path_pattern =
+                                               WholePathPattern,
+                                               reversed_path =
+                                               ReversedPath},
+                                     handle_branch(Walk2, ChildName, Child);
+                                 (_, _, Error) ->
+                                     Error
+                             end, Ret0, Children)
+                   end,
             case Ret1 of
                 {ok,
                  #walk{node = CurrentNode,
