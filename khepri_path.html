@@ -178,7 +178,8 @@ UnixPathPattern = "/:stock/:wood/*oak".</code></pre></p>
 <tr><td valign="top"><a href="#to_string-1">to_string/1</a></td><td>Converts a native path to a string.</td></tr>
 <tr><td valign="top"><a href="#to_binary-1">to_binary/1</a></td><td>Converts a native path to a binary.</td></tr>
 <tr><td valign="top"><a href="#combine_with_conditions-2">combine_with_conditions/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#targets_specific_node-1">targets_specific_node/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#targets_specific_node-1">targets_specific_node/1</a></td><td>Indicates if the given path pattern can only match a specific tree  
+node.</td></tr>
 <tr><td valign="top"><a href="#is_valid-1">is_valid/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#ensure_is_valid-1">ensure_is_valid/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#abspath-2">abspath/2</a></td><td></td></tr>
@@ -237,7 +238,16 @@ UnixPathPattern = "/:stock/:wood/*oak".</code></pre></p>
 <p><code>targets_specific_node(PathPattern) -&gt; Ret</code>
 <ul class="definitions"><li><code>PathPattern = <a href="#type-native_pattern" docgen-rel="seetype" docgen-href="#native_pattern/0">native_pattern()</a></code></li><li><code>Ret = {true, Path} | false</code></li><li><code>Path = <a href="#type-native_path" docgen-rel="seetype" docgen-href="#native_path/0">native_path()</a></code></li></ul></p>
 <p></p>
-</div>
+<p>returns: <code>{true, Path}</code> if the path pattern would match a specific tree node
+  where <code>Path</code> is the path to that tree node, <code>false</code> otherwise.</p>
+</div><p><p>Indicates if the given path pattern can only match a specific tree  
+node.</p>
+ 
+  In other words, the conditions the path pattern contains can only match a
+  single specific tree node, even though it uses conditions, and that tree
+  node path is known from the pattern. That characteristic does not depend on
+  the content of the tree.
+ </p>
 
 <h3 class="function"><a name="is_valid-1">is_valid/1</a></h3>
 <div class="spec">
