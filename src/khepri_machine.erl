@@ -1980,21 +1980,20 @@ overview(State) ->
       keep_while_conds => KeepWhileConds}.
 
 -spec version() -> MacVer when
-      MacVer :: 3.
+      MacVer :: ?LATEST_MACVER.
 %% @doc Returns the state machine version.
 
 version() ->
-    3.
+    ?LATEST_MACVER.
 
 -spec which_module(MacVer) -> Module when
-      MacVer :: 0..3,
+      MacVer :: 0..?LATEST_MACVER,
       Module :: ?MODULE.
 %% @doc Returns the state machine module corresponding to the given version.
 
-which_module(3) -> ?MODULE;
-which_module(2) -> ?MODULE;
-which_module(1) -> ?MODULE;
-which_module(0) -> ?MODULE.
+which_module(MacVer)
+  when MacVer >= 0 andalso MacVer =< ?LATEST_MACVER ->
+    ?MODULE.
 
 -define(
    PT_EFFECTIVE_MACVER(StoreId),
@@ -2056,7 +2055,7 @@ clear_cached_effective_machine_version(StoreId) ->
 -spec api_behaviour_to_machine_version(Behaviour) -> Ret when
       Behaviour :: khepri_machine:api_behaviour(),
       Ret :: MacVer | undefined,
-      MacVer :: 1..3.
+      MacVer :: 1..?LATEST_MACVER.
 %% @doc Returns the state machine version that implemented the given API behaviour.
 %%
 %% If the behaviour is unknown to this implementation, `undefined' is returned.

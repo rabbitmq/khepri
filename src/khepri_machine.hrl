@@ -21,6 +21,11 @@
         {store_id :: khepri:store_id(),
          delayed_aux_queries = [] :: [khepri_machine:delayed_aux_query()]}).
 
+%% The current/latest version of the state machine is defined in this macro
+%% instead of `khepri_machine:version/0' only. This way, it can be used in
+%% function specs too.
+-define(LATEST_MACVER, 3).
+
 %% State machine commands and aux. effects.
 
 -record(put, {path :: khepri_path:native_pattern(),
