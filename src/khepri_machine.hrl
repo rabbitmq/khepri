@@ -26,6 +26,23 @@
 %% function specs too.
 -define(LATEST_MACVER, 3).
 
+%% Map API behaviours with the state machine version they were introduced in.
+-define(API_BEHAV_MACVER_MAP,
+        #{dedup_protection            => 1,
+
+          delete_reason_in_node_props => 2,
+          expire_dedups_from_tick     => 2,
+          indirect_deletes_in_ret     => 2,
+          uniform_write_ret           => 2,
+
+          multi_table_projections     => 3}).
+
+%% Get the state machine version the given API behaviour was introduced in.
+%% This is similar to `khepri_machine:api_behaviour_to_machine_version/1' but
+%% can be used in guards.
+-define(API_BEHAV_MACVER(Behaviour),
+        map_get(Behaviour, ?API_BEHAV_MACVER_MAP)).
+
 %% State machine commands and aux. effects.
 
 -record(put, {path :: khepri_path:native_pattern(),

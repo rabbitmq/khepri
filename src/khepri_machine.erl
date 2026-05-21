@@ -1464,7 +1464,8 @@ handle_aux(leader, cast, tick, AuxState, IntState) ->
     %% a very large batch of transactions at once, so this expiration step was
     %% moved to the `tick' handler in version 2.
     case ra_aux:effective_machine_version(IntState) of
-        EffectiveMacVer when EffectiveMacVer >= 2 ->
+        EffectiveMacVer
+          when EffectiveMacVer >= ?API_BEHAV_MACVER(expire_dedups_from_tick) ->
             State = ra_aux:machine_state(IntState),
             Timestamp = erlang:system_time(millisecond),
             Dedups = get_dedups(State),
@@ -1716,7 +1717,7 @@ apply(
   State)
   when is_reference(CommandRef) andalso
        is_integer(Expiry) andalso
-       MacVer >= 1 ->
+       MacVer >= ?API_BEHAV_MACVER(dedup_protection) ->
     Dedups = get_dedups(State),
     case Dedups of
         #{CommandRef := {Reply, _Expiry}} ->
@@ -1733,7 +1734,7 @@ apply(
   #dedup_ack{ref = CommandRef},
   State)
   when is_reference(CommandRef) andalso
-       MacVer >= 1 ->
+       MacVer >= ?API_BEHAV_MACVER(dedup_protection) ->
     Dedups = get_dedups(State),
     State1 = case Dedups of
                  #{CommandRef := _} ->
@@ -1747,7 +1748,7 @@ apply(
 apply(
   #{machine_version := MacVer} = Meta,
   #drop_dedups{refs = RefsToDrop},
-  State) when MacVer >= 2 ->
+  State) when MacVer >= ?API_BEHAV_MACVER(expire_dedups_from_tick) ->
     %% `#drop_dedups{}' is emitted by the `handle_aux/5' clause for the `tick'
     %% effect to periodically drop dedups that have expired. This expiration
     %% was originally done in `post_apply/2' via `drop_expired_dedups/2' until
@@ -2056,17 +2057,16 @@ clear_cached_effective_machine_version(StoreId) ->
       Behaviour :: khepri_machine:api_behaviour(),
       Ret :: MacVer | undefined,
       MacVer :: 1..?LATEST_MACVER.
-%% @doc Returns the state machine version that implemented the given API behaviour.
+%% @doc Returns the state machine version that implemented the given API
+%% behaviour.
 %%
 %% If the behaviour is unknown to this implementation, `undefined' is returned.
 
-api_behaviour_to_machine_version(dedup_protection)                  -> 1;
-api_behaviour_to_machine_version(delete_reason_in_node_props)       -> 2;
-api_behaviour_to_machine_version(indirect_deletes_in_ret)           -> 2;
-api_behaviour_to_machine_version(uniform_write_ret)                 -> 2;
-api_behaviour_to_machine_version(multi_table_projections)           -> 3;
 api_behaviour_to_machine_version(Behaviour) when is_atom(Behaviour) ->
-    undefined.
+    case ?API_BEHAV_MACVER_MAP of
+        #{Behaviour := MacVer} -> MacVer;
+        _                      -> undefined
+    end.
 
 -spec does_api_comply_with(Behaviour, MacVer | StoreId) -> DoesUse when
       Behaviour :: khepri_machine:api_behaviour(),
