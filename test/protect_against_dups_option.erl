@@ -266,7 +266,7 @@ dedup_ack_on_old_machine_test() ->
     S0 = khepri_machine:convert_state(S00, 0, 1),
 
     CommandRef = make_ref(),
-    DedupAck = #dedup_ack{ref = CommandRef},
+    DedupAck = #dedup_ack_v{args = #dedup_ack_v1{ref = CommandRef}},
     MacVer = 0,
 
     Meta0 = ?META,
