@@ -1671,6 +1671,49 @@ restore_projection(Projection, Tree, PathPattern) ->
 %% @private
 
 apply(
+  #{machine_version := MacVer} = Meta,
+  Command,
+  State) ->
+    try
+        pre_apply(Meta, Command, State)
+    catch
+        Class:Reason:Stacktrace ->
+            StoreId = get_store_id(State),
+            Msg = io_lib:format("State machine crash while applying a command~n"
+                                "  StoreId: ~s~n"
+                                "  Machine version: ~b~n"
+                                "  Command:~n"
+                                "    ~p~n"
+                                "  Crash:~n"
+                                "    ~ts",
+                                [StoreId, MacVer, Command,
+                                 khepri_utils:format_exception(
+                                   Class, Reason, Stacktrace,
+                                   #{column => 4})]),
+            ?LOG_ALERT(Msg, []),
+            erlang:raise(Class, Reason, Stacktrace)
+    end.
+
+-spec pre_apply(Meta, Command, State) -> {State, Ret, SideEffects} when
+      Meta :: ra_machine:command_meta_data(),
+      Command :: command() | old_command() | ra_machine:builtin_command(),
+      State :: state(),
+      Ret :: any(),
+      SideEffects :: ra_machine:effects().
+%% @private
+
+pre_apply(Meta, Command, State) ->
+    do_apply(Meta, Command, State).
+
+-spec do_apply(Meta, Command, State) -> {State, Ret, SideEffects} when
+      Meta :: ra_machine:command_meta_data(),
+      Command :: command() | old_command() | ra_machine:builtin_command(),
+      State :: state(),
+      Ret :: any(),
+      SideEffects :: ra_machine:effects().
+%% @private
+
+do_apply(
   Meta,
   #put_v{args = #put_v1{path = PathPattern,
                         payload = Payload,
@@ -1680,28 +1723,28 @@ apply(
     Ret = insert_or_update_node(
             State, PathPattern, Payload, PutOptions, TreeOptions, []),
     post_apply(Ret, Meta);
-apply(
+do_apply(
   Meta,
   #delete_v{args = #delete_v1{path = PathPattern,
                               tree_options = TreeOptions}},
   State) ->
     Ret = delete_matching_nodes(State, PathPattern, TreeOptions, []),
     post_apply(Ret, Meta);
-apply(
+do_apply(
   Meta,
   #tx_v{args = #tx_v1{'fun' = StandaloneFun,
                       args = Args}},
   State) when ?IS_HORUS_FUN(StandaloneFun) ->
     Ret = khepri_tx_adv:run(State, StandaloneFun, Args, true, Meta),
     post_apply(Ret, Meta);
-apply(
+do_apply(
   Meta,
   #tx_v{args = #tx_v1{'fun' = PathPattern,
                       args = Args}},
   State) when ?IS_KHEPRI_PATH_PATTERN(PathPattern) ->
     Ret = locate_sproc_and_execute_tx(State, PathPattern, Args, true, Meta),
     post_apply(Ret, Meta);
-apply(
+do_apply(
   Meta,
   #register_trigger_v{args = #register_trigger_v1{id = TriggerId,
                                                   sproc = StoredProcPath,
@@ -1719,7 +1762,7 @@ apply(
     State1 = set_triggers(State, Triggers1),
     Ret = {State1, ok},
     post_apply(Ret, Meta);
-apply(
+do_apply(
   Meta,
   #ack_triggered_v{args = #ack_triggered_v1{triggered = ProcessedTriggers}},
   State) ->
@@ -1728,7 +1771,7 @@ apply(
     State1 = set_emitted_triggers(State, EmittedTriggers1),
     Ret = {State1, ok},
     post_apply(Ret, Meta);
-apply(
+do_apply(
   Meta,
   #register_projection_v{
      args = #register_projection_v1{pattern = PathPattern,
@@ -1762,7 +1805,7 @@ apply(
             Ret = {State1, ok, Effects},
             post_apply(Ret, Meta)
     end;
-apply(
+do_apply(
   Meta,
   #unregister_projections_v{args = #unregister_projections_v1{names = Names}},
   State) ->
@@ -1802,7 +1845,7 @@ apply(
     Reply = {ok, RemovedProjectionsMap},
     Ret = {State1, Reply},
     post_apply(Ret, Meta);
-apply(
+do_apply(
   #{machine_version := MacVer} = Meta,
   #dedup{ref = CommandRef, expiry = Expiry, command = Command},
   State)
@@ -1815,12 +1858,12 @@ apply(
             Ret = {State, Reply},
             post_apply(Ret, Meta);
         _ ->
-            {State1, Reply, SideEffects} = apply(Meta, Command, State),
+            {State1, Reply, SideEffects} = do_apply(Meta, Command, State),
             Dedups1 = Dedups#{CommandRef => {Reply, Expiry}},
             State2 = set_dedups(State1, Dedups1),
             {State2, Reply, SideEffects}
     end;
-apply(
+do_apply(
   #{machine_version := MacVer} = Meta,
   #dedup_ack_v{args = #dedup_ack_v1{ref = CommandRef}},
   State)
@@ -1836,7 +1879,7 @@ apply(
              end,
     Ret = {State1, ok},
     post_apply(Ret, Meta);
-apply(
+do_apply(
   #{machine_version := MacVer} = Meta,
   #drop_dedups_v{args = #drop_dedups_v1{refs = RefsToDrop}},
   State) when MacVer >= ?API_BEHAV_MACVER(expire_dedups_from_tick) ->
@@ -1850,7 +1893,7 @@ apply(
     State1 = set_dedups(State, Dedups1),
     Ret = {State1, ok},
     post_apply(Ret, Meta);
-apply(Meta, {machine_version, OldMacVer, NewMacVer}, OldState) ->
+do_apply(Meta, {machine_version, OldMacVer, NewMacVer}, OldState) ->
     NewState = convert_state(OldState, OldMacVer, NewMacVer),
     Ret = {NewState, ok},
 
@@ -1860,7 +1903,7 @@ apply(Meta, {machine_version, OldMacVer, NewMacVer}, OldState) ->
     #config{store_id = StoreId} = get_config(NewState),
     cache_effective_machine_version(StoreId, NewMacVer),
     post_apply(Ret, Meta);
-apply(Meta, NonVersionedCommand, State)
+do_apply(Meta, NonVersionedCommand, State)
   when is_record(NonVersionedCommand, put) orelse
        is_record(NonVersionedCommand, delete) orelse
        is_record(NonVersionedCommand, tx) orelse
@@ -1872,8 +1915,8 @@ apply(Meta, NonVersionedCommand, State)
        is_record(NonVersionedCommand, dedup_ack) orelse
        is_record(NonVersionedCommand, drop_dedups) ->
     Command = convert_to_uniform_command(NonVersionedCommand),
-    apply(Meta, Command, State);
-apply(#{machine_version := MacVer} = Meta, UnknownCommand, State) ->
+    do_apply(Meta, Command, State);
+do_apply(#{machine_version := MacVer} = Meta, UnknownCommand, State) ->
     Error = ?khepri_exception(
                unknown_khepri_state_machine_command,
                #{command => UnknownCommand,
