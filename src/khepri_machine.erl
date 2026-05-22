@@ -2825,8 +2825,8 @@ make_virgin_state(Params) ->
 
 -spec convert_state(OldState, OldMacVer, NewMacVer) -> NewState when
       OldState :: khepri_machine:state(),
-      OldMacVer :: ra_machine:version(),
-      NewMacVer :: ra_machine:version(),
+      OldMacVer :: 0..?LATEST_MACVER,
+      NewMacVer :: 1..?LATEST_MACVER,
       NewState :: khepri_machine:state().
 %% @doc Converts a state to a newer version.
 %%
@@ -2839,6 +2839,15 @@ convert_state(State, OldMacVer, NewMacVer) ->
               NewMacVer1 = erlang:min(N + 1, NewMacVer),
               convert_state1(State1, OldMacVer1, NewMacVer1)
       end, State, lists:seq(OldMacVer, NewMacVer)).
+
+-spec convert_state1(OldState, OldMacVer, NewMacVer) -> NewState when
+      OldState :: khepri_machine:state(),
+      OldMacVer :: 0..?LATEST_MACVER,
+      NewMacVer :: 1..?LATEST_MACVER,
+      NewState :: khepri_machine:state().
+%% @doc Converts a state from one version to the next.
+%%
+%% @private
 
 convert_state1(State, MacVer, MacVer) ->
     State;
