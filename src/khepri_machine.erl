@@ -1916,7 +1916,13 @@ do_apply(Meta, NonVersionedCommand, State)
        is_record(NonVersionedCommand, drop_dedups) ->
     Command = convert_to_uniform_command(NonVersionedCommand),
     do_apply(Meta, Command, State);
-do_apply(#{machine_version := MacVer} = Meta, UnknownCommand, State) ->
+do_apply(Meta, UnknownCommand, State) ->
+    handle_unknown_command(Meta, UnknownCommand, State).
+
+handle_unknown_command(
+  #{machine_version := MacVer} = Meta,
+  UnknownCommand,
+  State) ->
     Error = ?khepri_exception(
                unknown_khepri_state_machine_command,
                #{command => UnknownCommand,
