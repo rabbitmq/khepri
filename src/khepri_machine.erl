@@ -168,7 +168,6 @@
                    #ack_triggered_v{} |
                    #register_projection_v{} |
                    #unregister_projections_v{} |
-                   #dedup{} |
                    #dedup_ack_v{} |
                    #drop_dedups_v{}.
 %% Commands specific to this Ra machine.
@@ -181,6 +180,7 @@
                        #register_projection{} |
                        #unregister_projection{} |
                        #unregister_projections{} |
+                       #dedup{} |
                        #dedup_ack{} |
                        #drop_dedups{}.
 %% Old commands that are still accepted by the Ra machine but never created.
@@ -1045,24 +1045,37 @@ process_sync_command(
                          infinity -> Now + 15 * 60 * 1000;
                          Timeout  -> Now + Timeout
                      end,
-            DedupCommand = #dedup{ref = CommandRef,
-                                  expiry = Expiry,
-                                  command = Command},
-            DedupAck = case does_api_comply_with(uniform_commands, StoreId) of
-                           true ->
-                               CommandArgs = #dedup_ack_v1{ref = CommandRef},
-                               #dedup_ack_v{args = CommandArgs};
-                           false ->
-                               #dedup_ack{ref = CommandRef}
-                       end,
+
+            {
+             DedupEnabledCommand,
+             DedupAckCommand
+            } = case does_api_comply_with(uniform_commands, StoreId) of
+                    true ->
+                        %% With the uniform commands, the dedup attributes (ref
+                        %% and expiry) are passed with the command in its
+                        %% common arguments.
+                        Command1 = set_dedup_args(Command, CommandRef, Expiry),
+                        DedupAckArgs = #dedup_ack_v1{ref = CommandRef},
+                        DedupAck = #dedup_ack_v{args = DedupAckArgs},
+                        {Command1, DedupAck};
+                    false ->
+                        %% Before the conversion to uniform commands, the dedup
+                        %% attributes were passed using a dedicated `#dedup{}'
+                        %% command that embedded the actual command.
+                        DedupCommand = #dedup{ref = CommandRef,
+                                              expiry = Expiry,
+                                              command = Command},
+                        DedupAck = #dedup_ack{ref = CommandRef},
+                        {DedupCommand, DedupAck}
+                end,
             Ret = do_process_sync_command(
-                    StoreId, DedupCommand, Options),
+                    StoreId, DedupEnabledCommand, Options),
 
             %% We acknowledge that we received the reply and all duplicates
             %% can be ignored.
             Dest = leader_id_or_local(StoreId),
             sending_async_command(Dest),
-            _ = ra:pipeline_command(Dest, DedupAck),
+            _ = ra:pipeline_command(Dest, DedupAckCommand),
             Ret;
         false ->
             do_process_sync_command(StoreId, Command, Options)
@@ -1699,7 +1712,50 @@ apply(
 %% @private
 
 pre_apply(Meta, Command, State) ->
+    handle_dedup(Meta, Command, State).
+
+handle_dedup(
+  #{machine_version := MacVer} = Meta,
+  Command,
+  State)
+  when MacVer >= ?API_BEHAV_MACVER(uniform_commands) andalso
+       not is_record(Command, dedup) ->
+    case get_command_common_args(Command) of
+        #common_v1{dedup_ref = undefined, dedup_expiry = undefined} ->
+            do_apply(Meta, Command, State);
+        #common_v1{dedup_ref = CommandRef, dedup_expiry = Expiry} ->
+            handle_dedup1(Meta, Command, CommandRef, Expiry, State);
+        none ->
+            do_apply(Meta, Command, State);
+        undefined ->
+            handle_unknown_command(Meta, Command, State)
+    end;
+handle_dedup(
+  #{machine_version := MacVer} = Meta,
+  #dedup{ref = CommandRef, expiry = Expiry, command = Command},
+  State)
+  when MacVer >= ?API_BEHAV_MACVER(dedup_protection) ->
+    handle_dedup1(Meta, Command, CommandRef, Expiry, State);
+handle_dedup(
+  Meta,
+  Command,
+  State) ->
     do_apply(Meta, Command, State).
+
+handle_dedup1(Meta, Command, CommandRef, Expiry, State)
+  when is_reference(CommandRef) andalso
+       is_integer(Expiry) ->
+    Dedups = get_dedups(State),
+    case Dedups of
+        #{CommandRef := {Reply, _Expiry}} ->
+            Ret = {State, Reply},
+            post_apply(Ret, Meta);
+        _ ->
+            {State1, Reply, SideEffects} = do_apply(Meta, Command, State),
+            Dedups1 = Dedups#{CommandRef => {Reply, Expiry}},
+            State2 = set_dedups(State1, Dedups1),
+            {State2, Reply, SideEffects}
+    end.
 
 -spec do_apply(Meta, Command, State) -> {State, Ret, SideEffects} when
       Meta :: ra_machine:command_meta_data(),
@@ -1841,24 +1897,6 @@ do_apply(
     Reply = {ok, RemovedProjectionsMap},
     Ret = {State1, Reply},
     post_apply(Ret, Meta);
-do_apply(
-  #{machine_version := MacVer} = Meta,
-  #dedup{ref = CommandRef, expiry = Expiry, command = Command},
-  State)
-  when is_reference(CommandRef) andalso
-       is_integer(Expiry) andalso
-       MacVer >= ?API_BEHAV_MACVER(dedup_protection) ->
-    Dedups = get_dedups(State),
-    case Dedups of
-        #{CommandRef := {Reply, _Expiry}} ->
-            Ret = {State, Reply},
-            post_apply(Ret, Meta);
-        _ ->
-            {State1, Reply, SideEffects} = do_apply(Meta, Command, State),
-            Dedups1 = Dedups#{CommandRef => {Reply, Expiry}},
-            State2 = set_dedups(State1, Dedups1),
-            {State2, Reply, SideEffects}
-    end;
 do_apply(
   #{machine_version := MacVer} = Meta,
   #dedup_ack_v{args = #dedup_ack_v1{ref = CommandRef}},
@@ -2136,6 +2174,107 @@ drop_expired_dedups({State, Result, SideEffects}, _Meta) ->
 trigger_delayed_aux_queries_eval({State, Result, SideEffects}, _Meta) ->
     SideEffects1 = [{aux, trigger_delayed_aux_queries_eval} | SideEffects],
     {State, Result, SideEffects1}.
+
+%% In `get_command_common_args/1' and `set_command_common_args/2', we list
+%% supported commands exhaustively on purpose: this will help us when a new
+%% command is introduced to not forget to update this function.
+
+-spec get_command_common_args(Command) -> Ret when
+      Command :: khepri_machine:command() |
+                 khepri_machine:old_command() |
+                 ra_machine:builtin_command(),
+      Ret :: CommonArgs | none | undefined,
+      CommonArgs :: #common_v1{}.
+
+get_command_common_args(#put_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#delete_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#tx_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#register_trigger_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#ack_triggered_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#register_projection_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#unregister_projections_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#dedup_ack_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#drop_dedups_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#put{}) ->
+    none;
+get_command_common_args(#delete{}) ->
+    none;
+get_command_common_args(#tx{}) ->
+    none;
+get_command_common_args(#register_trigger{}) ->
+    none;
+get_command_common_args(#ack_triggered{}) ->
+    none;
+get_command_common_args(#register_projection{}) ->
+    none;
+get_command_common_args(#unregister_projection{}) ->
+    none;
+get_command_common_args(#unregister_projections{}) ->
+    none;
+get_command_common_args(#dedup{}) ->
+    none;
+get_command_common_args(#dedup_ack{}) ->
+    none;
+get_command_common_args(#drop_dedups{}) ->
+    none;
+get_command_common_args({machine_version, _OldMacVer, _NewMacVer}) ->
+    none;
+get_command_common_args(_UnknownCommand) ->
+    undefined.
+
+-spec set_command_common_args(Command, CommonArgs) -> NewCommand when
+      Command :: khepri_machine:command(),
+      CommonArgs :: #common_v1{},
+      NewCommand :: khepri_machine:command().
+
+set_command_common_args(#put_v{} = Command, CommonArgs) ->
+    Command#put_v{common = CommonArgs};
+set_command_common_args(#delete_v{} = Command, CommonArgs) ->
+    Command#delete_v{common = CommonArgs};
+set_command_common_args(#tx_v{} = Command, CommonArgs) ->
+    Command#tx_v{common = CommonArgs};
+set_command_common_args(#register_trigger_v{} = Command, CommonArgs) ->
+    Command#register_trigger_v{common = CommonArgs};
+set_command_common_args(#ack_triggered_v{} = Command, CommonArgs) ->
+    Command#ack_triggered_v{common = CommonArgs};
+set_command_common_args(#register_projection_v{} = Command, CommonArgs) ->
+    Command#register_projection_v{common = CommonArgs};
+set_command_common_args(#unregister_projections_v{} = Command, CommonArgs) ->
+    Command#unregister_projections_v{common = CommonArgs};
+set_command_common_args(#dedup_ack_v{} = Command, CommonArgs) ->
+    Command#dedup_ack_v{common = CommonArgs};
+set_command_common_args(#drop_dedups_v{} = Command, CommonArgs) ->
+    Command#drop_dedups_v{common = CommonArgs}.
+
+-spec set_dedup_args(Command, CommandRef, Expiry) -> NewCommand when
+      Command :: khepri_machine:command(),
+      CommandRef :: reference(),
+      Expiry :: integer(),
+      NewCommand :: khepri_machine:command().
+
+set_dedup_args(Command, CommandRef, Expiry)
+  when is_reference(CommandRef) andalso
+       is_integer(Expiry) ->
+    CommonArgs = get_command_common_args(Command),
+    CommonArgs1 = case CommonArgs of
+                      #common_v1{} ->
+                          CommonArgs#common_v1{dedup_ref = CommandRef,
+                                               dedup_expiry = Expiry};
+                      none ->
+                          #common_v1{dedup_ref = CommandRef,
+                                     dedup_expiry = Expiry}
+                  end,
+    Command1 = set_command_common_args(Command, CommonArgs1),
+    Command1.
 
 %% @private
 
