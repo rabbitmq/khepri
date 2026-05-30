@@ -899,22 +899,29 @@ does_path_match(
                                         payload_version,
                                         child_list_version,
                                         child_list_length]},
-    {ok, #{CurrentPath := Node}} = find_matching_nodes(
-                                     Tree,
-                                     lists:reverse([Component | ReversedPath]),
-                                     TreeOptions),
+    case find_matching_nodes(Tree, CurrentPath, TreeOptions) of
+        {ok, #{CurrentPath := Node}} ->
+            does_path_match_condition(
+              Component, Path, Condition, PathPattern, ReversedPath1, Tree,
+              Node);
+        {error, ?khepri_error(node_not_found, _)} ->
+            false
+    end.
+
+does_path_match_condition(
+  Component, Path, Condition, PathPattern, ReversedPath, Tree, Node) ->
     case khepri_condition:is_met(Condition, Component, Node) of
         true ->
             ConditionMatchesGrandchildren =
             case khepri_condition:applies_to_grandchildren(Condition) of
                 true ->
                     does_path_match(
-                      Path, [Condition | PathPattern], ReversedPath1, Tree);
+                      Path, [Condition | PathPattern], ReversedPath, Tree);
                 false ->
                     false
             end,
             ConditionMatchesGrandchildren orelse
-              does_path_match(Path, PathPattern, ReversedPath1, Tree);
+              does_path_match(Path, PathPattern, ReversedPath, Tree);
         {false, _} ->
             false
     end.
