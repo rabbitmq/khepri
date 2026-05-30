@@ -442,6 +442,61 @@ filter_on_change_type_test_() ->
          ?_assertEqual(executed, receive_sproc_msg(DeletedKey))}]
       }]}.
 
+deleting_a_node_matched_by_a_path_condition_does_not_crash_test_() ->
+    %% Regression test: a trigger whose event-filter path pattern contains
+    %% a *condition* (here `#if_child_list_length{}`) at a non-terminal
+    %% position must not crash the state machine when the matching node is
+    %% deleted. While evaluating the trigger for the delete,
+    %% `khepri_tree:does_path_match/4` queried the just-deleted node and
+    %% hard-matched `{ok, _} = find_matching_nodes(...)`; the lookup returns
+    %% `{error, {khepri, node_not_found, _}}` for the gone node, so the
+    %% badmatch crashed the Khepri/Ra state machine. As the delete command
+    %% is persisted, it replayed on every restart, making the store
+    %% permanently unrecoverable.
+    EventFilter = khepri_evf:tree([foo, #if_child_list_length{count = 0}]),
+    StoredProcPath = [sproc],
+    Key = ?FUNCTION_NAME,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [{"Storing a procedure",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, StoredProcPath,
+              make_sproc(self(), Key)))},
+
+        {"Registering a trigger with a path condition",
+         ?_assertEqual(
+            ok,
+            khepri:register_trigger(
+              ?FUNCTION_NAME,
+              ?FUNCTION_NAME,
+              EventFilter,
+              StoredProcPath))},
+
+        {"Creating the matching node",
+         ?_assertMatch(
+            ok,
+            khepri:put(?FUNCTION_NAME, [foo, bar], value))},
+
+        {"Deleting the matching node must not crash the state machine",
+         ?_assertMatch(
+            ok,
+            khepri:delete(?FUNCTION_NAME, [foo, bar]))},
+
+        {"The store is still responsive after the delete-triggered eval",
+         ?_assertMatch(
+            ok,
+            khepri:put(?FUNCTION_NAME, [other], value))},
+
+        {"and reads still serve correctly",
+         ?_assertMatch(
+            {ok, value},
+            khepri:get(?FUNCTION_NAME, [other]))}]
+      }]}.
+
 a_buggy_sproc_does_not_crash_state_machine_test_() ->
     EventFilter = khepri_evf:tree([foo]),
     StoredProcPath = [sproc],

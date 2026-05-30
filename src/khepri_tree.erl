@@ -801,22 +801,32 @@ does_path_match(
                                         payload_version,
                                         child_list_version,
                                         child_list_length]},
-    {ok, #{CurrentPath := Node}} = find_matching_nodes(
-                                     Tree,
-                                     lists:reverse([Component | ReversedPath]),
-                                     TreeOptions),
+    %% The node at `CurrentPath' may no longer exist — most commonly when
+    %% this trigger is being evaluated for the *deletion* of that very node.
+    %% `find_matching_nodes/3' then returns
+    %% `{error, {khepri, node_not_found, _}}'. A path condition that must
+    %% query an absent node cannot be met, so the path does not match.
+    %% (Previously this hard-matched `{ok, _} = ...' and crashed the state
+    %% machine; as the delete command is persisted, it then replayed and
+    %% crashed on every restart, making the store unrecoverable.)
+    case find_matching_nodes(Tree, CurrentPath, TreeOptions) of
+        {ok, #{CurrentPath := Node}} ->
+            does_matched_node_path_match(
+              Condition, Component, Node, Path, PathPattern, ReversedPath1, Tree);
+        _NodeAbsentOrError ->
+            false
+    end.
+
+does_matched_node_path_match(
+  Condition, Component, Node, Path, PathPattern, ReversedPath1, Tree) ->
     case khepri_condition:is_met(Condition, Component, Node) of
         true ->
-            ConditionMatchesGrandchildren =
-            case khepri_condition:applies_to_grandchildren(Condition) of
-                true ->
-                    does_path_match(
-                      Path, [Condition | PathPattern], ReversedPath1, Tree);
-                false ->
-                    false
-            end,
-            ConditionMatchesGrandchildren orelse
-              does_path_match(Path, PathPattern, ReversedPath1, Tree);
+            MatchesGrandchildren =
+                khepri_condition:applies_to_grandchildren(Condition)
+                andalso does_path_match(
+                          Path, [Condition | PathPattern], ReversedPath1, Tree),
+            MatchesGrandchildren orelse
+                does_path_match(Path, PathPattern, ReversedPath1, Tree);
         {false, _} ->
             false
     end.
