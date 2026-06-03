@@ -274,7 +274,8 @@ fun((Tids :: ets:tid() | #{atom() => ets:tid()},
                                      keypos => pos_integer(),
                                      read_concurrency => boolean(),
                                      write_concurrency => boolean() | auto,
-                                     compressed => boolean()}.
+                                     compressed => boolean(),
+                                     protection => ets:table_access()}.
 %% Overrideable ETS options.
 %%
 %% They can be used for single-table and multi-table projections. For the
@@ -297,7 +298,8 @@ fun((Tids :: ets:tid() | #{atom() => ets:tid()},
                      keypos => pos_integer(),
                      read_concurrency => boolean(),
                      write_concurrency => boolean() | auto,
-                     compressed => boolean()}.
+                     compressed => boolean(),
+                     protection => ets:table_access()}.
 %% Options which control the created ETS table.
 %%
 %% If provided, `standalone_fun_options' are merged with defaults and passed to
@@ -496,6 +498,15 @@ to_ets_options(compressed, true, Acc) ->
     [compressed | Acc];
 to_ets_options(compressed, false, Acc) ->
     Acc;
+to_ets_options(protection, Protection, Acc)
+  when Protection =:= public orelse
+       Protection =:= protected orelse
+       Protection =:= private ->
+    Acc1 = [Option || Option <- Acc,
+                      Option =/= public,
+                      Option =/= protected,
+                      Option =/= private],
+    [Protection | Acc1];
 to_ets_options(Key, Value, _Acc) ->
     ?khepri_misuse(
        unexpected_projection_option,
