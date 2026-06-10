@@ -286,6 +286,17 @@ fun((Tids :: ets:tid() | #{atom() => ets:tid()},
 %% `type' option may only be `set' or `ordered_set': `bag' types are not
 %% allowed. {@link extended_projection_fun()}s may use any valid {@link
 %% ets:table_type()}.
+%%
+%% <strong>Warning about `protection':</strong> By default, projection ETS
+%% tables are `protected' and owned by the Ra server process. If you override
+%% `protection' to `public', any process may insert or delete objects in the
+%% table. This can break assumptions that Khepri makes when using `copy' or
+%% {@link simple_projection_fun()} projection functions: Khepri assumes that a
+%% record exists in the table if and only if the corresponding tree node exists
+%% in the store. If external processes modify the table, this invariant no
+%% longer holds and the projection may become inconsistent with the store. Only
+%% use `public' with {@link extended_projection_fun()} where you manage ETS
+%% operations directly and can account for external modifications.
 
 -type options() :: #{tables => multi_table_options(),
                      standalone_fun_options => horus:options(),
