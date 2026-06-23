@@ -19,6 +19,15 @@
                                   payload_version,
                                   delete_reason]).
 
+%% Default list of properties included in the event properties passed to a
+%% triggered stored procedure when the trigger's event filter doesn't specify
+%% its own `props_to_return'.
+%%
+%% This is empty by default: including the changed tree node's properties is
+%% opt-in and must be requested explicitly through the event filter's
+%% `props_to_return'.
+-define(DEFAULT_TRIGGER_PROPS_TO_RETURN, []).
+
 -record(node, {props = ?INIT_NODE_PROPS :: khepri_machine:props(),
                payload = ?NO_PAYLOAD :: khepri_payload:payload(),
                child_nodes = #{} :: #{khepri_path:component() := #node{}}}).

@@ -23,8 +23,11 @@
 %%
 %% It takes a path pattern to monitor and optionally properties.
 
--type tree_event_filter_props() :: #{on_actions => [create | update | delete],
-                                     priority => khepri_evf:priority()}.
+-type tree_event_filter_props() ::
+        #{on_actions => [create | update | delete],
+          priority => khepri_evf:priority(),
+          props_to_return => [khepri:known_prop_to_return() |
+                              khepri:unknown_prop_to_return()]}.
 %% Tree event filter properties.
 %%
 %% The properties are:
@@ -32,6 +35,13 @@
 %% <li>`on_actions': a list of actions to filter among `create', `update' and
 %% `delete'; the default is to react to all of them.</li>
 %% <li>`priority': a {@link priority()}</li>
+%% <li>`props_to_return': the list of properties of the changed tree node to
+%% include in the properties map passed to the triggered stored procedure. It
+%% works like the `props_to_return' option of {@link khepri:tree_options()}.
+%% The default is `[]', meaning no tree node properties are included; set it to
+%% e.g. `[payload]' to receive the `data' key for tree nodes holding data.
+%% This requires an effective machine version of 4 or more; with older machine
+%% versions, no tree node properties are included.</li>
 %% </ul>
 %%
 %% A Khepri path, whether it is a native path or a Unix-like path, can be used
