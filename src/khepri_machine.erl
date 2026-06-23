@@ -591,6 +591,8 @@ readwrite_transaction1(StoreId, StandaloneFunOrPath, Args, Options) ->
     case process_command(StoreId, Command, Options1) of
         {exception, _, _, _} = Exception ->
             handle_tx_exception(Exception);
+        {error, _} = Error ->
+            Error;
         ok = Ret ->
             CommandType = select_command_type(Options),
             case CommandType of
