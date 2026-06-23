@@ -899,10 +899,25 @@ does_path_match(
                                         payload_version,
                                         child_list_version,
                                         child_list_length]},
-    {ok, #{CurrentPath := Node}} = find_matching_nodes(
-                                     Tree,
-                                     lists:reverse([Component | ReversedPath]),
-                                     TreeOptions),
+    %% The node at `CurrentPath' may be absent — for example when matching
+    %% the path of a node that no longer exists in `Tree'. In that case
+    %% `find_matching_nodes/3' returns an error; a path condition that must
+    %% query the missing node cannot be met, so the path does not match.
+    %% (Returning `false' here rather than hard-matching `{ok, _} = ...'
+    %% avoids a badmatch: when this runs inside the `khepri_machine' command
+    %% apply loop, a badmatch aborts and is persisted with the command, so
+    %% it would replay and crash on every restart.)
+    case find_matching_nodes(Tree, CurrentPath, TreeOptions) of
+        {ok, #{CurrentPath := Node}} ->
+            does_path_match_condition(
+              Condition, Component, Node, Path, PathPattern, ReversedPath1,
+              Tree);
+        {error, _} ->
+            false
+    end.
+
+does_path_match_condition(
+  Condition, Component, Node, Path, PathPattern, ReversedPath1, Tree) ->
     case khepri_condition:is_met(Condition, Component, Node) of
         true ->
             ConditionMatchesGrandchildren =
