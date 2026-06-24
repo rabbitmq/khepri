@@ -385,7 +385,8 @@ squash_version_bumps_after_keep_while1(
 %% Keep-while functions.
 %% -------------------------------------------------------------------
 
--spec is_keep_while_met_at_insert_time(Tree, Path, Node, KeepWhile) -> IsMet when
+-spec is_keep_while_met_at_insert_time(Tree, Path, Node, KeepWhile) ->
+    IsMet when
       Tree :: khepri_tree:tree(),
       Path :: khepri_path:native_path(),
       Node :: tree_node() | {interrupted, any(), map()},
