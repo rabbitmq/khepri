@@ -80,10 +80,39 @@
 %% matching conditions. In version 1 this type was replaced with a prefix tree
 %% which improves lookup time when the reverse index contains many entries.
 
+-type change_type() :: create | update | delete.
+%% Type of a change made to a tree node.
+
+-type create_change_attrs() :: #{new_node_props := khepri:node_props()}.
+%% Attributes of the `create' change made to a tree node.
+%%
+%% <ul>
+%% <li>`new_node_props': node properties of the the created node</li>
+%% </ul>
+
+-type update_change_attrs() :: #{old_node_props := khepri:node_props(),
+                                 new_node_props := khepri:node_props()}.
+%% Attributes of the `update' change made to a tree node.
+%%
+%% <ul>
+%% <li>`old_node_props': node properties of the replaced tree node</li>
+%% <li>`new_node_props': node properties of the new tree node</li>
+%% </ul>
+
+-type delete_change_attrs() :: #{old_node_props := khepri:node_props()}.
+%% Attributes of the `delete' change made to a tree node.
+%%
+%% <ul>
+%% <li>`old_node_props': node properties of the deleted tree node</li>
+%% </ul>
+
+-type applied_change() :: {create, create_change_attrs()} |
+                          {update, update_change_attrs()} |
+                          {delete, delete_change_attrs()}.
+%% A type of a change made to a tree node, with its attributes.
+
 -type applied_changes() :: #{khepri_path:native_path() =>
-                             {create, khepri:node_props()} |
-                             {update, khepri:node_props()} |
-                             delete}.
+                             khepri_tree:applied_change()}.
 %% Internal index of the per-node changes which happened during a traversal.
 %% This is used when the tree is walked back up to determine the list of tree
 %% nodes to remove after some keep_while condition evaluates to false.
@@ -108,6 +137,11 @@
               keep_while_conds_revidx_v0/0,
               keep_while_conds_revidx_v1/0,
               keep_while_conds_revidx/0,
+              change_type/0,
+              create_change_attrs/0,
+              update_change_attrs/0,
+              delete_change_attrs/0,
+              applied_change/0,
               applied_changes/0]).
 
 %% -------------------------------------------------------------------
@@ -328,9 +362,9 @@ squash_version_bumps_after_keep_while(
     %% the previous update of the tree.
     BumpsBefore = maps:fold(
                     fun
-                        (Path, Change, Acc)
-                          when Change =:= delete orelse
-                               element(1, Change) =:= create ->
+                        (Path, {ChangeType, _}, Acc)
+                          when ChangeType =:= create orelse
+                               ChangeType =:= delete ->
                             ParentPath = lists:droplast(Path),
                             Acc#{ParentPath => true};
                         (_Path, _Change, Acc) ->
@@ -1512,7 +1546,13 @@ walk_back_up_the_tree(
     %% Evaluate keep_while of nodes which depended on ChildName (it is
     %% removed) at the end of walk_back_up_the_tree().
     Path = lists:reverse(WholeReversedPath),
-    AppliedChangesAcc1 = AppliedChangesAcc#{Path => delete},
+    TreeOptions = #{props_to_return => ?INTERNAL_LOOKUP_PROPS_TO_RETURN},
+    InitialNodeProps = gather_node_props(
+                         maps:get(ChildName, ParentNode#node.child_nodes),
+                         TreeOptions),
+    AppliedChangesAcc1 = add_change_to_applied_changes(
+                           AppliedChangesAcc, Path,
+                           delete, #{old_node_props => InitialNodeProps}),
 
     %% All children of `Path' are also added recursively to the
     %% `AppliedChangesAcc1' map.
@@ -1542,7 +1582,9 @@ walk_back_up_the_tree(
     Path = lists:reverse(WholeReversedPath),
     TreeOptions = #{props_to_return => ?INTERNAL_LOOKUP_PROPS_TO_RETURN},
     NodeProps = gather_node_props(Child1, TreeOptions),
-    AppliedChangesAcc1 = AppliedChangesAcc#{Path => {create, NodeProps}},
+    AppliedChangesAcc1 = add_change_to_applied_changes(
+                           AppliedChangesAcc, Path,
+                           create, #{new_node_props => NodeProps}),
 
     %% Evaluate keep_while of parent node on itself right now (its child_count
     %% has changed).
@@ -1564,13 +1606,16 @@ walk_back_up_the_tree(
                          maps:get(ChildName, ParentNode#node.child_nodes),
                          TreeOptions),
     NodeProps = gather_node_props(Child, TreeOptions),
-    AppliedChangesAcc1 = case NodeProps of
-                             InitialNodeProps ->
-                                 AppliedChangesAcc;
-                             _ ->
-                                 AppliedChangesAcc#{
-                                   Path => {update, NodeProps}}
-                         end,
+    AppliedChangesAcc1 = (
+      case NodeProps of
+          InitialNodeProps ->
+              AppliedChangesAcc;
+          _ ->
+              add_change_to_applied_changes(
+                AppliedChangesAcc, Path,
+                update, #{old_node_props => InitialNodeProps,
+                          new_node_props => NodeProps})
+      end),
 
     %% No need to evaluate keep_while of ParentNode, its child_count is
     %% unchanged.
@@ -1595,6 +1640,27 @@ walk_back_up_the_tree(
     AppliedChanges1 = merge_applied_changes(AppliedChanges, AppliedChangesAcc),
     Walk1 = Walk#walk{applied_changes = AppliedChanges1},
     {ok, Walk1}.
+
+-spec add_change_to_applied_changes
+  (AppliedChanges, Path, create, ChangeAttrs) -> NewAppliedChanges when
+      AppliedChanges :: applied_changes(),
+      Path :: khepri_path:native_path(),
+      ChangeAttrs :: create_change_attrs(),
+      NewAppliedChanges :: applied_changes();
+  (AppliedChanges, Path, update, ChangeAttrs) -> NewAppliedChanges when
+      AppliedChanges :: applied_changes(),
+      Path :: khepri_path:native_path(),
+      ChangeAttrs :: update_change_attrs(),
+      NewAppliedChanges :: applied_changes();
+  (AppliedChanges, Path, delete, ChangeAttrs) -> NewAppliedChanges when
+      AppliedChanges :: applied_changes(),
+      Path :: khepri_path:native_path(),
+      ChangeAttrs :: delete_change_attrs(),
+      NewAppliedChanges :: applied_changes().
+
+add_change_to_applied_changes(AppliedChanges, Path, ChangeType, ChangeAttrs) ->
+    AppliedChanges1 = AppliedChanges#{Path => {ChangeType, ChangeAttrs}},
+    AppliedChanges1.
 
 handle_keep_while_for_parent_update(
   #walk{reversed_parent_tree = [{_GrandParentNode, child_created} | _]} = Walk,
@@ -1644,7 +1710,12 @@ list_deleted_nodes_recursively_from(
     maps:fold(
       fun(ChildName, ChildNode, AppliedChangesAcc1) ->
               ChildPath = Path ++ [ChildName],
-              AppliedChangesAcc2 = AppliedChangesAcc1#{ChildPath => delete},
+              TreeOptions = #{props_to_return => ?INTERNAL_LOOKUP_PROPS_TO_RETURN},
+              InitialNodeProps = gather_node_props(ChildNode, TreeOptions),
+              AppliedChangesAcc2 = add_change_to_applied_changes(
+                                     AppliedChangesAcc1, ChildPath,
+                                     delete,
+                                     #{old_node_props => InitialNodeProps}),
               list_deleted_nodes_recursively_from(
                 ChildPath, ChildNode, AppliedChangesAcc2)
       end, AppliedChangesAcc, Children).
@@ -1652,12 +1723,30 @@ list_deleted_nodes_recursively_from(
 merge_applied_changes(AppliedChanges1, AppliedChanges2) ->
     maps:fold(
       fun
-          (Path, delete, KWA1) ->
-              KWA1#{Path => delete};
-          (Path, {_, _} = TypeAndNodeProps, KWA1) ->
-              case KWA1 of
-                  #{Path := delete} -> KWA1;
-                  _                 -> KWA1#{Path => TypeAndNodeProps}
+          (Path, Change, AC1)
+            when not is_map_key(Path, AC1) ->
+              AC1#{Path => Change};
+
+          (Path, {update, #{new_node_props := NodeProps}}, AC1) ->
+              case AC1 of
+                  #{Path := {create, _}} ->
+                      NewChangeAttrs = #{new_node_props => NodeProps},
+                      AC1#{Path => {create, NewChangeAttrs}};
+                  #{Path := {update, #{old_node_props := InitialNodeProps}}} ->
+                      NewChangeAttrs = #{old_node_props => InitialNodeProps,
+                                         new_node_props => NodeProps},
+                      AC1#{Path => {update, NewChangeAttrs}}
+              end;
+
+          (Path, {delete, _}, AC1) ->
+              case AC1 of
+                  #{Path := {create, _}} ->
+                      maps:remove(Path, AC1);
+                  #{Path := {update, #{old_node_props := InitialNodeProps}}} ->
+                      NewChangeAttrs = #{old_node_props => InitialNodeProps},
+                      AC1#{Path => {delete, NewChangeAttrs}};
+                  #{Path := {delete, _}} ->
+                      AC1
               end
       end, AppliedChanges1, AppliedChanges2).
 
@@ -1674,12 +1763,12 @@ handle_applied_changes(
 
     Tree2 = maps:fold(
               fun
-                  (RemovedPath, delete, T) ->
+                  (RemovedPath, {delete, _ChangeAttrs}, T) ->
                       KW1 = maps:remove(
                               RemovedPath, T#tree.keep_while_conds),
                       T1 = update_keep_while_conds_revidx(T, RemovedPath, #{}),
                       T1#tree{keep_while_conds = KW1};
-                  (_, {_, _}, T) ->
+                  (_, {_ChangeType, _ChangeAttrs}, T) ->
                       T
               end, Tree1, AppliedChanges),
 
@@ -1713,7 +1802,7 @@ eval_keep_while_conditions_v0(
   AppliedChanges) ->
     maps:fold(
       fun
-          (RemovedPath, delete, ToDelete) ->
+          (RemovedPath, {delete, _ChangeAttrs}, ToDelete) ->
               maps:fold(
                 fun(Path, Watchers, ToDelete1) ->
                         case lists:prefix(RemovedPath, Path) of
@@ -1724,11 +1813,11 @@ eval_keep_while_conditions_v0(
                                 ToDelete1
                         end
                 end, ToDelete, KeepWhileCondsRevIdx);
-          (UpdatedPath, {_Type, NodeProps}, ToDelete) ->
+          (UpdatedPath, {_ChangeType, ChangeAttrs}, ToDelete) ->
               case KeepWhileCondsRevIdx of
                   #{UpdatedPath := Watchers} ->
                       eval_keep_while_conditions_after_update(
-                        Tree, UpdatedPath, NodeProps, Watchers, ToDelete);
+                        Tree, UpdatedPath, ChangeAttrs, Watchers, ToDelete);
                   _ ->
                       ToDelete
               end
@@ -1739,19 +1828,19 @@ eval_keep_while_conditions_v1(
   AppliedChanges) ->
     maps:fold(
       fun
-          (RemovedPath, delete, ToDelete) ->
+          (RemovedPath, {delete, _ChangeAttrs}, ToDelete) ->
               khepri_prefix_tree:fold_prefixes_of(
                 fun(Watchers, ToDelete1) ->
                         eval_keep_while_conditions_after_removal(
                           Tree, Watchers, ToDelete1)
                 end, ToDelete, RemovedPath, KeepWhileCondsRevIdx);
-          (UpdatedPath, {_Type, NodeProps}, ToDelete) ->
+          (UpdatedPath, {_ChangeType, ChangeAttrs}, ToDelete) ->
               Result = khepri_prefix_tree:find_path(
                          UpdatedPath, KeepWhileCondsRevIdx),
               case Result of
                   {ok, Watchers} ->
                       eval_keep_while_conditions_after_update(
-                        Tree, UpdatedPath, NodeProps, Watchers, ToDelete);
+                        Tree, UpdatedPath, ChangeAttrs, Watchers, ToDelete);
                   error ->
                       ToDelete
               end
@@ -1759,7 +1848,7 @@ eval_keep_while_conditions_v1(
 
 eval_keep_while_conditions_after_update(
   #tree{keep_while_conds = KeepWhileConds} = Tree,
-  UpdatedPath, NodeProps, Watchers, ToDelete) ->
+  UpdatedPath, #{new_node_props := NodeProps}, Watchers, ToDelete) ->
     maps:fold(
       fun(Watcher, ok, ToDelete1) ->
               KeepWhile = maps:get(Watcher, KeepWhileConds),
@@ -1801,7 +1890,7 @@ filter_and_sort_paths_to_delete(ToDelete, AppliedChanges) ->
     Paths2 = lists:foldl(
                fun(Path, Map) ->
                        case AppliedChanges of
-                           #{Path := delete} ->
+                           #{Path := {delete, _ChangeAttrs}} ->
                                Map;
                            _ ->
                                case is_parent_being_removed(Path, Map) of

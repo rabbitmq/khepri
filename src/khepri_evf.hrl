@@ -17,7 +17,7 @@
          is_record(EventFilter, evf_process))).
 
 -record(ev_tree, {path :: khepri_path:native_path(),
-                  change :: create | update | delete}).
+                  change :: khepri_tree:applied_change()}).
 
 -record(ev_process, {pid :: pid(),
                      change :: {'DOWN', any()}}).
