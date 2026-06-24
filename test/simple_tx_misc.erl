@@ -696,3 +696,19 @@ tx_using_erl_eval_test_() ->
                fun local_fun_using_erl_eval/0,
                rw)
          end)]}.
+
+readwrite_transaction_propagates_infra_error_test() ->
+    %% When the store is not running, `process_command/3' returns an
+    %% infrastructure error such as `{error, noproc}'.
+    %% `readwrite_transaction1/3' must propagate that error tuple directly
+    %% instead of wrapping it as `{ok, {error, noproc}}'; a caller matching
+    %% on `{ok, Value}' would otherwise mistake the error for a successful
+    %% transaction result and crash downstream.
+    %%
+    %% A path-pattern transaction is used so the command reaches
+    %% `process_command/3' without going through stand-alone function
+    %% extraction. `?FUNCTION_NAME' is a store ID that is never started, so
+    %% the command cannot reach a Ra server.
+    ?assertEqual(
+       {error, noproc},
+       khepri:transaction(?FUNCTION_NAME, [foo], [], rw)).
