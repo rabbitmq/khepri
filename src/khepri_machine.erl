@@ -2764,19 +2764,12 @@ delete_matching_nodes(State, PathPattern, TreeOptions, SideEffects) ->
 
 add_tree_change_side_effects(
   InitialState, NewState, AppliedChanges, SideEffects) ->
-    %% We make a map where for each affected tree node, we indicate the type
-    %% of change.
+    %% We make a map where for each affected tree node, we indicate the change
+    %% (type + change arguments).
     Paths = lists:sort(maps:keys(AppliedChanges)),
     Events = lists:map(
                fun(Path) ->
-                       Change = case maps:get(Path, AppliedChanges) of
-                                    {Type, _NodeProps}
-                                      when Type =:= create orelse
-                                           Type =:= update ->
-                                        Type;
-                                    delete = Type ->
-                                        Type
-                                end,
+                       #{Path := Change} = AppliedChanges,
                        #ev_tree{path = Path, change = Change}
                end, Paths),
     NewSideEffects = create_projection_side_effects(
@@ -2806,12 +2799,9 @@ create_projection_side_effects1(
 create_projection_side_effects2(
   InitialTree, NewTree, ProjectionTree, Path, Change, Effects) ->
     PatternMatchingTree = case Change of
-                              create ->
-                                  NewTree;
-                              update ->
-                                  NewTree;
-                              delete ->
-                                  InitialTree
+                              {create, _} -> NewTree;
+                              {update, _} -> NewTree;
+                              {delete, _} -> InitialTree
                           end,
     khepri_pattern_tree:fold_matching(
       ProjectionTree,
@@ -2957,7 +2947,8 @@ list_triggered_actions(InitialState, NewState, Events, Triggers) ->
 
 evaluate_trigger(
   InitialState, NewState,
-  #ev_tree{path = Path, change = Change} = Event, TriggerId,
+  #ev_tree{path = Path,
+           change = {ChangeType, _ChangeAttrs}} = Event, TriggerId,
   #{event_filter := #evf_tree{path = PathPattern,
                               props = EventFilterProps}} = Trigger,
   TriggeredActions) ->
@@ -2966,7 +2957,7 @@ evaluate_trigger(
     %%      path pattern in the event filter.
     %%   2. we verify the type of change matches the change filter in the
     %%      event filter.
-    Tree = case Change of
+    Tree = case ChangeType of
                delete -> get_tree(InitialState);
                _      -> get_tree(NewState)
            end,
@@ -2981,7 +2972,7 @@ evaluate_trigger(
                          _ ->
                              DefaultWatchedChanges
                      end,
-    ChangeMatches = lists:member(Change, WatchedChanges),
+    ChangeMatches = lists:member(ChangeType, WatchedChanges),
     case PathMatches andalso ChangeMatches of
         true ->
             evaluate_action(
@@ -3027,9 +3018,11 @@ evaluate_action(State, Event, TriggerId, Trigger, TriggeredActions)
                             #{sproc := _} ->
                                 %% With trigger v1, the only type of event is
                                 %% a tree change.
-                                #ev_tree{path = Path, change = Change} = Event,
+                                #ev_tree{path = Path,
+                                         change = {ChangeType, _ChangeAttrs}
+                                        } = Event,
                                 EventProps = #{path => Path,
-                                               on_action => Change},
+                                               on_action => ChangeType},
                                 #triggered{
                                    id = TriggerId,
                                    event_filter = EventFilter,

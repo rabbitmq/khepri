@@ -239,7 +239,7 @@
 %%
 %% It takes a path pattern to monitor and optionally properties.
 
--type tree_event_filter_props() :: #{on_actions => [create | update | delete],
+-type tree_event_filter_props() :: #{on_actions => [khepri_tree:change_type()],
                                      priority => khepri_evf:priority()}.
 %% Tree event filter properties.
 %%

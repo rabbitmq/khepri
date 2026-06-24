@@ -111,8 +111,8 @@ event_using_matching_pattern2_triggers_associated_sproc_test_() ->
               ?FUNCTION_NAME, [foo, bar], value))},
 
         {"Checking the procedure was executed for the grandchild node",
-         ?_assertEqual(
-          {create, [foo, bar]},
+         ?_assertMatch(
+          {create, [foo, bar], #{new_node_props := #{data := value}}},
           receive_sproc_msg_with_props(Key))},
 
         {"Updating a matching great-grandchild node; "
@@ -123,8 +123,8 @@ event_using_matching_pattern2_triggers_associated_sproc_test_() ->
               ?FUNCTION_NAME, [foo, bar, baz], value))},
 
         {"Checking the procedure was executed for the great-grandchild node",
-         ?_assertEqual(
-          {create, [foo, bar, baz]},
+         ?_assertMatch(
+          {create, [foo, bar, baz], #{new_node_props := #{data := value}}},
           receive_sproc_msg_with_props(Key))}]
       }]}.
 
@@ -672,8 +672,9 @@ make_sproc(Pid, Key) ->
                 #{path := Path, on_action := OnAction} ->
                     Pid ! {sproc, Key, {OnAction, Path}};
                 #khepri_trigger{type = tree,
-                                event = #{path := Path, change := Change}} ->
-                    Pid ! {sproc, Key, {Change, Path}};
+                                event = #{path := Path,
+                                          change := Change} = Event} ->
+                    Pid ! {sproc, Key, {Change, Path, Event}};
                 #khepri_trigger{type = process,
                                 event = #{pid := MonitoredPid,
                                           change := Change}} ->
@@ -753,4 +754,61 @@ event_triggers_message_send_test_() ->
                       #khepri_trigger{} ->
                           true
                   end)}]
+      }]}.
+
+triggered_sproc_is_called_with_node_props_test_() ->
+    EventFilter = khepri_evf:tree([foo, ?KHEPRI_WILDCARD_STAR_STAR]),
+    StoredProcPath = [sproc],
+    Key = ?FUNCTION_NAME,
+    Path = [foo, bar],
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [{"Storing a procedure",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, StoredProcPath,
+              make_sproc(self(), Key)))},
+
+        {"Registering a trigger",
+         ?_assertEqual(
+            ok,
+            khepri:register_trigger(
+              ?FUNCTION_NAME,
+              ?FUNCTION_NAME,
+              EventFilter,
+              StoredProcPath))},
+
+        {"Creating a matching tree node; should trigger the procedure",
+         ?_assertMatch(
+            ok,
+            khepri:put(?FUNCTION_NAME, Path, value1))},
+
+        {"Checking the procedure was executed for the matching tree node",
+         ?_assertMatch(
+          {create, Path, #{new_node_props := #{data := value1}}},
+          receive_sproc_msg_with_props(Key))},
+
+        {"Updating a matching tree node; should trigger the procedure",
+         ?_assertMatch(
+            ok,
+            khepri:put(?FUNCTION_NAME, Path, value2))},
+
+        {"Checking the procedure was executed for the matching tree node",
+         ?_assertMatch(
+          {update, Path, #{old_node_props := #{data := value1},
+                           new_node_props := #{data := value2}}},
+          receive_sproc_msg_with_props(Key))},
+
+        {"Deleting a matching tree node; should trigger the procedure",
+         ?_assertMatch(
+            ok,
+            khepri:delete(?FUNCTION_NAME, Path))},
+
+        {"Checking the procedure was executed for the matching tree node",
+         ?_assertMatch(
+          {delete, Path, #{old_node_props := #{data := value2}}},
+          receive_sproc_msg_with_props(Key))}]
       }]}.
