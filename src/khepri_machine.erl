@@ -106,9 +106,10 @@
 -include("src/khepri_error.hrl").
 -include("src/khepri_evf.hrl").
 -include("src/khepri_machine.hrl").
+-include("src/khepri_projection.hrl").
 -include("src/khepri_ret.hrl").
 -include("src/khepri_tx.hrl").
--include("src/khepri_projection.hrl").
+-include("src/khepri_tree.hrl").
 
 -export([fold/5,
          fence/2,
@@ -2462,10 +2463,7 @@ overview(State) ->
     Tree = get_tree(State),
     KeepWhileConds = get_keep_while_conds(State),
     Triggers = get_triggers(State),
-    TreeOptions = #{props_to_return => [payload,
-                                        payload_version,
-                                        child_list_version,
-                                        child_list_length],
+    TreeOptions = #{props_to_return => ?INTERNAL_LOOKUP_PROPS_TO_RETURN,
                     include_root_props => true},
     {ok, NodePropsMap} = khepri_tree:find_matching_nodes(
                            Tree, [?KHEPRI_WILDCARD_STAR_STAR], TreeOptions),
@@ -3080,10 +3078,7 @@ evaluate_where_option(
 
 find_stored_proc(Tree, StoredProcPath) ->
     TreeOptions = #{expect_specific_node => true,
-                    props_to_return => [payload,
-                                        payload_version,
-                                        child_list_version,
-                                        child_list_length]},
+                    props_to_return => ?INTERNAL_LOOKUP_PROPS_TO_RETURN},
     Ret = khepri_tree:find_matching_nodes(
             Tree, StoredProcPath, TreeOptions),
     %% Non-existing nodes and nodes which are not stored procedures are

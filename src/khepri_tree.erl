@@ -18,6 +18,7 @@
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
 -include("src/khepri_node.hrl").
+-include("src/khepri_tree.hrl").
 
 -export([new/0,
          get_root/1,
@@ -443,10 +444,7 @@ are_keep_while_conditions_met(_, KeepWhile)
   when KeepWhile =:= #{} ->
     true;
 are_keep_while_conditions_met(Tree, KeepWhile) ->
-    TreeOptions = #{props_to_return => [payload,
-                                        payload_version,
-                                        child_list_version,
-                                        child_list_length]},
+    TreeOptions = #{props_to_return => ?INTERNAL_LOOKUP_PROPS_TO_RETURN},
     maps:fold(
       fun
           (Path, Condition, true) ->
@@ -935,10 +933,7 @@ does_path_match(
     ReversedPath1 = [Component | ReversedPath],
     CurrentPath = lists:reverse(ReversedPath1),
     TreeOptions = #{expect_specific_node => true,
-                    props_to_return => [payload,
-                                        payload_version,
-                                        child_list_version,
-                                        child_list_length]},
+                    props_to_return => ?INTERNAL_LOOKUP_PROPS_TO_RETURN},
     {ok, #{CurrentPath := Node}} = find_matching_nodes(
                                      Tree,
                                      lists:reverse([Component | ReversedPath]),
@@ -1534,10 +1529,7 @@ walk_back_up_the_tree(
     %% Evaluate keep_while of nodes which depend on ChildName (it is
     %% created) at the end of walk_back_up_the_tree().
     Path = lists:reverse(WholeReversedPath),
-    TreeOptions = #{props_to_return => [payload,
-                                        payload_version,
-                                        child_list_version,
-                                        child_list_length]},
+    TreeOptions = #{props_to_return => ?INTERNAL_LOOKUP_PROPS_TO_RETURN},
     NodeProps = gather_node_props(Child1, TreeOptions),
     AppliedChangesAcc1 = AppliedChangesAcc#{Path => {create, NodeProps}},
 
@@ -1556,10 +1548,7 @@ walk_back_up_the_tree(
     %% Evaluate keep_while of nodes which depend on ChildName (it is
     %% modified) at the end of walk_back_up_the_tree().
     Path = lists:reverse(WholeReversedPath),
-    TreeOptions = #{props_to_return => [payload,
-                                        payload_version,
-                                        child_list_version,
-                                        child_list_length]},
+    TreeOptions = #{props_to_return => ?INTERNAL_LOOKUP_PROPS_TO_RETURN},
     InitialNodeProps = gather_node_props(
                          maps:get(ChildName, ParentNode#node.child_nodes),
                          TreeOptions),
