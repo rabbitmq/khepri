@@ -3638,7 +3638,8 @@ evaluate_trigger(
     %% TODO: Match the exit reason if an optional pattern was provided.
     evaluate_action(
       NewState, Event, TriggerId, Trigger, TriggeredActions);
-evaluate_trigger(_InitialState, _NewState, _Event, _TriggerId, _Trigger, TriggeredActions) ->
+evaluate_trigger(
+  _InitialState, _NewState, _Event, _TriggerId, _Trigger, TriggeredActions) ->
     %% The event does not match the event filter.
     TriggeredActions.
 
