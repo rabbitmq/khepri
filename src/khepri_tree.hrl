@@ -9,3 +9,9 @@
 %% Maximum number of siblings grouped into a single `if_any' pattern by
 %% `paths_to_patterns/1'.
 -define(MAX_SIBLINGS_PER_PATTERN, 1000).
+
+-define(INTERNAL_LOOKUP_PROPS_TO_RETURN,
+        [payload,
+         payload_version,
+         child_list_version,
+         child_list_length]).
