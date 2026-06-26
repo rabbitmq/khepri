@@ -712,3 +712,15 @@ readwrite_transaction_propagates_infra_error_test() ->
     ?assertEqual(
        {error, noproc},
        khepri:transaction(?FUNCTION_NAME, [foo], [], rw)).
+
+readonly_transaction_propagates_infra_error_test() ->
+    %% Same expectation as the read-write case, but for a read-only
+    %% transaction going through `process_query/3'. The infrastructure error
+    %% must be propagated verbatim rather than wrapped as
+    %% `{ok, {error, noproc}}'.
+    %%
+    %% `?FUNCTION_NAME' is a store ID that is never started, so the query
+    %% cannot reach a Ra server.
+    ?assertEqual(
+       {error, noproc},
+       khepri:transaction(?FUNCTION_NAME, [foo], [], ro)).
