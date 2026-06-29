@@ -232,9 +232,20 @@ table.</p>
 latter, each per-table option takes precedence over the global option if  
 specified twice.</p>
  
-  When a projection is created from a <a docgen-rel="seetype" docgen-href="#simple_projection_fun/0" href="#type-simple_projection_fun"><code>simple_projection_fun()</code></a>, the
+  <p>When a projection is created from a <a docgen-rel="seetype" docgen-href="#simple_projection_fun/0" href="#type-simple_projection_fun"><code>simple_projection_fun()</code></a>, the
   <code>type</code> option may only be <code>set</code> or <code>ordered_set</code>: <code>bag</code> types are not
   allowed. <a docgen-rel="seetype" docgen-href="#extended_projection_fun/0" href="#type-extended_projection_fun"><code>extended_projection_fun()</code></a>s may use any valid <a docgen-rel="seetype" docgen-href="ets#table_type/0" href="ets.html#type-table_type"><code>ets:table_type()</code></a>.</p>
+ 
+  <strong>Warning about <code>protection</code>:</strong> By default, projection ETS
+  tables are <code>protected</code> and owned by the Ra server process. If you override
+  <code>protection</code> to <code>public</code>, any process may insert or delete objects in the
+  table. This can break assumptions that Khepri makes when using <code>copy</code> or
+  <a docgen-rel="seetype" docgen-href="#simple_projection_fun/0" href="#type-simple_projection_fun"><code>simple_projection_fun()</code></a> projection functions: Khepri assumes that a
+  record exists in the table if and only if the corresponding tree node exists
+  in the store. If external processes modify the table, this invariant no
+  longer holds and the projection may become inconsistent with the store. Only
+  use <code>public</code> with <a docgen-rel="seetype" docgen-href="#extended_projection_fun/0" href="#type-extended_projection_fun"><code>extended_projection_fun()</code></a> where you manage ETS
+  operations directly and can account for external modifications.</p>
 
 <h3 class="typedecl"><a name="type-projection">projection()</a></h3>
 <p><code>projection() = #khepri_projection{name = atom(), projection_fun = copy | <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun" docgen-rel="seetype" docgen-href="horus:horus#horus_fun/0">horus:horus_fun()</a>, ets_options = <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-ets_options" docgen-rel="seetype" docgen-href="khepri:khepri_projection#ets_options/0">khepri_projection:ets_options()</a> | #{atom() =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_projection.html#type-ets_options" docgen-rel="seetype" docgen-href="khepri:khepri_projection#ets_options/0">khepri_projection:ets_options()</a>}}</code></p>
