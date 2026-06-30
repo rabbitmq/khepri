@@ -171,4 +171,4 @@ submit_unknown_command_test_() ->
             #{command := UnknownCommand,
               machine_version := MacVer}),
          khepri_machine:process_command(
-           ?FUNCTION_NAME, unknown_command, #{}))]}.
+           ?FUNCTION_NAME, UnknownCommand, #{}))]}.
