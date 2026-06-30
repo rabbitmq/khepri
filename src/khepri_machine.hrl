@@ -43,7 +43,9 @@
 -define(API_BEHAV_MACVER(Behaviour),
         map_get(Behaviour, ?API_BEHAV_MACVER_MAP)).
 
-%% State machine commands and aux. effects.
+%% -------------------------------------------------------------------
+%% State machine commands.
+%% -------------------------------------------------------------------
 
 -record(put, {path :: khepri_path:native_pattern(),
               payload = ?NO_PAYLOAD :: khepri_payload:payload(),
@@ -61,25 +63,10 @@
 
 -record(ack_triggered, {triggered :: [khepri_machine:triggered()]}).
 
--record(triggered, {id :: khepri:trigger_id(),
-                    %% TODO: Do we need a ref to distinguish multiple
-                    %% instances of the same trigger?
-                    event_filter :: khepri_evf:event_filter(),
-                    sproc :: horus:horus_fun(),
-                    props = #{} :: map()}).
-
 -record(register_projection, {pattern :: khepri_path:native_pattern(),
                               projection :: khepri_projection:projection()}).
 
 -record(unregister_projections, {names :: all | [khepri_projection:name()]}).
-
--record(trigger_projection, {path :: khepri_path:native_path(),
-                             old_props :: khepri:node_props(),
-                             new_props :: khepri:node_props(),
-                             projection :: khepri_projection:projection()}).
-
--record(restore_projection, {pattern :: khepri_path:native_pattern(),
-                             projection :: khepri_projection:projection()}).
 
 -record(dedup, {ref :: reference(),
                 expiry :: integer(),
@@ -94,6 +81,31 @@
 %% This is emitted internally by the `handle_aux/5' callback clause which
 %% handles the `tick' Ra aux effect.
 
+%% -------------------------------------------------------------------
 %% Old commands, kept for backward-compatibility.
+%% -------------------------------------------------------------------
 
 -record(unregister_projection, {name :: khepri_projection:name()}).
+
+%% -------------------------------------------------------------------
+%% State machine aux. effects.
+%% -------------------------------------------------------------------
+
+-record(trigger_projection, {path :: khepri_path:native_path(),
+                             old_props :: khepri:node_props(),
+                             new_props :: khepri:node_props(),
+                             projection :: khepri_projection:projection()}).
+
+-record(restore_projection, {pattern :: khepri_path:native_pattern(),
+                             projection :: khepri_projection:projection()}).
+
+%% -------------------------------------------------------------------
+%% Other records.
+%% -------------------------------------------------------------------
+
+-record(triggered, {id :: khepri:trigger_id(),
+                    %% TODO: Do we need a ref to distinguish multiple
+                    %% instances of the same trigger?
+                    event_filter :: khepri_evf:event_filter(),
+                    sproc :: horus:horus_fun(),
+                    props = #{} :: map()}).
