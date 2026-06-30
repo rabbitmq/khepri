@@ -102,10 +102,6 @@ never be called directly outside of Khepri.</p>
 <p><code>delayed_aux_query() = {<a href="#type-aux_query" docgen-rel="seetype" docgen-href="#aux_query/0">aux_query()</a>, <a href="/home/runner/work/khepri/stdlib/doc/gen_statem.html#type-from" docgen-rel="seetype" docgen-href="stdlib:gen_statem#from/0">gen_statem:from()</a>, <a href="/home/runner/work/khepri/ra/doc/ra.html#type-query_condition" docgen-rel="seetype" docgen-href="ra:ra#query_condition/0">ra:query_condition()</a> | none}</code></p>
 <p>  Aux query that is delayed until a condition is met.</p>
 
-<h3 class="typedecl"><a name="type-machine_config">machine_config()</a></h3>
-<p><code>machine_config() = #config{store_id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a>, member = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id" docgen-rel="seetype" docgen-href="ra:ra#server_id/0">ra:server_id()</a>, snapshot_interval = non_neg_integer()}</code></p>
-<p>  Configuration record, holding read-only or rarely changing fields.</p>
-
 <h3 class="typedecl"><a name="type-machine_init_args">machine_init_args()</a></h3>
 <p><code>machine_init_args() = #{store_id := <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a>, member := <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id" docgen-rel="seetype" docgen-href="ra:ra#server_id/0">ra:server_id()</a>, snapshot_interval =&gt; non_neg_integer(), commands =&gt; [<a href="#type-command" docgen-rel="seetype" docgen-href="#command/0">command()</a> | {machine_version, non_neg_integer(), non_neg_integer()}], atom() =&gt; any()}</code></p>
 <p>  Structure passed to <a docgen-rel="seemfa" docgen-href="#init/1" href="#init-1"><code>init/1</code></a>.</p>
