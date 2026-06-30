@@ -523,6 +523,8 @@
               favor_option/0,
               query_options/0,
               tree_options/0,
+              known_prop_to_return/0,
+              unknown_prop_to_return/0,
               put_options/0,
 
               fold_fun/0,
@@ -2913,9 +2915,29 @@ register_trigger(TriggerId, EventFilter, StoredProcPath, Options)
 %%
 %% ```
 %% my_stored_procedure(Props) ->
-%%     #{path := Path},
-%%       on_action => Action} = Props.
+%%     #{path := Path,
+%%       on_action := Action} = Props.
 %% '''
+%%
+%% The properties map always contains the following keys:
+%% <ul>
+%% <li>`path': the path to the tree node which changed and triggered the
+%% stored procedure.</li>
+%% <li>`on_action': the type of change, one of `create', `update' or
+%% `delete'.</li>
+%% </ul>
+%%
+%% In addition, the properties of the changed tree node can be included, as
+%% configured by the `props_to_return' key of the tree event filter (see
+%% {@link khepri_evf:tree_event_filter_props()}). By default this is `[]', so
+%% no node properties are included. Set it to `[payload]' to receive a `data'
+%% key when the changed tree node holds a data payload. For `create' and
+%% `update' actions, this is the new payload. For the `delete' action, this is
+%% the payload as it was just before the deletion.
+%%
+%% Including the changed tree node's properties requires an effective machine
+%% version of 4 or more. With older machine versions, only `path' and
+%% `on_action' are passed.
 %%
 %% The stored procedure is executed on the leader's Erlang node.
 %%

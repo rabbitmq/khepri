@@ -66,6 +66,18 @@
 %% </ul>
 %% </td>
 %% </tr>
+%% <tr>
+%% <td style="text-align: right; vertical-align: top;">4</td>
+%% <td>
+%% <ul>
+%% <li>Tree node properties of the changed tree node are now included in the
+%% properties map passed to triggered stored procedures. The properties to
+%% include can be configured per-trigger using the `props_to_return' key of
+%% the tree event filter (see {@link khepri_evf:tree_event_filter_props()}).
+%% </li>
+%% </ul>
+%% </td>
+%% </tr>
 %% </table>
 
 -module(khepri_machine).
@@ -113,8 +125,8 @@
          split_query_options/2,
          split_command_options/2,
          split_put_options/1,
-         insert_or_update_node/6,
-         delete_matching_nodes/4,
+         insert_or_update_node/7,
+         delete_matching_nodes/5,
          handle_tx_exception/1,
          process_query/3,
          process_command/3,
@@ -1573,18 +1585,18 @@ restore_projection(Projection, Tree, PathPattern) ->
 %% @private
 
 apply(
-  Meta,
+  #{machine_version := MacVer} = Meta,
   #put{path = PathPattern, payload = Payload, options = TreeAndPutOptions},
   State) ->
     {TreeOptions, PutOptions} = split_put_options(TreeAndPutOptions),
     Ret = insert_or_update_node(
-            State, PathPattern, Payload, PutOptions, TreeOptions, []),
+            State, PathPattern, Payload, PutOptions, TreeOptions, MacVer, []),
     post_apply(Ret, Meta);
 apply(
-  Meta,
+  #{machine_version := MacVer} = Meta,
   #delete{path = PathPattern, options = TreeOptions},
   State) ->
-    Ret = delete_matching_nodes(State, PathPattern, TreeOptions, []),
+    Ret = delete_matching_nodes(State, PathPattern, TreeOptions, MacVer, []),
     post_apply(Ret, Meta);
 apply(
   Meta,
@@ -2206,20 +2218,23 @@ failed_to_locate_sproc(Reason) ->
     khepri_tx:abort(Reason).
 
 -spec insert_or_update_node(
-    State, PathPattern, Payload, PutOptions, TreeOptions, SideEffects) ->
+    State, PathPattern, Payload, PutOptions, TreeOptions, MacVer,
+    SideEffects) ->
     Ret when
       State :: state(),
       PathPattern :: khepri_path:native_pattern(),
       Payload :: khepri_payload:payload(),
       PutOptions :: khepri:put_options(),
       TreeOptions :: khepri:tree_options(),
+      MacVer :: ra_machine:version(),
       SideEffects :: ra_machine:effects(),
       Ret :: {State, Result, ra_machine:effects()},
       Result :: khepri_machine:write_ret().
 %% @private
 
 insert_or_update_node(
-  State, PathPattern, Payload, PutOptions, TreeOptions, SideEffects) ->
+  State, PathPattern, Payload, PutOptions, TreeOptions, MacVer,
+  SideEffects) ->
     Tree = get_tree(State),
     Ret1 = khepri_tree:insert_or_update_node(
              Tree, PathPattern, Payload, PutOptions, TreeOptions),
@@ -2227,24 +2242,26 @@ insert_or_update_node(
         {ok, Tree1, AppliedChanges, Ret2} ->
             State1 = set_tree(State, Tree1),
             {State2, SideEffects1} = add_tree_change_side_effects(
-                                       State, State1, AppliedChanges,
+                                       State, State1, AppliedChanges, MacVer,
                                        SideEffects),
             {State2, {ok, Ret2}, SideEffects1};
         Error ->
             {State, Error, SideEffects}
     end.
 
--spec delete_matching_nodes(State, PathPattern, TreeOptions, SideEffects) ->
+-spec delete_matching_nodes(
+    State, PathPattern, TreeOptions, MacVer, SideEffects) ->
     Ret when
       State :: state(),
       PathPattern :: khepri_path:native_pattern(),
       TreeOptions :: khepri:tree_options(),
+      MacVer :: ra_machine:version(),
       SideEffects :: ra_machine:effects(),
       Ret :: {State, Result, ra_machine:effects()},
       Result :: khepri_machine:write_ret().
 %% @private
 
-delete_matching_nodes(State, PathPattern, TreeOptions, SideEffects) ->
+delete_matching_nodes(State, PathPattern, TreeOptions, MacVer, SideEffects) ->
     Tree = get_tree(State),
     Ret = khepri_tree:delete_matching_nodes(
             Tree, PathPattern, #{}, TreeOptions),
@@ -2252,7 +2269,7 @@ delete_matching_nodes(State, PathPattern, TreeOptions, SideEffects) ->
         {ok, Tree1, AppliedChanges, Ret2} ->
             State1 = set_tree(State, Tree1),
             {State2, SideEffects1} = add_tree_change_side_effects(
-                                       State, State1, AppliedChanges,
+                                       State, State1, AppliedChanges, MacVer,
                                        SideEffects),
             {State2, {ok, Ret2}, SideEffects1};
         Error ->
@@ -2260,7 +2277,7 @@ delete_matching_nodes(State, PathPattern, TreeOptions, SideEffects) ->
     end.
 
 add_tree_change_side_effects(
-  InitialState, NewState, AppliedChanges, SideEffects) ->
+  InitialState, NewState, AppliedChanges, MacVer, SideEffects) ->
     %% We make a map where for each affected tree node, we indicate the type
     %% of change.
     Changes = maps:map(
@@ -2274,7 +2291,7 @@ add_tree_change_side_effects(
     NewSideEffects = create_projection_side_effects(
                        InitialState, NewState, Changes),
     {NewState1, NewSideEffects1} = add_trigger_side_effects(
-                                     InitialState, NewState, Changes,
+                                     InitialState, NewState, Changes, MacVer,
                                      NewSideEffects),
     SideEffects1 = lists:reverse(NewSideEffects1, SideEffects),
     {NewState1, SideEffects1}.
@@ -2355,7 +2372,7 @@ evaluate_projection(
     Effect = {aux, Trigger},
     [Effect | Effects].
 
-add_trigger_side_effects(InitialState, NewState, Changes, SideEffects) ->
+add_trigger_side_effects(InitialState, NewState, Changes, MacVer, SideEffects) ->
     %% We want to consider the new state (with the updated tree), but we want
     %% to use triggers from the initial state, in case they were updated too.
     %% In other words, we want to evaluate triggers in the state they were at
@@ -2370,7 +2387,8 @@ add_trigger_side_effects(InitialState, NewState, Changes, SideEffects) ->
             InitialTree = get_tree(InitialState),
             NewTree = get_tree(NewState),
             TriggeredStoredProcs = list_triggered_sprocs(
-                                     InitialTree, NewTree, Changes, Triggers),
+                                     InitialTree, NewTree, Changes, Triggers,
+                                     MacVer),
 
             %% We record the list of triggered stored procedures in the state
             %% machine's state. This is used to guaranty at-least-once
@@ -2393,7 +2411,7 @@ add_trigger_side_effects(InitialState, NewState, Changes, SideEffects) ->
             {NewState1, [SideEffect | SideEffects]}
     end.
 
-list_triggered_sprocs(InitialTree, NewTree, Changes, Triggers) ->
+list_triggered_sprocs(InitialTree, NewTree, Changes, Triggers, MacVer) ->
     TriggeredStoredProcs =
     maps:fold(
       fun(Path, Change, TSP) ->
@@ -2407,7 +2425,8 @@ list_triggered_sprocs(InitialTree, NewTree, Changes, Triggers) ->
               maps:fold(
                 fun(TriggerId, TriggerProps, TSP1) ->
                         evaluate_trigger(
-                          Tree, Path, Change, TriggerId, TriggerProps, TSP1)
+                          Tree, Path, Change, TriggerId, TriggerProps, MacVer,
+                          TSP1)
                 end, TSP, Triggers)
       end, [], Changes),
     sort_triggered_sprocs(TriggeredStoredProcs).
@@ -2417,6 +2436,7 @@ evaluate_trigger(
   #{sproc := StoredProcPath,
     event_filter := #evf_tree{path = PathPattern,
                               props = EventFilterProps} = EventFilter},
+  MacVer,
   TriggeredStoredProcs) ->
     %% For each trigger based on a tree event:
     %%   1. we verify the path of the changed tree node matches the monitored
@@ -2451,8 +2471,21 @@ evaluate_trigger(
                 StoredProc ->
                     %% TODO: Use a record to format
                     %% stored procedure arguments?
-                    EventProps = #{path => Path,
-                                   on_action => Change},
+                    %%
+                    %% We include the properties of the changed tree node in
+                    %% the event properties. For `create' and `update', `Tree'
+                    %% is the new tree, so these are the new node properties.
+                    %% For `delete', `Tree' is the initial tree, so these are
+                    %% the properties as they were just before the deletion.
+                    %% The list of properties to include is taken from the
+                    %% event filter's `props_to_return' (empty by default,
+                    %% meaning no node properties are included unless the
+                    %% trigger opts in, e.g. with `[payload]' to get the
+                    %% `data' key for nodes holding data).
+                    NodeProps = changed_node_props(
+                                  Tree, Path, EventFilterProps, MacVer),
+                    EventProps = NodeProps#{path => Path,
+                                            on_action => Change},
                     Triggered = #triggered{
                                    id = TriggerId,
                                    event_filter = EventFilter,
@@ -2464,7 +2497,8 @@ evaluate_trigger(
             TriggeredStoredProcs
     end;
 evaluate_trigger(
-  _Root, _Path, _Change, _TriggerId, _TriggerProps, TriggeredStoredProcs) ->
+  _Root, _Path, _Change, _TriggerId, _TriggerProps, _MacVer,
+  TriggeredStoredProcs) ->
     TriggeredStoredProcs.
 
 find_stored_proc(Tree, StoredProcPath) ->
@@ -2480,6 +2514,23 @@ find_stored_proc(Tree, StoredProcPath) ->
     case Ret of
         {ok, #{StoredProcPath := #{sproc := StoredProc}}} -> StoredProc;
         _                                                 -> undefined
+    end.
+
+changed_node_props(Tree, Path, EventFilterProps, MacVer) ->
+    case does_api_comply_with(node_props_in_trigger_props, MacVer) of
+        true ->
+            PropsToReturn = maps:get(
+                              props_to_return, EventFilterProps,
+                              ?DEFAULT_TRIGGER_PROPS_TO_RETURN),
+            TreeOptions = #{expect_specific_node => true,
+                            props_to_return => PropsToReturn},
+            Ret = khepri_tree:find_matching_nodes(Tree, Path, TreeOptions),
+            case Ret of
+                {ok, #{Path := NodeProps}} -> NodeProps;
+                _                          -> #{}
+            end;
+        false ->
+            #{}
     end.
 
 sort_triggered_sprocs(TriggeredStoredProcs) ->
@@ -2874,6 +2925,8 @@ convert_state1(State, 1, 2) ->
     Tree1 = khepri_tree:convert_tree(Tree, 1, 2),
     set_tree(State, Tree1);
 convert_state1(State, 2, 3) ->
+    State;
+convert_state1(State, 3, 4) ->
     State.
 
 -spec update_projections(OldState, NewState) -> ok when

@@ -442,6 +442,263 @@ filter_on_change_type_test_() ->
          ?_assertEqual(executed, receive_sproc_msg(DeletedKey))}]
       }]}.
 
+data_payload_is_passed_to_sproc_test_() ->
+    CreatedEventFilter = khepri_evf:tree(
+                           [foo], #{on_actions => [create],
+                                    props_to_return => [payload]}),
+    UpdatedEventFilter = khepri_evf:tree(
+                           [foo], #{on_actions => [update],
+                                    props_to_return => [payload]}),
+    DeletedEventFilter = khepri_evf:tree(
+                           [foo], #{on_actions => [delete],
+                                    props_to_return => [payload]}),
+    StoredProcPath = [sproc],
+    CreatedKey = {?FUNCTION_NAME, created},
+    UpdatedKey = {?FUNCTION_NAME, updated},
+    DeletedKey = {?FUNCTION_NAME, deleted},
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [{"Storing a procedure for `created` change",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, StoredProcPath ++ [created],
+              make_sproc_returning_props(self(), CreatedKey)))},
+
+        {"Storing a procedure for `updated` change",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, StoredProcPath ++ [updated],
+              make_sproc_returning_props(self(), UpdatedKey)))},
+
+        {"Storing a procedure for `deleted` change",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, StoredProcPath ++ [deleted],
+              make_sproc_returning_props(self(), DeletedKey)))},
+
+        {"Registering a `created` trigger",
+         ?_assertEqual(
+            ok,
+            khepri:register_trigger(
+              ?FUNCTION_NAME,
+              created,
+              CreatedEventFilter,
+              StoredProcPath ++ [created]))},
+
+        {"Registering an `updated` trigger",
+         ?_assertEqual(
+            ok,
+            khepri:register_trigger(
+              ?FUNCTION_NAME,
+              updated,
+              UpdatedEventFilter,
+              StoredProcPath ++ [updated]))},
+
+        {"Registering a `deleted` trigger",
+         ?_assertEqual(
+            ok,
+            khepri:register_trigger(
+              ?FUNCTION_NAME,
+              deleted,
+              DeletedEventFilter,
+              StoredProcPath ++ [deleted]))},
+
+        {"Creating a node; the new payload should be passed",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, [foo], value1))},
+
+        {"Checking the `created` procedure received the new payload",
+         ?_assertEqual(
+            #{path => [foo], on_action => create, data => value1},
+            receive_sproc_msg_with_props(CreatedKey))},
+
+        {"Updating a node; the new payload should be passed",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, [foo], value2))},
+
+        {"Checking the `updated` procedure received the new payload",
+         ?_assertEqual(
+            #{path => [foo], on_action => update, data => value2},
+            receive_sproc_msg_with_props(UpdatedKey))},
+
+        {"Deleting a node; the payload before deletion should be passed",
+         ?_assertMatch(
+            ok,
+            khepri:delete(
+              ?FUNCTION_NAME, [foo]))},
+
+        {"Checking the `deleted` procedure received the old payload",
+         ?_assertEqual(
+            #{path => [foo], on_action => delete, data => value2},
+            receive_sproc_msg_with_props(DeletedKey))}]
+      }]}.
+
+no_data_key_when_node_has_no_payload_test_() ->
+    %% The trigger requests the payload but matches the intermediate node
+    %% `[foo]' which is created without a payload as a byproduct of creating
+    %% `[foo, bar]'. The `data' key is therefore absent.
+    EventFilter = khepri_evf:tree([foo], #{props_to_return => [payload]}),
+    StoredProcPath = [sproc],
+    Key = ?FUNCTION_NAME,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [{"Storing a procedure",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, StoredProcPath,
+              make_sproc_returning_props(self(), Key)))},
+
+        {"Registering a trigger",
+         ?_assertEqual(
+            ok,
+            khepri:register_trigger(
+              ?FUNCTION_NAME,
+              ?FUNCTION_NAME,
+              EventFilter,
+              StoredProcPath))},
+
+        {"Creating a node with a payload-less parent",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, [foo, bar], value))},
+
+        {"Checking the props don't contain a `data` key",
+         ?_assertEqual(
+            #{path => [foo], on_action => create},
+            receive_sproc_msg_with_props(Key))}]
+      }]}.
+
+props_to_return_in_event_filter_test_() ->
+    %% The event filter requests extra node properties to be passed to the
+    %% triggered stored procedure.
+    EventFilter = khepri_evf:tree(
+                    [foo],
+                    #{props_to_return => [payload, payload_version,
+                                          child_list_length]}),
+    StoredProcPath = [sproc],
+    Key = ?FUNCTION_NAME,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [{"Storing a procedure",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, StoredProcPath,
+              make_sproc_returning_props(self(), Key)))},
+
+        {"Registering a trigger",
+         ?_assertEqual(
+            ok,
+            khepri:register_trigger(
+              ?FUNCTION_NAME,
+              ?FUNCTION_NAME,
+              EventFilter,
+              StoredProcPath))},
+
+        {"Creating a node",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, [foo], value))},
+
+        {"Checking the props contain the requested node properties",
+         ?_assertEqual(
+            #{path => [foo], on_action => create, data => value,
+              payload_version => 1, child_list_length => 0},
+            receive_sproc_msg_with_props(Key))}]
+      }]}.
+
+empty_props_to_return_in_event_filter_test_() ->
+    %% An empty `props_to_return' yields only `path' and `on_action'.
+    EventFilter = khepri_evf:tree([foo], #{props_to_return => []}),
+    StoredProcPath = [sproc],
+    Key = ?FUNCTION_NAME,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [{"Storing a procedure",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, StoredProcPath,
+              make_sproc_returning_props(self(), Key)))},
+
+        {"Registering a trigger",
+         ?_assertEqual(
+            ok,
+            khepri:register_trigger(
+              ?FUNCTION_NAME,
+              ?FUNCTION_NAME,
+              EventFilter,
+              StoredProcPath))},
+
+        {"Creating a node",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, [foo], value))},
+
+        {"Checking the props only contain `path` and `on_action`",
+         ?_assertEqual(
+            #{path => [foo], on_action => create},
+            receive_sproc_msg_with_props(Key))}]
+      }]}.
+
+default_passes_only_path_and_on_action_test_() ->
+    %% By default (no `props_to_return' in the event filter), no node
+    %% properties are included: the feature is opt-in.
+    EventFilter = khepri_evf:tree([foo]),
+    StoredProcPath = [sproc],
+    Key = ?FUNCTION_NAME,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [{"Storing a procedure",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, StoredProcPath,
+              make_sproc_returning_props(self(), Key)))},
+
+        {"Registering a trigger",
+         ?_assertEqual(
+            ok,
+            khepri:register_trigger(
+              ?FUNCTION_NAME,
+              ?FUNCTION_NAME,
+              EventFilter,
+              StoredProcPath))},
+
+        {"Creating a node with a payload",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, [foo], value))},
+
+        {"Checking the props only contain `path` and `on_action`",
+         ?_assertEqual(
+            #{path => [foo], on_action => create},
+            receive_sproc_msg_with_props(Key))}]
+      }]}.
+
+
 filter_on_pattern_test_() ->
     Path = [foo, bar],
     EventFilter = khepri_evf:tree([foo, #if_has_data{}]),
@@ -624,6 +881,11 @@ make_sproc(Pid, Key) ->
     fun(Props) ->
             #{on_action := OnAction, path := Path} = Props,
             Pid ! {sproc, Key, {OnAction, Path}}
+    end.
+
+make_sproc_returning_props(Pid, Key) ->
+    fun(Props) ->
+            Pid ! {sproc, Key, Props}
     end.
 
 receive_sproc_msg(Key) ->

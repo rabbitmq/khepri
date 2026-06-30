@@ -232,10 +232,11 @@ put_many(PathPattern, Data, Options) ->
     khepri_machine:split_put_options(TreeAndPutOptions),
     TreeOptions1 = maybe_return_indirect_deletes(TreeOptions),
     %% TODO: Ensure `CommandOptions' is unset.
+    MacVer = get_tx_effective_machine_version(),
     Fun = fun(State1, SideEffects) ->
                   khepri_machine:insert_or_update_node(
                     State1, PathPattern1, Payload1, PutOptions, TreeOptions1,
-                    SideEffects)
+                    MacVer, SideEffects)
           end,
     handle_state_for_call(Fun).
 
@@ -429,9 +430,10 @@ delete_many(PathPattern, Options) ->
     TreeOptions1 = maybe_return_indirect_deletes(TreeOptions),
     %% TODO: Ensure `CommandOptions' is empty and `TreeOptions' doesn't
     %% contains put options.
+    MacVer = get_tx_effective_machine_version(),
     Fun = fun(State1, SideEffects) ->
                   khepri_machine:delete_matching_nodes(
-                    State1, PathPattern1, TreeOptions1, SideEffects)
+                    State1, PathPattern1, TreeOptions1, MacVer, SideEffects)
           end,
     handle_state_for_call(Fun).
 
