@@ -239,6 +239,16 @@
 -type tx_ret() :: khepri:ok(khepri_tx:tx_fun_result()) |
                   khepri_tx:tx_abort() |
                   no_return().
+%% Return value of a transaction.
+%%
+%% A successful transaction returns `{ok, Result}'. A failure is reported as a
+%% bare `{error, Reason}' tuple, never wrapped in `{ok, _}'. This covers both
+%% an aborted transaction (see {@link khepri_tx:abort/1}) and an infrastructure
+%% error surfaced while dispatching the transaction (for example `{error,
+%% noproc}' or `{error, timeout}' when the store is not running). This matches
+%% how {@link khepri:handle_async_ret/2} propagates the same errors for
+%% asynchronous transactions. To return an error-shaped value as a successful
+%% result, wrap it explicitly, e.g. `{ok, {error, Reason}}'.
 
 -type async_ret() :: ok.
 
@@ -537,6 +547,8 @@ readonly_transaction(StoreId, Fun, Args, Options)
     case process_query(StoreId, Query, Options) of
         {exception, _, _, _} = Exception ->
             handle_tx_exception(Exception);
+        {error, _} = Error ->
+            Error;
         Ret ->
             {ok, Ret}
     end;
@@ -555,6 +567,8 @@ readonly_transaction(StoreId, PathPattern, Args, Options)
     case process_query(StoreId, Query, Options) of
         {exception, _, _, _} = Exception ->
             handle_tx_exception(Exception);
+        {error, _} = Error ->
+            Error;
         Ret ->
             {ok, Ret}
     end.
@@ -587,6 +601,8 @@ readwrite_transaction1(StoreId, StandaloneFunOrPath, Args, Options) ->
     case process_command(StoreId, Command, Options1) of
         {exception, _, _, _} = Exception ->
             handle_tx_exception(Exception);
+        {error, _} = Error ->
+            Error;
         ok = Ret ->
             CommandType = select_command_type(Options),
             case CommandType of
