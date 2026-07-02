@@ -1555,20 +1555,16 @@ complete_ra_server_config(#{cluster_name := StoreId,
                                     member => Member},
     Machine = {module, khepri_machine, MachineConfig},
 
-    LogInitArgs0 = #{uid => UId},
-    LogInitArgs = case MachineConfig0 of
-                      #{snapshot_interval := SnapshotInterval} ->
-                          %% Ra takes a snapshot when the number of applied
-                          %% commands is _greater than_ the interval (not
-                          %% equal), so we need to subtract one from Khepri's
-                          %% configured snapshot interval so that Ra snapshots
-                          %% exactly at the interval.
-                          MinSnapshotInterval = SnapshotInterval - 1,
-                          LogInitArgs0#{min_snapshot_interval =>
-                                        MinSnapshotInterval};
-                      _ ->
-                          LogInitArgs0
-                  end,
+    LogInitArgs = #{uid => UId,
+
+                    %% We know that using a number of commands as the main
+                    %% parameter of this decision is ineffective. Therefore, we
+                    %% set a minimum snapshot interval of 0 to make sure that
+                    %% the snapshot decision is entirely taken by Khepri.
+                    %%
+                    %% This is also useful during testing because Ra won't skip
+                    %% a snapshot even if it is very early in a testcase.
+                    min_snapshot_interval => 0},
 
     RaServerConfig2#{uid => UId,
                      log_init_args => LogInitArgs,
