@@ -301,7 +301,14 @@
 %% A mapping between the names of projections and patterns to which each
 %% projection is registered.
 
--type api_behaviour() :: atom().
+-type api_behaviour() :: dedup_protection |
+                         delete_reason_in_node_props |
+                         expire_dedups_from_tick |
+                         indirect_deletes_in_ret |
+                         uniform_write_ret |
+                         multi_table_projections |
+                         uniform_commands |
+                         request_snapshot.
 %% Name of a state machine API behaviour.
 
 -export_type([write_ret/0,

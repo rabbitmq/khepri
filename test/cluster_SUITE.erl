@@ -1769,7 +1769,13 @@ can_use_default_store_on_single_node(_Config) ->
                          payload_version => 7}}},
        khepri_adv:get_many([foo], #{})),
 
-    ?assertNot(khepri_machine:does_api_comply_with(some_behaviour, StoreId)),
+    %% We make a fake computation to "generate" the behaviour name. This is to
+    %% circumvent Dialyzer who will detect if we pass an unknown behaviour atom
+    %% here. `khepri_machine:does_api_comply_with/2' accepts any atom but the
+    %% spec indicates in only supports a specific list to help use detect
+    %% misuses.
+    UnknownBehaviour = list_to_atom("some_behaviour"),
+    ?assertNot(khepri_machine:does_api_comply_with(UnknownBehaviour, StoreId)),
 
     ?assertEqual({ok, [{StoreId, Node}]}, khepri_cluster:members()),
     ?assertEqual(
