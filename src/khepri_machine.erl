@@ -66,9 +66,26 @@
 %% </ul>
 %% </td>
 %% </tr>
+%% <tr>
+%% <td style="text-align: right; vertical-align: top;">4</td>
+%% <td>
+%% <ul>
+%% <li>Added uniform commands, replacing all existing commands.</li>
+%% <li>Added `#request_snapshot{}' helper command for tests.</li>
+%% <li>Started to record init arguments in the machine state.</li>
+%% <li>Started to track unreleased command footprint in state machine
+%% metrics.</li>
+%% <li>Started to use unreleased command footprint to determine if a snapshot
+%% is needed.</li>
+%% <li>Started to use the last snasphot timestamp to determine if a snapshot is
+%% needed.</li>
+%% </ul>
+%% </td>
+%% </tr>
 %% </table>
 
 -module(khepri_machine).
+-feature(maybe_expr, enable).
 -behaviour(ra_machine).
 
 -include_lib("kernel/include/logger.hrl").
@@ -110,6 +127,7 @@
 %% For internal use only.
 -export([clear_cache/1,
          ack_triggers_execution/2,
+         request_snapshot/3,
          split_query_options/2,
          split_command_options/2,
          split_put_options/1,
@@ -120,7 +138,8 @@
          process_command/3,
          does_api_comply_with/2,
          wait_for_effective_machine_version/3,
-         wait_for_effective_behaviour/3]).
+         wait_for_effective_behaviour/3,
+         convert_to_uniform_command/1]).
 
 %% Internal functions to access the opaque #khepri_machine{} state.
 -export([is_state/1,
@@ -134,6 +153,7 @@
          get_projections/1,
          has_projection/2,
          get_metrics/1,
+         get_init_args/1,
          get_dedups/1,
          get_store_id/1]).
 
@@ -141,7 +161,8 @@
 -export([do_process_sync_command/3,
          make_virgin_state/1,
          convert_state/3,
-         set_tree/2]).
+         set_tree/2,
+         reset_metrics/1]).
 -endif.
 
 -compile({no_auto_import, [apply/3]}).
@@ -152,19 +173,29 @@
 
 -type triggered() :: #triggered{}.
 
--type command() :: #put{} |
-                   #delete{} |
-                   #tx{} |
-                   #register_trigger{} |
-                   #ack_triggered{} |
-                   #register_projection{} |
-                   #unregister_projections{} |
-                   #dedup{} |
-                   #dedup_ack{} |
-                   #drop_dedups{}.
+-type command() :: #put_v{} |
+                   #delete_v{} |
+                   #tx_v{} |
+                   #register_trigger_v{} |
+                   #ack_triggered_v{} |
+                   #register_projection_v{} |
+                   #unregister_projections_v{} |
+                   #dedup_ack_v{} |
+                   #drop_dedups_v{} |
+                   #request_snapshot{}.
 %% Commands specific to this Ra machine.
 
--type old_command() :: #unregister_projection{}.
+-type old_command() :: #put{} |
+                       #delete{} |
+                       #tx{} |
+                       #register_trigger{} |
+                       #ack_triggered{} |
+                       #register_projection{} |
+                       #unregister_projection{} |
+                       #unregister_projections{} |
+                       #dedup{} |
+                       #dedup_ack{} |
+                       #drop_dedups{}.
 %% Old commands that are still accepted by the Ra machine but never created.
 %%
 %% Even though Khepri no longer creates these commands, they may still be
@@ -177,6 +208,7 @@
                                member := ra:server_id(),
                                snapshot_interval => non_neg_integer(),
                                commands => [command() |
+                                            old_command() |
                                             {machine_version,
                                              non_neg_integer(),
                                              non_neg_integer()}],
@@ -212,7 +244,25 @@
                             event_filter := khepri_evf:event_filter()}}.
 %% Internal triggers map in the machine state.
 
--type metrics() :: #{applied_command_count => non_neg_integer()}.
+-type metrics() :: #{applied_command_count => non_neg_integer(),
+                     unreleased_command_footprint => non_neg_integer(),
+                     last_snapshot_request_timestamp => integer(),
+
+                     %% A machine state is always initialised at version 0.
+                     %% When a new machine init argument was introduced, it was
+                     %% ignored at init time because it was unsupported by
+                     %% version 0 of the machine state and its configuration.
+                     %% When the machine state was converted to the new version
+                     %% that supports the new init argument, a default value
+                     %% was used because the conversion function had no access
+                     %% to the init arguments.
+                     %%
+                     %% To fix this problem, we abuse the `metrics` map in the
+                     %% machine state to store the init arguments. Thanks to
+                     %% this, the conversion function can use the init
+                     %% arguments again to set the new configuration to the
+                     %% requested value instead of the default one.
+                     init_args => khepri_machine:machine_init_args()}.
 %% Internal state machine metrics.
 
 -type dedups_map() :: #{reference() => {any(), integer()}}.
@@ -250,7 +300,14 @@
 %% A mapping between the names of projections and patterns to which each
 %% projection is registered.
 
--type api_behaviour() :: atom().
+-type api_behaviour() :: dedup_protection |
+                         delete_reason_in_node_props |
+                         expire_dedups_from_tick |
+                         indirect_deletes_in_ret |
+                         uniform_write_ret |
+                         multi_table_projections |
+                         uniform_commands |
+                         request_snapshot.
 %% Name of a state machine API behaviour.
 
 -export_type([write_ret/0,
@@ -382,9 +439,20 @@ put(StoreId, PathPattern, Payload, Options)
     Payload1 = khepri_payload:prepare(Payload),
     {CommandOptions, TreeAndPutOptions} = split_command_options(
                                             StoreId, Options),
-    Command = #put{path = PathPattern1,
-                   payload = Payload1,
-                   options = TreeAndPutOptions},
+    Command = case does_api_comply_with(uniform_commands, StoreId) of
+                  true ->
+                      {TreeOptions, PutOptions} = split_put_options(
+                                                    TreeAndPutOptions),
+                      CommandArgs = #put_v1{path = PathPattern1,
+                                            payload = Payload1,
+                                            put_options = PutOptions,
+                                            tree_options = TreeOptions},
+                      #put_v{args = CommandArgs};
+                  false ->
+                      #put{path = PathPattern1,
+                           payload = Payload1,
+                           options = TreeAndPutOptions}
+              end,
     process_command(StoreId, Command, CommandOptions);
 put(_StoreId, PathPattern, Payload, _Options) ->
     ?khepri_misuse(invalid_payload, #{path => PathPattern,
@@ -410,9 +478,16 @@ delete(StoreId, PathPattern, Options) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     {CommandOptions, TreeOptions} = split_command_options(StoreId, Options),
-    %% TODO: Ensure `PutOptions' are not set this map.
-    Command = #delete{path = PathPattern1,
-                      options = TreeOptions},
+    %% TODO: Ensure `PutOptions' are not set in `Options'.
+    Command = case does_api_comply_with(uniform_commands, StoreId) of
+                  true ->
+                      CommandArgs = #delete_v1{path = PathPattern1,
+                                               tree_options = TreeOptions},
+                      #delete_v{args = CommandArgs};
+                  false ->
+                      #delete{path = PathPattern1,
+                              options = TreeOptions}
+              end,
     process_command(StoreId, Command, CommandOptions).
 
 -spec transaction(StoreId, FunOrPath, Args, ReadWrite, Options) -> Ret when
@@ -582,7 +657,14 @@ readwrite_transaction(
     readwrite_transaction1(StoreId, PathPattern1, Args, Options).
 
 readwrite_transaction1(StoreId, StandaloneFunOrPath, Args, Options) ->
-    Command = #tx{'fun' = StandaloneFunOrPath, args = Args},
+    Command = case does_api_comply_with(uniform_commands, StoreId) of
+                  true ->
+                      CommandArgs = #tx_v1{'fun' = StandaloneFunOrPath,
+                                           args = Args},
+                      #tx_v{args = CommandArgs};
+                  false ->
+                      #tx{'fun' = StandaloneFunOrPath, args = Args}
+              end,
     Options1 = maps:merge(#{protect_against_dups => true}, Options),
     case process_command(StoreId, Command, Options1) of
         {exception, _, _, _} = Exception ->
@@ -643,9 +725,18 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options)
     EventFilter1 = khepri_evf:wrap(EventFilter),
     StoredProcPath1 = khepri_path:from_string(StoredProcPath),
     khepri_path:ensure_is_valid(StoredProcPath1),
-    Command = #register_trigger{id = TriggerId,
+    Command = case does_api_comply_with(uniform_commands, StoreId) of
+                  true ->
+                      CommandArgs = #register_trigger_v1{
+                                       id = TriggerId,
+                                       sproc = StoredProcPath1,
+                                       event_filter = EventFilter1},
+                      #register_trigger_v{args = CommandArgs};
+                  false ->
+                      #register_trigger{id = TriggerId,
                                 sproc = StoredProcPath1,
-                                event_filter = EventFilter1},
+                                event_filter = EventFilter1}
+              end,
     process_command(StoreId, Command, Options).
 
 -spec register_projection(StoreId, PathPattern, Projection, Options) ->
@@ -687,8 +778,16 @@ register_projection(
 
             PathPattern = khepri_path:from_string(PathPattern0),
             khepri_path:ensure_is_valid(PathPattern),
-            Command = #register_projection{pattern = PathPattern,
-                                           projection = Projection},
+            Command = case does_api_comply_with(uniform_commands, StoreId) of
+                          true ->
+                              CommandArgs = #register_projection_v1{
+                                               pattern = PathPattern,
+                                               projection = Projection},
+                              #register_projection_v{args = CommandArgs};
+                          false ->
+                              #register_projection{pattern = PathPattern,
+                                                   projection = Projection}
+                      end,
             process_command(StoreId, Command, Options1);
         {error, _Reason} = Error ->
             Error
@@ -718,7 +817,13 @@ unregister_projections(StoreId, Names, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
        (Names =:= all orelse is_list(Names)) andalso
        is_map(Options) ->
-    Command = #unregister_projections{names = Names},
+    Command = case does_api_comply_with(uniform_commands, StoreId) of
+                  true ->
+                      CommandArgs = #unregister_projections_v1{names = Names},
+                      #unregister_projections_v{args = CommandArgs};
+                  false ->
+                      #unregister_projections{names = Names}
+              end,
     process_command(StoreId, Command, Options).
 
 -spec ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
@@ -735,8 +840,35 @@ unregister_projections(StoreId, Names, Options)
 
 ack_triggers_execution(StoreId, TriggeredStoredProcs)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
-    Command = #ack_triggered{triggered = TriggeredStoredProcs},
+    Command = case does_api_comply_with(uniform_commands, StoreId) of
+                  true ->
+                      CommandArgs = #ack_triggered_v1{
+                                       triggered = TriggeredStoredProcs},
+                      #ack_triggered_v{args = CommandArgs};
+                  false ->
+                      #ack_triggered{triggered = TriggeredStoredProcs}
+              end,
     process_command(StoreId, Command, #{async => true}).
+
+-spec request_snapshot(StoreId, Reason, Options) ->
+    Ret when
+      StoreId :: khepri:store_id(),
+      Reason :: string(),
+      Options :: khepri:command_options(),
+      Ret :: ok | khepri:error().
+%% @doc Requests that a snapshot of the machine state is taken.
+%%
+%% @private
+
+request_snapshot(StoreId, Reason, Options) when ?IS_KHEPRI_STORE_ID(StoreId) ->
+    case does_api_comply_with(request_snapshot, StoreId) of
+        true ->
+            CommandArgs = #request_snapshot_v1{reason = Reason},
+            Command = #request_snapshot{args = CommandArgs},
+            process_command(StoreId, Command, Options);
+        false ->
+            ok
+    end.
 
 -spec get_keep_while_conds_state(StoreId, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -914,7 +1046,7 @@ set_default_options(StoreId, Options) ->
 
 -spec process_command(StoreId, Command, Options) -> Ret when
       StoreId :: khepri:store_id(),
-      Command :: command(),
+      Command :: command() | old_command(),
       Options :: khepri:command_options(),
       Ret :: any().
 %% @doc Processes a command which is appended to the Ra log and processed by
@@ -932,13 +1064,17 @@ set_default_options(StoreId, Options) ->
 %% @private
 
 process_command(StoreId, Command, Options) ->
+    Command1 = case does_api_comply_with(uniform_commands, StoreId) of
+                   true  -> compute_command_size(Command);
+                   false -> Command
+               end,
     CommandType = select_command_type(Options),
     case CommandType of
         sync ->
-            process_sync_command(StoreId, Command, Options);
+            process_sync_command(StoreId, Command1, Options);
         {async, Correlation, Priority} ->
             process_async_command(
-              StoreId, Command, Correlation, Priority)
+              StoreId, Command1, Correlation, Priority)
     end.
 
 process_sync_command(
@@ -971,18 +1107,37 @@ process_sync_command(
                          infinity -> Now + 15 * 60 * 1000;
                          Timeout  -> Now + Timeout
                      end,
-            DedupCommand = #dedup{ref = CommandRef,
-                                  expiry = Expiry,
-                                  command = Command},
-            DedupAck = #dedup_ack{ref = CommandRef},
+
+            {
+             DedupEnabledCommand,
+             DedupAckCommand
+            } = case does_api_comply_with(uniform_commands, StoreId) of
+                    true ->
+                        %% With the uniform commands, the dedup attributes (ref
+                        %% and expiry) are passed with the command in its
+                        %% common arguments.
+                        Command1 = set_dedup_args(Command, CommandRef, Expiry),
+                        DedupAckArgs = #dedup_ack_v1{ref = CommandRef},
+                        DedupAck = #dedup_ack_v{args = DedupAckArgs},
+                        {Command1, DedupAck};
+                    false ->
+                        %% Before the conversion to uniform commands, the dedup
+                        %% attributes were passed using a dedicated `#dedup{}'
+                        %% command that embedded the actual command.
+                        DedupCommand = #dedup{ref = CommandRef,
+                                              expiry = Expiry,
+                                              command = Command},
+                        DedupAck = #dedup_ack{ref = CommandRef},
+                        {DedupCommand, DedupAck}
+                end,
             Ret = do_process_sync_command(
-                    StoreId, DedupCommand, Options),
+                    StoreId, DedupEnabledCommand, Options),
 
             %% We acknowledge that we received the reply and all duplicates
             %% can be ignored.
             Dest = leader_id_or_local(StoreId),
             sending_async_command(Dest),
-            _ = ra:pipeline_command(Dest, DedupAck),
+            _ = ra:pipeline_command(Dest, DedupAckCommand),
             Ret;
         false ->
             do_process_sync_command(StoreId, Command, Options)
@@ -1344,32 +1499,39 @@ leader_id_or(StoreId, {_, _} = Default) ->
 %% ra_machine callbacks.
 %% -------------------------------------------------------------------
 
--spec init(Params) -> State when
-      Params :: machine_init_args(),
+-spec init(InitArgs) -> State when
+      InitArgs :: khepri_machine:machine_init_args(),
       State :: khepri_machine_v0:state().
 %% @private
 
-init(Params) ->
+init(InitArgs) ->
     %% Initialize the state. This function always returns the oldest supported
     %% state format.
-    State = khepri_machine_v0:init(Params),
+    State = khepri_machine_v0:init(InitArgs),
 
     InitialMacVer = 0,
     StoreId = get_store_id(State),
     cache_effective_machine_version(StoreId, InitialMacVer),
 
+    State1 = set_init_args(State, InitArgs),
+
     %% Create initial "schema" if provided.
-    Commands = maps:get(commands, Params, []),
+    Commands = maps:get(commands, InitArgs, []),
     State3 = lists:foldl(
-               fun(Command, State1) ->
+               fun(Command, State2) ->
                        Meta = #{index => 0,
                                 term => 0,
                                 system_time => 0,
                                 machine_version => InitialMacVer},
-                       {S, _, _} = apply(Meta, Command, State1),
+                       {S, _, _} = apply(Meta, Command, State2),
                        S
-               end, State, Commands),
-    reset_applied_command_count(State3).
+               end, State1, Commands),
+    State4 = reset_metrics(State3),
+
+    %% Just after the start, we record the timestamp just as if there was a
+    %% snapshot. This is mostly to avoid that a snapshot is taken right away.
+    State5 = record_snapshot_timestamp(State4),
+    State5.
 
 -spec init_aux(StoreId :: khepri:store_id()) -> aux_state().
 %% @private
@@ -1453,38 +1615,10 @@ handle_aux(
     {no_reply, AuxState1, IntState};
 handle_aux(leader, cast, tick, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+    SideEffects0 = [],
+    SideEffects1 = handle_expired_dedups(AuxState1, IntState, SideEffects0),
 
-    %% Expiring dedups in the tick handler is only available on versions 2
-    %% and greater. In versions 0 and 1, expiration of dedups is done in
-    %% `drop_expired_dedups/2'. This proved to be quite expensive when handling
-    %% a very large batch of transactions at once, so this expiration step was
-    %% moved to the `tick' handler in version 2.
-    case ra_aux:effective_machine_version(IntState) of
-        EffectiveMacVer
-          when EffectiveMacVer >= ?API_BEHAV_MACVER(expire_dedups_from_tick) ->
-            State = ra_aux:machine_state(IntState),
-            Timestamp = erlang:system_time(millisecond),
-            Dedups = get_dedups(State),
-            RefsToDrop = maps:fold(
-                           fun(CommandRef, {_Reply, Expiry}, Acc) ->
-                                   case Expiry =< Timestamp of
-                                       true ->
-                                           [CommandRef | Acc];
-                                       false ->
-                                           Acc
-                                   end
-                           end, [], Dedups),
-            Effects = case RefsToDrop of
-                          [] ->
-                              [];
-                          _ ->
-                              DropDedups = #drop_dedups{refs = RefsToDrop},
-                              [{append, DropDedups}]
-                      end,
-            {no_reply, AuxState1, IntState, Effects};
-        _ ->
-            {no_reply, AuxState1, IntState}
-    end;
+    {no_reply, AuxState1, IntState, SideEffects1};
 handle_aux(_RaState, _Type, _Command, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
     {no_reply, AuxState1, IntState}.
@@ -1546,6 +1680,52 @@ perform_delayed_aux_query(
           end,
     gen_statem:reply(From, Ret).
 
+handle_expired_dedups(AuxState, IntState, SideEffects) ->
+    %% Expiring dedups in the tick handler is only available on versions 2
+    %% and greater. In versions 0 and 1, expiration of dedups is done in
+    %% `drop_expired_dedups/2'. This proved to be quite expensive when handling
+    %% a very large batch of transactions at once, so this expiration step was
+    %% moved to the `tick' handler in version 2.
+    case ra_aux:effective_machine_version(IntState) of
+        EffectiveMacVer
+          when EffectiveMacVer >= ?API_BEHAV_MACVER(expire_dedups_from_tick) ->
+            #khepri_machine_aux{store_id = StoreId} = AuxState,
+            State = ra_aux:machine_state(IntState),
+            Timestamp = erlang:system_time(millisecond),
+            Dedups = get_dedups(State),
+            RefsToDrop = maps:fold(
+                           fun(CommandRef, {_Reply, Expiry}, Acc) ->
+                                   case Expiry =< Timestamp of
+                                       true ->
+                                           [CommandRef | Acc];
+                                       false ->
+                                           Acc
+                                   end
+                           end, [], Dedups),
+            case RefsToDrop of
+                [] ->
+                    SideEffects;
+                _ ->
+                    UseUniformCommands = does_api_comply_with(
+                                           uniform_commands,
+                                           StoreId),
+                    DropDedups = case UseUniformCommands of
+                                     true ->
+                                         CommandArgs = (
+                                           #drop_dedups_v1{
+                                              refs = RefsToDrop}),
+                                         #drop_dedups_v{
+                                            args = CommandArgs};
+                                     false ->
+                                         #drop_dedups{
+                                            refs = RefsToDrop}
+                                 end,
+                    [{append, DropDedups} | SideEffects]
+            end;
+        _ ->
+            SideEffects
+    end.
+
 restore_projection(Projection, Tree, PathPattern) ->
     _ = khepri_projection:init(Projection),
     TreeOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
@@ -1573,36 +1753,128 @@ restore_projection(Projection, Tree, PathPattern) ->
 %% @private
 
 apply(
-  Meta,
-  #put{path = PathPattern, payload = Payload, options = TreeAndPutOptions},
+  #{machine_version := MacVer} = Meta,
+  Command,
   State) ->
-    {TreeOptions, PutOptions} = split_put_options(TreeAndPutOptions),
+    try
+        pre_apply(Meta, Command, State)
+    catch
+        Class:Reason:Stacktrace ->
+            StoreId = get_store_id(State),
+            Msg = io_lib:format("State machine crash while applying a command~n"
+                                "  StoreId: ~s~n"
+                                "  Machine version: ~b~n"
+                                "  Command:~n"
+                                "    ~p~n"
+                                "  Crash:~n"
+                                "    ~ts",
+                                [StoreId, MacVer, Command,
+                                 khepri_utils:format_exception(
+                                   Class, Reason, Stacktrace,
+                                   #{column => 4})]),
+            ?LOG_ALERT(Msg, []),
+            erlang:raise(Class, Reason, Stacktrace)
+    end.
+
+-spec pre_apply(Meta, Command, State) -> {State, Ret, SideEffects} when
+      Meta :: ra_machine:command_meta_data(),
+      Command :: command() | old_command() | ra_machine:builtin_command(),
+      State :: state(),
+      Ret :: any(),
+      SideEffects :: ra_machine:effects().
+%% @private
+
+pre_apply(Meta, Command, State) ->
+    handle_dedup(Meta, Command, State).
+
+handle_dedup(
+  #{machine_version := MacVer} = Meta,
+  Command,
+  State)
+  when MacVer >= ?API_BEHAV_MACVER(uniform_commands) andalso
+       not is_record(Command, dedup) ->
+    case get_command_common_args(Command) of
+        #common_v1{dedup_ref = undefined, dedup_expiry = undefined} ->
+            do_apply(Meta, Command, State);
+        #common_v1{dedup_ref = CommandRef, dedup_expiry = Expiry} ->
+            handle_dedup1(Meta, Command, CommandRef, Expiry, State);
+        none ->
+            do_apply(Meta, Command, State);
+        undefined ->
+            handle_unknown_command(Meta, Command, State)
+    end;
+handle_dedup(
+  #{machine_version := MacVer} = Meta,
+  #dedup{ref = CommandRef, expiry = Expiry, command = Command},
+  State)
+  when MacVer >= ?API_BEHAV_MACVER(dedup_protection) ->
+    handle_dedup1(Meta, Command, CommandRef, Expiry, State);
+handle_dedup(
+  Meta,
+  Command,
+  State) ->
+    do_apply(Meta, Command, State).
+
+handle_dedup1(Meta, Command, CommandRef, Expiry, State)
+  when is_reference(CommandRef) andalso
+       is_integer(Expiry) ->
+    Dedups = get_dedups(State),
+    case Dedups of
+        #{CommandRef := {Reply, _Expiry}} ->
+            Ret = {State, Reply},
+            post_apply(Ret, Meta, Command);
+        _ ->
+            {State1, Reply, SideEffects} = do_apply(Meta, Command, State),
+            Dedups1 = Dedups#{CommandRef => {Reply, Expiry}},
+            State2 = set_dedups(State1, Dedups1),
+            {State2, Reply, SideEffects}
+    end.
+
+-spec do_apply(Meta, Command, State) -> {State, Ret, SideEffects} when
+      Meta :: ra_machine:command_meta_data(),
+      Command :: command() | old_command() | ra_machine:builtin_command(),
+      State :: state(),
+      Ret :: any(),
+      SideEffects :: ra_machine:effects().
+%% @private
+
+do_apply(
+  Meta,
+  #put_v{args = #put_v1{path = PathPattern,
+                        payload = Payload,
+                        put_options = PutOptions,
+                        tree_options = TreeOptions}} = Command,
+  State) ->
     Ret = insert_or_update_node(
             State, PathPattern, Payload, PutOptions, TreeOptions, []),
-    post_apply(Ret, Meta);
-apply(
+    post_apply(Ret, Meta, Command);
+do_apply(
   Meta,
-  #delete{path = PathPattern, options = TreeOptions},
+  #delete_v{args = #delete_v1{path = PathPattern,
+                              tree_options = TreeOptions}} = Command,
   State) ->
     Ret = delete_matching_nodes(State, PathPattern, TreeOptions, []),
-    post_apply(Ret, Meta);
-apply(
+    post_apply(Ret, Meta, Command);
+do_apply(
   Meta,
-  #tx{'fun' = StandaloneFun, args = Args},
+  #tx_v{args = #tx_v1{'fun' = StandaloneFun,
+                      args = Args}} = Command,
   State) when ?IS_HORUS_FUN(StandaloneFun) ->
     Ret = khepri_tx_adv:run(State, StandaloneFun, Args, true, Meta),
-    post_apply(Ret, Meta);
-apply(
+    post_apply(Ret, Meta, Command);
+do_apply(
   Meta,
-  #tx{'fun' = PathPattern, args = Args},
+  #tx_v{args = #tx_v1{'fun' = PathPattern,
+                      args = Args}} = Command,
   State) when ?IS_KHEPRI_PATH_PATTERN(PathPattern) ->
     Ret = locate_sproc_and_execute_tx(State, PathPattern, Args, true, Meta),
-    post_apply(Ret, Meta);
-apply(
+    post_apply(Ret, Meta, Command);
+do_apply(
   Meta,
-  #register_trigger{id = TriggerId,
-                    sproc = StoredProcPath,
-                    event_filter = EventFilter},
+  #register_trigger_v{
+     args = #register_trigger_v1{id = TriggerId,
+                                 sproc = StoredProcPath,
+                                 event_filter = EventFilter}} = Command,
   State) ->
     Triggers = get_triggers(State),
     StoredProcPath1 = khepri_path:realpath(StoredProcPath),
@@ -1615,19 +1887,22 @@ apply(
                                          event_filter => EventFilter1}},
     State1 = set_triggers(State, Triggers1),
     Ret = {State1, ok},
-    post_apply(Ret, Meta);
-apply(
+    post_apply(Ret, Meta, Command);
+do_apply(
   Meta,
-  #ack_triggered{triggered = ProcessedTriggers},
+  #ack_triggered_v{
+     args = #ack_triggered_v1{triggered = ProcessedTriggers}} = Command,
   State) ->
     EmittedTriggers = get_emitted_triggers(State),
     EmittedTriggers1 = EmittedTriggers -- ProcessedTriggers,
     State1 = set_emitted_triggers(State, EmittedTriggers1),
     Ret = {State1, ok},
-    post_apply(Ret, Meta);
-apply(
+    post_apply(Ret, Meta, Command);
+do_apply(
   Meta,
-  #register_projection{pattern = PathPattern, projection = Projection},
+  #register_projection_v{
+     args = #register_projection_v1{pattern = PathPattern,
+                                    projection = Projection}} = Command,
   State) ->
     ProjectionName = khepri_projection:name(Projection),
     ProjectionTree = get_projections(State),
@@ -1637,7 +1912,7 @@ apply(
             Reason = ?khepri_error(projection_already_exists, Info),
             Reply = {error, Reason},
             Ret = {State, Reply},
-            post_apply(Ret, Meta);
+            post_apply(Ret, Meta, Command);
         false ->
             ProjectionTree1 = khepri_pattern_tree:update(
                                 ProjectionTree,
@@ -1655,11 +1930,12 @@ apply(
                                             pattern = PathPattern},
             Effects = [{aux, AuxEffect}],
             Ret = {State1, ok, Effects},
-            post_apply(Ret, Meta)
+            post_apply(Ret, Meta, Command)
     end;
-apply(
+do_apply(
   Meta,
-  #unregister_projections{names = Names},
+  #unregister_projections_v{
+     args = #unregister_projections_v1{names = Names}} = Command,
   State) ->
     RemoveProjection = case Names of
                            all ->
@@ -1696,38 +1972,10 @@ apply(
     clear_compiled_projection_tree(),
     Reply = {ok, RemovedProjectionsMap},
     Ret = {State1, Reply},
-    post_apply(Ret, Meta);
-apply(
-  Meta,
-  #unregister_projection{name = Name},
-  State) ->
-    %% This command was replaced by `#unregister_projections{}'. Therefore,
-    %% convert it and recurse.
-    %%
-    %% For backward-compatibility; see {@link old_command()}.
-    NewCommand = #unregister_projections{names = [Name]},
-    apply(Meta, NewCommand, State);
-apply(
+    post_apply(Ret, Meta, Command);
+do_apply(
   #{machine_version := MacVer} = Meta,
-  #dedup{ref = CommandRef, expiry = Expiry, command = Command},
-  State)
-  when is_reference(CommandRef) andalso
-       is_integer(Expiry) andalso
-       MacVer >= ?API_BEHAV_MACVER(dedup_protection) ->
-    Dedups = get_dedups(State),
-    case Dedups of
-        #{CommandRef := {Reply, _Expiry}} ->
-            Ret = {State, Reply},
-            post_apply(Ret, Meta);
-        _ ->
-            {State1, Reply, SideEffects} = apply(Meta, Command, State),
-            Dedups1 = Dedups#{CommandRef => {Reply, Expiry}},
-            State2 = set_dedups(State1, Dedups1),
-            {State2, Reply, SideEffects}
-    end;
-apply(
-  #{machine_version := MacVer} = Meta,
-  #dedup_ack{ref = CommandRef},
+  #dedup_ack_v{args = #dedup_ack_v1{ref = CommandRef}} = Command,
   State)
   when is_reference(CommandRef) andalso
        MacVer >= ?API_BEHAV_MACVER(dedup_protection) ->
@@ -1740,12 +1988,12 @@ apply(
                      State
              end,
     Ret = {State1, ok},
-    post_apply(Ret, Meta);
-apply(
+    post_apply(Ret, Meta, Command);
+do_apply(
   #{machine_version := MacVer} = Meta,
-  #drop_dedups{refs = RefsToDrop},
+  #drop_dedups_v{args = #drop_dedups_v1{refs = RefsToDrop}} = Command,
   State) when MacVer >= ?API_BEHAV_MACVER(expire_dedups_from_tick) ->
-    %% `#drop_dedups{}' is emitted by the `handle_aux/5' clause for the `tick'
+    %% `#drop_dedups*{}' is emitted by the `handle_aux/5' clause for the `tick'
     %% effect to periodically drop dedups that have expired. This expiration
     %% was originally done in `post_apply/2' via `drop_expired_dedups/2' until
     %% machine version 2. Note that `drop_expired_dedups/2' is used until a
@@ -1754,8 +2002,16 @@ apply(
     Dedups1 = maps:without(RefsToDrop, Dedups),
     State1 = set_dedups(State, Dedups1),
     Ret = {State1, ok},
-    post_apply(Ret, Meta);
-apply(Meta, {machine_version, OldMacVer, NewMacVer}, OldState) ->
+    post_apply(Ret, Meta, Command);
+do_apply(
+  #{machine_version := MacVer,
+    index := RaftIndex} = Meta,
+  #request_snapshot{args = #request_snapshot_v1{reason = Reason}} = Command,
+  State) when MacVer >= ?API_BEHAV_MACVER(request_snapshot) ->
+    {State1, SideEffects} = release_cursor(State, RaftIndex, Reason, []),
+    Ret = {State1, ok, SideEffects},
+    post_apply(Ret, Meta, Command);
+do_apply(Meta, {machine_version, OldMacVer, NewMacVer} = Command, OldState) ->
     NewState = convert_state(OldState, OldMacVer, NewMacVer),
     Ret = {NewState, ok},
 
@@ -1764,8 +2020,27 @@ apply(Meta, {machine_version, OldMacVer, NewMacVer}, OldState) ->
     %% determine what a user of Khepri can or cannot do.
     StoreId = get_store_id(NewState),
     cache_effective_machine_version(StoreId, NewMacVer),
-    post_apply(Ret, Meta);
-apply(#{machine_version := MacVer} = Meta, UnknownCommand, State) ->
+    post_apply(Ret, Meta, Command);
+do_apply(Meta, NonVersionedCommand, State)
+  when is_record(NonVersionedCommand, put) orelse
+       is_record(NonVersionedCommand, delete) orelse
+       is_record(NonVersionedCommand, tx) orelse
+       is_record(NonVersionedCommand, register_trigger) orelse
+       is_record(NonVersionedCommand, ack_triggered) orelse
+       is_record(NonVersionedCommand, register_projection) orelse
+       is_record(NonVersionedCommand, unregister_projection) orelse
+       is_record(NonVersionedCommand, unregister_projections) orelse
+       is_record(NonVersionedCommand, dedup_ack) orelse
+       is_record(NonVersionedCommand, drop_dedups) ->
+    Command = convert_to_uniform_command(NonVersionedCommand),
+    do_apply(Meta, Command, State);
+do_apply(Meta, UnknownCommand, State) ->
+    handle_unknown_command(Meta, UnknownCommand, State).
+
+handle_unknown_command(
+  #{machine_version := MacVer} = Meta,
+  UnknownCommand,
+  State) ->
     Error = ?khepri_exception(
                unknown_khepri_state_machine_command,
                #{command => UnknownCommand,
@@ -1780,69 +2055,183 @@ apply(#{machine_version := MacVer} = Meta, UnknownCommand, State) ->
                        file => ?FILE,
                        line => ?LINE}]}],
     Ret = {State, Reply, SideEffects},
-    post_apply(Ret, Meta).
+    post_apply(Ret, Meta, UnknownCommand).
 
--spec post_apply(ApplyRet, Meta) -> {State, Result, SideEffects} when
+-spec convert_to_uniform_command(Command) -> NewCommand when
+      Command :: khepri_machine:command() |
+                 khepri_machine:old_command(),
+      NewCommand :: khepri_machine:command().
+
+convert_to_uniform_command(
+  #put{path = PathPattern,
+       payload = Payload,
+       options = TreeAndPutOptions}) ->
+    {TreeOptions, PutOptions} = split_put_options(TreeAndPutOptions),
+    CommandArgs = #put_v1{path = PathPattern,
+                          payload = Payload,
+                          put_options = PutOptions,
+                          tree_options = TreeOptions},
+    NewCommand = #put_v{args = CommandArgs},
+    convert_to_uniform_command1(NewCommand);
+convert_to_uniform_command(
+  #delete{path = PathPattern,
+          options = TreeOptions}) ->
+    CommandArgs = #delete_v1{path = PathPattern,
+                             tree_options = TreeOptions},
+    NewCommand = #delete_v{args = CommandArgs},
+    convert_to_uniform_command1(NewCommand);
+convert_to_uniform_command(
+  #tx{'fun' = StandaloneFun, args = Args}) ->
+    CommandArgs = #tx_v1{'fun' = StandaloneFun,
+                         args = Args},
+    NewCommand = #tx_v{args = CommandArgs},
+    convert_to_uniform_command1(NewCommand);
+convert_to_uniform_command(
+  #register_trigger{id = TriggerId,
+                    sproc = StoredProcPath,
+                    event_filter = EventFilter}) ->
+    CommandArgs = #register_trigger_v1{id = TriggerId,
+                                       sproc = StoredProcPath,
+                                       event_filter = EventFilter},
+    NewCommand = #register_trigger_v{args = CommandArgs},
+    convert_to_uniform_command1(NewCommand);
+convert_to_uniform_command(
+  #ack_triggered{triggered = ProcessedTriggers}) ->
+    CommandArgs = #ack_triggered_v1{triggered = ProcessedTriggers},
+    NewCommand = #ack_triggered_v{args = CommandArgs},
+    convert_to_uniform_command1(NewCommand);
+convert_to_uniform_command(
+  #register_projection{pattern = PathPattern, projection = Projection}) ->
+    CommandArgs = #register_projection_v1{pattern = PathPattern,
+                                          projection = Projection},
+    NewCommand = #register_projection_v{args = CommandArgs},
+    convert_to_uniform_command1(NewCommand);
+convert_to_uniform_command(
+  #unregister_projections{names = Names}) ->
+    CommandArgs = #unregister_projections_v1{names = Names},
+    NewCommand = #unregister_projections_v{args = CommandArgs},
+    convert_to_uniform_command1(NewCommand);
+convert_to_uniform_command(
+  #unregister_projection{name = Name}) ->
+    %% This command was replaced by `#unregister_projections{}'. Therefore,
+    %% convert it and recurse.
+    %%
+    %% For backward-compatibility; see {@link old_command()}.
+    CommandArgs = #unregister_projections_v1{names = [Name]},
+    NewCommand = #unregister_projections_v{args = CommandArgs},
+    convert_to_uniform_command1(NewCommand);
+convert_to_uniform_command(
+  #dedup{} = Command) ->
+    %% This command does not have a uniform/versioned equivalent as it will be
+    %% replaced in an upcoming commit.
+    Command;
+convert_to_uniform_command(
+  #dedup_ack{ref = CommandRef}) ->
+    CommandArgs = #dedup_ack_v1{ref = CommandRef},
+    NewCommand = #dedup_ack_v{args = CommandArgs},
+    convert_to_uniform_command1(NewCommand);
+convert_to_uniform_command(
+  #drop_dedups{refs = RefsToDrop}) ->
+    CommandArgs = #drop_dedups_v1{refs = RefsToDrop},
+    NewCommand = #drop_dedups_v{args = CommandArgs},
+    convert_to_uniform_command1(NewCommand);
+convert_to_uniform_command(Command)
+  when is_record(Command, put_v) orelse
+       is_record(Command, delete_v) orelse
+       is_record(Command, tx_v) orelse
+       is_record(Command, register_trigger_v) orelse
+       is_record(Command, ack_triggered_v) orelse
+       is_record(Command, register_projection_v) orelse
+       is_record(Command, unregister_projections_v) orelse
+       is_record(Command, dedup_ack_v) orelse
+       is_record(Command, drop_dedups_v) orelse
+       is_record(Command, request_snapshot) ->
+    %% These are all uniform/versioned commands already. We list them
+    %% explicitly to reduce the risk of programming errors with wildcard
+    %% pattern matching.
+    Command.
+
+convert_to_uniform_command1(NewCommand) ->
+    NewCommand1 = compute_command_size(NewCommand),
+    NewCommand1.
+
+-spec post_apply(ApplyRet, Meta, Command) -> {State, Result, SideEffects} when
       ApplyRet :: {State, Result} | {State, Result, SideEffects},
       State :: state(),
       Result :: any(),
       Meta :: ra_machine:command_meta_data(),
+      Command :: command() | old_command() | ra_machine:builtin_command(),
       SideEffects :: ra_machine:effects().
 %% @private
 
-post_apply({State, Result}, Meta) ->
-    post_apply({State, Result, []}, Meta);
-post_apply({_State, _Result, _SideEffects} = Ret, Meta) ->
-    Ret1 = bump_applied_command_count(Ret, Meta),
-    Ret2 = drop_expired_dedups(Ret1, Meta),
-    Ret3 = trigger_delayed_aux_queries_eval(Ret2, Meta),
-    Ret3.
+post_apply({State, Result}, Meta, Command) ->
+    post_apply({State, Result, []}, Meta, Command);
+post_apply({State, Result, SideEffects}, Meta, Command) ->
+    State1 = bump_unreleased_command_footprint(State, Command),
+    {State2, SideEffects2} = bump_applied_command_count(State1, SideEffects, Meta),
+    {State3, SideEffects3} = drop_expired_dedups(State2, SideEffects2, Meta),
+    {State4, SideEffects4} = trigger_delayed_aux_queries_eval(State3, SideEffects3, Meta),
+    {State5, SideEffects5} = maybe_request_snapshot(State4, SideEffects4, Meta),
+    {State5, Result, lists:reverse(SideEffects5)}.
 
--spec bump_applied_command_count(ApplyRet, Meta) ->
-    {State, Result, SideEffects} when
-      ApplyRet :: {State, Result, SideEffects},
+-spec bump_applied_command_count(State, SideEffects, Meta) ->
+    {NewState, NewSideEffects} when
       State :: state(),
-      Result :: any(),
+      SideEffects :: ra_machine:effects(),
       Meta :: ra_machine:command_meta_data(),
-      SideEffects :: ra_machine:effects().
+      NewState :: state(),
+      NewSideEffects :: ra_machine:effects().
 %% @private
 
-bump_applied_command_count(
-  {State, Result, SideEffects},
-  #{index := RaftIndex}) ->
-    SnapshotInterval = get_snapshot_interval(State),
+bump_applied_command_count(State, SideEffects, _Meta) ->
     Metrics = get_metrics(State),
     AppliedCmdCount0 = maps:get(applied_command_count, Metrics, 0),
     AppliedCmdCount = AppliedCmdCount0 + 1,
-    case AppliedCmdCount < SnapshotInterval of
-        true ->
-            Metrics1 = Metrics#{applied_command_count => AppliedCmdCount},
+    Metrics1 = Metrics#{applied_command_count => AppliedCmdCount},
+    State1 = set_metrics(State, Metrics1),
+    {State1, SideEffects}.
+
+-spec bump_unreleased_command_footprint(State, Command) -> NewState when
+      State :: khepri_machine:state(),
+      Command :: khepri_machine:command() |
+                 khepri_machine:old_command() |
+                 ra_machine:builtin_command(),
+      NewState :: khepri_machine:state().
+%% @doc Bump the unreleased command footprint from the command size, present in
+%% the command common arguments.
+%%
+%% @private.
+
+bump_unreleased_command_footprint(State, Command) ->
+    case get_command_common_args(Command) of
+        #common_v1{command_size = CommandSize}
+          when is_integer(CommandSize) andalso CommandSize >= 0 ->
+            Metrics = get_metrics(State),
+            Footprint = maps:get(unreleased_command_footprint, Metrics, 0),
+            Footprint1 = Footprint + CommandSize,
+            Metrics1 = Metrics#{unreleased_command_footprint => Footprint1},
             State1 = set_metrics(State, Metrics1),
-            {State1, Result, SideEffects};
-        false ->
-            ?LOG_DEBUG(
-               "Move release cursor after ~b commands applied "
-               "(>= ~b commands)",
-               [AppliedCmdCount, SnapshotInterval],
-               #{domain => [khepri, ra_machine]}),
-            State1 = reset_applied_command_count(State),
-            ReleaseCursor = {release_cursor, RaftIndex, State1},
-            SideEffects1 = [ReleaseCursor | SideEffects],
-            {State1, Result, SideEffects1}
+            State1;
+        none ->
+            State;
+        undefined ->
+            State
     end.
 
-reset_applied_command_count(State) ->
+reset_metrics(State) ->
     Metrics = get_metrics(State),
     Metrics1 = maps:remove(applied_command_count, Metrics),
-    set_metrics(State, Metrics1).
+    Metrics2 = maps:remove(unreleased_command_footprint, Metrics1),
+    Metrics3 = maps:remove(last_snapshot_request_timestamp, Metrics2),
+    set_metrics(State, Metrics3).
 
--spec drop_expired_dedups(ApplyRet, Meta) ->
-    {State, Result, SideEffects} when
-      ApplyRet :: {State, Result, SideEffects},
+-spec drop_expired_dedups(State, SideEffects, Meta) ->
+    {NewState, NewSideEffects} when
       State :: state(),
-      Result :: any(),
+      SideEffects :: ra_machine:effects(),
       Meta :: ra_machine:command_meta_data(),
-      SideEffects :: ra_machine:effects().
+      NewState :: state(),
+      NewSideEffects :: ra_machine:effects().
 %% @doc Removes any dedups from the `dedups' field in state that have expired
 %% according to the timestamp in the handled command.
 %%
@@ -1854,7 +2243,7 @@ reset_applied_command_count(State) ->
 %% @private
 
 drop_expired_dedups(
-  {State, Result, SideEffects},
+  State, SideEffects,
   #{system_time := Timestamp,
     machine_version := MacVer}) when MacVer =< 1 ->
     Dedups = get_dedups(State),
@@ -1871,25 +2260,142 @@ drop_expired_dedups(
                         Expiry >= Timestamp
                 end, Dedups),
     State1 = set_dedups(State, Dedups1),
-    {State1, Result, SideEffects};
-drop_expired_dedups({State, Result, SideEffects}, _Meta) ->
+    {State1, SideEffects};
+drop_expired_dedups(State, SideEffects, _Meta) ->
     %% No-op on versions 2 and higher.
-    {State, Result, SideEffects}.
+    {State, SideEffects}.
 
--spec trigger_delayed_aux_queries_eval(ApplyRet, Meta) ->
-    {State, Result, SideEffects} when
-      ApplyRet :: {State, Result, SideEffects},
+-spec trigger_delayed_aux_queries_eval(State, SideEffects, Meta) ->
+    {NewState, NewSideEffects} when
       State :: state(),
-      Result :: any(),
+      SideEffects :: ra_machine:effects(),
       Meta :: ra_machine:command_meta_data(),
-      SideEffects :: ra_machine:effects().
+      NewState :: state(),
+      NewSideEffects :: ra_machine:effects().
 %% @doc Add an `aux' side effect to retrigger the eval of delayed aux queries.
 %%
 %% @private
 
-trigger_delayed_aux_queries_eval({State, Result, SideEffects}, _Meta) ->
+trigger_delayed_aux_queries_eval(State, SideEffects, _Meta) ->
     SideEffects1 = [{aux, trigger_delayed_aux_queries_eval} | SideEffects],
-    {State, Result, SideEffects1}.
+    {State, SideEffects1}.
+
+%% In `get_command_common_args/1' and `set_command_common_args/2', we list
+%% supported commands exhaustively on purpose: this will help us when a new
+%% command is introduced to not forget to update this function.
+
+-spec get_command_common_args(Command) -> Ret when
+      Command :: khepri_machine:command() |
+                 khepri_machine:old_command() |
+                 ra_machine:builtin_command(),
+      Ret :: CommonArgs | none | undefined,
+      CommonArgs :: #common_v1{}.
+
+get_command_common_args(#put_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#delete_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#tx_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#register_trigger_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#ack_triggered_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#register_projection_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#unregister_projections_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#dedup_ack_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#drop_dedups_v{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#request_snapshot{common = CommonArgs}) ->
+    CommonArgs;
+get_command_common_args(#put{}) ->
+    none;
+get_command_common_args(#delete{}) ->
+    none;
+get_command_common_args(#tx{}) ->
+    none;
+get_command_common_args(#register_trigger{}) ->
+    none;
+get_command_common_args(#ack_triggered{}) ->
+    none;
+get_command_common_args(#register_projection{}) ->
+    none;
+get_command_common_args(#unregister_projection{}) ->
+    none;
+get_command_common_args(#unregister_projections{}) ->
+    none;
+get_command_common_args(#dedup{}) ->
+    none;
+get_command_common_args(#dedup_ack{}) ->
+    none;
+get_command_common_args(#drop_dedups{}) ->
+    none;
+get_command_common_args({machine_version, _OldMacVer, _NewMacVer}) ->
+    none;
+get_command_common_args(_UnknownCommand) ->
+    undefined.
+
+-spec set_command_common_args(Command, CommonArgs) -> NewCommand when
+      Command :: khepri_machine:command(),
+      CommonArgs :: #common_v1{},
+      NewCommand :: khepri_machine:command().
+
+set_command_common_args(#put_v{} = Command, CommonArgs) ->
+    Command#put_v{common = CommonArgs};
+set_command_common_args(#delete_v{} = Command, CommonArgs) ->
+    Command#delete_v{common = CommonArgs};
+set_command_common_args(#tx_v{} = Command, CommonArgs) ->
+    Command#tx_v{common = CommonArgs};
+set_command_common_args(#register_trigger_v{} = Command, CommonArgs) ->
+    Command#register_trigger_v{common = CommonArgs};
+set_command_common_args(#ack_triggered_v{} = Command, CommonArgs) ->
+    Command#ack_triggered_v{common = CommonArgs};
+set_command_common_args(#register_projection_v{} = Command, CommonArgs) ->
+    Command#register_projection_v{common = CommonArgs};
+set_command_common_args(#unregister_projections_v{} = Command, CommonArgs) ->
+    Command#unregister_projections_v{common = CommonArgs};
+set_command_common_args(#dedup_ack_v{} = Command, CommonArgs) ->
+    Command#dedup_ack_v{common = CommonArgs};
+set_command_common_args(#drop_dedups_v{} = Command, CommonArgs) ->
+    Command#drop_dedups_v{common = CommonArgs};
+set_command_common_args(#request_snapshot{} = Command, CommonArgs) ->
+    Command#request_snapshot{common = CommonArgs}.
+
+-spec set_dedup_args(Command, CommandRef, Expiry) -> NewCommand when
+      Command :: khepri_machine:command(),
+      CommandRef :: reference(),
+      Expiry :: integer(),
+      NewCommand :: khepri_machine:command().
+
+set_dedup_args(Command, CommandRef, Expiry)
+  when is_reference(CommandRef) andalso
+       is_integer(Expiry) ->
+    CommonArgs = get_command_common_args(Command),
+    CommonArgs1 = case CommonArgs of
+                      #common_v1{} ->
+                          CommonArgs#common_v1{dedup_ref = CommandRef,
+                                               dedup_expiry = Expiry};
+                      none ->
+                          #common_v1{dedup_ref = CommandRef,
+                                     dedup_expiry = Expiry}
+                  end,
+    Command1 = set_command_common_args(Command, CommonArgs1),
+    Command1.
+
+compute_command_size(Command) ->
+    CommonArgs = get_command_common_args(Command),
+    CommonArgs1 = case CommonArgs of
+                      #common_v1{} -> CommonArgs;
+                      none         -> #common_v1{}
+                  end,
+    Command1 = set_command_common_args(Command, CommonArgs1),
+    CommandSize = erlang:external_size(Command1),
+    CommonArgs2 = CommonArgs1#common_v1{command_size = CommandSize},
+    Command2 = set_command_common_args(Command1, CommonArgs2),
+    Command2.
 
 %% @private
 
@@ -2583,6 +3089,21 @@ get_config(#khepri_machine{config = Config}) ->
 get_config(State) ->
     khepri_machine_v0:get_config(State).
 
+-spec set_config(State, Config) -> NewState when
+      State :: khepri_machine:state_v1(),
+      Config :: khepri_config:machine_config_v1(),
+      NewState :: khepri_machine:state_v1().
+%% @doc Replaces the config in the given state.
+%%
+%% There is no need to support `khepri_machine_v0' because the configuration is
+%% never updated with machine versions before 4.
+%%
+%% @private
+
+set_config(#khepri_machine{} = State, Config) ->
+    State1 = State#khepri_machine{config = Config},
+    State1.
+
 -spec get_tree(State) -> Tree when
       State :: khepri_machine:state(),
       Tree :: khepri_tree:tree().
@@ -2764,6 +3285,33 @@ set_metrics(#khepri_machine{} = State, Metrics) ->
 set_metrics(State, Metrics) ->
     khepri_machine_v0:set_metrics(State, Metrics).
 
+-spec get_init_args(State) -> InitArgs when
+      State :: khepri_machine:state(),
+      InitArgs :: khepri_machine:machine_init_args().
+%% @doc Returns the init arguments from the given state.
+%%
+%% If they are unavailable, an empty map is returned.
+%%
+%% @private
+
+get_init_args(State) ->
+    Metrics = get_metrics(State),
+    InitArgs = maps:get(init_args, Metrics, #{}),
+    InitArgs.
+
+-spec set_init_args(State, InitArgs) -> NewState when
+      State :: khepri_machine:state(),
+      InitArgs :: khepri_machine:machine_init_args(),
+      NewState :: khepri_machine:state().
+%% @doc Records the init arguments in the given state.
+%%
+%% @private
+
+set_init_args(State, InitArgs) ->
+    Metrics = get_metrics(State),
+    Metrics1 = Metrics#{init_args => InitArgs},
+    set_metrics(State, Metrics1).
+
 -spec get_dedups(State) -> Dedups when
       State :: khepri_machine:state(),
       Dedups :: khepri_machine:dedups_map().
@@ -2813,6 +3361,32 @@ get_snapshot_interval(State) ->
     SnapshotInterval = khepri_config:get_snapshot_interval(Config),
     SnapshotInterval.
 
+-spec get_unreleased_command_footprint_threshold(State) -> Threshold when
+      State :: khepri_machine:state(),
+      Threshold :: non_neg_integer().
+%% @doc Returns the unreleased command footprint threshold from the given state
+%% configuration.
+%%
+%% @private
+
+get_unreleased_command_footprint_threshold(State) ->
+    Config = get_config(State),
+    Threshold = khepri_config:get_unreleased_command_footprint_threshold(Config),
+    Threshold.
+
+-spec get_snapshot_time_interval(State) -> TimeInterval when
+      State :: khepri_machine:state(),
+      TimeInterval :: non_neg_integer().
+%% @doc Returns the snapshot time interval in seconds from the given state
+%% configuration.
+%%
+%% @private
+
+get_snapshot_time_interval(State) ->
+    Config = get_config(State),
+    TimeInterval = khepri_config:get_snapshot_time_interval(Config),
+    TimeInterval.
+
 -spec assert_equal(State1, State2) -> ok when
       State1 :: khepri_machine:state(),
       State2 :: khepri_machine:state().
@@ -2824,12 +3398,12 @@ assert_equal(State1, State2) ->
     khepri_machine_v0:assert_equal(State1, State2).
 
 -ifdef(TEST).
--spec make_virgin_state(Params) -> State when
-      Params :: khepri_machine:machine_init_args(),
+-spec make_virgin_state(InitArgs) -> State when
+      InitArgs :: khepri_machine:machine_init_args(),
       State :: khepri_machine_v0:state().
 
-make_virgin_state(Params) ->
-    khepri_machine_v0:init(Params).
+make_virgin_state(InitArgs) ->
+    khepri_machine_v0:init(InitArgs).
 -endif.
 
 -spec convert_state(OldState, OldMacVer, NewMacVer) -> NewState when
@@ -2874,7 +3448,13 @@ convert_state1(State, 1, 2) ->
     Tree1 = khepri_tree:convert_tree(Tree, 1, 2),
     set_tree(State, Tree1);
 convert_state1(State, 2, 3) ->
-    State.
+    State;
+convert_state1(State, 3, 4) ->
+    Params = get_init_args(State),
+    Config0 = get_config(State),
+    Config1 = khepri_config:convert_config(Config0, 0, 1, Params),
+    State1 = set_config(State, Config1),
+    State1.
 
 -spec update_projections(OldState, NewState) -> ok when
       OldState :: khepri_machine:state(),
@@ -3001,3 +3581,102 @@ diff_matching_nodes(OldNodeProps, NewNodeProps) ->
       fun(Path, NewProps, Acc) ->
               Acc#{Path => {#{}, NewProps}}
       end, AllProps, maps:without(CommonPaths, NewNodeProps)).
+
+%% -------------------------------------------------------------------
+%% Snapshot management.
+%% -------------------------------------------------------------------
+
+maybe_request_snapshot(State, SideEffects, #{index := RaftIndex}) ->
+    case should_request_snapshot(State) of
+        false ->
+            {State, SideEffects};
+        {true, Reason} ->
+            release_cursor(State, RaftIndex, Reason, SideEffects)
+    end.
+
+should_request_snapshot(State) ->
+    maybe
+        continue ?= need_snapshot_after_some_time(State),
+        continue ?= request_snapshot_based_on_unreleased_command_footprint(State),
+        request_snapshot_based_on_applied_command_count(State)
+    end.
+
+need_snapshot_after_some_time(State) ->
+    StoreId = get_store_id(State),
+    case does_api_comply_with(request_snapshot, StoreId) of
+        true ->
+            Metrics = get_metrics(State),
+            Now = erlang:monotonic_time(second),
+            TimeInterval = get_snapshot_time_interval(State),
+            case Metrics of
+                #{last_snapshot_request_timestamp := Last}
+                  when Now - Last >= TimeInterval ->
+                    %% The time since the last snapshot is long enough. We
+                    %% still defer the decision to the functions that follow,
+                    %% to not just take a snapshot every `TimeInterval' just
+                    %% for the sake of it.
+                    continue;
+                #{last_snapshot_request_timestamp := _} ->
+                    false;
+                _ ->
+                    continue
+            end;
+        false ->
+            continue
+    end.
+
+request_snapshot_based_on_unreleased_command_footprint(State) ->
+    StoreId = get_store_id(State),
+    case does_api_comply_with(request_snapshot, StoreId) of
+        true ->
+            Metrics = get_metrics(State),
+            Threshold = get_unreleased_command_footprint_threshold(State),
+            case Metrics of
+                #{unreleased_command_footprint := Footprint}
+                  when Footprint >= Threshold ->
+                    Reason = io_lib:format(
+                               "unreleased command footprint (~b bytes) >= "
+                               "threshold (~b bytes)",
+                               [Footprint, Threshold]),
+                    {true, Reason};
+                #{unreleased_command_footprint := _} ->
+                    false;
+                _ ->
+                    continue
+            end;
+        false ->
+            continue
+    end.
+
+request_snapshot_based_on_applied_command_count(State) ->
+    SnapshotInterval = get_snapshot_interval(State),
+    Metrics = get_metrics(State),
+    AppliedCmdCount = maps:get(applied_command_count, Metrics, 0),
+    case AppliedCmdCount < SnapshotInterval of
+        true ->
+            false;
+        false ->
+            Reason = io_lib:format(
+                       "~b commands applied >= "
+                       "snapshot interval of ~b",
+                       [AppliedCmdCount, SnapshotInterval]),
+            {true, Reason}
+    end.
+
+release_cursor(State, RaftIndex, Reason, SideEffects) ->
+    ?LOG_DEBUG(
+       "Move release cursor, reason: ~ts",
+       [Reason],
+       #{domain => [khepri, ra_machine]}),
+    State1 = reset_metrics(State),
+    ReleaseCursor = {release_cursor, RaftIndex, State1},
+    SideEffects1 = [ReleaseCursor | SideEffects],
+    State2 = record_snapshot_timestamp(State1),
+    {State2, SideEffects1}.
+
+record_snapshot_timestamp(State) ->
+    Now = erlang:monotonic_time(second),
+    Metrics = get_metrics(State),
+    Metrics1 = Metrics#{last_snapshot_request_timestamp => Now},
+    State1 = set_metrics(State, Metrics1),
+    State1.

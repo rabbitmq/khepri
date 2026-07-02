@@ -8,3 +8,7 @@
 
 %% TODO: Query this value from Ra itself.
 -define(SNAPSHOT_INTERVAL, 4096).
+
+-define(UNRELEASED_COMMAND_FOOTPRINT_THRESHOLD, 20 * 1024 * 1024).
+
+-define(SNAPSHOT_TIME_INTERVAL, 10).

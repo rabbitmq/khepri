@@ -401,8 +401,9 @@ do_import(StoreId, Module, ModulePriv) ->
 %% @private
 
 handle_backup_items(StoreId, [Command | Rest]) ->
+    Command1 = khepri_machine:convert_to_uniform_command(Command),
     Options = #{},
-    case khepri_machine:process_command(StoreId, Command, Options) of
+    case khepri_machine:process_command(StoreId, Command1, Options) of
         {ok, _}            -> handle_backup_items(StoreId, Rest);
         {error, _} = Error -> Error
     end;
