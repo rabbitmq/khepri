@@ -598,49 +598,50 @@ component_targets_specific_siblings(ChildName)
 component_targets_specific_siblings(#if_all{conditions = []}) ->
     false;
 component_targets_specific_siblings(#if_all{conditions = Conds}) ->
-    lists:foldl(
-      fun
-          (Cond, {true, Siblings1} = True) ->
-              case component_targets_specific_siblings(Cond) of
-                  True ->
-                      True;
-                  {true, Siblings2} ->
-                      Siblings3 = lists:usort(Siblings1 ++ Siblings2),
-                      {true, Siblings3};
-                  false ->
-                      True
-              end;
-          (Cond, false) ->
-              case component_targets_specific_siblings(Cond) of
-                  {true, _} = True ->
-                      True;
-                  false ->
-                      false
-              end;
-          (Cond, undefined) ->
-              component_targets_specific_siblings(Cond)
-      end, undefined, Conds);
+    Ret = lists:foldl(
+            fun
+                (Cond, {true, Siblings1} = True) ->
+                    case component_targets_specific_siblings(Cond) of
+                        True              -> True;
+                        {true, Siblings2} -> {true, Siblings2 ++ Siblings1};
+                        false             -> True
+                    end;
+                (Cond, false) ->
+                    case component_targets_specific_siblings(Cond) of
+                        {true, _} = True -> True;
+                        false            -> false
+                    end;
+                (Cond, undefined) ->
+                    component_targets_specific_siblings(Cond)
+            end, undefined, Conds),
+    dedup_siblings(Ret);
 component_targets_specific_siblings(#if_any{conditions = []}) ->
     false;
 component_targets_specific_siblings(#if_any{conditions = Conds}) ->
-    lists:foldl(
-      fun
-          (Cond, {true, Siblings1} = True) ->
-              case component_targets_specific_siblings(Cond) of
-                  True ->
-                      True;
-                  {true, Siblings2} ->
-                      Siblings3 = lists:usort(Siblings1 ++ Siblings2),
-                      {true, Siblings3};
-                  false ->
-                      false
-              end;
-          (_, false) ->
-              false;
-          (Cond, undefined) ->
-              component_targets_specific_siblings(Cond)
-      end, undefined, Conds);
+    Ret = lists:foldl(
+            fun
+                (Cond, {true, Siblings1} = True) ->
+                    case component_targets_specific_siblings(Cond) of
+                        True              -> True;
+                        {true, Siblings2} -> {true, Siblings2 ++ Siblings1};
+                        false             -> false
+                    end;
+                (_, false) ->
+                    false;
+                (Cond, undefined) ->
+                    component_targets_specific_siblings(Cond)
+            end, undefined, Conds),
+    dedup_siblings(Ret);
 component_targets_specific_siblings(_) ->
+    false.
+
+%% `Siblings' accumulates duplicates across the fold above; sorting once
+%% here instead of after each fold step avoids making this quadratic when a
+%% condition combines many sibling names (e.g. deleting many tree nodes at
+%% once).
+dedup_siblings({true, Siblings}) ->
+    {true, lists:usort(Siblings)};
+dedup_siblings(false) ->
     false.
 
 -spec is_valid(PathPattern) -> IsValid when
