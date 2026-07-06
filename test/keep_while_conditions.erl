@@ -13,6 +13,7 @@
 -include("include/khepri.hrl").
 -include("src/khepri_machine.hrl").
 -include("src/khepri_error.hrl").
+-include("src/khepri_tree.hrl").
 -include("test/helpers.hrl").
 
 %% khepri:get_root/1 is unexported when compiled without `-DTEST'. Likewise
@@ -695,6 +696,10 @@ child_list_version_bumped_by_update_and_keep_while_test() ->
 %% Delete a single tree node that has many other tree nodes depending on it.
 %% This should complete quickly (milliseconds). However it took dozens of
 %% seconds before the fix in Khepri 0.17.4.
+%%
+%% `NumDependents' is more than twice `khepri_tree''s per-pattern sibling
+%% cap, so this also exercises splitting the dependents across several
+%% `if_any' patterns, not just the single-pattern case.
 delete_node_with_many_dependents_test_() ->
     {timeout, 30, fun delete_node_with_many_dependents/0}.
 
@@ -703,7 +708,7 @@ delete_node_with_many_dependents() ->
                      payload = khepri_payload:data(value)}],
     S0 = khepri_machine:init(?MACH_PARAMS(Commands)),
 
-    NumDependents = 1000,
+    NumDependents = ?MAX_SIBLINGS_PER_PATTERN * 5 div 2,
     DependentPaths = lists:map(
                        fun(I) ->
                                ChildName = integer_to_binary(I),
@@ -742,6 +747,23 @@ delete_node_with_many_dependents() ->
       fun(DependentPath) ->
               ?assert(maps:is_key(DependentPath, DeletedNodes))
       end, DependentPaths).
+
+siblings_chunks_test() ->
+    ?assertEqual([[a]], khepri_tree:siblings_chunks([a], 2)),
+    ?assertEqual([[a, b]], khepri_tree:siblings_chunks([a, b], 2)),
+    ?assertEqual([[a, b], [c]], khepri_tree:siblings_chunks([a, b, c], 2)),
+    ?assertEqual(
+       [[a, b], [c, d]],
+       khepri_tree:siblings_chunks([a, b, c, d], 2)),
+    ?assertError(
+       function_clause,
+       erlang:apply(khepri_tree, siblings_chunks, [[], 2])),
+    ?assertError(
+       function_clause,
+       erlang:apply(khepri_tree, siblings_chunks, [[a], 0])),
+    ?assertError(
+       function_clause,
+       erlang:apply(khepri_tree, siblings_chunks, [[a], -1])).
 
 %% Cascading deletions through a chain of dependencies where each node depends
 %% on the previous one. This should complete quickly (milliseconds). However

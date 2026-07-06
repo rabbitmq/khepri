@@ -18,6 +18,7 @@
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
 -include("src/khepri_node.hrl").
+-include("src/khepri_tree.hrl").
 
 -export([new/0,
          get_root/1,
@@ -40,7 +41,8 @@
          convert_tree/3]).
 
 -ifdef(TEST).
--export([unopacify/1]).
+-export([unopacify/1,
+         siblings_chunks/2]).
 -endif.
 
 -record(tree, {root = #node{} :: khepri_tree:tree_node(),
@@ -1823,11 +1825,18 @@ paths_to_patterns([], PatternsToDelete) ->
                                   Path = ParentPath ++ [Component],
                                   [Path | Acc];
                               (ParentPath, Siblings, Acc) ->
-                                  %% Many siblings are deleted. We use a
-                                  %% single pattern that matches any siblings.
-                                  Pattern0 = #if_any{conditions = Siblings},
-                                  Pattern1 = ParentPath ++ [Pattern0],
-                                  [Pattern1 | Acc]
+                                  %% Many siblings are deleted. We use
+                                  %% patterns that match any siblings,
+                                  %% capped at `?MAX_SIBLINGS_PER_PATTERN'
+                                  Chunks = siblings_chunks(
+                                             Siblings,
+                                             ?MAX_SIBLINGS_PER_PATTERN),
+                                  lists:foldl(
+                                    fun(Chunk, Acc1) ->
+                                        Pattern0 = #if_any{conditions = Chunk},
+                                        Pattern1 = ParentPath ++ [Pattern0],
+                                        [Pattern1 | Acc1]
+                                    end, Acc, Chunks)
                           end, [], PatternsToDelete),
     PatternsToDelete1.
 
@@ -1861,6 +1870,28 @@ path_to_pattern([Component | Rest], ParentPath, PatternsToDelete) ->
             PatternsToDelete1 = PatternsToDelete#{ParentPath => Siblings1},
             PatternsToDelete1
     end.
+
+-spec siblings_chunks(List, Count) -> Chunks when
+      List :: [any(), ...],
+      Count :: pos_integer(),
+      Chunks :: [Chunk],
+      Chunk :: [any(), ...].
+%% @private
+
+siblings_chunks(List, Count) when Count > 0 ->
+    siblings_chunks(List, Count, Count, [], []).
+
+siblings_chunks([], _Count, _Remaining, Acc, Chunks) when Acc =/= [] ->
+    Chunk = lists:reverse(Acc),
+    Chunks1 = [Chunk | Chunks],
+    lists:reverse(Chunks1);
+siblings_chunks(List, Count, 0, Acc, Chunks) ->
+    Chunk = lists:reverse(Acc),
+    Chunks1 = [Chunk | Chunks],
+    siblings_chunks(List, Count, Count, [], Chunks1);
+siblings_chunks([Elem | Rest], Count, Remaining, Acc, Chunks) ->
+    Acc1 = [Elem | Acc],
+    siblings_chunks(Rest, Count, Remaining - 1, Acc1, Chunks).
 
 remove_expired_nodes1(
   [PathToDelete | Rest],
