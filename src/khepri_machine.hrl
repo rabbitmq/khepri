@@ -28,7 +28,8 @@
 
           multi_table_projections     => 3,
 
-          uniform_commands            => 4}).
+          uniform_commands            => 4,
+          request_snapshot            => 4}).
 
 %% Get the state machine version the given API behaviour was introduced in.
 %% This is similar to `khepri_machine:api_behaviour_to_machine_version/1' but
@@ -40,7 +41,9 @@
 %% State machine commands.
 %% -------------------------------------------------------------------
 
--record(common_v1, {}).
+-record(common_v1, {command_size = 0 :: non_neg_integer(),
+                    dedup_ref = undefined :: reference() | undefined,
+                    dedup_expiry = undefined :: integer() | undefined}).
 %% Set of attributes shared by all commands.
 
 -record(put_v1,
@@ -250,6 +253,23 @@
 %%
 %% <ul>
 %% <li>`args' contains the dedup drop-specific attributes.</li>
+%% <li>`common' contains the attributes shared by all commands.</li>
+%% </ul>
+
+-record(request_snapshot_v1, {reason :: string()}).
+%% Arguments to the snapshot request command, version 1.
+%%
+%% <ul>
+%% <li>`reasaon' is string dscribing the reason why a snapshot is
+%% requested.</li>
+%% </ul>
+
+-record(request_snapshot, {args :: #request_snapshot_v1{},
+                           common = none :: #common_v1{} | none}).
+%% Command to unconditionally request a snapshot.
+%%
+%% <ul>
+%% <li>`args' contains the snapshot request-specific attributes.</li>
 %% <li>`common' contains the attributes shared by all commands.</li>
 %% </ul>
 
