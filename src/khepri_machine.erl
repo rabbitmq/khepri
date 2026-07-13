@@ -726,18 +726,31 @@ register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options)
     EventFilter1 = khepri_evf:wrap(EventFilter),
     StoredProcPath1 = khepri_path:from_string(StoredProcPath),
     khepri_path:ensure_is_valid(StoredProcPath1),
-    Command = case does_api_comply_with(uniform_commands, StoreId) of
-                  true ->
-                      CommandArgs = #register_trigger_v1{
-                                       id = TriggerId,
-                                       sproc = StoredProcPath1,
-                                       event_filter = EventFilter1},
-                      #register_trigger_v{args = CommandArgs};
-                  false ->
-                      #register_trigger{id = TriggerId,
-                                sproc = StoredProcPath1,
-                                event_filter = EventFilter1}
-              end,
+    case does_api_comply_with(uniform_commands, StoreId) of
+        true ->
+            register_trigger_versioned(
+              StoreId, TriggerId, EventFilter1, StoredProcPath1,
+              Options);
+        false ->
+            register_trigger_nonversioned(
+              StoreId, TriggerId, EventFilter1, StoredProcPath1,
+              Options)
+    end.
+
+register_trigger_nonversioned(
+  StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
+    Command = #register_trigger{id = TriggerId,
+                                event_filter = EventFilter,
+                                sproc = StoredProcPath},
+    process_command(StoreId, Command, Options).
+
+register_trigger_versioned(
+  StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
+    CommandArgs = #register_trigger_v1{
+                     id = TriggerId,
+                     event_filter = EventFilter,
+                     sproc = StoredProcPath},
+    Command = #register_trigger_v{args = CommandArgs},
     process_command(StoreId, Command, Options).
 
 -spec register_projection(StoreId, PathPattern, Projection, Options) ->
