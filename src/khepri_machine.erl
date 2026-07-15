@@ -1531,12 +1531,13 @@ restore_projection(Projection, Tree, PathPattern) ->
     _ = khepri_projection:init(Projection),
     TreeOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
                     include_root_props => true},
-    case khepri_tree:find_matching_nodes(Tree, PathPattern, TreeOptions) of
-        {ok, MatchingNodes} ->
-            maps:foreach(fun(Path, Props) ->
-                                 khepri_projection:trigger(
-                                   Projection, Path, #{}, Props)
-                         end, MatchingNodes);
+    Fun = fun(Path, Props, Acc) ->
+                  khepri_projection:trigger(Projection, Path, #{}, Props),
+                  Acc
+          end,
+    case khepri_tree:fold(Tree, PathPattern, Fun, ok, TreeOptions) of
+        {ok, ok} ->
+            ok;
         Error ->
             ?LOG_DEBUG(
                "Failed to recover projection ~s due to an error: ~p",
