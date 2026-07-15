@@ -18,6 +18,10 @@
 <h2><a name="description">Description</a></h2>Khepri event filters.
 <h2><a name="types">Data Types</a></h2>
 
+<h3 class="typedecl"><a name="type-event">event()</a></h3>
+<p><code>event() = <a href="#type-tree_event" docgen-rel="seetype" docgen-href="#tree_event/0">tree_event()</a></code></p>
+<p>  An record representing an event.</p>
+
 <h3 class="typedecl"><a name="type-event_filter">event_filter()</a></h3>
 <p><code>event_filter() = <a href="#type-tree_event_filter" docgen-rel="seetype" docgen-href="#tree_event_filter/0">tree_event_filter()</a></code></p>
 <p><p>  An event filter.</p>
@@ -48,6 +52,17 @@ event filter.</p>
 the more it is prioritized. Negative integers are allowed.</p>
  
   The default priority is 0.</p>
+
+<h3 class="typedecl"><a name="type-tree_event">tree_event()</a></h3>
+<p><code>tree_event() = #ev_tree{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a>, change = create | update | delete}</code></p>
+<p><p>  An event record representing a change tree change.</p>
+ 
+  The event has the following fields:
+  <ul>
+  <li><code>path</code>: the path of the affected tree node</li>
+  <li><code>change</code>: the nature of the change (<code>create</code>, <code>update</code> or
+  <code>delete</code>).</li>
+  </ul></p>
 
 <h3 class="typedecl"><a name="type-tree_event_filter">tree_event_filter()</a></h3>
 <p><code>tree_event_filter() = #evf_tree{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_pattern/0">khepri_path:native_pattern()</a>, props = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-tree_event_filter_props" docgen-rel="seetype" docgen-href="khepri:khepri_evf#tree_event_filter_props/0">khepri_evf:tree_event_filter_props()</a>}</code></p>
