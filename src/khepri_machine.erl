@@ -2842,24 +2842,8 @@ update_projection(Pattern, Projection, OldTree, NewTree) ->
                     include_root_props => true},
     case khepri_tree:find_matching_nodes(OldTree, Pattern, TreeOptions) of
         {ok, OldMatchingNodes} ->
-            Result = khepri_tree:find_matching_nodes(
-                       NewTree, Pattern, TreeOptions),
-            case Result of
-                {ok, NewMatchingNodes} ->
-                    Updates = diff_matching_nodes(
-                                OldMatchingNodes, NewMatchingNodes),
-                    maps:foreach(
-                      fun(Path, {OldProps, NewProps}) ->
-                              khepri_projection:trigger(
-                                Projection, Path, OldProps, NewProps)
-                      end, Updates);
-                Error ->
-                    ?LOG_DEBUG(
-                       "Failed to refresh projection ~s due to an error "
-                       "finding matching nodes in the new tree: ~p",
-                       [khepri_projection:name(Projection), Error],
-                       #{domain => [khepri, ra_machine]})
-            end;
+            update_projection1(
+              Pattern, Projection, NewTree, TreeOptions, OldMatchingNodes);
         Error ->
             ?LOG_DEBUG(
                "Failed to refresh projection ~s due to an error finding "
@@ -2868,24 +2852,41 @@ update_projection(Pattern, Projection, OldTree, NewTree) ->
                #{domain => [khepri, ra_machine]})
     end.
 
--spec diff_matching_nodes(OldNodeProps, NewNodeProps) -> Changes when
-      OldNodeProps :: khepri:node_props_map(),
-      NewNodeProps :: khepri:node_props_map(),
-      OldProps :: khepri:node_props(),
-      NewProps :: khepri:node_props(),
-      Changes :: #{khepri_path:native_path() => {OldProps, NewProps}}.
-%% @private
+update_projection1(
+  Pattern, Projection, NewTree, TreeOptions, OldMatchingNodes) ->
+    %% Folds over the new tree, looking up (and removing) each matching path
+    %% from `OldMatchingNodes' to trigger the projection immediately, instead
+    %% of materializing the new tree's matching node props into a second map
+    %% and diffing it against the first into a third.
+    Fun = fun(Path, NewProps, RemainingOldNodeProps) ->
+                  case maps:take(Path, RemainingOldNodeProps) of
+                      {OldProps, RemainingOldNodeProps1} ->
+                          khepri_projection:trigger(
+                            Projection, Path, OldProps, NewProps),
+                          RemainingOldNodeProps1;
+                      error ->
+                          khepri_projection:trigger(
+                            Projection, Path, #{}, NewProps),
+                          RemainingOldNodeProps
+                  end
+          end,
+    Ret = khepri_tree:fold(
+           NewTree, Pattern, Fun, OldMatchingNodes, TreeOptions),
+    case Ret of
+        {ok, RemainingOldNodeProps} ->
+            trigger_remaining(Projection, RemainingOldNodeProps);
+        Error ->
+            ?LOG_DEBUG(
+               "Failed to refresh projection ~s due to an error finding "
+               "matching nodes in the new tree: ~p",
+               [khepri_projection:name(Projection), Error],
+               #{domain => [khepri, ra_machine]})
+    end.
 
-diff_matching_nodes(OldNodeProps, NewNodeProps) ->
-    CommonProps = maps:intersect_with(
-                    fun(_Path, OldProps, NewProps) -> {OldProps, NewProps} end,
-                    OldNodeProps, NewNodeProps),
-    CommonPaths = maps:keys(CommonProps),
-    AllProps = maps:fold(
-                 fun(Path, OldProps, Acc) ->
-                        Acc#{Path => {OldProps, #{}}}
-                 end, CommonProps, maps:without(CommonPaths, OldNodeProps)),
-    maps:fold(
-      fun(Path, NewProps, Acc) ->
-              Acc#{Path => {#{}, NewProps}}
-      end, AllProps, maps:without(CommonPaths, NewNodeProps)).
+trigger_remaining(Projection, OldMatchingNodes) ->
+    %% The paths remaining in `OldMatchingNodes' after folding over the new
+    %% tree only matched in the old tree, i.e. they were deleted.
+    maps:foreach(
+      fun(Path, OldProps) ->
+              khepri_projection:trigger(Projection, Path, OldProps, #{})
+      end, OldMatchingNodes).
