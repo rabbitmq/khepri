@@ -23,9 +23,21 @@ setup(Testcase, CustomConfig) ->
     khepri_utils:init_list_of_modules_to_skip(),
 
     #{ra_system := RaSystem} = Props = helpers:start_ra_system(Testcase),
-    RaServerConfig = maps:put(cluster_name, Testcase, CustomConfig),
-    {ok, StoreId} = khepri:start(RaSystem, RaServerConfig),
-    Props#{store_id => StoreId}.
+    RaServerConfig0 = maps:put(cluster_name, Testcase, CustomConfig),
+    RaServerConfig1 = maps:remove(machine_version, RaServerConfig0),
+
+    Props1 = case CustomConfig of
+                 #{machine_version := MacVer} ->
+                     meck:new(khepri_machine, [passthrough]),
+                     meck:expect(khepri_machine, version, fun() -> MacVer end),
+                     meck:validate(khepri_machine),
+                     Props#{machine_version => MacVer};
+                 _ ->
+                     Props
+             end,
+
+    {ok, StoreId} = khepri:start(RaSystem, RaServerConfig1),
+    Props1#{store_id => StoreId}.
 
 cleanup(#{store_id := StoreId} = Props) ->
     Nodes = case khepri_cluster:nodes(StoreId) of
@@ -42,4 +54,12 @@ cleanup(#{store_id := StoreId} = Props) ->
                  ok,
                  rpc:call(Node, helpers, stop_ra_system, [Props]))
       end, Nodes),
+
+    case Props of
+        #{machine_version := _} ->
+            _ = meck:unload(khepri_machine);
+        _ ->
+            ok
+    end,
+
     ok.

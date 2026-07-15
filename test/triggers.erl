@@ -11,9 +11,44 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -include("include/khepri.hrl").
+-include("src/khepri_machine.hrl").
 -include("test/helpers.hrl").
 
-event_triggers_associated_sproc_test_() ->
+event_triggers_associated_sproc_v1_test_() ->
+    MacVer = maps:get(uniform_commands, ?API_BEHAV_MACVER_MAP) - 1,
+    EventFilter = khepri_evf:tree([foo]),
+    StoredProcPath = [sproc],
+    Key = ?FUNCTION_NAME,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME, #{machine_version => MacVer}) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [{inorder,
+       [{"Storing a procedure",
+         ?_assertMatch(
+            ok,
+            khepri:put(
+              ?FUNCTION_NAME, StoredProcPath,
+              make_sproc(self(), Key)))},
+
+        {"Registering a trigger",
+         ?_assertEqual(
+            ok,
+            khepri:register_trigger(
+              ?FUNCTION_NAME,
+              ?FUNCTION_NAME,
+              EventFilter,
+              StoredProcPath))},
+
+        {"Updating a node; should trigger the procedure",
+         ?_assertMatch(
+            ok,
+            khepri:put(?FUNCTION_NAME, [foo], value))},
+
+        {"Checking the procedure was executed",
+         ?_assertEqual(executed, receive_sproc_msg(Key))}]
+      }]}.
+
+event_triggers_associated_sproc_v2_test_() ->
     EventFilter = khepri_evf:tree([foo]),
     StoredProcPath = [sproc],
     Key = ?FUNCTION_NAME,
@@ -622,8 +657,13 @@ a_buggy_sproc_does_not_crash_state_machine_test_() ->
 
 make_sproc(Pid, Key) ->
     fun(Props) ->
-            #{on_action := OnAction, path := Path} = Props,
-            Pid ! {sproc, Key, {OnAction, Path}}
+            case Props of
+                #{path := Path, on_action := OnAction} ->
+                    Pid ! {sproc, Key, {OnAction, Path}};
+                #khepri_trigger{type = tree,
+                                event = #{path := Path, change := Change}} ->
+                    Pid ! {sproc, Key, {Change, Path}}
+            end
     end.
 
 receive_sproc_msg(Key) ->

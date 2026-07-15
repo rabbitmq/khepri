@@ -79,6 +79,11 @@
 %% is needed.</li>
 %% <li>Started to use the last snasphot timestamp to determine if a snapshot is
 %% needed.</li>
+%% <li>Extended the trigger mechanism to support other types of action, in
+%% addition to stored procedures. This comes with two new records: the
+%% `#register_trigger_v2{}' command and `#triggered_v2{}', stored in the
+%% machine state. The extended mechanism continues to support stored procedure
+%% (the previous mechanism is not used with version 4).</li>
 %% </ul>
 %% </td>
 %% </tr>
@@ -173,6 +178,18 @@
 %% Properties attached to each node in the tree structure.
 
 -type triggered() :: #triggered{}.
+%% Record sent from {@link khepri_event_handler} to the state machine to
+%% acknowledge the execution of a trigger.
+
+-type triggered_v2() :: #triggered_v2{}.
+%% Record sent from {@link khepri_event_handler} to the state machine to
+%% acknowledge the execution of a trigger.
+%%
+%% It replaced {@link triggered/0} in the state machine version 4.
+
+-type triggered_list() :: [khepri_machine:triggered() |
+                           khepri_machine:triggered_v2()].
+%% List of `#triggered{}' or `#triggered_v2{}' records.
 
 -type command() :: #put_v{} |
                    #delete_v{} |
@@ -220,8 +237,9 @@
 -record(khepri_machine,
         {config :: khepri_config:machine_config(),
          tree = khepri_tree:new() :: khepri_tree:tree(),
-         triggers = #{} :: khepri_machine:triggers_map(),
-         emitted_triggers = [] :: [khepri_machine:triggered()],
+         triggers = #{} :: khepri_machine:triggers_map() |
+                           khepri_machine:triggers_map_v2(),
+         emitted_triggers = [] :: khepri_machine:triggered_list(),
          projections = khepri_pattern_tree:empty() ::
                        khepri_machine:projection_tree(),
          metrics = #{} :: khepri_machine:metrics(),
@@ -241,9 +259,19 @@
 %% State of this Ra state machine.
 
 -type triggers_map() :: #{khepri:trigger_id() =>
-                          #{sproc := khepri_path:native_path(),
-                            event_filter := khepri_evf:event_filter()}}.
+                          #{event_filter := khepri_evf:event_filter(),
+                            sproc := khepri_path:native_path()}}.
 %% Internal triggers map in the machine state.
+
+-type triggers_map_v2() :: #{khepri:trigger_id() =>
+                             #{event_filter := khepri_evf:event_filter(),
+                               action := khepri_event_handler:trigger_action(),
+                               where := khepri_event_handler:trigger_exec_loc()
+                              }}.
+%% Internal triggers map in the machine state (v2).
+%%
+%% This new format was introduced in version 3 of the state machine to take
+%% into account the execution of an MFA or the send of a message to a process.
 
 -type metrics() :: #{applied_command_count => non_neg_integer(),
                      unreleased_command_footprint => non_neg_integer(),
@@ -308,7 +336,8 @@
                          uniform_write_ret |
                          multi_table_projections |
                          uniform_commands |
-                         request_snapshot.
+                         request_snapshot |
+                         extended_trigger.
 %% Name of a state machine API behaviour.
 
 -export_type([write_ret/0,
@@ -319,10 +348,13 @@
               state/0,
               state_v1/0,
               triggers_map/0,
+              triggers_map_v2/0,
               metrics/0,
               dedups_map/0,
               props/0,
               triggered/0,
+              triggered_v2/0,
+              triggered_list/0,
               projection_tree/0,
               projection_map/0,
               api_behaviour/0,
@@ -438,12 +470,12 @@ put(StoreId, PathPattern, Payload, Options)
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     Payload1 = khepri_payload:prepare(Payload),
-    {CommandOptions, TreeAndPutOptions} = split_command_options(
+    {CommandOptions, NonCommandOptions} = split_command_options(
                                             StoreId, Options),
     Command = case does_api_comply_with(uniform_commands, StoreId) of
                   true ->
                       {TreeOptions, PutOptions} = split_put_options(
-                                                    TreeAndPutOptions),
+                                                    NonCommandOptions),
                       CommandArgs = #put_v1{path = PathPattern1,
                                             payload = Payload1,
                                             put_options = PutOptions,
@@ -452,7 +484,7 @@ put(StoreId, PathPattern, Payload, Options)
                   false ->
                       #put{path = PathPattern1,
                            payload = Payload1,
-                           options = TreeAndPutOptions}
+                           options = NonCommandOptions}
               end,
     process_command(StoreId, Command, CommandOptions);
 put(_StoreId, PathPattern, Payload, _Options) ->
@@ -722,22 +754,39 @@ handle_tx_exception(
 %% otherwise.
 
 register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) ->
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+       ?IS_KHEPRI_PATH_OR_COMPAT(StoredProcPath) ->
     EventFilter1 = khepri_evf:wrap(EventFilter),
     StoredProcPath1 = khepri_path:from_string(StoredProcPath),
     khepri_path:ensure_is_valid(StoredProcPath1),
-    Command = case does_api_comply_with(uniform_commands, StoreId) of
-                  true ->
-                      CommandArgs = #register_trigger_v1{
-                                       id = TriggerId,
-                                       sproc = StoredProcPath1,
-                                       event_filter = EventFilter1},
-                      #register_trigger_v{args = CommandArgs};
-                  false ->
-                      #register_trigger{id = TriggerId,
-                                sproc = StoredProcPath1,
-                                event_filter = EventFilter1}
-              end,
+    case does_api_comply_with(uniform_commands, StoreId) of
+        true ->
+            register_trigger_versioned(
+              StoreId, TriggerId, EventFilter1, StoredProcPath1,
+              Options);
+        false ->
+            register_trigger_nonversioned(
+              StoreId, TriggerId, EventFilter1, StoredProcPath1,
+              Options)
+    end.
+
+register_trigger_nonversioned(
+  StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
+    Command = #register_trigger{id = TriggerId,
+                                event_filter = EventFilter,
+                                sproc = StoredProcPath},
+    process_command(StoreId, Command, Options).
+
+register_trigger_versioned(
+  StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
+    ?assert(does_api_comply_with(extended_trigger, StoreId)),
+    StoredProcPath1 = khepri_path:realpath(StoredProcPath),
+    Action = {sproc, StoredProcPath1},
+    CommandArgs = #register_trigger_v1{
+                     id = TriggerId,
+                     event_filter = EventFilter,
+                     action = Action},
+    Command = #register_trigger_v{args = CommandArgs},
     process_command(StoreId, Command, Options).
 
 -spec register_projection(StoreId, PathPattern, Projection, Options) ->
@@ -827,10 +876,10 @@ unregister_projections(StoreId, Names, Options)
               end,
     process_command(StoreId, Command, Options).
 
--spec ack_triggers_execution(StoreId, TriggeredStoredProcs) ->
+-spec ack_triggers_execution(StoreId, TriggeredActions) ->
     Ret when
       StoreId :: khepri:store_id(),
-      TriggeredStoredProcs :: [triggered()],
+      TriggeredActions :: khepri_machine:triggered_list(),
       Ret :: ok | khepri:error().
 %% @doc Acknowledges the execution of a trigger.
 %%
@@ -839,15 +888,15 @@ unregister_projections(StoreId, Names, Options)
 %%
 %% @private
 
-ack_triggers_execution(StoreId, TriggeredStoredProcs)
+ack_triggers_execution(StoreId, TriggeredActions)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
     Command = case does_api_comply_with(uniform_commands, StoreId) of
                   true ->
                       CommandArgs = #ack_triggered_v1{
-                                       triggered = TriggeredStoredProcs},
+                                       triggered = TriggeredActions},
                       #ack_triggered_v{args = CommandArgs};
                   false ->
-                      #ack_triggered{triggered = TriggeredStoredProcs}
+                      #ack_triggered{triggered = TriggeredActions}
               end,
     process_command(StoreId, Command, #{async => true}).
 
@@ -949,48 +998,48 @@ split_query_options(StoreId, Options) ->
       end, {#{}, #{}}, Options1).
 
 -spec split_command_options(StoreId, Options) ->
-    {CommandOptions, TreeAndPutOptions} when
+    {CommandOptions, NonCommandOptions} when
       StoreId :: khepri:store_id(),
-      Options :: CommandOptions | TreeAndPutOptions,
+      Options :: CommandOptions | NonCommandOptions,
       CommandOptions :: khepri:command_options(),
-      TreeAndPutOptions :: khepri:tree_options() | khepri:put_options().
+      NonCommandOptions :: khepri:tree_options() | khepri:put_options().
 %% @private
 
 split_command_options(StoreId, Options) ->
     Options1 = set_default_options(StoreId, Options),
     maps:fold(
       fun
-          (Option, Value, {C, TP}) when
+          (Option, Value, {C, NC}) when
                 Option =:= reply_from orelse
                 Option =:= timeout orelse
                 Option =:= async ->
               C1 = C#{Option => Value},
-              {C1, TP};
+              {C1, NC};
           (props_to_return, [], Acc) ->
               Acc;
-          (Option, Value, {C, TP}) when
+          (Option, Value, {C, NC}) when
                 Option =:= expect_specific_node orelse
                 Option =:= props_to_return orelse
                 Option =:= include_root_props orelse
                 Option =:= return_indirect_deletes ->
-              TP1 = TP#{Option => Value},
-              {C, TP1};
-          (keep_while, KeepWhile, {C, TP}) ->
-              %% `keep_while' is kept in `TreeAndPutOptions' here. The state
+              NC1 = NC#{Option => Value},
+              {C, NC1};
+          (keep_while, KeepWhile, {C, NC}) ->
+              %% `keep_while' is kept in `NonCommandOptions' here. The state
               %% machine will extract it in `apply()'.
               KeepWhile1 = khepri_condition:ensure_native_keep_while(
                              KeepWhile),
-              TP1 = TP#{keep_while => KeepWhile1},
-              {C, TP1}
+              NC1 = NC#{keep_while => KeepWhile1},
+              {C, NC1}
       end, {#{}, #{}}, Options1).
 
--spec split_put_options(TreeAndPutOptions) -> {TreeOptions, PutOptions} when
-      TreeAndPutOptions :: TreeOptions | PutOptions,
+-spec split_put_options(NonCommandOptions) -> {TreeOptions, PutOptions} when
+      NonCommandOptions :: TreeOptions | PutOptions,
       TreeOptions :: khepri:tree_options(),
       PutOptions :: khepri:put_options().
 %% @private
 
-split_put_options(TreeAndPutOptions) ->
+split_put_options(NonCommandOptions) ->
     maps:fold(
       fun
           (keep_while, KeepWhile, {T, P}) ->
@@ -999,7 +1048,7 @@ split_put_options(TreeAndPutOptions) ->
           (Option, Value, {T, P}) ->
               T1 = T#{Option => Value},
               {T1, P}
-      end, {#{}, #{}}, TreeAndPutOptions).
+      end, {#{}, #{}}, NonCommandOptions).
 
 remove_query_options(Options) ->
     maps:filter(
@@ -1874,18 +1923,14 @@ do_apply(
   Meta,
   #register_trigger_v{
      args = #register_trigger_v1{id = TriggerId,
-                                 sproc = StoredProcPath,
-                                 event_filter = EventFilter}} = Command,
+                                 event_filter = EventFilter,
+                                 action = Action}} = Command,
   State) ->
     Triggers = get_triggers(State),
-    StoredProcPath1 = khepri_path:realpath(StoredProcPath),
-    EventFilter1 = case EventFilter of
-                       #evf_tree{path = Path} ->
-                           Path1 = khepri_path:realpath(Path),
-                           EventFilter#evf_tree{path = Path1}
-                   end,
-    Triggers1 = Triggers#{TriggerId => #{sproc => StoredProcPath1,
-                                         event_filter => EventFilter1}},
+    EventFilter1 = normalize_event_filter(EventFilter),
+    Triggers1 = Triggers#{TriggerId => #{event_filter => EventFilter1,
+                                         action => Action,
+                                         where => leader}},
     State1 = set_triggers(State, Triggers1),
     Ret = {State1, ok},
     post_apply(Ret, Meta, Command);
@@ -2066,8 +2111,8 @@ handle_unknown_command(
 convert_to_uniform_command(
   #put{path = PathPattern,
        payload = Payload,
-       options = TreeAndPutOptions}) ->
-    {TreeOptions, PutOptions} = split_put_options(TreeAndPutOptions),
+       options = NonCommandOptions}) ->
+    {TreeOptions, PutOptions} = split_put_options(NonCommandOptions),
     CommandArgs = #put_v1{path = PathPattern,
                           payload = Payload,
                           put_options = PutOptions,
@@ -2091,9 +2136,11 @@ convert_to_uniform_command(
   #register_trigger{id = TriggerId,
                     sproc = StoredProcPath,
                     event_filter = EventFilter}) ->
+    StoredProcPath1 = khepri_path:realpath(StoredProcPath),
+    Action = {sproc, StoredProcPath1},
     CommandArgs = #register_trigger_v1{id = TriggerId,
-                                       sproc = StoredProcPath,
-                                       event_filter = EventFilter},
+                                       event_filter = EventFilter,
+                                       action = Action},
     NewCommand = #register_trigger_v{args = CommandArgs},
     convert_to_uniform_command1(NewCommand);
 convert_to_uniform_command(
@@ -2155,6 +2202,16 @@ convert_to_uniform_command(Command)
 convert_to_uniform_command1(NewCommand) ->
     NewCommand1 = compute_command_size(NewCommand),
     NewCommand1.
+
+-spec normalize_event_filter(EventFilter) -> NewEventFilter when
+      EventFilter :: khepri_evf:event_filter(),
+      NewEventFilter :: khepri_evf:event_filter().
+%% @private
+
+normalize_event_filter(#evf_tree{path = Path} = EventFilter) ->
+    Path1 = khepri_path:realpath(Path),
+    EventFilter1 = EventFilter#evf_tree{path = Path1},
+    EventFilter1.
 
 -spec post_apply(ApplyRet, Meta, Command) -> {State, Result, SideEffects} when
       ApplyRet :: {State, Result} | {State, Result, SideEffects},
@@ -2440,7 +2497,7 @@ emitted_triggers_to_side_effects(State) ->
         [_ | _] ->
             SideEffect = {mod_call,
                           khepri_event_handler,
-                          handle_triggered_sprocs,
+                          handle_triggered_actions,
                           [StoreId, EmittedTriggers]},
             [SideEffect];
         [] ->
@@ -2455,7 +2512,8 @@ emitted_triggers_to_side_effects(State) ->
                     keep_while_conds := KeepWhileConds},
       StoreId :: khepri:store_id(),
       NodeTree :: khepri_utils:display_tree(),
-      Triggers :: khepri_machine:triggers_map(),
+      Triggers :: khepri_machine:triggers_map() |
+                  khepri_machine:triggers_map_v2(),
       KeepWhileConds :: khepri_tree:keep_while_conds_map().
 %% @private
 
@@ -2770,32 +2828,37 @@ add_tree_change_side_effects(
   InitialState, NewState, AppliedChanges, SideEffects) ->
     %% We make a map where for each affected tree node, we indicate the type
     %% of change.
-    Changes = maps:map(
-                fun
-                    (_, {Type, _NodeProps})
-                      when Type =:= create orelse Type =:= update ->
-                        Type;
-                    (_, delete) ->
-                        delete
-                end, AppliedChanges),
+    Paths = lists:sort(maps:keys(AppliedChanges)),
+    Events = lists:map(
+               fun(Path) ->
+                       Change = case maps:get(Path, AppliedChanges) of
+                                    {Type, _NodeProps}
+                                      when Type =:= create orelse
+                                           Type =:= update ->
+                                        Type;
+                                    delete = Type ->
+                                        Type
+                                end,
+                       #ev_tree{path = Path, change = Change}
+               end, Paths),
     NewSideEffects = create_projection_side_effects(
-                       InitialState, NewState, Changes),
+                       InitialState, NewState, Events),
     {NewState1, NewSideEffects1} = add_trigger_side_effects(
-                                     InitialState, NewState, Changes,
+                                     InitialState, NewState, Events,
                                      NewSideEffects),
     SideEffects1 = lists:reverse(NewSideEffects1, SideEffects),
     {NewState1, SideEffects1}.
 
-create_projection_side_effects(InitialState, NewState, Changes) ->
+create_projection_side_effects(InitialState, NewState, Events) ->
     InitialTree = get_tree(InitialState),
     NewTree = get_tree(NewState),
     ProjectionTree0 = get_projections(NewState),
     ProjectionTree = get_compiled_projection_tree(ProjectionTree0),
-    maps:fold(
-      fun(Path, Change, Effects) ->
+    lists:foldl(
+      fun(#ev_tree{path = Path, change = Change}, Effects) ->
               create_projection_side_effects1(
                 InitialTree, NewTree, ProjectionTree, Path, Change, Effects)
-      end, [], Changes).
+      end, [], Events).
 
 create_projection_side_effects1(
   InitialTree, NewTree, ProjectionTree, Path, Change, Effects) ->
@@ -2862,7 +2925,7 @@ evaluate_projection(
     Effect = {aux, Trigger},
     [Effect | Effects].
 
-add_trigger_side_effects(InitialState, NewState, Changes, SideEffects) ->
+add_trigger_side_effects(InitialState, NewState, Events, SideEffects) ->
     %% We want to consider the new state (with the updated tree), but we want
     %% to use triggers from the initial state, in case they were updated too.
     %% In other words, we want to evaluate triggers in the state they were at
@@ -2872,64 +2935,60 @@ add_trigger_side_effects(InitialState, NewState, Changes, SideEffects) ->
         true ->
             {NewState, SideEffects};
         false ->
-            EmittedTriggers = get_emitted_triggers(InitialState),
             StoreId = get_store_id(NewState),
-            InitialTree = get_tree(InitialState),
-            NewTree = get_tree(NewState),
-            TriggeredStoredProcs = list_triggered_sprocs(
-                                     InitialTree, NewTree, Changes, Triggers),
+            TriggeredActions = list_triggered_actions(
+                                 InitialState, NewState, Events, Triggers),
 
-            %% We record the list of triggered stored procedures in the state
-            %% machine's state. This is used to guaranty at-least-once
-            %% execution of the trigger: the event handler process is supposed
-            %% to ack when it executed the triggered stored procedure. If the
-            %% Ra cluster changes leader in between, we know that we need to
-            %% retry the execution.
+            %% We record the list of triggered actions in the state machine's
+            %% state. This is used to guaranty at-least-once execution of the
+            %% trigger: the event handler process is supposed to ack when it
+            %% executed the triggered action. If the Ra cluster changes leader
+            %% in between, we know that we need to retry the execution.
             %%
             %% This could lead to multiple execution of the same trigger,
-            %% therefore the stored procedure must be idempotent.
+            %% therefore the action must be idempotent.
+            EmittedTriggers = get_emitted_triggers(InitialState),
             NewState1 = set_emitted_triggers(
-                          NewState, EmittedTriggers ++ TriggeredStoredProcs),
+                          NewState, EmittedTriggers ++ TriggeredActions),
 
-            %% We still emit a `mod_call' effect to wake up the event handler
+            %% We emit a `mod_call' effect to wake up the event handler
             %% process so it doesn't have to poll the internal list.
             SideEffect = {mod_call,
                           khepri_event_handler,
-                          handle_triggered_sprocs,
-                          [StoreId, TriggeredStoredProcs]},
+                          handle_triggered_actions,
+                          [StoreId, TriggeredActions]},
             {NewState1, [SideEffect | SideEffects]}
     end.
 
-list_triggered_sprocs(InitialTree, NewTree, Changes, Triggers) ->
-    TriggeredStoredProcs =
-    maps:fold(
-      fun(Path, Change, TSP) ->
-              % For each change, we evaluate each trigger.
-              Tree = case Change of
-                         delete ->
-                             InitialTree;
-                         _ ->
-                             NewTree
-                     end,
+list_triggered_actions(InitialState, NewState, Events, Triggers) ->
+    TriggeredActions =
+    lists:foldl(
+      fun(Event, TA) ->
+              %% For each change, we evaluate each trigger.
               maps:fold(
-                fun(TriggerId, TriggerProps, TSP1) ->
+                fun(TriggerId, TriggerProps, TA1) ->
                         evaluate_trigger(
-                          Tree, Path, Change, TriggerId, TriggerProps, TSP1)
-                end, TSP, Triggers)
-      end, [], Changes),
-    sort_triggered_sprocs(TriggeredStoredProcs).
+                          InitialState, NewState, Event,
+                          TriggerId, TriggerProps, TA1)
+                end, TA, Triggers)
+      end, [], Events),
+    sort_triggered_actions(TriggeredActions).
 
 evaluate_trigger(
-  Tree, Path, Change, TriggerId,
-  #{sproc := StoredProcPath,
-    event_filter := #evf_tree{path = PathPattern,
-                              props = EventFilterProps} = EventFilter},
-  TriggeredStoredProcs) ->
+  InitialState, NewState,
+  #ev_tree{path = Path, change = Change} = Event, TriggerId,
+  #{event_filter := #evf_tree{path = PathPattern,
+                              props = EventFilterProps}} = Trigger,
+  TriggeredActions) ->
     %% For each trigger based on a tree event:
     %%   1. we verify the path of the changed tree node matches the monitored
     %%      path pattern in the event filter.
     %%   2. we verify the type of change matches the change filter in the
     %%      event filter.
+    Tree = case Change of
+               delete -> get_tree(InitialState);
+               _      -> get_tree(NewState)
+           end,
     PathMatches = khepri_tree:does_path_match(Path, PathPattern, Tree),
     DefaultWatchedChanges = [create, update, delete],
     WatchedChanges = case EventFilterProps of
@@ -2944,35 +3003,56 @@ evaluate_trigger(
     ChangeMatches = lists:member(Change, WatchedChanges),
     case PathMatches andalso ChangeMatches of
         true ->
-            %% We then locate the stored procedure. If the path doesn't point
-            %% to an existing tree node, or if this tree node is not a stored
-            %% procedure, the trigger is ignored.
-            %%
-            %% TODO: Should we return an error or at least log something? This
-            %% could be considered noise if the trigger exists regardless of
-            %% the presence of the stored procedure on purpose (for instance
-            %% the caller code is being updated).
-            case find_stored_proc(Tree, StoredProcPath) of
-                undefined ->
-                    TriggeredStoredProcs;
-                StoredProc ->
-                    %% TODO: Use a record to format
-                    %% stored procedure arguments?
-                    EventProps = #{path => Path,
-                                   on_action => Change},
-                    Triggered = #triggered{
+            evaluate_action(
+              NewState, Event, TriggerId, Trigger, TriggeredActions);
+        false ->
+            TriggeredActions
+    end.
+
+evaluate_action(State, Event, TriggerId, Trigger, TriggeredActions)
+  when is_map_key(sproc, Trigger) orelse
+       element(1, map_get(action, Trigger)) =:= sproc ->
+    %% We locate the stored procedure. If the path doesn't point to an
+    %% existing tree node, or if this tree node is not a stored procedure, the
+    %% trigger is ignored.
+    %%
+    %% TODO: Should we return an error or at least log something? This could
+    %% be considered noise if the trigger exists regardless of the presence of
+    %% the stored procedure on purpose (for instance the caller code is being
+    %% updated).
+    Tree = get_tree(State),
+    StoredProcPath = case Trigger of
+                         #{sproc := SPP}           -> SPP;
+                         #{action := {sproc, SPP}} -> SPP
+                     end,
+    case find_stored_proc(Tree, StoredProcPath) of
+        undefined ->
+            TriggeredActions;
+        StoredProc ->
+            EventFilter = maps:get(event_filter, Trigger),
+            Triggered = case Trigger of
+                            #{sproc := _} ->
+                                %% With trigger v1, the only type of event is
+                                %% a tree change.
+                                #ev_tree{path = Path, change = Change} = Event,
+                                EventProps = #{path => Path,
+                                               on_action => Change},
+                                #triggered{
                                    id = TriggerId,
                                    event_filter = EventFilter,
                                    sproc = StoredProc,
-                                   props = EventProps},
-                    [Triggered | TriggeredStoredProcs]
-            end;
-        false ->
-            TriggeredStoredProcs
-    end;
-evaluate_trigger(
-  _Root, _Path, _Change, _TriggerId, _TriggerProps, TriggeredStoredProcs) ->
-    TriggeredStoredProcs.
+                                   props = EventProps};
+                            #{action := {sproc, _},
+                              where := Where} ->
+                                #triggered_v2{
+                                   id = TriggerId,
+                                   event_filter = EventFilter,
+                                   action = {sproc, StoredProc},
+                                   where = Where,
+                                   event = Event}
+                        end,
+            [Triggered | TriggeredActions]
+    end.
 
 find_stored_proc(Tree, StoredProcPath) ->
     TreeOptions = #{expect_specific_node => true,
@@ -2989,21 +3069,22 @@ find_stored_proc(Tree, StoredProcPath) ->
         _                                                 -> undefined
     end.
 
-sort_triggered_sprocs(TriggeredStoredProcs) ->
-    %% We first sort by priority, then by triggered ID if priorities are equal.
+sort_triggered_actions(TriggeredActions) ->
+    %% We first sort by priority, then by trigger ID if priorities are equal.
     %% The priority can be any integer (even negative integers). The default
     %% priority is 0.
     %%
-    %% A higher priority (a greater integer) means that the triggered stored
-    %% procedure will be executed before another one with lower priority
-    %% (smaller integer).
+    %% A higher priority (a greater integer) means that the triggered action
+    %% will be executed before another one with lower priority (smaller
+    %% integer).
     %%
     %% If the priorities are equal, a trigger with an ID earlier in
     %% alphabetical order will be executed before another one with an ID later
     %% in alphabetical order.
     lists:sort(
-      fun(#triggered{id = IdA, event_filter = EventFilterA},
-          #triggered{id = IdB, event_filter = EventFilterB}) ->
+      fun(TriggerA, TriggerB) ->
+              {IdA, EventFilterA} = get_trigger_id_and_event_filter(TriggerA),
+              {IdB, EventFilterB} = get_trigger_id_and_event_filter(TriggerB),
               PrioA = khepri_evf:get_priority(EventFilterA),
               PrioB = khepri_evf:get_priority(EventFilterB),
               if
@@ -3011,7 +3092,14 @@ sort_triggered_sprocs(TriggeredStoredProcs) ->
                   true            -> PrioA > PrioB
               end
       end,
-      TriggeredStoredProcs).
+      TriggeredActions).
+
+get_trigger_id_and_event_filter(
+  #triggered{id = Id, event_filter = EventFilter}) ->
+    {Id, EventFilter};
+get_trigger_id_and_event_filter(
+  #triggered_v2{id = Id, event_filter = EventFilter}) ->
+    {Id, EventFilter}.
 
 -spec get_compiled_projection_tree(ProjectionTree) -> CompiledProjectionTree
     when
@@ -3169,7 +3257,8 @@ get_keep_while_conds_revidx(State) ->
 
 -spec get_triggers(State) -> Triggers when
       State :: khepri_machine:state(),
-      Triggers :: khepri_machine:triggers_map().
+      Triggers :: khepri_machine:triggers_map() |
+                  khepri_machine:triggers_map_v2().
 %% @doc Returns the triggers from the given state.
 %%
 %% @private
@@ -3181,7 +3270,8 @@ get_triggers(State) ->
 
 -spec set_triggers(State, Triggers) -> NewState when
       State :: khepri_machine:state(),
-      Triggers :: khepri_machine:triggers_map(),
+      Triggers :: khepri_machine:triggers_map() |
+                  khepri_machine:triggers_map_v2(),
       NewState :: khepri_machine:state().
 %% @doc Sets the triggers in the given state.
 %%
@@ -3194,7 +3284,7 @@ set_triggers(State, Triggers) ->
 
 -spec get_emitted_triggers(State) -> EmittedTriggers when
       State :: khepri_machine:state(),
-      EmittedTriggers :: [khepri_machine:triggered()].
+      EmittedTriggers :: khepri_machine:triggered_list().
 %% @doc Returns the emitted_triggers from the given state.
 %%
 %% @private
@@ -3206,7 +3296,7 @@ get_emitted_triggers(State) ->
 
 -spec set_emitted_triggers(State, EmittedTriggers) -> NewState when
       State :: khepri_machine:state(),
-      EmittedTriggers :: [khepri_machine:triggered()],
+      EmittedTriggers :: khepri_machine:triggered_list(),
       NewState :: khepri_machine:state().
 %% @doc Sets the emitted_triggers in the given state.
 %%
@@ -3455,7 +3545,20 @@ convert_state1(State, 3, 4) ->
     Config0 = get_config(State),
     Config1 = khepri_config:convert_config(Config0, 0, 1, Params),
     State1 = set_config(State, Config1),
-    State1.
+
+    Triggers = get_triggers(State1),
+    Triggers1 = maps:map(
+                  fun(_TriggerId, Trigger) ->
+                          trigger_v1_to_v2(Trigger)
+                  end, Triggers),
+    State2 = set_triggers(State1, Triggers1),
+    State2.
+
+trigger_v1_to_v2(#{sproc := StoredProcPath} = Trigger) ->
+    Trigger1 = Trigger#{action => {sproc, StoredProcPath},
+                        where => leader},
+    Trigger2 = maps:remove(sproc, Trigger1),
+    Trigger2.
 
 -spec update_projections(OldState, NewState) -> ok when
       OldState :: khepri_machine:state(),
