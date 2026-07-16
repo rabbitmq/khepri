@@ -37,11 +37,14 @@
 -dialyzer(no_missing_calls).
 
 -type display_tree() :: #{data => khepri:data(),
+                          has_data => boolean(),
                           sproc => horus:horus_fun(),
+                          is_sproc => boolean(),
                           payload_version => khepri:payload_version(),
                           child_list_version => khepri:child_list_version(),
                           child_list_length => khepri:child_list_length(),
                           child_names => [khepri_path:node_id()],
+                          delete_reason => khepri:delete_reason(),
                           child_nodes => #{khepri_path:node_id() =>
                                            display_tree()}}.
 
