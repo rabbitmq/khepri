@@ -438,14 +438,18 @@ optimize_if_all_conditions([Cond | Rest], Result) ->
 optimize_if_all_conditions([], Result) ->
     lists:reverse(Result).
 
--spec optimize_if_any_conditions([condition()]) -> [condition()].
+-spec optimize_if_any_conditions(Conds) -> NewConds when
+      Conds :: [khepri_path:pattern_component()],
+      NewConds :: [khepri_path:pattern_component()].
 %% @private
 %% @hidden
 
 optimize_if_any_conditions(Conds) ->
     Conds.
 
--spec applies_to_grandchildren(condition()) -> boolean().
+-spec applies_to_grandchildren(Cond) -> DoesApply when
+      Cond :: khepri_path:pattern_component(),
+      DoesApply :: boolean().
 %% @doc Returns true if a condition should be evaluated against child nodes in
 %% addition to the current node.
 %%
