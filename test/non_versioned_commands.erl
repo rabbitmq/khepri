@@ -194,11 +194,29 @@ convert_to_uniform_command_test() ->
                             OldRecord),
               case ExpectedNewRecord of
                   same ->
+                      if
+                          is_record(OldRecord, dedup) ->
+                              ?assertNot(khepri_machine:does_command_support_common_args(OldRecord));
+                          true ->
+                              ?assert(khepri_machine:does_command_support_common_args(OldRecord))
+                      end,
                       ?assertEqual(OldRecord, NewRecord);
                   _ ->
+                      ?assertNot(khepri_machine:does_command_support_common_args(OldRecord)),
+                      ?assert(khepri_machine:does_command_support_common_args(NewRecord)),
+                      ?assertEqual(
+                         none,
+                         khepri_machine:get_command_common_args(OldRecord)),
                       ExpectedNewRecord1 = (
                         khepri_machine:compute_command_size(
                           ExpectedNewRecord)),
                       ?assertEqual(ExpectedNewRecord1, NewRecord)
               end
       end, Records).
+
+ra_builtin_commands_test() ->
+    MachineVersion = {machine_version, 0, 1},
+    ?assertNot(khepri_machine:does_command_support_common_args(MachineVersion)),
+    ?assertEqual(
+       none,
+       khepri_machine:get_command_common_args(MachineVersion)).

@@ -168,7 +168,9 @@
          convert_state/3,
          set_tree/2,
          reset_metrics/1,
-         compute_command_size/1]).
+         compute_command_size/1,
+         does_command_support_common_args/1,
+         get_command_common_args/1]).
 -endif.
 
 -compile({no_auto_import, [apply/3]}).
@@ -1114,10 +1116,7 @@ set_default_options(StoreId, Options) ->
 %% @private
 
 process_command(StoreId, Command, Options) ->
-    Command1 = case does_api_comply_with(uniform_commands, StoreId) of
-                   true  -> compute_command_size(Command);
-                   false -> Command
-               end,
+    Command1 = compute_command_size(Command),
     CommandType = select_command_type(Options),
     case CommandType of
         sync ->
@@ -1161,7 +1160,7 @@ process_sync_command(
             {
              DedupEnabledCommand,
              DedupAckCommand
-            } = case does_api_comply_with(uniform_commands, StoreId) of
+            } = case does_command_support_common_args(Command) of
                     true ->
                         %% With the uniform commands, the dedup attributes (ref
                         %% and expiry) are passed with the command in its
@@ -2338,9 +2337,63 @@ trigger_delayed_aux_queries_eval(State, SideEffects, _Meta) ->
     SideEffects1 = [{aux, trigger_delayed_aux_queries_eval} | SideEffects],
     {State, SideEffects1}.
 
-%% In `get_command_common_args/1' and `set_command_common_args/2', we list
-%% supported commands exhaustively on purpose: this will help us when a new
-%% command is introduced to not forget to update this function.
+%% In `does_command_support_common_args/1', `get_command_common_args/1' and
+%% `set_command_common_args/2', we list supported commands exhaustively on
+%% purpose: this will help us when a new command is introduced to not forget to
+%% update this function.
+
+-spec does_command_support_common_args(Command) -> SupportsCommonArgs when
+      Command :: khepri_machine:command() |
+                 khepri_machine:old_command() |
+                 ra_machine:builtin_command(),
+      SupportsCommonArgs :: boolean().
+
+does_command_support_common_args(#put_v{}) ->
+    true;
+does_command_support_common_args(#delete_v{}) ->
+    true;
+does_command_support_common_args(#tx_v{}) ->
+    true;
+does_command_support_common_args(#register_trigger_v{}) ->
+    true;
+does_command_support_common_args(#ack_triggered_v{}) ->
+    true;
+does_command_support_common_args(#register_projection_v{}) ->
+    true;
+does_command_support_common_args(#unregister_projections_v{}) ->
+    true;
+does_command_support_common_args(#dedup_ack_v{}) ->
+    true;
+does_command_support_common_args(#drop_dedups_v{}) ->
+    true;
+does_command_support_common_args(#request_snapshot{}) ->
+    true;
+does_command_support_common_args(#put{}) ->
+    false;
+does_command_support_common_args(#delete{}) ->
+    false;
+does_command_support_common_args(#tx{}) ->
+    false;
+does_command_support_common_args(#register_trigger{}) ->
+    false;
+does_command_support_common_args(#ack_triggered{}) ->
+    false;
+does_command_support_common_args(#register_projection{}) ->
+    false;
+does_command_support_common_args(#unregister_projection{}) ->
+    false;
+does_command_support_common_args(#unregister_projections{}) ->
+    false;
+does_command_support_common_args(#dedup{}) ->
+    false;
+does_command_support_common_args(#dedup_ack{}) ->
+    false;
+does_command_support_common_args(#drop_dedups{}) ->
+    false;
+does_command_support_common_args({machine_version, _OldMacVer, _NewMacVer}) ->
+    false;
+does_command_support_common_args(_UnknownCommand) ->
+    false.
 
 -spec get_command_common_args(Command) -> Ret when
       Command :: khepri_machine:command() |
@@ -2444,16 +2497,21 @@ set_dedup_args(Command, CommandRef, Expiry)
     Command1.
 
 compute_command_size(Command) ->
-    CommonArgs = get_command_common_args(Command),
-    CommonArgs1 = case CommonArgs of
-                      #common_v1{} -> CommonArgs;
-                      none         -> #common_v1{}
-                  end,
-    Command1 = set_command_common_args(Command, CommonArgs1),
-    CommandSize = erlang:external_size(Command1),
-    CommonArgs2 = CommonArgs1#common_v1{command_size = CommandSize},
-    Command2 = set_command_common_args(Command1, CommonArgs2),
-    Command2.
+    case does_command_support_common_args(Command) of
+        true ->
+            CommonArgs = get_command_common_args(Command),
+            CommonArgs1 = case CommonArgs of
+                              #common_v1{} -> CommonArgs;
+                              none         -> #common_v1{}
+                          end,
+            Command1 = set_command_common_args(Command, CommonArgs1),
+            CommandSize = erlang:external_size(Command1),
+            CommonArgs2 = CommonArgs1#common_v1{command_size = CommandSize},
+            Command2 = set_command_common_args(Command1, CommonArgs2),
+            Command2;
+        false ->
+            Command
+    end.
 
 %% @private
 
