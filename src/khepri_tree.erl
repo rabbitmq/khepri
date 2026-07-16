@@ -1278,15 +1278,18 @@ special_component_to_node_name(?THIS_KHEPRI_NODE, []) ->
 
 -spec starting_node_in_rev_parent_tree(ReversedParentTree) -> Node when
       Node :: tree_node(),
-      ReversedParentTree :: [Node].
+      ReversedParentTree :: [Node | {Node, child_created}].
 %% @private
 
 starting_node_in_rev_parent_tree(ReversedParentTree) ->
-    hd(lists:reverse(ReversedParentTree)).
+    case hd(lists:reverse(ReversedParentTree)) of
+        {Node, child_created} -> Node;
+        Node                  -> Node
+    end.
 
 -spec starting_node_in_rev_parent_tree(ReversedParentTree, Node) -> Node when
       Node :: tree_node(),
-      ReversedParentTree :: [Node].
+      ReversedParentTree :: [Node | {Node, child_created}].
 %% @private
 
 starting_node_in_rev_parent_tree([], CurrentNode) ->
