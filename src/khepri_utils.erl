@@ -62,7 +62,7 @@ start_timeout_window(_Timeout) ->
 
 end_timeout_window(infinity = Timeout, none) ->
     Timeout;
-end_timeout_window(Timeout, T0) ->
+end_timeout_window(Timeout, T0) when is_integer(Timeout), is_integer(T0) ->
     T1 = erlang:monotonic_time(),
     TDiff = erlang:convert_time_unit(T1 - T0, native, millisecond),
     Remaining = Timeout - TDiff,
