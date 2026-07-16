@@ -1336,7 +1336,7 @@ starting_node_in_rev_parent_tree(ReversedParentTree, _) ->
 %% @private
 
 handle_branch(
-  #walk{node = CurrentNode,
+  #walk{node = #node{} = CurrentNode,
         path_pattern = [Condition | PathPattern] = WholePathPattern,
         reversed_path = ReversedPath} = Walk,
   ChildName, Child) ->
