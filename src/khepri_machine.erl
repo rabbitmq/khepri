@@ -947,8 +947,7 @@ get_keep_while_conds_state(StoreId, Options)
       StoreId :: khepri:store_id(),
       Options :: khepri:query_options(),
       Ret :: khepri:ok(ProjectionState) | khepri:error(),
-      ProjectionState :: khepri_pattern_tree:tree(Projection),
-      Projection :: khepri_projection:projection().
+      ProjectionState :: khepri_machine:projection_tree().
 %% @doc Returns the `projections' internal state.
 %%
 %% The returned state is a pattern tree containing the projections registered
