@@ -414,7 +414,8 @@ compile(#if_any{conditions = InnerConds} = Cond) ->
 compile(Cond) ->
     Cond.
 
--spec optimize_if_all_conditions([condition()]) -> [condition()].
+-spec optimize_if_all_conditions([khepri_path:pattern_component()]) ->
+    [khepri_path:pattern_component()].
 %% @private
 %% @hidden
 
