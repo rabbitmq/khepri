@@ -573,8 +573,7 @@ start(RaSystemOrDataDir) ->
       DataDir :: file:filename_all(),
       StoreId :: store_id(),
       RaServerConfig :: khepri_cluster:incomplete_ra_server_config(),
-      Ret :: khepri:ok(StoreId) | khepri:error(),
-      StoreId :: khepri:store_id().
+      Ret :: khepri:ok(StoreId) | khepri:error().
 %% @doc Starts a store.
 %%
 %% @see khepri_cluster:start/2.
@@ -589,8 +588,7 @@ start(RaSystemOrDataDir, StoreIdOrRaServerConfig) ->
       StoreId :: store_id(),
       RaServerConfig :: khepri_cluster:incomplete_ra_server_config(),
       Timeout :: timeout(),
-      Ret :: khepri:ok(StoreId) | khepri:error(),
-      StoreId :: khepri:store_id().
+      Ret :: khepri:ok(StoreId) | khepri:error().
 %% @doc Starts a store.
 %%
 %% @see khepri_cluster:start/3.
