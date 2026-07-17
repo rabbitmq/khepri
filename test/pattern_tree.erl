@@ -128,6 +128,28 @@ fold_finds_all_patterns_matching_a_path_test() ->
       MatchingIndices([])),
     ok.
 
+does_path_match_tolerates_an_absent_node_test() ->
+    %% `does_path_match/3' must not crash when the matched path refers to a
+    %% node that is absent from the tree (e.g. matching the path of a node
+    %% that no longer exists). A path condition that has to query the
+    %% missing node cannot be met, so the path does not match.
+    %%
+    %% Previously the condition clause hard-matched
+    %% `{ok, _} = find_matching_nodes(...)'; for an absent node that lookup
+    %% returns `{error, {khepri, node_not_found, _}}', so the badmatch
+    %% crashed the caller. When the caller is the `khepri_machine' command
+    %% apply loop, the badmatch aborts (and is persisted in) the command,
+    %% so it replays on every restart.
+    TreePayload = #p_data{data = 1},
+    {ok, Tree, _, _} = khepri_tree:insert_or_update_node(
+                         khepri_tree:new(), [foo], TreePayload, #{}, #{}),
+    %% [foo, bar] is not in the tree; the condition at `bar''s position
+    %% forces a lookup of the absent node.
+    ?assertEqual(
+       false,
+       khepri_tree:does_path_match(
+         [foo, bar], [foo, #if_child_list_length{count = 0}], Tree)).
+
 %% Helper functions.
 
 -spec put_new(PatternTree, PathPattern, Payload) -> Ret when
