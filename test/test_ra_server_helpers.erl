@@ -37,6 +37,8 @@ setup(Testcase, CustomConfig) ->
              end,
 
     {ok, StoreId} = khepri:start(RaSystem, RaServerConfig1),
+    ok = khepri_cluster:wait_for_effective_machine_version(
+           StoreId, khepri_machine:version()),
     Props1#{store_id => StoreId}.
 
 cleanup(#{store_id := StoreId} = Props) ->
