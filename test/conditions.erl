@@ -16,6 +16,14 @@
 %% khepri:get_root/1 is unexported when compiled without `-DTEST'.
 -dialyzer(no_missing_calls).
 
+%% These tests deliberately construct condition records with non-boolean
+%% field values to exercise `is_valid/1''s handling of invalid input, which
+%% is a contract violation from Dialyzer's point of view.
+-dialyzer(
+   {nowarn_function,
+    [is_valid_reports_non_boolean_fields_as_invalid_test/0,
+     ensure_is_valid_rejects_condition_with_non_boolean_field_test/0]}).
+
 %% -------------------------------------------------------------------
 %% Compilation & optimization.
 %% -------------------------------------------------------------------
@@ -256,6 +264,7 @@ if_has_payload_matching_test() ->
          foo, #{sproc => fun() -> ok end})).
 
 if_has_data_matching_test() ->
+    ?assert(khepri_condition:is_valid(#if_has_data{has_data = false})),
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(#if_has_data{has_data = false}),
@@ -313,6 +322,7 @@ if_has_data_matching_test() ->
          foo, #{sproc => fun() -> ok end})).
 
 if_has_sproc_matching_test() ->
+    ?assert(khepri_condition:is_valid(#if_has_sproc{has_sproc = false})),
     ?assert(
        khepri_condition:is_met(
          khepri_condition:compile(#if_has_sproc{has_sproc = false}),
@@ -798,3 +808,37 @@ applies_to_grandchildren_test() ->
          #if_not{condition =
                  #if_all{conditions = [#if_path_matches{regex = any},
                                        #if_data_matches{pattern = '_'}]}})).
+
+%% -------------------------------------------------------------------
+%% Validation.
+%% -------------------------------------------------------------------
+
+is_valid_reports_non_boolean_fields_as_invalid_test() ->
+    %% `is_valid/1' must always return `true' or `{false, Condition}', never
+    %% a bare boolean, even when the condition's field is not a boolean:
+    %% callers such as `khepri_path:is_valid/1' rely on `{false, _}' to
+    %% detect an invalid component.
+    ?assertEqual(
+       {false, #if_node_exists{exists = not_a_boolean}},
+       khepri_condition:is_valid(#if_node_exists{exists = not_a_boolean})),
+    ?assertEqual(
+       {false, #if_has_payload{has_payload = not_a_boolean}},
+       khepri_condition:is_valid(
+         #if_has_payload{has_payload = not_a_boolean})),
+    ?assertEqual(
+       {false, #if_has_data{has_data = not_a_boolean}},
+       khepri_condition:is_valid(#if_has_data{has_data = not_a_boolean})),
+    ?assertEqual(
+       {false, #if_has_sproc{has_sproc = not_a_boolean}},
+       khepri_condition:is_valid(#if_has_sproc{has_sproc = not_a_boolean})).
+
+ensure_is_valid_rejects_condition_with_non_boolean_field_test() ->
+    %% Before the fix, `is_valid/1' returned a bare `false' for a condition
+    %% like this one, which `khepri_path:ensure_is_valid/1' cannot match
+    %% (it only handles `true' and `{false, Component}'), so this used to
+    %% crash with a `case_clause' exception instead of the intended
+    %% `invalid_path' one.
+    Path = [stock, #if_node_exists{exists = not_a_boolean}],
+    ?assertError(
+       ?khepri_exception(invalid_path, _),
+       khepri_path:ensure_is_valid(Path)).

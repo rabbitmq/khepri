@@ -300,3 +300,18 @@ invalid_compare_and_swap_call_test_() ->
             #{path := _}),
          khepri_adv:compare_and_swap(
            ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR], foo_value1, foo_value2))]}.
+
+put_many_using_cond_on_self_that_evaluates_to_false_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, #{}},
+         khepri_adv:put_many(
+           ?FUNCTION_NAME,
+           [foo,
+            #if_all{conditions = [?THIS_KHEPRI_NODE, #if_has_payload{}]}],
+           value)),
+      ?_assertMatch(
+         {error, ?khepri_error(node_not_found, _)},
+         khepri:get(?FUNCTION_NAME, [foo]))]}.

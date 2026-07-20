@@ -721,18 +721,20 @@ compare_numerical_values(_, _)                 -> false.
 
 is_valid(Component) when ?IS_KHEPRI_PATH_COMPONENT(Component) ->
     true;
-is_valid(#if_node_exists{exists = Exists}) ->
-    is_boolean(Exists);
+is_valid(#if_node_exists{exists = Exists}) when is_boolean(Exists) ->
+    true;
 is_valid(#if_name_matches{}) ->
     true;
 is_valid(#if_path_matches{}) ->
     true;
-is_valid(#if_has_payload{has_payload = HasPayload}) ->
-    is_boolean(HasPayload);
-is_valid(#if_has_data{has_data = HasData}) ->
-    is_boolean(HasData);
-is_valid(#if_has_sproc{has_sproc = HasStoredProc}) ->
-    is_boolean(HasStoredProc);
+is_valid(#if_has_payload{has_payload = HasPayload})
+  when is_boolean(HasPayload) ->
+    true;
+is_valid(#if_has_data{has_data = HasData}) when is_boolean(HasData) ->
+    true;
+is_valid(#if_has_sproc{has_sproc = HasStoredProc})
+  when is_boolean(HasStoredProc) ->
+    true;
 is_valid(#if_data_matches{conditions = Conditions})
   when is_list(Conditions) ->
     true;
