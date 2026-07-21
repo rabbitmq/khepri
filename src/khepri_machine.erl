@@ -60,6 +60,7 @@
 %% </table>
 
 -module(khepri_machine).
+-feature(maybe_expr, enable).
 -behaviour(ra_machine).
 
 -include_lib("kernel/include/logger.hrl").
@@ -1530,12 +1531,13 @@ restore_projection(Projection, Tree, PathPattern) ->
     _ = khepri_projection:init(Projection),
     TreeOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
                     include_root_props => true},
-    case khepri_tree:find_matching_nodes(Tree, PathPattern, TreeOptions) of
-        {ok, MatchingNodes} ->
-            maps:foreach(fun(Path, Props) ->
-                                 khepri_projection:trigger(
-                                   Projection, Path, #{}, Props)
-                         end, MatchingNodes);
+    Fun = fun(Path, Props, Acc) ->
+                  khepri_projection:trigger(Projection, Path, #{}, Props),
+                  Acc
+          end,
+    case khepri_tree:fold(Tree, PathPattern, Fun, ok, TreeOptions) of
+        {ok, ok} ->
+            ok;
         Error ->
             ?LOG_DEBUG(
                "Failed to recover projection ~s due to an error: ~p",
@@ -2840,52 +2842,107 @@ set_of_projections(ProjectionTree) ->
 update_projection(Pattern, Projection, OldTree, NewTree) ->
     TreeOptions = #{props_to_return => ?PROJECTION_PROPS_TO_RETURN,
                     include_root_props => true},
-    case khepri_tree:find_matching_nodes(OldTree, Pattern, TreeOptions) of
-        {ok, OldMatchingNodes} ->
-            Result = khepri_tree:find_matching_nodes(
-                       NewTree, Pattern, TreeOptions),
-            case Result of
-                {ok, NewMatchingNodes} ->
-                    Updates = diff_matching_nodes(
-                                OldMatchingNodes, NewMatchingNodes),
-                    maps:foreach(
-                      fun(Path, {OldProps, NewProps}) ->
-                              khepri_projection:trigger(
-                                Projection, Path, OldProps, NewProps)
-                      end, Updates);
-                Error ->
-                    ?LOG_DEBUG(
-                       "Failed to refresh projection ~s due to an error "
-                       "finding matching nodes in the new tree: ~p",
-                       [khepri_projection:name(Projection), Error],
-                       #{domain => [khepri, ra_machine]})
-            end;
+    maybe
+        %% Counts both sides, materializes the smaller side's matching node
+        %% props, then folds over the larger side. This bounds peak memory to
+        %% the smaller tree (plus some bookkeeping), instead of always
+        %% materializing the old tree regardless of which side is actually
+        %% larger.
+        {ok, OldCount} ?= count_matching_nodes(OldTree, Pattern),
+        {ok, NewCount} ?= count_matching_nodes(NewTree, Pattern),
+        case OldCount =< NewCount of
+            true ->
+                update_projection1(
+                  Pattern, Projection, old, OldTree, NewTree, TreeOptions);
+            false ->
+                update_projection1(
+                  Pattern, Projection, new, NewTree, OldTree, TreeOptions)
+        end
+    else
         Error ->
             ?LOG_DEBUG(
                "Failed to refresh projection ~s due to an error finding "
-               "matching nodes in the old tree: ~p",
+               "matching nodes: ~p",
                [khepri_projection:name(Projection), Error],
                #{domain => [khepri, ra_machine]})
     end.
 
--spec diff_matching_nodes(OldNodeProps, NewNodeProps) -> Changes when
-      OldNodeProps :: khepri:node_props_map(),
-      NewNodeProps :: khepri:node_props_map(),
-      OldProps :: khepri:node_props(),
-      NewProps :: khepri:node_props(),
-      Changes :: #{khepri_path:native_path() => {OldProps, NewProps}}.
-%% @private
+count_matching_nodes(Tree, Pattern) ->
+    khepri_tree:fold(
+      Tree, Pattern, fun khepri_tree:count_node_cb/3, 0,
+      #{include_root_props => true}).
 
-diff_matching_nodes(OldNodeProps, NewNodeProps) ->
-    CommonProps = maps:intersect_with(
-                    fun(_Path, OldProps, NewProps) -> {OldProps, NewProps} end,
-                    OldNodeProps, NewNodeProps),
-    CommonPaths = maps:keys(CommonProps),
-    AllProps = maps:fold(
-                 fun(Path, OldProps, Acc) ->
-                        Acc#{Path => {OldProps, #{}}}
-                 end, CommonProps, maps:without(CommonPaths, OldNodeProps)),
-    maps:fold(
-      fun(Path, NewProps, Acc) ->
-              Acc#{Path => {#{}, NewProps}}
-      end, AllProps, maps:without(CommonPaths, NewNodeProps)).
+update_projection1(
+  Pattern, Projection, MaterializedSide, MaterializedTree, FoldedTree,
+  TreeOptions) ->
+    %% Materializes the smaller side (`MaterializedTree') into a map, then
+    %% folds over the larger side (`FoldedTree') to trigger the projection for
+    %% each matching path as it is found.
+    Ret = khepri_tree:find_matching_nodes(
+            MaterializedTree, Pattern, TreeOptions),
+    case Ret of
+        {ok, MaterializedNodeProps} ->
+            fold_and_trigger(
+              Pattern, Projection, MaterializedSide, MaterializedNodeProps,
+              FoldedTree, TreeOptions);
+        Error ->
+            ?LOG_DEBUG(
+               "Failed to refresh projection ~s due to an error finding "
+               "matching nodes in the ~s tree: ~p",
+               [khepri_projection:name(Projection), MaterializedSide,
+                Error],
+               #{domain => [khepri, ra_machine]})
+    end.
+
+fold_and_trigger(
+  Pattern, Projection, MaterializedSide, MaterializedNodeProps, FoldedTree,
+  TreeOptions) ->
+    %% Folds over `FoldedTree', looking up (and removing) each matching path
+    %% from `MaterializedNodeProps' to trigger the projection immediately.
+    Fun = fun(Path, FoldedProps, RemainingNodeProps) ->
+                  case maps:take(Path, RemainingNodeProps) of
+                      {MaterializedProps, RemainingNodeProps1} ->
+                          trigger_projection(
+                            Projection, MaterializedSide, Path,
+                            MaterializedProps, FoldedProps),
+                          RemainingNodeProps1;
+                      error ->
+                          trigger_projection(
+                            Projection, MaterializedSide, Path,
+                            #{}, FoldedProps),
+                          RemainingNodeProps
+                  end
+          end,
+    Ret = khepri_tree:fold(
+            FoldedTree, Pattern, Fun, MaterializedNodeProps, TreeOptions),
+    case Ret of
+        {ok, RemainingNodeProps} ->
+            trigger_remaining(
+              Projection, MaterializedSide, RemainingNodeProps);
+        Error ->
+            FoldedSide = other_projection_side(MaterializedSide),
+            ?LOG_DEBUG(
+               "Failed to refresh projection ~s due to an error finding "
+               "matching nodes in the ~s tree: ~p",
+               [khepri_projection:name(Projection), FoldedSide, Error],
+               #{domain => [khepri, ra_machine]})
+    end.
+
+trigger_remaining(Projection, MaterializedSide, NodeProps) ->
+    %% The paths remaining in `NodeProps' after folding over the other side
+    %% only matched on `MaterializedSide'.
+    maps:foreach(
+      fun(Path, MaterializedProps) ->
+              trigger_projection(
+                Projection, MaterializedSide, Path, MaterializedProps, #{})
+      end, NodeProps).
+
+other_projection_side(old) ->
+    new;
+other_projection_side(new) ->
+    old.
+
+trigger_projection(Projection, old, Path, OldProps, NewProps) ->
+    khepri_projection:trigger(Projection, Path, OldProps, NewProps);
+trigger_projection(Projection, new, Path, NewProps, OldProps) ->
+    khepri_projection:trigger(Projection, Path, OldProps, NewProps).
