@@ -32,6 +32,28 @@ delete_non_existing_node_test_() ->
                                                  node_is_target => true})},
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
+delete_non_existing_node_using_legacy_ret_test_() ->
+    MacVer = 1,
+    {setup,
+     fun() ->
+             test_ra_server_helpers:setup(
+               ?FUNCTION_NAME, #{machine_version => MacVer})
+     end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {ok, {ok, #{}}},
+         begin
+             Fun = fun() ->
+                           khepri_tx_adv:delete([foo])
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end),
+      ?_assertEqual(
+         {error, ?khepri_error(node_not_found, #{node_name => foo,
+                                                 node_path => [foo],
+                                                 node_is_target => true})},
+         khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
+
 delete_existing_node_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
