@@ -399,7 +399,7 @@ calling_invalid_local_function_test_() ->
             #{error :=
               ?horus_error(
                  extraction_denied,
-                 #{error := {call_denied, {node, 0}}})}),
+                 #{error := {call_denied, {erlang, node, 0}}})}),
          begin
              Fun = fun() ->
                            Path = [node, get_node_name()],

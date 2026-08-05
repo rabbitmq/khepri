@@ -17,8 +17,8 @@
 -include("src/khepri_machine.hrl").
 -include("src/khepri_error.hrl").
 
--dialyzer([{no_return, [allowed_khepri_tx_api_test/0,
-                        allowed_erlang_module_api_test/0]}]).
+% -dialyzer([{no_return, [allowed_khepri_tx_api_test/0,
+%                         allowed_erlang_module_api_test/0]}]).
 
 -define(make_standalone_fun(Expression),
         fun() ->
@@ -258,7 +258,7 @@ denied_builtin_node_0_test() ->
           #{error :=
             ?horus_error(
                extraction_denied,
-               #{error := {call_denied, {node, 0}}})}),
+               #{error := {call_denied, {erlang, node, 0}}})}),
        _ = node()).
 
 denied_erlang_node_0_test() ->
@@ -268,7 +268,7 @@ denied_erlang_node_0_test() ->
           #{error :=
             ?horus_error(
                extraction_denied,
-               #{error := {call_denied, {node, 0}}})}),
+               #{error := {call_denied, {erlang, node, 0}}})}),
        _ = erlang:node()).
 
 denied_builtin_node_1_test() ->
@@ -278,7 +278,7 @@ denied_builtin_node_1_test() ->
           #{error :=
             ?horus_error(
                extraction_denied,
-               #{error := {call_denied, {node, 1}}})}),
+               #{error := {call_denied, {erlang, node, 1}}})}),
        _ = node(list_to_pid("<0.0.0>"))).
 
 denied_erlang_node_1_test() ->
@@ -288,7 +288,7 @@ denied_erlang_node_1_test() ->
           #{error :=
             ?horus_error(
                extraction_denied,
-               #{error := {call_denied, {node, 1}}})}),
+               #{error := {call_denied, {erlang, node, 1}}})}),
        _ = erlang:node(list_to_pid("<0.0.0>"))).
 
 denied_builtin_nodes_0_test() ->
@@ -338,7 +338,7 @@ denied_builtin_self_0_test() ->
           #{error :=
             ?horus_error(
                extraction_denied,
-               #{error := {call_denied, {self, 0}}})}),
+               #{error := {call_denied, {erlang, self, 0}}})}),
        _ = self()).
 
 denied_erlang_self_0_test() ->
@@ -348,7 +348,7 @@ denied_erlang_self_0_test() ->
           #{error :=
             ?horus_error(
                extraction_denied,
-               #{error := {call_denied, {self, 0}}})}),
+               #{error := {call_denied, {erlang, self, 0}}})}),
        _ = erlang:self()).
 
 denied_builtin_send_2_test() ->
@@ -558,7 +558,7 @@ when_readwrite_mode_is_true_test() ->
           #{error :=
             ?horus_error(
                extraction_denied,
-               #{error := {call_denied, {self, 0}}})}),
+               #{error := {call_denied, {erlang, self, 0}}})}),
        khepri_tx_adv:to_standalone_fun(
          fun() ->
                  _ = khepri_tx:get([foo]),
@@ -571,7 +571,7 @@ when_readwrite_mode_is_true_test() ->
           #{error :=
             ?horus_error(
                extraction_denied,
-               #{error := {call_denied, {self, 0}}})}),
+               #{error := {call_denied, {erlang, self, 0}}})}),
        khepri_tx_adv:to_standalone_fun(
          fun() ->
                  _ = khepri_tx:put([foo], khepri_payload:data(value)),
@@ -682,7 +682,7 @@ when_readwrite_mode_is_auto_test() ->
           #{error :=
             ?horus_error(
                extraction_denied,
-               #{error := {call_denied, {self, 0}}})}),
+               #{error := {call_denied, {erlang, self, 0}}})}),
        khepri_tx_adv:to_standalone_fun(
          fun() ->
                  _ = khepri_tx:put([foo], khepri_payload:data(value)),

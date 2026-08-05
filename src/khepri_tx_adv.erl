@@ -520,6 +520,8 @@ to_standalone_fun(Fun, ReadWrite)
     Options =
     #{ensure_instruction_is_permitted =>
       fun ensure_instruction_is_permitted/1,
+      ensure_cerl_node_is_permitted =>
+      fun ensure_cerl_node_is_permitted/1,
       should_process_function =>
       fun should_process_function/4,
       is_standalone_fun_still_needed =>
@@ -693,7 +695,59 @@ ensure_instruction_is_permitted({update_record, _, _, _, _, _}) ->
 ensure_instruction_is_permitted(Unknown) ->
     throw({unknown_instruction, Unknown}).
 
+ensure_cerl_node_is_permitted(Node) ->
+    case cerl:type(Node) of
+        primop ->
+            case cerl:concrete(cerl:primop_name(Node)) of
+                Name when Name =:= build_stacktrace orelse
+                          Name =:= match_fail orelse
+                          Name =:= nif_start orelse
+                          Name =:= raise ->
+                    ok;
+                Name when Name =:= recv_next orelse
+                          Name =:= recv_peek_message orelse
+                          Name =:= recv_wait_timeout orelse
+                          Name =:= remove_message ->
+                    throw(receiving_message_denied)
+            end;
+        Type when Type =:= alias orelse
+                  Type =:= apply orelse
+                  Type =:= binary orelse
+                  Type =:= bitstr orelse
+                  Type =:= call orelse
+                  Type =:= 'case' orelse
+                  Type =:= 'catch' orelse
+                  Type =:= clause orelse
+                  Type =:= cons orelse
+                  Type =:= 'fun' orelse
+                  Type =:= 'let' orelse
+                  Type =:= letrec orelse
+                  Type =:= literal orelse
+                  Type =:= map orelse
+                  Type =:= map_pair orelse
+                  Type =:= module orelse
+                  Type =:= opaque orelse
+                  Type =:= 'receive' orelse
+                  Type =:= seq orelse
+                  Type =:= record orelse
+                  Type =:= record_pair orelse
+                  Type =:= 'try' orelse
+                  Type =:= tuple orelse
+                  Type =:= values orelse
+                  Type =:= var ->
+            ok;
+        _ ->
+            throw({unknown_erl_node, Node})
+    end.
+
+should_process_function(erlang, '!', 2, _FromModule) ->
+    throw(sending_message_denied);
+should_process_function('$dynamic', _Name, _Arity, _FromModule) ->
+    throw(dynamic_apply_denied);
+should_process_function(_Module, '$dynamic', _Arity, _FromModule) ->
+    throw(dynamic_apply_denied);
 should_process_function(Module, Name, Arity, FromModule) ->
+    % io:format(standard_error, "should proceed ~p:~p/~p: ~p~n", [Module, Name, Arity, "?"]),
     ShouldProcess = khepri_utils:should_process_module(Module),
     case ShouldProcess of
         true ->
