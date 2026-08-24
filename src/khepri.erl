@@ -289,9 +289,21 @@
 %% or unreachable, no reply may be sent even though the leader may have
 %% successfully handled the command.
 
+-type reply_to_option() :: {reference(), any()}.
+%% Option to indicate the process a command result should be sent to, instead
+%% of the caller by default.
+%%
+%% The first tuple element is a process alias ({@see erlan:alias/1})
+%% designating the recipient of the result. It must be a process alias and not
+%% a simple PID because it needs to be resistant to command replay.
+%%
+%% The second tuple element is an arbitrary term sent to the recipient with the
+%% result.
+
 -type command_options() :: #{timeout => timeout(),
                              async => async_option(),
                              reply_from => reply_from_option(),
+                             reply_to => reply_to_option(),
                              protect_against_dups => boolean()}.
 %% Options used in commands.
 %%
@@ -536,6 +548,7 @@
 
               async_option/0,
               reply_from_option/0,
+              reply_to_option/0,
               command_options/0,
               favor_option/0,
               query_options/0,
