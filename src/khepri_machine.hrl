@@ -33,7 +33,8 @@
           request_snapshot            => 4,
           extended_trigger            => 4,
           cached_members_list         => 4,
-          process_based_keep_while    => 4}).
+          process_based_keep_while    => 4,
+          reply_to_option             => 4}).
 
 %% Get the state machine version the given API behaviour was introduced in.
 %% This is similar to `khepri_machine:api_behaviour_to_machine_version/1' but
@@ -47,7 +48,8 @@
 
 -record(common_v1, {command_size = 0 :: non_neg_integer(),
                     dedup_ref = undefined :: reference() | undefined,
-                    dedup_expiry = undefined :: integer() | undefined}).
+                    dedup_expiry = undefined :: integer() | undefined,
+                    reply_to = undefined :: khepri:reply_to_option() | undefined}).
 %% Set of attributes shared by all commands.
 
 -record(put_v1,
