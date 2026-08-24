@@ -362,7 +362,8 @@
                          request_snapshot |
                          extended_trigger |
                          cached_members_list |
-                         process_based_keep_while.
+                         process_based_keep_while |
+                         reply_to_option.
 %% Name of a state machine API behaviour.
 
 -export_type([write_ret/0,
@@ -511,10 +512,11 @@ put(StoreId, PathPattern, Payload, Options)
                           true ->
                               {TreeOptions, PutOptions} = split_put_options(
                                                             NonCommandOptions),
-                              CommandArgs = #put_v1{path = PathPattern1,
-                                                    payload = Payload1,
-                                                    put_options = PutOptions,
-                                                    tree_options = TreeOptions},
+                              CommandArgs = #put_v1{
+                                               path = PathPattern1,
+                                               payload = Payload1,
+                                               put_options = PutOptions,
+                                               tree_options = TreeOptions},
                               #put_v{args = CommandArgs};
                           false ->
                               #put{path = PathPattern1,
@@ -1200,6 +1202,25 @@ split_command_options(StoreId, Options) ->
                              KeepWhile),
               NC1 = NC#{keep_while => KeepWhile1},
               {C, NC1};
+          (reply_to, ReplyTo, {C, NC}) ->
+              IsCompatible = does_api_comply_with(reply_to_option, StoreId),
+              case ReplyTo of
+                  {Alias, _Priv}
+                    when IsCompatible andalso is_reference(Alias) ->
+                      %% The target must be a process alias. It is required as
+                      %% a protection against command replay.
+                      C1 = C#{reply_to => ReplyTo},
+                      {C1, NC};
+                  _ when IsCompatible ->
+                      ?khepri_misuse(
+                         invalid_reply_to_options,
+                         #{option => ReplyTo});
+                  _ ->
+                      ?khepri_misuse(
+                         unsupported_option,
+                         #{option => reply_to,
+                           value => ReplyTo})
+              end;
           (where, Where, {C, NC}) ->
               %% `where' is kept in `NonCommandOptions' here. The state
               %% machine will extract it in `apply()'.
@@ -1288,14 +1309,15 @@ set_default_options(StoreId, Options) ->
 %% @private
 
 process_command(StoreId, Command, Options) ->
-    Command1 = compute_command_size(Command),
-    CommandType = select_command_type(Options),
+    {Command1, Options1} = maybe_set_reply_to(Command, Options),
+    Command2 = compute_command_size(Command1),
+    CommandType = select_command_type(Options1),
     case CommandType of
         sync ->
-            process_sync_command(StoreId, Command1, Options);
+            process_sync_command(StoreId, Command2, Options1);
         {async, Correlation, Priority} ->
             process_async_command(
-              StoreId, Command1, Correlation, Priority)
+              StoreId, Command2, Correlation, Priority)
     end.
 
 process_sync_command(
@@ -2688,11 +2710,32 @@ post_apply({State, Result}, Meta, Command) ->
     post_apply({State, Result, []}, Meta, Command);
 post_apply({State, Result, SideEffects}, Meta, Command) ->
     State1 = bump_unreleased_command_footprint(State, Command),
-    {State2, SideEffects2} = bump_applied_command_count(State1, SideEffects, Meta),
-    {State3, SideEffects3} = drop_expired_dedups(State2, SideEffects2, Meta),
-    {State4, SideEffects4} = trigger_delayed_aux_queries_eval(State3, SideEffects3, Meta),
-    {State5, SideEffects5} = maybe_request_snapshot(State4, SideEffects4, Meta),
-    {State5, Result, lists:reverse(SideEffects5)}.
+    {State2, SideEffects2} = bump_applied_command_count(
+                               State1, SideEffects, Meta),
+    {State3, SideEffects3} = drop_expired_dedups(
+                               State2, SideEffects2, Meta),
+    {State4, SideEffects4} = trigger_delayed_aux_queries_eval(
+                               State3, SideEffects3, Meta),
+    {State5, SideEffects5} = maybe_request_snapshot(
+                               State4, SideEffects4, Meta),
+    SideEffects6 = lists:reverse(SideEffects5),
+
+    %% The result is ready to be returned. We need to check if it should be
+    %% returned to the caller or if the `reply_to' option was set.
+    return_result_to_appropriate_process(
+      State5, Result, SideEffects6, Meta, Command).
+
+return_result_to_appropriate_process(
+  State, Result, SideEffects, _Meta, Command) ->
+    case get_command_common_args(Command) of
+         #common_v1{reply_to = {Alias, Priv}} ->
+            Msg = #khepri_reply{result = Result, priv = Priv},
+            SideEffect = {send_msg, Alias, Msg},
+            SideEffects1 = [SideEffect | SideEffects],
+            {State, ok, SideEffects1};
+        _ ->
+            {State, Result, SideEffects}
+    end.
 
 -spec bump_applied_command_count(State, SideEffects, Meta) ->
     {NewState, NewSideEffects} when
@@ -2991,6 +3034,33 @@ compute_command_size(Command) ->
         false ->
             Command
     end.
+
+maybe_set_reply_to(Command, #{reply_to := ReplyTo} = Options) ->
+    %% The `reply_to' option is a command option affecting any commands.
+    %% However, its effect takes place after the application of the command: it
+    %% dictates who to send the result to. That's why it needs to be passed
+    %% with the command itself, unlike other command options.
+    %%
+    %% This option was introduced after the `uniform_commands' behaviour. If it
+    %% is used in a context where it can't be satisfied, it should be handled
+    %% earlier. Here, we assert we don't try to set this option on a command
+    %% that can't hold it.
+    ?assert(does_command_support_common_args(Command)),
+
+    CommonArgs = get_command_common_args(Command),
+    CommonArgs1 = case CommonArgs of
+                      #common_v1{} -> CommonArgs;
+                      none         -> #common_v1{}
+                  end,
+    Command1 = set_command_common_args(Command, CommonArgs1),
+    ?assert(is_tuple(ReplyTo)),
+    ?assert(is_reference(element(1, ReplyTo))),
+    CommonArgs2 = CommonArgs1#common_v1{reply_to = ReplyTo},
+    Command2 = set_command_common_args(Command1, CommonArgs2),
+    Options1 = maps:remove(reply_to, Options),
+    {Command2, Options1};
+maybe_set_reply_to(Command, Options) ->
+    {Command, Options}.
 
 %% @private
 
