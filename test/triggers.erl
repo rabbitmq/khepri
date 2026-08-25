@@ -710,7 +710,8 @@ make_sproc(Pid, Key) ->
                                 event = #{path := Path, change := Change}} ->
                     Pid ! {sproc, Key, {Change, Path}};
                 #khepri_trigger{type = process,
-                                event = #{pid := MonitoredPid, change := Change}} ->
+                                event = #{pid := MonitoredPid,
+                                          change := Change}} ->
                     Pid ! {sproc, Key, {Change, MonitoredPid}}
             end
     end.
