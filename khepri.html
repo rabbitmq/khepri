@@ -367,6 +367,22 @@ controls which member of the cluster carries out the reply.</p>
 <p><code>trigger_id() = atom()</code></p>
 <p>  An ID to identify a registered trigger.</p>
 
+<h3 class="typedecl"><a name="type-trigger_options">trigger_options()</a></h3>
+<p><code>trigger_options() = #{where =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_event_handler.html#type-trigger_exec_loc" docgen-rel="seetype" docgen-href="khepri:khepri_event_handler#trigger_exec_loc/0">khepri_event_handler:trigger_exec_loc()</a> | local}</code></p>
+<p><p>  Options specific to trigger registrations.</p>
+ 
+  <ul>
+  <li><code>where</code> allows to indicate on which member(s) of the cluster a
+  triggered action should be executed. With <code>{member, MemberNode}</code>, if the
+  target member is not part of the cluster at the time the action is
+  triggered, the trigger is executed on the leader. The special value <code>local</code>
+  means that the node running <code>khepri_machine:register_trigger/5</code> will
+  execute the trigger (if it is a member of the cluster at the time the
+  action is triggered).</li>
+  </ul>
+ 
+  NOTE: When this list of trigger options is modified, <a docgen-rel="seemfa" docgen-href="khepri_machine#split_command_options/2" href="khepri_machine.html#split_command_options-2"><code>khepri_machine:split_command_options/2</code></a> must be adapted.</p>
+
 <h3 class="typedecl"><a name="type-unknown_prop_to_return">unknown_prop_to_return()</a></h3>
 <p><code>unknown_prop_to_return() = atom()</code></p>
 <p><p>  Name of a property unknown to this version of Khepri.</p>
@@ -2178,7 +2194,7 @@ pattern.</p>
 <div class="spec">
 <p><code>register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath) -&gt; Ret</code>
 <ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>TriggerId = <a href="#type-trigger_id" docgen-rel="seetype" docgen-href="#trigger_id/0">trigger_id()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter_or_compat" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter_or_compat/0">khepri_evf:event_filter_or_compat()</a></code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path" docgen-rel="seetype" docgen-href="khepri:khepri_path#path/0">khepri_path:path()</a></code></li><li><code>Ret = ok | <a href="#type-error" docgen-rel="seetype" docgen-href="#error/0">error()</a></code></li></ul></p><p><code>register_trigger(TriggerId, EventFilter, StoredProcPath, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>TriggerId = <a href="#type-trigger_id" docgen-rel="seetype" docgen-href="#trigger_id/0">trigger_id()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter_or_compat" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter_or_compat/0">khepri_evf:event_filter_or_compat()</a></code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path" docgen-rel="seetype" docgen-href="khepri:khepri_path#path/0">khepri_path:path()</a></code></li><li><code>Options = <a href="#type-command_options" docgen-rel="seetype" docgen-href="#command_options/0">command_options()</a></code></li><li><code>Ret = ok | <a href="#type-error" docgen-rel="seetype" docgen-href="#error/0">error()</a></code></li></ul></p>
+<ul class="definitions"><li><code>TriggerId = <a href="#type-trigger_id" docgen-rel="seetype" docgen-href="#trigger_id/0">trigger_id()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter_or_compat" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter_or_compat/0">khepri_evf:event_filter_or_compat()</a></code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path" docgen-rel="seetype" docgen-href="khepri:khepri_path#path/0">khepri_path:path()</a></code></li><li><code>Options = <a href="#type-command_options" docgen-rel="seetype" docgen-href="#command_options/0">command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_options" docgen-rel="seetype" docgen-href="khepri:khepri#trigger_options/0">khepri:trigger_options()</a></code></li><li><code>Ret = ok | <a href="#type-error" docgen-rel="seetype" docgen-href="#error/0">error()</a></code></li></ul></p>
 <p></p>
 <p></p>
 </div><p><p>Registers a trigger.</p>
@@ -2199,7 +2215,7 @@ pattern.</p>
 <h3 class="function"><a name="register_trigger-5">register_trigger/5</a></h3>
 <div class="spec">
 <p><code>register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options) -&gt; Ret</code>
-<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>TriggerId = <a href="#type-trigger_id" docgen-rel="seetype" docgen-href="#trigger_id/0">trigger_id()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter_or_compat" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter_or_compat/0">khepri_evf:event_filter_or_compat()</a></code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path" docgen-rel="seetype" docgen-href="khepri:khepri_path#path/0">khepri_path:path()</a></code></li><li><code>Options = <a href="#type-command_options" docgen-rel="seetype" docgen-href="#command_options/0">command_options()</a></code></li><li><code>Ret = ok | <a href="#type-error" docgen-rel="seetype" docgen-href="#error/0">error()</a></code></li></ul></p>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>TriggerId = <a href="#type-trigger_id" docgen-rel="seetype" docgen-href="#trigger_id/0">trigger_id()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter_or_compat" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter_or_compat/0">khepri_evf:event_filter_or_compat()</a></code></li><li><code>StoredProcPath = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path" docgen-rel="seetype" docgen-href="khepri:khepri_path#path/0">khepri_path:path()</a></code></li><li><code>Options = <a href="#type-command_options" docgen-rel="seetype" docgen-href="#command_options/0">command_options()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_options" docgen-rel="seetype" docgen-href="khepri:khepri#trigger_options/0">khepri:trigger_options()</a></code></li><li><code>Ret = ok | <a href="#type-error" docgen-rel="seetype" docgen-href="#error/0">error()</a></code></li></ul></p>
 <p><code>StoreId</code>: the name of the Khepri store.<br>
 <code>TriggerId</code>: the name of the trigger.<br>
 <code>EventFilter</code>: the event filter used to associate an event with a
