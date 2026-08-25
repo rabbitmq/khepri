@@ -179,7 +179,8 @@
          reset_metrics/1,
          compute_command_size/1,
          does_command_support_common_args/1,
-         get_command_common_args/1]).
+         get_command_common_args/1,
+         maybe_convert_to_action/4]).
 -endif.
 
 -compile({no_auto_import, [apply/3]}).
@@ -751,12 +752,16 @@ handle_tx_exception(
     erlang:raise(Class, Reason, Stacktrace).
 
 -spec register_trigger(
-        StoreId, TriggerId, EventFilter, StoredProcPath, Options) ->
+        StoreId, TriggerId, EventFilter, Action, Options) ->
     Ret when
       StoreId :: khepri:store_id(),
       TriggerId :: khepri:trigger_id(),
       EventFilter :: khepri_evf:event_filter_or_compat(),
+      Action :: StoredProcPath |
+                Pid |
+                khepri_event_handler:trigger_action(),
       StoredProcPath :: khepri_path:path(),
+      Pid :: pid(),
       Options :: khepri:command_options() | khepri:trigger_options(),
       Ret :: ok | khepri:error().
 %% @doc Registers a trigger.
@@ -765,29 +770,28 @@ handle_tx_exception(
 %% @param TriggerId the name of the trigger.
 %% @param EventFilter the event filter used to associate an event with a
 %%        stored procedure.
-%% @param StoredProcPath the path to the stored procedure to execute when the
-%%        corresponding event occurs.
+%% @param Action the path to a stored procedure to execute when the
+%%        corresponding event occurs, or PID to send a message to, or a
+%%        "wrapped action".
 %% @param Options command and trigger options map.
 %%
 %% @returns `ok' if the trigger was registered, an `{error, Reason}' tuple
 %% otherwise.
 
-register_trigger(StoreId, TriggerId, EventFilter, StoredProcPath, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
-       ?IS_KHEPRI_PATH_OR_COMPAT(StoredProcPath) ->
+register_trigger(StoreId, TriggerId, EventFilter, Action, Options)
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
     EventFilter1 = khepri_evf:wrap(EventFilter),
-    StoredProcPath1 = khepri_path:from_string(StoredProcPath),
-    khepri_path:ensure_is_valid(StoredProcPath1),
+    Action1 = maybe_convert_to_action(StoreId, TriggerId, EventFilter, Action),
     {CommandOptions, NonCommandOptions} = split_command_options(
                                             StoreId, Options),
     case does_api_comply_with(uniform_commands, StoreId) of
         true ->
             register_trigger_versioned(
-              StoreId, TriggerId, EventFilter1, StoredProcPath1,
+              StoreId, TriggerId, EventFilter1, Action1,
               CommandOptions, NonCommandOptions);
         false ->
             register_trigger_nonversioned(
-              StoreId, TriggerId, EventFilter1, StoredProcPath1,
+              StoreId, TriggerId, EventFilter1, Action1,
               CommandOptions, NonCommandOptions)
     end.
 
@@ -814,11 +818,9 @@ register_trigger_nonversioned(
     end.
 
 register_trigger_versioned(
-  StoreId, TriggerId, EventFilter, StoredProcPath,
+  StoreId, TriggerId, EventFilter, Action,
   CommandOptions, NonCommandOptions) ->
     ?assert(does_api_comply_with(extended_trigger, StoreId)),
-    StoredProcPath1 = khepri_path:realpath(StoredProcPath),
-    Action = {sproc, StoredProcPath1},
     NonCommandOptions1 = case NonCommandOptions of
                              #{where := local} ->
                                  %% Interpret the `local' value and replace it
@@ -835,6 +837,78 @@ register_trigger_versioned(
                      options = NonCommandOptions1},
     Command = #register_trigger_v{args = CommandArgs},
     process_command(StoreId, Command, CommandOptions).
+
+-spec maybe_convert_to_action(StoreId, TriggerId, EventFilter, Action) ->
+    NewAction when
+      StoreId :: khepri:store_id(),
+      TriggerId :: khepri:trigger_id(),
+      EventFilter :: khepri_evf:event_filter_or_compat(),
+      Action :: StoredProcPath |
+                Pid |
+                khepri_event_handler:trigger_action(),
+      StoredProcPath :: khepri_path:path(),
+      Pid :: pid(),
+      NewAction :: NewStoredProcPath |
+                   khepri_event_handler:trigger_action(),
+      NewStoredProcPath :: khepri_path:native_path().
+
+maybe_convert_to_action(StoreId, _TriggerId, _EventFilter, StoredProcPath)
+  when ?IS_KHEPRI_PATH_PATTERN(StoredProcPath) ->
+    StoredProcPath1 = khepri_path:from_string(StoredProcPath),
+    khepri_path:ensure_is_valid(StoredProcPath1),
+    case does_api_comply_with(extended_trigger, StoreId) of
+        true ->
+            StoredProcPath2 = khepri_path:realpath(StoredProcPath1),
+            {sproc, StoredProcPath2};
+        false ->
+            StoredProcPath1
+    end;
+maybe_convert_to_action(StoreId, TriggerId, EventFilter, Pid)
+  when is_pid(Pid) ->
+    case does_api_comply_with(extended_trigger, StoreId) of
+        true ->
+            {send, Pid, undefined};
+        false ->
+            ?khepri_misuse(
+               unsupported_trigger_action,
+               #{trigger_id => TriggerId,
+                 event_filter => EventFilter,
+                 action => Pid})
+    end;
+maybe_convert_to_action(StoreId, TriggerId, EventFilter, Action) ->
+    case does_api_comply_with(extended_trigger, StoreId) of
+        true ->
+            case Action of
+                {sproc, StoredProcPath}
+                  when ?IS_KHEPRI_PATH_PATTERN(StoredProcPath) ->
+                    khepri_path:ensure_is_valid(StoredProcPath),
+                    StoredProcPath1 = khepri_path:realpath(StoredProcPath),
+                    {sproc, StoredProcPath1};
+                {send, Pid, _Priv}
+                  when is_pid(Pid) ->
+                    Action;
+                _ ->
+                    ?khepri_misuse(
+                       unsupported_trigger_action,
+                       #{trigger_id => TriggerId,
+                         event_filter => EventFilter,
+                         action => Action})
+            end;
+        false ->
+            case Action of
+                {sproc, StoredProcPath}
+                  when ?IS_KHEPRI_PATH_PATTERN(StoredProcPath) ->
+                    khepri_path:ensure_is_valid(StoredProcPath),
+                    StoredProcPath1 = khepri_path:realpath(StoredProcPath),
+                    StoredProcPath1;
+                _ ->
+                    ?khepri_misuse(
+                       unsupported_trigger_action,
+                       #{trigger_id => TriggerId,
+                         event_filter => EventFilter,
+                         action => Action})
+            end
+    end.
 
 -spec register_projection(StoreId, PathPattern, Projection, Options) ->
     Ret when
@@ -3482,7 +3556,20 @@ evaluate_action(State, Event, TriggerId, Trigger, TriggeredActions)
                                    event = Event}
                         end,
             evaluate_where_option(State, Triggered, TriggeredActions)
-    end.
+    end;
+evaluate_action(
+  State, Event, TriggerId,
+  #{event_filter := EventFilter,
+    action := Action,
+    where := Where},
+  TriggeredActions) ->
+    Triggered = #triggered_v2{
+                   id = TriggerId,
+                   event_filter = EventFilter,
+                   action = Action,
+                   where = Where,
+                   event = Event},
+    evaluate_where_option(State, Triggered, TriggeredActions).
 
 evaluate_where_option(
   _State, #triggered{} = Triggered, TriggeredActions) ->
