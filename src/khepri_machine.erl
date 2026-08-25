@@ -758,9 +758,11 @@ handle_tx_exception(
       TriggerId :: khepri:trigger_id(),
       EventFilter :: khepri_evf:event_filter_or_compat(),
       Action :: StoredProcPath |
+                MFA |
                 Pid |
                 khepri_event_handler:trigger_action(),
       StoredProcPath :: khepri_path:path(),
+      MFA :: {module(), atom(), list()},
       Pid :: pid(),
       Options :: khepri:command_options() | khepri:trigger_options(),
       Ret :: ok | khepri:error().
@@ -844,9 +846,11 @@ register_trigger_versioned(
       TriggerId :: khepri:trigger_id(),
       EventFilter :: khepri_evf:event_filter_or_compat(),
       Action :: StoredProcPath |
+                MFA |
                 Pid |
                 khepri_event_handler:trigger_action(),
       StoredProcPath :: khepri_path:path(),
+      MFA :: {module(), atom(), list()},
       Pid :: pid(),
       NewAction :: NewStoredProcPath |
                    khepri_event_handler:trigger_action(),
@@ -862,6 +866,19 @@ maybe_convert_to_action(StoreId, _TriggerId, _EventFilter, StoredProcPath)
             {sproc, StoredProcPath2};
         false ->
             StoredProcPath1
+    end;
+maybe_convert_to_action(
+  StoreId, TriggerId, EventFilter, {Mod, Func, Args} = MFA)
+  when is_atom(Mod) andalso is_atom(Func) andalso is_list(Args) ->
+    case does_api_comply_with(extended_trigger, StoreId) of
+        true ->
+            {apply, MFA};
+        false ->
+            ?khepri_misuse(
+               unsupported_trigger_action,
+               #{trigger_id => TriggerId,
+                 event_filter => EventFilter,
+                 action => MFA})
     end;
 maybe_convert_to_action(StoreId, TriggerId, EventFilter, Pid)
   when is_pid(Pid) ->
@@ -884,6 +901,11 @@ maybe_convert_to_action(StoreId, TriggerId, EventFilter, Action) ->
                     khepri_path:ensure_is_valid(StoredProcPath),
                     StoredProcPath1 = khepri_path:realpath(StoredProcPath),
                     {sproc, StoredProcPath1};
+                {apply, {Mod, Func, Args}}
+                  when is_atom(Mod) andalso
+                       is_atom(Func) andalso
+                       is_list(Args) ->
+                    Action;
                 {send, Pid, _Priv}
                   when is_pid(Pid) ->
                     Action;
