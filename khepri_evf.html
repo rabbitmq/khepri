@@ -19,16 +19,17 @@
 <h2><a name="types">Data Types</a></h2>
 
 <h3 class="typedecl"><a name="type-event">event()</a></h3>
-<p><code>event() = <a href="#type-tree_event" docgen-rel="seetype" docgen-href="#tree_event/0">tree_event()</a></code></p>
+<p><code>event() = <a href="#type-tree_event" docgen-rel="seetype" docgen-href="#tree_event/0">tree_event()</a> | <a href="#type-process_event" docgen-rel="seetype" docgen-href="#process_event/0">process_event()</a></code></p>
 <p>  An record representing an event.</p>
 
 <h3 class="typedecl"><a name="type-event_filter">event_filter()</a></h3>
-<p><code>event_filter() = <a href="#type-tree_event_filter" docgen-rel="seetype" docgen-href="#tree_event_filter/0">tree_event_filter()</a></code></p>
+<p><code>event_filter() = <a href="#type-tree_event_filter" docgen-rel="seetype" docgen-href="#tree_event_filter/0">tree_event_filter()</a> | <a href="#type-process_event_filter" docgen-rel="seetype" docgen-href="#process_event_filter/0">process_event_filter()</a></code></p>
 <p><p>  An event filter.</p>
  
   The following event filters are supported:
   <ul>
   <li>Tree event filter (<a docgen-rel="seetype" docgen-href="#tree_event_filter/0" href="#type-tree_event_filter"><code>tree_event_filter()</code></a></li>
+  <li>Process event filter (<a docgen-rel="seetype" docgen-href="#process_event_filter/0" href="#type-process_event_filter"><code>process_event_filter()</code></a></li>
   </ul>
  
   An event filter can be explicitly constructed using the functions provided
@@ -37,7 +38,7 @@
   filter type for more details.</p>
 
 <h3 class="typedecl"><a name="type-event_filter_or_compat">event_filter_or_compat()</a></h3>
-<p><code>event_filter_or_compat() = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter/0">khepri_evf:event_filter()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></p>
+<p><code>event_filter_or_compat() = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter/0">khepri_evf:event_filter()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a> | pid()</code></p>
 <p><p>  An event filter, or any type that can be automatically converted to an  
 event filter.</p>
  
@@ -52,6 +53,35 @@ event filter.</p>
 the more it is prioritized. Negative integers are allowed.</p>
  
   The default priority is 0.</p>
+
+<h3 class="typedecl"><a name="type-process_event">process_event()</a></h3>
+<p><code>process_event() = #ev_process{pid = pid(), change = {'DOWN', any()}}</code></p>
+<p><p>  An event record representing a monitored process that exited.</p>
+ 
+  The event has the following fields:
+  <ul>
+  <li><code>pid</code>: the PID of the terminated process</li>
+  <li><code>reason</code>: the exit reason</li>
+  </ul></p>
+
+<h3 class="typedecl"><a name="type-process_event_filter">process_event_filter()</a></h3>
+<p><code>process_event_filter() = #evf_process{pid = pid(), props = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-process_event_filter_props" docgen-rel="seetype" docgen-href="khepri:khepri_evf#process_event_filter_props/0">khepri_evf:process_event_filter_props()</a>}</code></p>
+<p><p>  A process event filter.</p>
+ 
+  It takes a PID to monitor and optionally properties.</p>
+
+<h3 class="typedecl"><a name="type-process_event_filter_props">process_event_filter_props()</a></h3>
+<p><code>process_event_filter_props() = #{priority =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-priority" docgen-rel="seetype" docgen-href="khepri:khepri_evf#priority/0">khepri_evf:priority()</a>}</code></p>
+<p><p>  Tree event filter properties.</p>
+ 
+  The properties are:
+  <ul>
+  <li><code>priority</code>: a <a docgen-rel="seetype" docgen-href="#priority/0" href="#type-priority"><code>priority()</code></a></li>
+  </ul>
+ 
+  A Khepri path, whether it is a native path or a Unix-like path, can be used
+  as a tree event filter. It will be automatically converted to a tree event
+  filter with default properties.</p>
 
 <h3 class="typedecl"><a name="type-tree_event">tree_event()</a></h3>
 <p><code>tree_event() = #ev_tree{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a>, change = create | update | delete}</code></p>
@@ -88,6 +118,8 @@ the more it is prioritized. Negative integers are allowed.</p>
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#tree-1">tree/1</a></td><td>Constructs a tree event filter.</td></tr>
 <tr><td valign="top"><a href="#tree-2">tree/2</a></td><td>Constructs a tree event filter.</td></tr>
+<tr><td valign="top"><a href="#process-1">process/1</a></td><td>Constructs a process event filter.</td></tr>
+<tr><td valign="top"><a href="#process-2">process/2</a></td><td>Constructs a process event filter.</td></tr>
 <tr><td valign="top"><a href="#wrap-1">wrap/1</a></td><td>Automatically detects the event filter type and ensures it is wrapped
   in one of the internal types.</td></tr>
 <tr><td valign="top"><a href="#get_priority-1">get_priority/1</a></td><td>Returns the priority of the event filter.</td></tr>
@@ -113,6 +145,24 @@ the more it is prioritized. Negative integers are allowed.</p>
 </div><p>Constructs a tree event filter.
  </p>
 <p><b>See also:</b> <a href="#type-tree_event_filter" docgen-rel="seetype" docgen-href="#tree_event_filter/0">tree_event_filter()</a>.</p>
+
+<h3 class="function"><a name="process-1">process/1</a></h3>
+<div class="spec">
+<p><code>process(Pid) -&gt; EventFilter</code>
+<ul class="definitions"><li><code>Pid = pid()</code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-process_event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#process_event_filter/0">khepri_evf:process_event_filter()</a></code></li></ul></p>
+<p></p>
+</div><p>Constructs a process event filter.
+ </p>
+<p><b>See also:</b> <a href="#process-2" docgen-rel="seemfa" docgen-href="#process/2">process/2</a>.</p>
+
+<h3 class="function"><a name="process-2">process/2</a></h3>
+<div class="spec">
+<p><code>process(Pid, Props) -&gt; EventFilter</code>
+<ul class="definitions"><li><code>Pid = pid()</code></li><li><code>Props = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-process_event_filter_props" docgen-rel="seetype" docgen-href="khepri:khepri_evf#process_event_filter_props/0">khepri_evf:process_event_filter_props()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-process_event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#process_event_filter/0">khepri_evf:process_event_filter()</a></code></li></ul></p>
+<p></p>
+</div><p>Constructs a process event filter.
+ </p>
+<p><b>See also:</b> <a href="#type-process_event_filter" docgen-rel="seetype" docgen-href="#process_event_filter/0">process_event_filter()</a>.</p>
 
 <h3 class="function"><a name="wrap-1">wrap/1</a></h3>
 <div class="spec">
