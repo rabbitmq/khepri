@@ -8,12 +8,16 @@
 
 -record(evf_tree, {path :: khepri_path:native_pattern(),
                    props = #{} :: khepri_evf:tree_event_filter_props()}).
-%-record(evf_process, {pid :: pid(),
-%                      props = #{} :: #{on_reason => ets:match_pattern(),
-%                                       priority => integer()}}).
+
+-record(evf_process, {pid :: pid(),
+                      props = #{} :: khepri_evf:process_event_filter_props()}).
 
 -define(IS_KHEPRI_EVENT_FILTER(EventFilter),
-        (is_record(EventFilter, evf_tree))).
+        (is_record(EventFilter, evf_tree) orelse
+         is_record(EventFilter, evf_process))).
 
 -record(ev_tree, {path :: khepri_path:native_path(),
                   change :: create | update | delete}).
+
+-record(ev_process, {pid :: pid(),
+                     change :: {'DOWN', any()}}).

@@ -90,6 +90,8 @@
 %% <li>Added the `where' option for triggers, to allow the caller to decide on
 %% which cluster member(s) the trigger action is executed. See {@link
 %% khepri:trigger_options()}.</li>
+%% <li>Added support for process-lifetime-based triggers. The trigger can be
+%% executed when a process exits.</li>
 %% </ul>
 %% </td>
 %% </tr>
@@ -1746,10 +1748,12 @@ handle_aux(
 handle_aux(leader, cast, tick, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
     SideEffects0 = [],
-    SideEffects1 = handle_expired_dedups(AuxState1, IntState, SideEffects0),
-    SideEffects2 = handle_irrelevant_triggers(AuxState1, IntState, SideEffects1),
+    SideEffects1 = handle_irrelevant_triggers(AuxState1, IntState, SideEffects0),
+    {AuxState2, SideEffects2} = handle_down_procs(
+                                  AuxState1, IntState, SideEffects1),
+    SideEffects3 = handle_expired_dedups(AuxState2, IntState, SideEffects2),
 
-    {no_reply, AuxState1, IntState, SideEffects2};
+    {no_reply, AuxState2, IntState, SideEffects3};
 handle_aux(
   RaState, cast,
   {handle_triggered_actions, TriggeredActions},
@@ -1778,6 +1782,45 @@ handle_aux(
                           end, TriggeredActions),
     khepri_event_handler:handle_triggered_actions(StoreId, TriggeredActions1),
     {no_reply, AuxState1, IntState};
+handle_aux(
+  _RaState, cast,
+  {down, Pid, Reason},
+  #khepri_machine_aux{store_id = StoreId,
+                      maybe_down_procs = MaybeDownProcs} = AuxState,
+  IntState)
+  when not is_map_key(Pid, MaybeDownProcs) ->
+    AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+
+    Node = node(Pid),
+    PossibleMember = {StoreId, Node},
+    Cluster = ra_aux:members_info(IntState),
+    IsMember = maps:is_key(PossibleMember, Cluster),
+    case IsMember of
+        true ->
+            MaybeDownProcs1 = MaybeDownProcs#{Pid => Reason},
+            AuxState2 = AuxState1#khepri_machine_aux{
+                          maybe_down_procs = MaybeDownProcs1},
+            SideEffect = [{monitor, node, Node}],
+            {no_reply, AuxState2, IntState, [SideEffect]};
+        false ->
+            Command = {really_down, Pid, Reason},
+            SideEffect = [{append, Command}],
+            {no_reply, AuxState1, IntState, [SideEffect]}
+    end;
+handle_aux(
+  _RaState, cast,
+  {down, Pid, Reason},
+  #khepri_machine_aux{maybe_down_procs = MaybeDownProcs} = AuxState,
+  IntState)
+  when is_map_key(Pid, MaybeDownProcs) ->
+    AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+
+    MaybeDownProcs1 = maps:remove(Pid, MaybeDownProcs),
+    AuxState2 = AuxState1#khepri_machine_aux{
+                  maybe_down_procs = MaybeDownProcs1},
+    Command = {really_down, Pid, Reason},
+    SideEffect = [{append, Command}],
+    {no_reply, AuxState2, IntState, [SideEffect]};
 handle_aux(_RaState, _Type, _Command, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
     {no_reply, AuxState1, IntState}.
@@ -1912,6 +1955,43 @@ handle_irrelevant_triggers(AuxState, IntState, SideEffects) ->
             SideEffect = {append, Command},
             [SideEffect | SideEffects]
     end.
+
+handle_down_procs(
+  #khepri_machine_aux{store_id = StoreId,
+                      maybe_down_procs = MaybeDownProcs} = AuxState,
+  IntState, SideEffects) ->
+    %% In `maybe_down_procs', we have processes that run on a member of the
+    %% cluster and we are waiting for that node to come back up to monitor
+    %% these processes again (they are referenced by triggers).
+    %%
+    %% However, the member might have been removed from the cluster after
+    %% going down. Therefore, we need to verify on a regular basis if this
+    %% node is still part of the cluster. If that's not the case anymore, we
+    %% can consider these processes as dead, because it's unlikely that the
+    %% node will come back up.
+    Cluster = ra_aux:members_info(IntState),
+    {MaybeDownProcs1,
+     SideEffects1} = maps:fold(
+                       fun(Pid, Reason, {MD, SE} = Acc) ->
+                               Node = node(Pid),
+                               PossibleMember = {StoreId, Node},
+                               case maps:is_key(PossibleMember, Cluster) of
+                                   true ->
+                                       Acc;
+                                   false ->
+                                       %% The node was removed from the
+                                       %% cluster. Consider this process to be
+                                       %% gone.
+                                       Command2 = {really_down, Pid, Reason},
+                                       SideEffect = {append, Command2},
+                                       MD1 = maps:remove(Pid, MD),
+                                       SE1 = [SideEffect | SE],
+                                       {MD1, SE1}
+                               end
+                       end, {MaybeDownProcs, SideEffects}, MaybeDownProcs),
+    AuxState1 = AuxState#khepri_machine_aux{
+                  maybe_down_procs = MaybeDownProcs1},
+    {AuxState1, SideEffects1}.
 
 restore_projection(Projection, Tree, PathPattern) ->
     _ = khepri_projection:init(Projection),
@@ -2072,7 +2152,8 @@ do_apply(
                                          action => Action,
                                          where => Where}},
     State1 = set_triggers(State, Triggers1),
-    Ret = {State1, ok},
+    SideEffects = event_filter_to_side_effect(EventFilter, []),
+    Ret = {State1, ok, SideEffects},
     post_apply(Ret, Meta, Command);
 do_apply(
   Meta,
@@ -2217,6 +2298,60 @@ do_apply(Meta, {machine_version, OldMacVer, NewMacVer} = Command, OldState) ->
     %% determine what a user of Khepri can or cannot do.
     StoreId = get_store_id(NewState),
     cache_effective_machine_version(StoreId, NewMacVer),
+    post_apply(Ret, Meta, Command);
+do_apply(Meta, {down,  _Pid, noconnection} = Command, State) ->
+    %% We lost the connection to the node that hosted the monitored `Pid'.
+    %%
+    %% The handling is made in an aux handler because we need to access the
+    %% list of cluster members to check if that node is part of the cluster or
+    %% not.
+    %%
+    %% This allows to distinguish two cases:
+    %%   1. The node is a cluster member. We need to monitor the node to be
+    %%      notified when it comes back online. At which point, we can monitor
+    %%      `Pid' again. We also pay attention to nodes being removed from the
+    %%      cluster. If that node is removed, we consider the process to be
+    %%      gone. What's next is like the initial monitoring.
+    %%
+    %%   2. The node is not a cluster member. We just consider that the node
+    %%      and thus the process are gone forever. We don't try to manage a
+    %%      timer to let a chance to come back to that node.
+    AuxEffect = Command,
+    SideEffects = [{aux, AuxEffect}],
+    Ret = {State, ok, SideEffects},
+    post_apply(Ret, Meta, Command);
+do_apply(Meta, {Down,  Pid, Reason} = Command, State)
+  when Down =:= down orelse Down =:= really_down ->
+    %% Handle triggers. We lookup triggers watching this exited process and add
+    %% the side effects to execute the corresponding actions.
+    Event = #ev_process{pid = Pid, change = {'DOWN', Reason}},
+    {State1, SideEffects} = add_trigger_side_effects(
+                              State, State, [Event], []),
+    Ret = {State1, Meta, SideEffects},
+    post_apply(Ret, Meta, Command);
+do_apply(Meta, {nodeup, Node} = Command, State) ->
+    %% We can stop monitoring this node. If we get a `noconnection' from a
+    %% process again, we'll monitor it again.
+    SideEffects1 = [{demonitor, node, Node}],
+
+    %% We need to restore monitoring of processes that are hosted on that
+    %% specific node. This will tell us if the process are still there are
+    %% gone.
+    Triggers = get_triggers(State),
+    SideEffects2 = maps:fold(
+                     fun
+                         (_TriggerId,
+                          #{event_filter :=
+                            #evf_process{pid = Pid} = EventFilter},
+                          SE) when node(Pid) =:= Node ->
+                             event_filter_to_side_effect(EventFilter, SE);
+                         (_TriggerId, _Trigger, SE) ->
+                             SE
+                     end, SideEffects1, Triggers),
+    Ret = {State, Meta, SideEffects2},
+    post_apply(Ret, Meta, Command);
+do_apply(Meta, {nodedown, _Node} = Command, State) ->
+    Ret = {State, Meta},
     post_apply(Ret, Meta, Command);
 do_apply(Meta, NonVersionedCommand, State)
   when is_record(NonVersionedCommand, put) orelse
@@ -2363,7 +2498,9 @@ convert_to_uniform_command1(NewCommand) ->
 normalize_event_filter(#evf_tree{path = Path} = EventFilter) ->
     Path1 = khepri_path:realpath(Path),
     EventFilter1 = EventFilter#evf_tree{path = Path1},
-    EventFilter1.
+    EventFilter1;
+normalize_event_filter(#evf_process{} = EventFilter) ->
+    EventFilter.
 
 -spec post_apply(ApplyRet, Meta, Command) -> {State, Result, SideEffects} when
       ApplyRet :: {State, Result} | {State, Result, SideEffects},
@@ -2545,6 +2682,11 @@ does_command_support_common_args(#dedup_ack{}) ->
     false;
 does_command_support_common_args(#drop_dedups{}) ->
     false;
+does_command_support_common_args({Down, _Pid, _Reason})
+  when Down =:= down orelse Down =:= really_down ->
+    false;
+does_command_support_common_args({nodeup, _Node}) ->
+    false;
 does_command_support_common_args({machine_version, _OldMacVer, _NewMacVer}) ->
     false;
 does_command_support_common_args(_UnknownCommand) ->
@@ -2600,6 +2742,11 @@ get_command_common_args(#dedup{}) ->
 get_command_common_args(#dedup_ack{}) ->
     none;
 get_command_common_args(#drop_dedups{}) ->
+    none;
+get_command_common_args({Down, _Pid, _Reason})
+  when Down =:= down orelse Down =:= really_down ->
+    none;
+get_command_common_args({nodeup, _Node}) ->
     none;
 get_command_common_args({machine_version, _OldMacVer, _NewMacVer}) ->
     none;
@@ -2675,8 +2822,9 @@ compute_command_size(Command) ->
 %% @private
 
 state_enter(leader, State) ->
-    SideEffects = emitted_triggers_to_side_effects(State, leader),
-    SideEffects;
+    SideEffects1 = emitted_triggers_to_side_effects(State, leader),
+    SideEffects2 = non_emitted_triggers_to_side_effects(State, SideEffects1),
+    SideEffects2;
 state_enter(recovered, _State) ->
     SideEffects = [{aux, restore_projections},
                    {aux, cache_effective_machine_version}],
@@ -2753,6 +2901,14 @@ emitted_triggers_to_side_effects(
                            [SideEffect2 | SideEffects1]
                    end,
     SideEffects2.
+
+non_emitted_triggers_to_side_effects(State, SideEffects) ->
+    Triggers = get_triggers(State),
+    SideEffects1 = maps:fold(
+                     fun(_TriggerId, #{event_filter := EventFilter}, SE) ->
+                             event_filter_to_side_effect(EventFilter, SE)
+                     end, SideEffects, Triggers),
+    SideEffects1.
 
 -spec overview(State) -> Overview when
       State :: khepri_machine:state(),
@@ -3175,6 +3331,20 @@ evaluate_projection(
     Effect = {aux, Trigger},
     [Effect | Effects].
 
+-spec event_filter_to_side_effect(EventFilter, SideEffects) ->
+    NewSideEffects when
+      EventFilter :: khepri_evf:event_filter(),
+      SideEffects :: ra_machine:effects(),
+      NewSideEffects :: ra_machine:effects().
+%% @private
+
+event_filter_to_side_effect(#evf_tree{}, SideEffects) ->
+    SideEffects;
+event_filter_to_side_effect(#evf_process{pid = Pid}, SideEffects) ->
+    SideEffect = {monitor, process, Pid},
+    SideEffects1 = [SideEffect | SideEffects],
+    SideEffects1.
+
 add_trigger_side_effects(InitialState, NewState, Events, SideEffects) ->
     %% We want to consider the new state (with the updated tree), but we want
     %% to use triggers from the initial state, in case they were updated too.
@@ -3256,7 +3426,18 @@ evaluate_trigger(
               NewState, Event, TriggerId, Trigger, TriggeredActions);
         false ->
             TriggeredActions
-    end.
+    end;
+evaluate_trigger(
+  _InitialState, NewState,
+  #ev_process{pid = Pid} = Event, TriggerId,
+  #{event_filter := #evf_process{pid = Pid}} = Trigger,
+  TriggeredActions) ->
+    %% TODO: Match the exit reason if an optional pattern was provided.
+    evaluate_action(
+      NewState, Event, TriggerId, Trigger, TriggeredActions);
+evaluate_trigger(_InitialState, _NewState, _Event, _TriggerId, _Trigger, TriggeredActions) ->
+    %% The event does not match the event filter.
+    TriggeredActions.
 
 evaluate_action(State, Event, TriggerId, Trigger, TriggeredActions)
   when is_map_key(sproc, Trigger) orelse
