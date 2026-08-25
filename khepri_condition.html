@@ -258,35 +258,58 @@ corresponds to the expected value.</p>
 #if_payload_version{version = {gt, 10}}.</code></pre></p>
 
 <h3 class="typedecl"><a name="type-keep_while">keep_while()</a></h3>
-<p><code>keep_while() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path" docgen-rel="seetype" docgen-href="khepri:khepri_path#path/0">khepri_path:path()</a> =&gt; <a href="#type-condition" docgen-rel="seetype" docgen-href="#condition/0">condition()</a>}</code></p>
-<p><p>  An association between a path and a condition. As long as the condition  
-evaluates to true, the tree node is kept. Once the condition evaluates to  
-false, the tree node is deleted.</p>
+<p><code>keep_while() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-path" docgen-rel="seetype" docgen-href="khepri:khepri_path#path/0">khepri_path:path()</a> =&gt; <a href="#type-condition" docgen-rel="seetype" docgen-href="#condition/0">condition()</a>} | pid()</code></p>
+<p><p>  A condition that impacts the lifetime of a tree node.</p>
+ 
+  <p>As long as the condition evaluates to true, the tree node is kept. Once the  
+condition evaluates to false, the tree node is deleted.</p>
+ 
+  There are several types of conditions:
+  <ul>
+  <li><p>An association between a target path and a Khepri condition (<a docgen-rel="seetype" docgen-href="#condition/0" href="#type-condition"><code>condition()</code></a>) that must be true on that target.</p>
+ 
+  Paths in the map can be native paths or Unix-like paths. However, having
+  two entries that resolve to the same node (one native path entry and one
+  Unix-like path entry for instance) is undefined behaviour: one of them will
+  overwrite the other.</li>
+  <li><p>A process PID that must be alive.</p>
+ 
+  This can be a process running on a member of the cluster or outside of the
+  cluster. If the node hosting the process is a member and the connection to
+  this node is lost, Khepri will wait for the node to come back and monitor
+  the process again, to ensure they are actually gone. If that node is
+  removed from the cluster while it is still down, the process is considered
+  gone. If the node is not a member of the cluster, the process is considered
+  gone right away.</li>
+  </ul>
  
   <p>If the <code>keep_while</code> conditions are false at the time of the insert, the
   insert fails. The only exception to that is if the <code>keep_while</code> condition  
-is on the inserted node itself.</p>
+is path-based and that path points to the inserted node itself.</p>
  
-  <p>Paths in the map can be native paths or Unix-like paths. However, having  
-two entries that resolve to the same node (one native path entry and one  
-Unix-like path entry for instance) is undefined behavior: one of them will  
-overwrite the other.</p>
- 
-  Example:
+  Example with a path/condition combination:
   <pre><code>khepri:put(
-  StoreId,
-  [foo],
-  Payload,
+  StoreId, [foo], Payload,
+ 
+  %% The node `[foo]' will be removed as soon as `[bar]' is removed
+  %% because the condition associated with `[bar]' will not be true
+  %% anymore.
   #{keep_while =&gt; #{
-    %% The node `[foo]' will be removed as soon as `[bar]' is removed
-    %% because the condition associated with `[bar]' will not be true
-    %% anymore.
     [bar] =&gt; #if_node_exists{exists = true}
   }}
+).</code></pre>
+ 
+  Example with a PID:
+  <pre><code>khepri:put(
+  StoreId, [foo], Payload,
+ 
+  %% The node `[foo]' will be removed as soon as the process inserting it
+  %% exits.
+  #{keep_while =&gt; self()}}
 ).</code></pre></p>
 
 <h3 class="typedecl"><a name="type-native_keep_while">native_keep_while()</a></h3>
-<p><code>native_keep_while() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a> =&gt; <a href="#type-condition" docgen-rel="seetype" docgen-href="#condition/0">condition()</a>}</code></p>
+<p><code>native_keep_while() = #{<a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a> =&gt; <a href="#type-condition" docgen-rel="seetype" docgen-href="#condition/0">condition()</a>} | pid()</code></p>
 <p><p>  An association between a native path and a condition.</p>
  
   This is the same as <a docgen-rel="seetype" docgen-href="#keep_while/0" href="#type-keep_while"><code>keep_while()</code></a> but the paths in the map keys were

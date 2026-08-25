@@ -163,6 +163,8 @@ relative paths:
 
 <h4><a name="Tree_node_lifetime">Tree node lifetime</a></h4>
 
+<h5><a name="Lifetime_based_on_conditions_on_tree_nodes">Lifetime based on conditions on tree nodes</a></h5>
+
 <p>A tree node's lifetime starts when it is inserted the first time and ends when
 it is removed from the tree. However, intermediary tree nodes created on the
 way remain in the tree long after the leaf node was removed.</p>
@@ -186,6 +188,45 @@ KeepWhileCondition = #{[stock, wood] =&gt; #if_child_list_length{count = {gt, 0}
 
 <p><code>keep_while</code> conditions on self (like the example above) are not evaluated on
 the first insert though.</p>
+
+<h5><a name="Lifetime_based_on_an_Erlang_process_lifetime">Lifetime based on an Erlang process lifetime</a></h5>
+
+<p>In addition to <code>keep_while</code> conditions based on other tree nodes, it is also
+possible to have a <code>keep_while</code> condition pointing to an Erlang process. The
+condition is the PID of that process. In this case, the lifetime of the tree
+node is linked to that of the process: when the process exits, the tree node is
+deleted.</p>
+
+<pre><code>khepri:put(
+  StoreId, [stock, wood, &lt;&lt;"walnut"&gt;&gt;], 200,
+
+  %% The inserted tree node will be removed as soon as the processs inserting
+  %% it exits.
+  #{keep_while =&gt; self()}
+).</code></pre>
+
+<p>This feature is based on Erlang monitors created by the Ra leader of the Khepri
+cluster.</p>
+
+If the monitored process is on a different Erlang node than the Ra leader, the
+loss of connection between the two nodes (i.e. the <code>noconnection</code> exit reason)
+is handled in a specific way:
+<ul>
+<li>If the remote node is a member of the Khepri cluster, Khepri will start to
+monitor that node after receiving the <code>noconnection</code> exit reaison. Then two
+things can happen:
+<ul>
+<li>The node comes back online. In this case, processes that are supposed to
+run on it are monitored again. If the node was restarted and the processes were
+killed, this new monitoring will detect this situation.</li>
+<li>The node is removed from the cluster. In this case, it is unlikely to come
+back. Thus, the processes that were running on it are considered as dead.</li>
+</ul></li>
+<li>If the remote node is not a member of the Khepri cluster, Khepri will
+consider that the processes supposed to run on this node are dead, even if this
+is network partition and the node and its processes could be reachable again in
+the future.</li>
+</ul>
 
 <h3><a name="Stores">Stores</a></h3>
 

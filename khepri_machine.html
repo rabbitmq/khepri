@@ -100,6 +100,9 @@ never be called directly outside of Khepri.</p>
   which cluster member(s) the trigger action is executed. See <a docgen-rel="seetype" docgen-href="khepri#trigger_options/0" href="khepri.html#type-trigger_options"><code>khepri:trigger_options()</code></a>.</li>
   <li>Added support for process-lifetime-based triggers. The trigger can be
   executed when a process exits.</li>
+  <li>Added support for process-lifetime-based <code>keep_while</code> condition. The
+  <code>keep_while</code> put option can take a PID. The tree node will be deleted as
+  soon as the associated process exits. See <a docgen-rel="seetype" docgen-href="khepri_condition#keep_while/0" href="khepri_condition.html#type-keep_while"><code>khepri_condition:keep_while()</code></a>.</li>
   <li>Added support for "apply MFA" and "send message" trigger actions.</li>
   </ul>
   </td>
@@ -108,7 +111,7 @@ never be called directly outside of Khepri.</p>
 <h2><a name="types">Data Types</a></h2>
 
 <h3 class="typedecl"><a name="type-api_behaviour">api_behaviour()</a></h3>
-<p><code>api_behaviour() = dedup_protection | delete_reason_in_node_props | expire_dedups_from_tick | indirect_deletes_in_ret | uniform_write_ret | multi_table_projections | uniform_commands | request_snapshot | extended_trigger | cached_members_list</code></p>
+<p><code>api_behaviour() = dedup_protection | delete_reason_in_node_props | expire_dedups_from_tick | indirect_deletes_in_ret | uniform_write_ret | multi_table_projections | uniform_commands | request_snapshot | extended_trigger | cached_members_list | process_based_keep_while</code></p>
 <p>  Name of a state machine API behaviour.</p>
 
 <h3 class="typedecl"><a name="type-async_ret">async_ret()</a></h3>
