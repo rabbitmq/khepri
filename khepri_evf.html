@@ -281,7 +281,7 @@ the more it is prioritized. Negative integers are allowed.</p>
   filter with default properties.</p>
 
 <h3 class="typedecl"><a name="type-tree_event">tree_event()</a></h3>
-<p><code>tree_event() = #ev_tree{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a>, change = create | update | delete}</code></p>
+<p><code>tree_event() = #ev_tree{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a>, change = <a href="/home/runner/work/khepri/khepri/doc/khepri_tree.html#type-applied_change" docgen-rel="seetype" docgen-href="khepri:khepri_tree#applied_change/0">khepri_tree:applied_change()</a>}</code></p>
 <p><p>  An event record representing a change tree change.</p>
  
   The event has the following fields:
@@ -298,7 +298,7 @@ the more it is prioritized. Negative integers are allowed.</p>
   It takes a path pattern to monitor and optionally properties.</p>
 
 <h3 class="typedecl"><a name="type-tree_event_filter_props">tree_event_filter_props()</a></h3>
-<p><code>tree_event_filter_props() = #{on_actions =&gt; [create | update | delete], priority =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-priority" docgen-rel="seetype" docgen-href="khepri:khepri_evf#priority/0">khepri_evf:priority()</a>}</code></p>
+<p><code>tree_event_filter_props() = #{on_actions =&gt; [<a href="/home/runner/work/khepri/khepri/doc/khepri_tree.html#type-change_type" docgen-rel="seetype" docgen-href="khepri:khepri_tree#change_type/0">khepri_tree:change_type()</a>], priority =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-priority" docgen-rel="seetype" docgen-href="khepri:khepri_evf#priority/0">khepri_evf:priority()</a>}</code></p>
 <p><p>  Tree event filter properties.</p>
  
   The properties are:
