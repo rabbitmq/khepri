@@ -171,9 +171,9 @@ event_type(#ev_tree{}) ->
 event_type(#ev_process{}) ->
     process.
 
-event_to_props(#ev_tree{path = Path, change = Change}) ->
-    #{path => Path,
-      change => Change};
+event_to_props(#ev_tree{path = Path, change = {ChangeType, ChangeAttrs}}) ->
+    ChangeAttrs#{path => Path,
+                 change => ChangeType};
 event_to_props(#ev_process{pid = Pid, change = Change}) ->
     #{pid => Pid,
       change => Change}.
