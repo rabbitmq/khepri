@@ -1148,7 +1148,10 @@ maybe_write_ret_to_legacy_ret(PathPattern, {ok, NodePropsMap} = Ret) ->
             Ret;
         false ->
             {true, Path} = khepri_path:targets_specific_node(PathPattern),
-            NodeProps = maps:get(Path, NodePropsMap),
+            %% `Path' may not be in the `NodePropsMap' if it did not exist in
+            %% the first place before a delete. That's why we default to an
+            %% empty `NodeProps'.
+            NodeProps = maps:get(Path, NodePropsMap, #{}),
             {ok, NodeProps}
     end;
 maybe_write_ret_to_legacy_ret(_PathPattern, {error, _} = Error) ->
