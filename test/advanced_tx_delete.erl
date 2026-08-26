@@ -12,6 +12,7 @@
 
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
+-include("src/khepri_machine.hrl").
 -include("test/helpers.hrl").
 
 delete_non_existing_node_test_() ->
@@ -33,7 +34,7 @@ delete_non_existing_node_test_() ->
          khepri_adv:get(?FUNCTION_NAME, [foo]))]}.
 
 delete_non_existing_node_using_legacy_ret_test_() ->
-    MacVer = 1,
+    MacVer = maps:get(uniform_write_ret, ?API_BEHAV_MACVER_MAP) - 1,
     {setup,
      fun() ->
              test_ra_server_helpers:setup(
