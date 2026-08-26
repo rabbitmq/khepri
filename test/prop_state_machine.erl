@@ -18,7 +18,6 @@
 -dialyzer([{[no_opaque, no_return],
             [prop_commands_with_simple_paths_work_in_any_order/0]}]).
 
--export([prop_commands_with_simple_paths_work_in_any_order/0]).
 -export([initial_state/0,
          command/1,
          precondition/2,
@@ -78,9 +77,9 @@ next_state(
                 old_entries = Entries};
 next_state(
   #state{entries = Entries} = State,
-  _Result,
-  {call, khepri_adv, delete_many, [_StoreId, Path, _Options]}) ->
-    Entries1 = delete_entry(Entries, Path),
+  Result,
+  {call, khepri_adv, delete_many, [_StoreId, _Path, _Options]}) ->
+    Entries1 = delete_entries(Entries, Result),
     State#state{entries = Entries1,
                 old_entries = Entries}.
 
@@ -155,6 +154,15 @@ add_entry1(Entries, ReversedPath, New) ->
         [] -> Entries1;
         _  -> add_entry1(Entries1, tl(ReversedPath), New1)
     end.
+
+delete_entries(Entries, {ok, Result}) when is_map(Result) ->
+    maps:fold(
+      fun(Path, _NodeProps, Entries1) ->
+              Entries2 = delete_entry(Entries1, Path),
+              Entries2
+      end, Entries, Result);
+delete_entries(Entries, _) ->
+    Entries.
 
 delete_entry(Entries, Path) when is_map_key(Path, Entries) ->
     Entries1 = maps:fold(
