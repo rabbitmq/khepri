@@ -156,6 +156,7 @@
          process_query/3,
          process_command/3,
          does_api_comply_with/2,
+         effective_version/1,
          wait_for_effective_machine_version/3,
          wait_for_effective_behaviour/3,
          convert_to_uniform_command/1]).
