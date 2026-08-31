@@ -34,7 +34,8 @@
           extended_trigger            => 4,
           cached_members_list         => 4,
           process_based_keep_while    => 4,
-          reply_to_option             => 4}).
+          reply_to_option             => 4,
+          batching                    => 4}).
 
 %% Get the state machine version the given API behaviour was introduced in.
 %% This is similar to `khepri_machine:api_behaviour_to_machine_version/1' but
@@ -302,6 +303,27 @@
 %%
 %% <ul>
 %% <li>`args' contains the command-specific attributes.</li>
+%% <li>`common' contains the attributes shared by all commands.</li>
+%% </ul>
+
+-record(submit_batch_v1, {commands = [] :: [khepri_machine:command()],
+                          options = #{} :: khepri_batch:options()}).
+%% Arguments to the batch command, version 1.
+%%
+%% It is used to submit several commands in a single wrapping command for
+%% efficiency.
+%%
+%% <ul>
+%% <li>`commands' contains the ordered list of batched commands.</li>
+%% <li>`options' contains the batch-specific options..</li>
+%% </ul>
+
+-record(submit_batch, {args :: #submit_batch_v1{},
+                       common = none :: #common_v1{} | none}).
+%% Command to submit several commands at once.
+%%
+%% <ul>
+%% <li>`args' contains the batch-specific attributes.</li>
 %% <li>`common' contains the attributes shared by all commands.</li>
 %% </ul>
 

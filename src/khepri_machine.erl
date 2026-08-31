@@ -128,7 +128,8 @@
          transaction/5,
          register_trigger/5,
          register_projection/4,
-         unregister_projections/3]).
+         unregister_projections/3,
+         submit_batch/3]).
 -export([get_keep_while_conds_state/2,
          get_projections_state/2]).
 
@@ -220,7 +221,8 @@
                    #dedup_ack_v{} |
                    #drop_dedups_v{} |
                    #request_snapshot{} |
-                   #cache_members_list{}.
+                   #cache_members_list{} |
+                   #submit_batch{}.
 %% Commands specific to this Ra machine.
 
 -type old_command() :: #put{} |
@@ -241,6 +243,17 @@
 %% Khepri.
 %%
 %% We keep them supported for backward-compatibility.
+
+-type command_meta_data() :: #{khepri_batch => true}.
+%% Modified copy of Ra metadata map to add Khepri-specific metadata.
+%%
+%% All fields must be prefixed with `khepri_' to avoid collision with Ra
+%% fields.
+%%
+%% <ul>
+%% <li>`khepri_batch': indicates that the command is part of a Khepri
+%% batch.</li>
+%% </ul>
 
 -type machine_init_args() :: #{store_id := khepri:store_id(),
                                member := ra:server_id(),
@@ -364,7 +377,8 @@
                          extended_trigger |
                          cached_members_list |
                          process_based_keep_while |
-                         reply_to_option.
+                         reply_to_option |
+                         batching.
 %% Name of a state machine API behaviour.
 
 -export_type([write_ret/0,
@@ -388,6 +402,7 @@
               api_behaviour/0,
               command/0,
               old_command/0,
+              command_meta_data/0,
               delayed_aux_query/0]).
 
 -define(PROJECTION_PROPS_TO_RETURN, [payload_version,
@@ -1069,6 +1084,37 @@ ack_triggers_execution(StoreId, TriggeredActions)
                       #ack_triggered{triggered = TriggeredActions}
               end,
     process_command(StoreId, Command, #{async => true}).
+
+-spec submit_batch(StoreId, Batch, Options) ->
+    Ret when
+      StoreId :: khepri:store_id(),
+      Batch :: khepri_batch:batch(),
+      Options :: khepri:command_options(),
+      Ret :: {ok, [any()]} | khepri:error().
+%% @doc Submits a batch previously build by {@link khepri_batch}.
+%%
+%% @private
+
+submit_batch(StoreId, Batch, Options)
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso ?IS_KHEPRI_BATCH(Batch) ->
+    case does_api_comply_with(batching, StoreId) of
+        true ->
+            case khepri_batch:get_commands(Batch) of
+                [] ->
+                    {ok, []};
+                InnerCommands ->
+                    BatchOptions = khepri_batch:get_options(Batch),
+                    CommandArgs = #submit_batch_v1{commands = InnerCommands,
+                                                   options = BatchOptions},
+                    Command = #submit_batch{args = CommandArgs},
+                    process_command(StoreId, Command, Options)
+            end;
+        false ->
+            ?khepri_misuse(
+               batching_unsupported,
+               #{store_id => StoreId,
+                 batch => Batch})
+    end.
 
 -spec request_snapshot(StoreId, Reason, Options) ->
     Ret when
@@ -2194,7 +2240,8 @@ apply(
     end.
 
 -spec pre_apply(Meta, Command, State) -> {State, Ret, SideEffects} when
-      Meta :: ra_machine:command_meta_data(),
+      Meta :: ra_machine:command_meta_data() |
+              khepri_machine:command_meta_data(),
       Command :: command() | old_command() | ra_machine:builtin_command(),
       State :: state(),
       Ret :: any(),
@@ -2248,7 +2295,8 @@ handle_dedup1(Meta, Command, CommandRef, Expiry, State)
     end.
 
 -spec do_apply(Meta, Command, State) -> {State, Ret, SideEffects} when
-      Meta :: ra_machine:command_meta_data(),
+      Meta :: ra_machine:command_meta_data() |
+              khepri_machine:command_meta_data(),
       Command :: command() | old_command() | ra_machine:builtin_command(),
       State :: state(),
       Ret :: any(),
@@ -2455,6 +2503,35 @@ do_apply(
     %% cluster member nodenames list.
     State1 = set_cached_members(State, Members),
     Ret = {State1, ok},
+    post_apply(Ret, Meta, Command);
+do_apply(
+  #{machine_version := MacVer} = Meta,
+  #submit_batch{args = #submit_batch_v1{commands = InnerCommands,
+                                        options = #{}}} = Command,
+  State) when MacVer >= ?API_BEHAV_MACVER(batching) ->
+    BatchMeta = Meta#{khepri_batch => true},
+    {State3,
+     InnerResults3,
+     SideEffects3} = lists:foldl(
+                       fun(
+                         InnerCommand,
+                         {State1, InnerResults1, SideEffects1}) ->
+                               {State2,
+                                InnerResult,
+                                MoreSideEffects} = pre_apply(
+                                                     BatchMeta, InnerCommand,
+                                                     State1),
+                               InnerResults2 = [InnerResult | InnerResults1],
+                               %% FIXME: Can we have a batched command that
+                               %% relies on the side effects (like aux handler)
+                               %% of a previous command in the batch? Because
+                               %% all side effects are evaluated after all
+                               %% commands are applied.
+                               SideEffects2 = SideEffects1 ++ MoreSideEffects,
+                               {State2, InnerResults2, SideEffects2}
+                       end, {State, [], []}, InnerCommands),
+    InnerResults = lists:reverse(InnerResults3),
+    Ret = {State3, {ok, InnerResults}, SideEffects3},
     post_apply(Ret, Meta, Command);
 do_apply(Meta, {machine_version, OldMacVer, NewMacVer} = Command, OldState) ->
     NewState = convert_state(OldState, OldMacVer, NewMacVer),
@@ -2681,7 +2758,8 @@ convert_to_uniform_command(Command)
        is_record(Command, dedup_ack_v) orelse
        is_record(Command, drop_dedups_v) orelse
        is_record(Command, request_snapshot) orelse
-       is_record(Command, cache_members_list) ->
+       is_record(Command, cache_members_list) orelse
+       is_record(Command, submit_batch) ->
     %% These are all uniform/versioned commands already. We list them
     %% explicitly to reduce the risk of programming errors with wildcard
     %% pattern matching.
@@ -2707,7 +2785,8 @@ normalize_event_filter(#evf_process{} = EventFilter) ->
       ApplyRet :: {State, Result} | {State, Result, SideEffects},
       State :: state(),
       Result :: any(),
-      Meta :: ra_machine:command_meta_data(),
+      Meta :: ra_machine:command_meta_data() |
+              khepri_machine:command_meta_data(),
       Command :: command() | old_command() | ra_machine:builtin_command(),
       SideEffects :: ra_machine:effects().
 %% @private
@@ -2715,7 +2794,7 @@ normalize_event_filter(#evf_process{} = EventFilter) ->
 post_apply({State, Result}, Meta, Command) ->
     post_apply({State, Result, []}, Meta, Command);
 post_apply({State, Result, SideEffects}, Meta, Command) ->
-    State1 = bump_unreleased_command_footprint(State, Command),
+    State1 = bump_unreleased_command_footprint(State, Command, Meta),
     {State2, SideEffects2} = bump_applied_command_count(
                                State1, SideEffects, Meta),
     {State3, SideEffects3} = drop_expired_dedups(
@@ -2747,11 +2826,16 @@ return_result_to_appropriate_process(
     {NewState, NewSideEffects} when
       State :: state(),
       SideEffects :: ra_machine:effects(),
-      Meta :: ra_machine:command_meta_data(),
+      Meta :: ra_machine:command_meta_data() |
+              khepri_machine:command_meta_data(),
       NewState :: state(),
       NewSideEffects :: ra_machine:effects().
 %% @private
 
+bump_applied_command_count(State, SideEffects, #{khepri_batch := true}) ->
+    %% The command count will be handled as part of the whole batch post-apply.
+    %% We skip it for the batch inner commands.
+    {State, SideEffects};
 bump_applied_command_count(State, SideEffects, _Meta) ->
     Metrics = get_metrics(State),
     AppliedCmdCount0 = maps:get(applied_command_count, Metrics, 0),
@@ -2760,18 +2844,24 @@ bump_applied_command_count(State, SideEffects, _Meta) ->
     State1 = set_metrics(State, Metrics1),
     {State1, SideEffects}.
 
--spec bump_unreleased_command_footprint(State, Command) -> NewState when
+-spec bump_unreleased_command_footprint(State, Command, Meta) -> NewState when
       State :: khepri_machine:state(),
       Command :: khepri_machine:command() |
                  khepri_machine:old_command() |
                  ra_machine:builtin_command(),
+      Meta :: ra_machine:command_meta_data() |
+              khepri_machine:command_meta_data(),
       NewState :: khepri_machine:state().
 %% @doc Bump the unreleased command footprint from the command size, present in
 %% the command common arguments.
 %%
 %% @private.
 
-bump_unreleased_command_footprint(State, Command) ->
+bump_unreleased_command_footprint(State, _Command, #{khepri_batch := true}) ->
+    %% The command footprint will be handled as part of the whole batch
+    %% post-apply. We skip it for the batch inner commands.
+    State;
+bump_unreleased_command_footprint(State, Command, _Meta) ->
     case get_command_common_args(Command) of
         #common_v1{command_size = CommandSize}
           when is_integer(CommandSize) andalso CommandSize >= 0 ->
@@ -2798,7 +2888,8 @@ reset_metrics(State) ->
     {NewState, NewSideEffects} when
       State :: state(),
       SideEffects :: ra_machine:effects(),
-      Meta :: ra_machine:command_meta_data(),
+      Meta :: ra_machine:command_meta_data() |
+              khepri_machine:command_meta_data(),
       NewState :: state(),
       NewSideEffects :: ra_machine:effects().
 %% @doc Removes any dedups from the `dedups' field in state that have expired
@@ -2811,6 +2902,10 @@ reset_metrics(State) ->
 %%
 %% @private
 
+drop_expired_dedups(State, SideEffects, #{khepri_batch := true}) ->
+    %% The expired dedups will be handled as part of the whole batch
+    %% post-apply. We skip it for the batch inner commands.
+    {State, SideEffects};
 drop_expired_dedups(
   State, SideEffects,
   #{system_time := Timestamp,
@@ -2838,13 +2933,19 @@ drop_expired_dedups(State, SideEffects, _Meta) ->
     {NewState, NewSideEffects} when
       State :: state(),
       SideEffects :: ra_machine:effects(),
-      Meta :: ra_machine:command_meta_data(),
+      Meta :: ra_machine:command_meta_data() |
+              khepri_machine:command_meta_data(),
       NewState :: state(),
       NewSideEffects :: ra_machine:effects().
 %% @doc Add an `aux' side effect to retrigger the eval of delayed aux queries.
 %%
 %% @private
 
+trigger_delayed_aux_queries_eval(
+  State, SideEffects, #{khepri_batch := true}) ->
+    %% The delayed aux queries will be handled as part of the whole batch
+    %% post-apply. We skip it for the batch inner commands.
+    {State, SideEffects};
 trigger_delayed_aux_queries_eval(State, SideEffects, _Meta) ->
     SideEffects1 = [{aux, trigger_delayed_aux_queries_eval} | SideEffects],
     {State, SideEffects1}.
@@ -2881,6 +2982,8 @@ does_command_support_common_args(#drop_dedups_v{}) ->
 does_command_support_common_args(#request_snapshot{}) ->
     true;
 does_command_support_common_args(#cache_members_list{}) ->
+    true;
+does_command_support_common_args(#submit_batch{}) ->
     true;
 does_command_support_common_args(#put{}) ->
     false;
@@ -2943,6 +3046,8 @@ get_command_common_args(#request_snapshot{common = CommonArgs}) ->
     CommonArgs;
 get_command_common_args(#cache_members_list{common = CommonArgs}) ->
     CommonArgs;
+get_command_common_args(#submit_batch{common = CommonArgs}) ->
+    CommonArgs;
 get_command_common_args(#put{}) ->
     none;
 get_command_common_args(#delete{}) ->
@@ -3001,7 +3106,9 @@ set_command_common_args(#drop_dedups_v{} = Command, CommonArgs) ->
 set_command_common_args(#request_snapshot{} = Command, CommonArgs) ->
     Command#request_snapshot{common = CommonArgs};
 set_command_common_args(#cache_members_list{} = Command, CommonArgs) ->
-    Command#cache_members_list{common = CommonArgs}.
+    Command#cache_members_list{common = CommonArgs};
+set_command_common_args(#submit_batch{} = Command, CommonArgs) ->
+    Command#submit_batch{common = CommonArgs}.
 
 -spec set_dedup_args(Command, CommandRef, Expiry) -> NewCommand when
       Command :: khepri_machine:command(),
@@ -4524,6 +4631,10 @@ trigger_projection(Projection, new, Path, NewProps, OldProps) ->
 %% Snapshot management.
 %% -------------------------------------------------------------------
 
+maybe_request_snapshot(State, SideEffects, #{khepri_batch := true}) ->
+    %% The snapshot request will be handled as part of the whole batch
+    %% post-apply. We skip it for the batch inner commands.
+    {State, SideEffects};
 maybe_request_snapshot(State, SideEffects, #{index := RaftIndex}) ->
     case should_request_snapshot(State) of
         false ->
