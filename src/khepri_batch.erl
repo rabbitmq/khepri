@@ -12,6 +12,7 @@
 -include("src/khepri_batch.hrl").
 
 -export([new/0, new/1,
+         submit/1, submit/2, submit/3,
          is_batch/1,
          get_commands/1,
          get_options/1,
@@ -106,6 +107,73 @@ use_effective_machive_version_from_store(StoreId)
         {ok, EffectiveMacVer} -> EffectiveMacVer;
         {error, _}            -> 0
     end.
+
+-spec submit(Batch) -> Ret when
+      Batch :: khepri_batch:batch(),
+      Ret :: khepri:ok([khepri_batch:batched_command_ret()]) | khepri:error().
+%% @doc Submits a batch to the default store.
+%%
+%% Calling this function is the same as calling `submit(StoreId, Batch)' with
+%% the default store ID (see {@link khepri_cluster:get_default_store_id/0}).
+%%
+%% @see submit/2.
+%% @see submit/3.
+
+submit(Batch) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    submit(StoreId, Batch).
+
+-spec submit
+(StoreId, Batch) -> Ret when
+      StoreId :: khepri:store_id(),
+      Batch :: khepri_batch:batch(),
+      Ret :: khepri:ok([khepri_batch:batched_command_ret()]) | khepri:error();
+(Batch, Options) -> Ret when
+      Batch :: khepri_batch:batch(),
+      Options :: khepri:command_options(),
+      Ret :: khepri:ok([khepri_batch:batched_command_ret()]) | khepri:error().
+%% @doc Submits a batch to a store.
+%%
+%% This function accepts the following two forms:
+%% <ul>
+%% <li>`submit(StoreId, Batch)'. Calling it is the same as calling
+%% `submit(StoreId, Batch, #{})'.</li>
+%% <li>`submit(Batch, Options)'. Calling it is the same as calling
+%% `submit(StoreId, Batch, Options)' with the default store ID (see
+%% {@link khepri_cluster:get_default_store_id/0}).</li>
+%% </ul>
+%%
+%% @see submit/3.
+
+submit(StoreId, Batch) when ?IS_KHEPRI_STORE_ID(StoreId) ->
+    submit(StoreId, Batch, #{});
+submit(Batch, Options) when is_map(Options) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    submit(StoreId, Batch, Options).
+
+-spec submit(StoreId, Batch, Options) -> Ret when
+      StoreId :: khepri:store_id(),
+      Batch :: khepri_batch:batch(),
+      Options :: khepri:command_options(),
+      Ret :: khepri:ok([khepri_batch:batched_command_ret()]) | khepri:error().
+%% @doc Submits a batch to a store.
+%%
+%% The batch is submitted as is to the given store. If the store was upgraded
+%% to a newer machine version, the batched commands will still be based on the
+%% state machine version used when the batch was created.
+%%
+%% If the batch is empty, `{ok, []}' is returned immediately, regardless of the
+%% status of the store. Thus, it will return success even if the store does not
+%% exist, is not running, or is in a state where it cannot make progress.
+%%
+%% @param StoreId the name of the Khepri store.
+%% @param Batch the batch to submit
+%% @param Options command options such as the command type.
+%%
+%% @returns `{ok, ListOfCommandReturnValues}' or an `{error, Reason}' tuple.
+
+submit(StoreId, #batch{} = Batch, Options) ->
+    khepri_machine:submit_batch(StoreId, Batch, Options).
 
 -spec is_batch(Term) -> IsBatch when
       Term :: any(),
