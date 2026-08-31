@@ -1303,12 +1303,12 @@ process_sync_command(
     %% The deduplication mechanism was added to machine version 1.
     case does_api_comply_with(dedup_protection, StoreId) of
         true ->
-            %% When `protect_against_dups' is true, we wrap the command inside
-            %% a #dedup{} one to give it a unique reference. This is used for
-            %% non-idempotent commands which could be replayed when there is a
-            %% change of leadership in the Ra cluster. The state machine uses
-            %% this reference to remember what it replied to a given
-            %% reference.
+            %% When `protect_against_dups' is true, we set dedup common
+            %% arguments for that command (or wrap it in a `#dedup{}' command)
+            %% to give it a unique reference. This is used for non-idempotent
+            %% commands which could be replayed when there is a change of
+            %% leadership in the Ra cluster. The state machine uses this
+            %% reference to remember what it replied to a given reference.
             %%
             %% `do_process_sync_command/3' is responsible for the retry loop
             %% like with any other commands. Once it returned, we cast a
