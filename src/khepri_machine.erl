@@ -178,7 +178,7 @@
          get_store_id/1]).
 
 -ifdef(TEST).
--export([do_process_sync_command/3,
+-export([do_process_command/4,
          make_virgin_state/1,
          convert_state/3,
          set_tree/2,
@@ -1290,16 +1290,14 @@ set_default_options(StoreId, Options) ->
 process_command(StoreId, Command, Options) ->
     Command1 = compute_command_size(Command),
     CommandType = select_command_type(Options),
-    case CommandType of
-        sync ->
-            process_sync_command(StoreId, Command1, Options);
-        {async, Correlation, Priority} ->
-            process_async_command(
-              StoreId, Command1, Correlation, Priority)
-    end.
+    protect_command_against_dups(StoreId, Command1, Options, CommandType).
 
-process_sync_command(
-  StoreId, Command, #{protect_against_dups := true} = Options) ->
+protect_command_against_dups(
+  StoreId, Command,
+  #{protect_against_dups := true} = Options,
+  %% Asynchronous command cannot be protected against duplicates because we
+  %% need to send an ack to the state machine once we get the reply.
+  sync = CommandType) ->
     %% The deduplication mechanism was added to machine version 1.
     case does_api_comply_with(dedup_protection, StoreId) of
         true ->
@@ -1351,8 +1349,8 @@ process_sync_command(
                         DedupAck = #dedup_ack{ref = CommandRef},
                         {DedupCommand, DedupAck}
                 end,
-            Ret = do_process_sync_command(
-                    StoreId, DedupEnabledCommand, Options),
+            Ret = do_process_command(
+                    StoreId, DedupEnabledCommand, Options, CommandType),
 
             %% We acknowledge that we received the reply and all duplicates
             %% can be ignored.
@@ -1361,13 +1359,20 @@ process_sync_command(
             _ = ra:pipeline_command(Dest, DedupAckCommand),
             Ret;
         false ->
-            do_process_sync_command(StoreId, Command, Options)
+            do_process_command(StoreId, Command, Options, CommandType)
     end;
-process_sync_command(
-  StoreId, Command, Options) ->
-    do_process_sync_command(StoreId, Command, Options).
+protect_command_against_dups(
+  StoreId, Command,
+  Options,
+  CommandType) ->
+    do_process_command(StoreId, Command, Options, CommandType).
 
-do_process_sync_command(StoreId, Command, Options) ->
+do_process_command(StoreId, Command, Options, sync) ->
+    process_sync_command(StoreId, Command, Options);
+do_process_command(StoreId, Command, _Options, {async, CorrelationId, Priority}) ->
+    process_async_command(StoreId, Command, CorrelationId, Priority).
+
+process_sync_command(StoreId, Command, Options) ->
     ThisNode = node(),
     RaServer = khepri_cluster:node_to_member(StoreId, ThisNode),
     Timeout = get_timeout(Options),
@@ -1400,7 +1405,7 @@ do_process_sync_command(StoreId, Command, Options) ->
                                    ?TRANSIENT_ERROR_RETRY_INTERVAL,
                                    NewTimeout0),
                     Options1 = Options#{timeout => NewTimeout},
-                    do_process_sync_command(StoreId, Command, Options1);
+                    process_sync_command(StoreId, Command, Options1);
                 false ->
                     Error
             end;
