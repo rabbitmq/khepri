@@ -12,6 +12,7 @@
 -include("src/khepri_batch.hrl").
 
 -export([new/0, new/1,
+         add/2,
          submit/1, submit/2, submit/3,
          is_batch/1,
          is_empty/1,
@@ -109,6 +110,11 @@ use_effective_machive_version_from_store(StoreId)
         {ok, EffectiveMacVer} -> EffectiveMacVer;
         {error, _}            -> 0
     end.
+
+add(#batch{commands = Commands} = Batch, Command) ->
+    Commands1 = [Command | Commands],
+    Batch1 = Batch#batch{commands = Commands1},
+    Batch1.
 
 -spec submit(Batch) -> Ret when
       Batch :: khepri_batch:batch(),

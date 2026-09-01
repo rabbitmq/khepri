@@ -26,6 +26,7 @@
 -module(khepri_adv).
 
 -include("include/khepri.hrl").
+-include("src/khepri_batch.hrl").
 -include("src/khepri_cluster.hrl").
 -include("src/khepri_error.hrl").
 -include("src/khepri_ret.hrl").
@@ -275,12 +276,18 @@ put(PathPattern, Data) ->
     StoreId = khepri_cluster:get_default_store_id(),
     put(StoreId, PathPattern, Data).
 
--spec put(StoreId, PathPattern, Data) -> Ret when
+-spec put
+(StoreId, PathPattern, Data) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Ret :: khepri:minimal_ret() |
-             khepri_machine:write_ret().
+             khepri_machine:write_ret();
+(Batch, PathPattern, Data) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Data :: khepri_payload:payload() | khepri:data() | fun(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Sets the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -292,7 +299,8 @@ put(PathPattern, Data) ->
 put(StoreId, PathPattern, Data) ->
     put(StoreId, PathPattern, Data, #{}).
 
--spec put(StoreId, PathPattern, Data, Options) -> Ret when
+-spec put
+(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
@@ -301,7 +309,15 @@ put(StoreId, PathPattern, Data) ->
                  khepri:put_options(),
       Ret :: khepri:minimal_ret() |
              khepri_machine:write_ret() |
-             khepri_machine:async_ret().
+             khepri_machine:async_ret();
+(Batch, PathPattern, Data, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Data :: khepri_payload:payload() | khepri:data() | fun(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Sets the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -372,16 +388,18 @@ put(StoreId, PathPattern, Data) ->
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.
+%% @param Batch the batch where the command is appended.
 %% @param PathPattern the path (or path pattern) to the tree node to create or
 %%        modify.
 %% @param Data the Erlang term or function to store, or a {@link
 %%        khepri_payload:payload()} structure.
 %% @param Options command options.
 %%
-%% @returns in the case of a synchronous call, an `{ok, NodePropsMap}' tuple
-%% or an `{error, Reason}' tuple; in the case of an asynchronous call, always
-%% `ok' (the actual return value may be sent by a message if a correlation ID
-%% was specified).
+%% @returns if a `StoreId' is passed: in the case of a synchronous call, an
+%% `{ok, NodePropsMap}' tuple or an `{error, Reason}' tuple; in the case of an
+%% asynchronous call, always `ok' (the actual return value may be sent by a
+%% message if a correlation ID was specified). If a `Batch' is passed: an
+%% updated batch with the command appended.
 %%
 %% @see create/4.
 %% @see update/4.
@@ -413,11 +431,17 @@ put_many(PathPattern, Data) ->
     StoreId = khepri_cluster:get_default_store_id(),
     put_many(StoreId, PathPattern, Data).
 
--spec put_many(StoreId, PathPattern, Data) -> Ret when
+-spec put_many
+(StoreId, PathPattern, Data) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret();
+(Batch, PathPattern, Data) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Data :: khepri_payload:payload() | khepri:data() | fun(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Sets the payload of all the tree nodes matching the given path pattern.
 %%
 %% Calling this function is the same as calling `put_many(StoreId, PathPattern,
@@ -428,14 +452,23 @@ put_many(PathPattern, Data) ->
 put_many(StoreId, PathPattern, Data) ->
     put_many(StoreId, PathPattern, Data, #{}).
 
--spec put_many(StoreId, PathPattern, Data, Options) -> Ret when
+-spec put_many
+(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret();
+(Batch, PathPattern, Data, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Data :: khepri_payload:payload() | khepri:data() | fun(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Sets the payload of all the tree nodes matching the given path pattern.
 %%
 %% The `PathPattern' can be provided as a native path pattern (a list of tree
@@ -501,6 +534,7 @@ put_many(StoreId, PathPattern, Data) ->
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.
+%% @param Batch the batch where the command is appended.
 %% @param PathPattern the path (or path pattern) to the tree node to create or
 %%        modify.
 %% @param Data the Erlang term or function to store, or a {@link
@@ -508,10 +542,11 @@ put_many(StoreId, PathPattern, Data) ->
 %% @param Extra extra options such as `keep_while' conditions.
 %% @param Options command options.
 %%
-%% @returns in the case of a synchronous call, an `{ok, NodePropsMap}' tuple or
-%% an `{error, Reason}' tuple; in the case of an asynchronous call, always `ok'
-%% (the actual return value may be sent by a message if a correlation ID was
-%% specified).
+%% @returns if a `StoreId' is passed: in the case of a synchronous call, an
+%% `{ok, NodePropsMap}' tuple or an `{error, Reason}' tuple; in the case of an
+%% asynchronous call, always `ok' (the actual return value may be sent by a
+%% message if a correlation ID was specified). If a `Batch' is passed: a
+%% updated batch with the command appended.
 %%
 %% @see put/4.
 %% @see khepri:put_many/4.
@@ -540,11 +575,17 @@ create(PathPattern, Data) ->
     StoreId = khepri_cluster:get_default_store_id(),
     create(StoreId, PathPattern, Data).
 
--spec create(StoreId, PathPattern, Data) -> Ret when
+-spec create
+(StoreId, PathPattern, Data) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret();
+(Batch, PathPattern, Data) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Data :: khepri_payload:payload() | khepri:data() | fun(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Creates a tree node with the given payload.
 %%
 %% Calling this function is the same as calling `create(StoreId, PathPattern,
@@ -555,14 +596,23 @@ create(PathPattern, Data) ->
 create(StoreId, PathPattern, Data) ->
     create(StoreId, PathPattern, Data, #{}).
 
--spec create(StoreId, PathPattern, Data, Options) -> Ret when
+-spec create
+(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret();
+(Batch, PathPattern, Data, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Data :: khepri_payload:payload() | khepri:data() | fun(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Creates a tree node with the given payload.
 %%
 %% The behavior is the same as {@link put/4} except that if the tree node
@@ -573,15 +623,17 @@ create(StoreId, PathPattern, Data) ->
 %% `#if_node_exists{exists = false}' condition on its last component.
 %%
 %% @param StoreId the name of the Khepri store.
+%% @param Batch the batch where the command is appended.
 %% @param PathPattern the path (or path pattern) to the tree node to create.
 %% @param Data the Erlang term or function to store, or a {@link
 %%        khepri_payload:payload()} structure.
 %% @param Options command options.
 %%
-%% @returns in the case of a synchronous call, an `{ok, NodePropsMap}' tuple
-%% or an `{error, Reason}' tuple; in the case of an asynchronous call, always
-%% `ok' (the actual return value may be sent by a message if a correlation ID
-%% was specified).
+%% @returns if a `StoreId' is passed: in the case of a synchronous call, an
+%% `{ok, NodePropsMap}' tuple or an `{error, Reason}' tuple; in the case of an
+%% asynchronous call, always `ok' (the actual return value may be sent by a
+%% message if a correlation ID was specified). If a `Batch' is passed: a
+%% updated batch with the command appended.
 %%
 %% @see put/4.
 %% @see update/4.
@@ -615,11 +667,17 @@ update(PathPattern, Data) ->
     StoreId = khepri_cluster:get_default_store_id(),
     update(StoreId, PathPattern, Data).
 
--spec update(StoreId, PathPattern, Data) -> Ret when
+-spec update
+(StoreId, PathPattern, Data) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret();
+(Batch, PathPattern, Data) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Data :: khepri_payload:payload() | khepri:data() | fun(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Updates an existing tree node with the given payload.
 %%
 %% Calling this function is the same as calling `update(StoreId, PathPattern,
@@ -630,14 +688,23 @@ update(PathPattern, Data) ->
 update(StoreId, PathPattern, Data) ->
     update(StoreId, PathPattern, Data, #{}).
 
--spec update(StoreId, PathPattern, Data, Options) -> Ret when
+-spec update
+(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret();
+(Batch, PathPattern, Data, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Data :: khepri_payload:payload() | khepri:data() | fun(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Updates an existing tree node with the given payload.
 %%
 %% The behavior is the same as {@link put/4} except that if the tree node
@@ -648,16 +715,18 @@ update(StoreId, PathPattern, Data) ->
 %% `#if_node_exists{exists = true}' condition on its last component.
 %%
 %% @param StoreId the name of the Khepri store.
+%% @param Batch the batch where the command is appended.
 %% @param PathPattern the path (or path pattern) to the tree node to modify.
 %% @param Data the Erlang term or function to store, or a {@link
 %%        khepri_payload:payload()} structure.
 %% @param Extra extra options such as `keep_while' conditions.
 %% @param Options command options.
 %%
-%% @returns in the case of a synchronous call, an `{ok, NodePropsMap}' tuple
-%% or an `{error, Reason}' tuple; in the case of an asynchronous call, always
-%% `ok' (the actual return value may be sent by a message if a correlation ID
-%% was specified).
+%% @returns if a `StoreId' is passed: in the case of a synchronous call, an
+%% `{ok, NodePropsMap}' tuple or an `{error, Reason}' tuple; in the case of an
+%% asynchronous call, always `ok' (the actual return value may be sent by a
+%% message if a correlation ID was specified). If a `Batch' is passed: a
+%% updated batch with the command appended.
 %%
 %% @see put/4.
 %% @see create/4.
@@ -693,12 +762,19 @@ compare_and_swap(PathPattern, DataPattern, Data) ->
     StoreId = khepri_cluster:get_default_store_id(),
     compare_and_swap(StoreId, PathPattern, DataPattern, Data).
 
--spec compare_and_swap(StoreId, PathPattern, DataPattern, Data) -> Ret when
+-spec compare_and_swap
+(StoreId, PathPattern, DataPattern, Data) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret();
+(Batch, PathPattern, DataPattern, Data) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      DataPattern :: ets:match_pattern(),
+      Data :: khepri_payload:payload() | khepri:data() | fun(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Updates an existing tree node with the given payload only if its data
 %% matches the given pattern.
 %%
@@ -710,8 +786,8 @@ compare_and_swap(PathPattern, DataPattern, Data) ->
 compare_and_swap(StoreId, PathPattern, DataPattern, Data) ->
     compare_and_swap(StoreId, PathPattern, DataPattern, Data, #{}).
 
--spec compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) ->
-    Ret when
+-spec compare_and_swap
+(StoreId, PathPattern, DataPattern, Data, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       DataPattern :: ets:match_pattern(),
@@ -719,7 +795,16 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data) ->
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret();
+(Batch, PathPattern, DataPattern, Data, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      DataPattern :: ets:match_pattern(),
+      Data :: khepri_payload:payload() | khepri:data() | fun(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Updates an existing tree node with the given payload only if its data
 %% matches the given pattern.
 %%
@@ -731,16 +816,18 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data) ->
 %% `#if_data_matches{pattern = DataPattern}' condition on its last component.
 %%
 %% @param StoreId the name of the Khepri store.
+%% @param Batch the batch where the command is appended.
 %% @param PathPattern the path (or path pattern) to the tree node to modify.
 %% @param Data the Erlang term or function to store, or a {@link
 %%        khepri_payload:payload()} structure.
 %% @param Extra extra options such as `keep_while' conditions.
 %% @param Options command options.
 %%
-%% @returns in the case of a synchronous call, an `{ok, NodePropsMap}' tuple
-%% or an `{error, Reason}' tuple; in the case of an asynchronous call, always
-%% `ok' (the actual return value may be sent by a message if a correlation ID
-%% was specified).
+%% @returns if a `StoreId' is passed: in the case of a synchronous call, an
+%% `{ok, NodePropsMap}' tuple or an `{error, Reason}' tuple; in the case of an
+%% asynchronous call, always `ok' (the actual return value may be sent by a
+%% message if a correlation ID was specified). If a `Batch' is passed: a
+%% updated batch with the command appended.
 %%
 %% @see put/4.
 %% @see khepri:compare_and_swap/5.
@@ -756,14 +843,23 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) ->
 %% do_put().
 %% -------------------------------------------------------------------
 
--spec do_put(StoreId, PathPattern, Payload, Options) -> Ret when
+-spec do_put
+(StoreId, PathPattern, Payload, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Payload :: khepri_payload:payload() | khepri:data() | fun(),
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret();
+(Batch, PathPattern, Payload, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Payload :: khepri_payload:payload() | khepri:data() | fun(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Prepares the payload and calls {@link khepri_machine:put/4}.
 %%
 %% @private
@@ -800,7 +896,11 @@ delete(PathPattern) ->
 (PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret();
+(Batch, PathPattern) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Deletes the tree node pointed to by the given path pattern.
 %%
 %% This function accepts the following two forms:
@@ -814,17 +914,23 @@ delete(PathPattern) ->
 %%
 %% @see delete/3.
 
-delete(StoreId, PathPattern) when ?IS_KHEPRI_STORE_ID(StoreId) ->
+delete(StoreId, PathPattern) when ?IS_KHEPRI_PATH_PATTERN(PathPattern) ->
     delete(StoreId, PathPattern, #{});
-delete(PathPattern, Options) when is_map(Options) ->
+delete(PathPattern, Options) when ?IS_KHEPRI_PATH_PATTERN(PathPattern) ->
     StoreId = khepri_cluster:get_default_store_id(),
     delete(StoreId, PathPattern, Options).
 
--spec delete(StoreId, PathPattern, Options) -> Ret when
+-spec delete
+(StoreId, PathPattern, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret();
+(Batch, PathPattern, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Options :: khepri:command_options() | khepri:tree_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Deletes the tree node pointed to by the given path pattern.
 %%
 %% The `PathPattern' can be provided as a native path pattern (a list of tree
@@ -860,13 +966,15 @@ delete(PathPattern, Options) when is_map(Options) ->
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.
+%% @param Batch the batch where the command is appended.
 %% @param PathPattern the path (or path pattern) to the nodes to delete.
 %% @param Options command options such as the command type.
 %%
-%% @returns in the case of a synchronous call, an `{ok, NodePropsMap}' tuple
-%% or an `{error, Reason}' tuple; in the case of an asynchronous call, always
-%% `ok' (the actual return value may be sent by a message if a correlation ID
-%% was specified).
+%% @returns if a `StoreId' is passed: in the case of a synchronous call, an
+%% `{ok, NodePropsMap}' tuple or an `{error, Reason}' tuple; in the case of an
+%% asynchronous call, always `ok' (the actual return value may be sent by a
+%% message if a correlation ID was specified). If a `Batch' is passed: a
+%% updated batch with the command appended.
 %%
 %% @see delete_many/3.
 %% @see khepri:delete/3.
@@ -925,11 +1033,17 @@ delete_many(PathPattern, Options) when is_map(Options) ->
     StoreId = khepri_cluster:get_default_store_id(),
     delete_many(StoreId, PathPattern, Options).
 
--spec delete_many(StoreId, PathPattern, Options) -> Ret when
+-spec delete_many
+(StoreId, PathPattern, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret();
+(Batch, PathPattern, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Options :: khepri:command_options() | khepri:tree_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Deletes all tree nodes matching the given path pattern.
 %%
 %% The `PathPattern' can be provided as a native path pattern (a list of tree
@@ -961,13 +1075,15 @@ delete_many(PathPattern, Options) when is_map(Options) ->
 %% '''
 %%
 %% @param StoreId the name of the Khepri store.
+%% @param Batch the batch where the command is appended.
 %% @param PathPattern the path (or path pattern) to the nodes to delete.
 %% @param Options command options such as the command type.
 %%
-%% @returns in the case of a synchronous call, an `{ok, NodePropsMap}' tuple
-%% or an `{error, Reason}' tuple; in the case of an asynchronous call, always
-%% `ok' (the actual return value may be sent by a message if a correlation ID
-%% was specified).
+%% @returns if a `StoreId' is passed: in the case of a synchronous call, an
+%% `{ok, NodePropsMap}' tuple or an `{error, Reason}' tuple; in the case of an
+%% asynchronous call, always `ok' (the actual return value may be sent by a
+%% message if a correlation ID was specified). If a `Batch' is passed: a
+%% updated batch with the command appended.
 %%
 %% @see delete/3.
 %% @see khepri:delete/3.
@@ -996,10 +1112,15 @@ clear_payload(PathPattern) ->
     StoreId = khepri_cluster:get_default_store_id(),
     clear_payload(StoreId, PathPattern).
 
--spec clear_payload(StoreId, PathPattern) -> Ret when
+-spec clear_payload
+(StoreId, PathPattern) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret();
+(Batch, PathPattern) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -1011,13 +1132,21 @@ clear_payload(PathPattern) ->
 clear_payload(StoreId, PathPattern) ->
     clear_payload(StoreId, PathPattern, #{}).
 
--spec clear_payload(StoreId, PathPattern, Options) -> Ret when
+-spec clear_payload
+(StoreId, PathPattern, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret();
+(Batch, PathPattern, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Deletes the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -1025,14 +1154,16 @@ clear_payload(StoreId, PathPattern) ->
 %% Otherwise, the behavior is that of {@link update/4}.
 %%
 %% @param StoreId the name of the Khepri store.
+%% @param Batch the batch where the command is appended.
 %% @param PathPattern the path (or path pattern) to the tree node to modify.
 %% @param Extra extra options such as `keep_while' conditions.
 %% @param Options command options.
 %%
-%% @returns in the case of a synchronous call, an `{ok, NodePropsMap}' tuple
-%% or an `{error, Reason}' tuple; in the case of an asynchronous call, always
-%% `ok' (the actual return value may be sent by a message if a correlation ID
-%% was specified).
+%% @returns if a `StoreId' is passed: in the case of a synchronous call, an
+%% `{ok, NodePropsMap}' tuple or an `{error, Reason}' tuple; in the case of an
+%% asynchronous call, always `ok' (the actual return value may be sent by a
+%% message if a correlation ID was specified). If a `Batch' is passed: a
+%% updated batch with the command appended.
 %%
 %% @see update/4.
 %% @see khepri:clear_payload/3.
@@ -1064,10 +1195,15 @@ clear_many_payloads(PathPattern) ->
     StoreId = khepri_cluster:get_default_store_id(),
     clear_many_payloads(StoreId, PathPattern).
 
--spec clear_many_payloads(StoreId, PathPattern) -> Ret when
+-spec clear_many_payloads
+(StoreId, PathPattern) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret();
+(Batch, PathPattern) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Deletes the payload of all tree nodes matching the given path pattern.
 %%
 %% Calling this function is the same as calling `clear_many_payloads(StoreId,
@@ -1078,28 +1214,37 @@ clear_many_payloads(PathPattern) ->
 clear_many_payloads(StoreId, PathPattern) ->
     clear_many_payloads(StoreId, PathPattern, #{}).
 
--spec clear_many_payloads(StoreId, PathPattern, Options) ->
-    Ret when
+-spec clear_many_payloads
+(StoreId, PathPattern, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret();
+(Batch, PathPattern, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Deletes the payload of all tree nodes matching the given path pattern.
 %%
 %% In other words, the payload is set to {@link khepri_payload:no_payload()}.
 %% Otherwise, the behavior is that of {@link put/4}.
 %%
 %% @param StoreId the name of the Khepri store.
+%% @param Batch the batch where the command is appended.
 %% @param PathPattern the path (or path pattern) to the tree nodes to modify.
 %% @param Extra extra options such as `keep_while' conditions.
 %% @param Options command options.
 %%
-%% @returns in the case of a synchronous call, an `{ok, NodePropsMap}' tuple
-%% or an `{error, Reason}' tuple; in the case of an asynchronous call, always
-%% `ok' (the actual return value may be sent by a message if a correlation ID
-%% was specified).
+%% @returns if a `StoreId' is passed: in the case of a synchronous call, an
+%% `{ok, NodePropsMap}' tuple or an `{error, Reason}' tuple; in the case of an
+%% asynchronous call, always `ok' (the actual return value may be sent by a
+%% message if a correlation ID was specified). If a `Batch' is passed: a
+%% updated batch with the command appended.
 %%
 %% @see delete_many/3.
 %% @see put/4.
@@ -1223,7 +1368,13 @@ transaction(FunOrPath) ->
       ReadWriteOrOptions :: ReadWrite | Options,
       ReadWrite :: ro | rw | auto,
       Options :: khepri:command_options() | khepri:query_options(),
-      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
+(Batch, FunOrPath) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Runs a transaction and returns its result.
 %%
 %% This function accepts the following two forms:
@@ -1252,7 +1403,7 @@ transaction(FunOrPath, ReadWriteOrOptions)
     StoreId = khepri_cluster:get_default_store_id(),
     transaction(StoreId, FunOrPath, ReadWriteOrOptions);
 transaction(StoreId, FunOrPath)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        (is_function(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) ->
     transaction(StoreId, FunOrPath, []).
@@ -1289,7 +1440,23 @@ transaction(StoreId, FunOrPath)
       PathPattern :: khepri_path:pattern(),
       ReadWrite :: ro | rw | auto,
       Options :: khepri:command_options() | khepri:query_options(),
-      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
+(Batch, FunOrPath, Args) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: list(),
+      NewBatch :: khepri_batch:batch();
+(Batch, FunOrPath, ReadWriteOrOptions) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      ReadWriteOrOptions :: ReadWrite | Options,
+      ReadWrite :: ro | rw | auto,
+      Options :: khepri:command_options() | khepri:query_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Runs a transaction and returns its result.
 %%
 %% This function accepts the following two forms:
@@ -1307,13 +1474,13 @@ transaction(StoreId, FunOrPath)
 %% @see transaction/4.
 
 transaction(StoreId, FunOrPath, Args)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        (is_function(FunOrPath) orelse
-        ?IS_KHEPRI_PATH_PATTERN(FunOrPath))
-       andalso is_list(Args) ->
+        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
+       is_list(Args) ->
     transaction(StoreId, FunOrPath, Args, auto);
 transaction(StoreId, FunOrPath, ReadWriteOrOptions)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        (is_function(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        (is_atom(ReadWriteOrOptions) orelse is_map(ReadWriteOrOptions)) ->
@@ -1364,7 +1531,31 @@ transaction(FunOrPath, ReadWrite, Options)
       Args :: list(),
       ReadWrite :: ro | rw | auto,
       Options :: khepri:command_options() | khepri:query_options(),
-      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
+(Batch, FunOrPath, Args, ReadWrite) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: list(),
+      ReadWrite :: ro | rw | auto,
+      NewBatch :: khepri_batch:batch();
+(Batch, FunOrPath, Args, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: list(),
+      Options :: khepri:command_options() | khepri:query_options(),
+      NewBatch :: khepri_batch:batch();
+(Batch, FunOrPath, ReadWrite, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      ReadWrite :: ro | rw | auto,
+      Options :: khepri:command_options() | khepri:query_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Runs a transaction and returns its result.
 %%
 %% This function accepts the following three forms:
@@ -1383,19 +1574,19 @@ transaction(FunOrPath, ReadWrite, Options)
 %% @see transaction/5.
 
 transaction(StoreId, FunOrPath, Args, ReadWrite)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        (is_function(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        is_list(Args) andalso is_atom(ReadWrite) ->
     transaction(StoreId, FunOrPath, Args, ReadWrite, #{});
 transaction(StoreId, FunOrPath, Args, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        (is_function(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        is_list(Args) andalso is_map(Options) ->
     transaction(StoreId, FunOrPath, Args, auto, Options);
 transaction(StoreId, FunOrPath, ReadWrite, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        (is_function(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        is_atom(ReadWrite) andalso is_map(Options) ->
@@ -1408,7 +1599,8 @@ transaction(FunOrPath, Args, ReadWrite, Options)
     StoreId = khepri_cluster:get_default_store_id(),
     transaction(StoreId, FunOrPath, Args, ReadWrite, Options).
 
--spec transaction(StoreId, FunOrPath, Args, ReadWrite, Options) -> Ret when
+-spec transaction
+(StoreId, FunOrPath, Args, ReadWrite, Options) -> Ret when
       StoreId :: khepri:store_id(),
       FunOrPath :: Fun | PathPattern,
       Fun :: khepri_tx:tx_fun(),
@@ -1416,7 +1608,16 @@ transaction(FunOrPath, Args, ReadWrite, Options)
       Args :: list(),
       ReadWrite :: ro | rw | auto,
       Options :: khepri:command_options() | khepri:query_options(),
-      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
+(Batch, FunOrPath, Args, ReadWrite, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: list(),
+      ReadWrite :: ro | rw | auto,
+      Options :: khepri:command_options() | khepri:query_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Runs a transaction and returns its result.
 %%
 %% `Fun' is an arbitrary anonymous function which takes the content of `Args'
@@ -1460,17 +1661,19 @@ transaction(FunOrPath, Args, ReadWrite, Options)
 %% specified.
 %%
 %% @param StoreId the name of the Khepri store.
+%% @param Batch the batch where the command is appended.
 %% @param FunOrPath an arbitrary anonymous function or a path pattern pointing
 %%        to a stored procedure.
 %% @param Args a list of arguments to pass to `FunOrPath'.
 %% @param ReadWrite the read/write or read-only nature of the transaction.
 %% @param Options command options such as the command type.
 %%
-%% @returns in the case of a synchronous transaction, `{ok, Result}' where
-%% `Result' is the return value of `FunOrPath', or `{error, Reason}' if the
-%% anonymous function was aborted; in the case of an asynchronous transaction,
-%% always `ok' (the actual return value may be sent by a message if a
-%% correlation ID was specified).
+%% @returns if a `StoreId' is passed: in the case of a synchronous transaction,
+%% `{ok, Result}' where `Result' is the return value of `FunOrPath', or
+%% `{error, Reason}' if the anonymous function was aborted; in the case of an
+%% asynchronous transaction, always `ok' (the actual return value may be sent
+%% by a message if a correlation ID was specified). If a `Batch' is passed: a
+%% updated batch with the command appended.
 
 transaction(StoreId, FunOrPath, Args, ReadWrite, Options) ->
     khepri_machine:transaction(StoreId, FunOrPath, Args, ReadWrite, Options).
