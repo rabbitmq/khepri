@@ -532,8 +532,10 @@ to_ets_options(Key, Value, _Acc) ->
 name(#khepri_projection{name = Name}) ->
     Name.
 
--spec check_compatibility_with_store(StoreId, Projection, Timeout) -> Ret when
+-spec check_compatibility_with_store(StoreId | Batch, Projection, Timeout) ->
+    Ret when
       StoreId :: khepri:store_id(),
+      Batch :: khepri_batch:batch(),
       Projection :: khepri_projection:projection(),
       Timeout :: timeout(),
       Ret :: ok | {error, any()}.
@@ -545,11 +547,25 @@ check_compatibility_with_store(StoreId, Projection, Timeout) ->
     case is_single_table_projection(Projection) of
         true ->
             ok;
-        false ->
+        false when ?IS_KHEPRI_STORE_ID(StoreId) ->
             %% Ensure the Khepri cluster runs a new enough version to support
             %% multi-table projections.
             khepri_machine:wait_for_effective_behaviour(
-              StoreId, multi_table_projections, Timeout)
+              StoreId, multi_table_projections, Timeout);
+        false ->
+            ?assert(khepri_batch:is_batch(StoreId)),
+            IsCompatible = khepri_machine:does_api_comply_with(
+                             multi_table_projections, StoreId),
+            case IsCompatible of
+                true ->
+                    ok;
+                false ->
+                    Reason = (
+                      ?khepri_error(
+                         batch_incompatible_with_multi_table_projections,
+                         #{batch => StoreId})),
+                    {error, Reason}
+            end
     end.
 
 -spec init(Projection) -> Ret when

@@ -26,6 +26,7 @@
 -module(khepri_adv).
 
 -include("include/khepri.hrl").
+-include("src/khepri_batch.hrl").
 -include("src/khepri_cluster.hrl").
 -include("src/khepri_error.hrl").
 -include("src/khepri_ret.hrl").
@@ -275,12 +276,18 @@ put(PathPattern, Data) ->
     StoreId = khepri_cluster:get_default_store_id(),
     put(StoreId, PathPattern, Data).
 
--spec put(StoreId, PathPattern, Data) -> Ret when
+-spec put
+(StoreId, PathPattern, Data) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Ret :: khepri:minimal_ret() |
-             khepri_machine:write_ret().
+             khepri_machine:write_ret();
+(Batch, PathPattern, Data) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Data :: khepri_payload:payload() | khepri:data() | fun(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Sets the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -292,7 +299,8 @@ put(PathPattern, Data) ->
 put(StoreId, PathPattern, Data) ->
     put(StoreId, PathPattern, Data, #{}).
 
--spec put(StoreId, PathPattern, Data, Options) -> Ret when
+-spec put
+(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
@@ -301,7 +309,15 @@ put(StoreId, PathPattern, Data) ->
                  khepri:put_options(),
       Ret :: khepri:minimal_ret() |
              khepri_machine:write_ret() |
-             khepri_machine:async_ret().
+             khepri_machine:async_ret();
+(Batch, PathPattern, Data, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Data :: khepri_payload:payload() | khepri:data() | fun(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Sets the payload of the tree node pointed to by the given path
 %% pattern.
 %%
@@ -428,14 +444,23 @@ put_many(PathPattern, Data) ->
 put_many(StoreId, PathPattern, Data) ->
     put_many(StoreId, PathPattern, Data, #{}).
 
--spec put_many(StoreId, PathPattern, Data, Options) -> Ret when
+-spec put_many
+(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret();
+(Batch, PathPattern, Data, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Data :: khepri_payload:payload() | khepri:data() | fun(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Sets the payload of all the tree nodes matching the given path pattern.
 %%
 %% The `PathPattern' can be provided as a native path pattern (a list of tree
@@ -540,11 +565,17 @@ create(PathPattern, Data) ->
     StoreId = khepri_cluster:get_default_store_id(),
     create(StoreId, PathPattern, Data).
 
--spec create(StoreId, PathPattern, Data) -> Ret when
+-spec create
+(StoreId, PathPattern, Data) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret();
+(Batch, PathPattern, Data) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Data :: khepri_payload:payload() | khepri:data() | fun(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Creates a tree node with the given payload.
 %%
 %% Calling this function is the same as calling `create(StoreId, PathPattern,
@@ -555,14 +586,23 @@ create(PathPattern, Data) ->
 create(StoreId, PathPattern, Data) ->
     create(StoreId, PathPattern, Data, #{}).
 
--spec create(StoreId, PathPattern, Data, Options) -> Ret when
+-spec create
+(StoreId, PathPattern, Data, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Data :: khepri_payload:payload() | khepri:data() | fun(),
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret();
+(Batch, PathPattern, Data, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Data :: khepri_payload:payload() | khepri:data() | fun(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Creates a tree node with the given payload.
 %%
 %% The behavior is the same as {@link put/4} except that if the tree node
@@ -756,14 +796,23 @@ compare_and_swap(StoreId, PathPattern, DataPattern, Data, Options) ->
 %% do_put().
 %% -------------------------------------------------------------------
 
--spec do_put(StoreId, PathPattern, Payload, Options) -> Ret when
+-spec do_put
+(StoreId, PathPattern, Payload, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Payload :: khepri_payload:payload() | khepri:data() | fun(),
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret();
+(Batch, PathPattern, Payload, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Payload :: khepri_payload:payload() | khepri:data() | fun(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Prepares the payload and calls {@link khepri_machine:put/4}.
 %%
 %% @private
@@ -800,7 +849,11 @@ delete(PathPattern) ->
 (PathPattern, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_machine:write_ret().
+      Ret :: khepri_machine:write_ret();
+(Batch, PathPattern) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Deletes the tree node pointed to by the given path pattern.
 %%
 %% This function accepts the following two forms:
@@ -814,17 +867,23 @@ delete(PathPattern) ->
 %%
 %% @see delete/3.
 
-delete(StoreId, PathPattern) when ?IS_KHEPRI_STORE_ID(StoreId) ->
+delete(StoreId, PathPattern) when ?IS_KHEPRI_PATH_PATTERN(PathPattern) ->
     delete(StoreId, PathPattern, #{});
-delete(PathPattern, Options) when is_map(Options) ->
+delete(PathPattern, Options) when ?IS_KHEPRI_PATH_PATTERN(PathPattern) ->
     StoreId = khepri_cluster:get_default_store_id(),
     delete(StoreId, PathPattern, Options).
 
--spec delete(StoreId, PathPattern, Options) -> Ret when
+-spec delete
+(StoreId, PathPattern, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret();
+(Batch, PathPattern, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Options :: khepri:command_options() | khepri:tree_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Deletes the tree node pointed to by the given path pattern.
 %%
 %% The `PathPattern' can be provided as a native path pattern (a list of tree
@@ -1223,7 +1282,13 @@ transaction(FunOrPath) ->
       ReadWriteOrOptions :: ReadWrite | Options,
       ReadWrite :: ro | rw | auto,
       Options :: khepri:command_options() | khepri:query_options(),
-      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
+(Batch, FunOrPath) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Runs a transaction and returns its result.
 %%
 %% This function accepts the following two forms:
@@ -1252,7 +1317,7 @@ transaction(FunOrPath, ReadWriteOrOptions)
     StoreId = khepri_cluster:get_default_store_id(),
     transaction(StoreId, FunOrPath, ReadWriteOrOptions);
 transaction(StoreId, FunOrPath)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        (is_function(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) ->
     transaction(StoreId, FunOrPath, []).
@@ -1289,7 +1354,23 @@ transaction(StoreId, FunOrPath)
       PathPattern :: khepri_path:pattern(),
       ReadWrite :: ro | rw | auto,
       Options :: khepri:command_options() | khepri:query_options(),
-      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
+(Batch, FunOrPath, Args) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: list(),
+      NewBatch :: khepri_batch:batch();
+(Batch, FunOrPath, ReadWriteOrOptions) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      ReadWriteOrOptions :: ReadWrite | Options,
+      ReadWrite :: ro | rw | auto,
+      Options :: khepri:command_options() | khepri:query_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Runs a transaction and returns its result.
 %%
 %% This function accepts the following two forms:
@@ -1307,13 +1388,13 @@ transaction(StoreId, FunOrPath)
 %% @see transaction/4.
 
 transaction(StoreId, FunOrPath, Args)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        (is_function(FunOrPath) orelse
-        ?IS_KHEPRI_PATH_PATTERN(FunOrPath))
-       andalso is_list(Args) ->
+        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
+       is_list(Args) ->
     transaction(StoreId, FunOrPath, Args, auto);
 transaction(StoreId, FunOrPath, ReadWriteOrOptions)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        (is_function(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        (is_atom(ReadWriteOrOptions) orelse is_map(ReadWriteOrOptions)) ->
@@ -1364,7 +1445,31 @@ transaction(FunOrPath, ReadWrite, Options)
       Args :: list(),
       ReadWrite :: ro | rw | auto,
       Options :: khepri:command_options() | khepri:query_options(),
-      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
+(Batch, FunOrPath, Args, ReadWrite) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: list(),
+      ReadWrite :: ro | rw | auto,
+      NewBatch :: khepri_batch:batch();
+(Batch, FunOrPath, Args, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: list(),
+      Options :: khepri:command_options() | khepri:query_options(),
+      NewBatch :: khepri_batch:batch();
+(Batch, FunOrPath, ReadWrite, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      ReadWrite :: ro | rw | auto,
+      Options :: khepri:command_options() | khepri:query_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Runs a transaction and returns its result.
 %%
 %% This function accepts the following three forms:
@@ -1383,19 +1488,19 @@ transaction(FunOrPath, ReadWrite, Options)
 %% @see transaction/5.
 
 transaction(StoreId, FunOrPath, Args, ReadWrite)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        (is_function(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        is_list(Args) andalso is_atom(ReadWrite) ->
     transaction(StoreId, FunOrPath, Args, ReadWrite, #{});
 transaction(StoreId, FunOrPath, Args, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        (is_function(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        is_list(Args) andalso is_map(Options) ->
     transaction(StoreId, FunOrPath, Args, auto, Options);
 transaction(StoreId, FunOrPath, ReadWrite, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        (is_function(FunOrPath) orelse
         ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
        is_atom(ReadWrite) andalso is_map(Options) ->
@@ -1408,7 +1513,8 @@ transaction(FunOrPath, Args, ReadWrite, Options)
     StoreId = khepri_cluster:get_default_store_id(),
     transaction(StoreId, FunOrPath, Args, ReadWrite, Options).
 
--spec transaction(StoreId, FunOrPath, Args, ReadWrite, Options) -> Ret when
+-spec transaction
+(StoreId, FunOrPath, Args, ReadWrite, Options) -> Ret when
       StoreId :: khepri:store_id(),
       FunOrPath :: Fun | PathPattern,
       Fun :: khepri_tx:tx_fun(),
@@ -1416,7 +1522,16 @@ transaction(FunOrPath, Args, ReadWrite, Options)
       Args :: list(),
       ReadWrite :: ro | rw | auto,
       Options :: khepri:command_options() | khepri:query_options(),
-      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
+(Batch, FunOrPath, Args, ReadWrite, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: list(),
+      ReadWrite :: ro | rw | auto,
+      Options :: khepri:command_options() | khepri:query_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Runs a transaction and returns its result.
 %%
 %% `Fun' is an arbitrary anonymous function which takes the content of `Args'

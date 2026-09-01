@@ -112,6 +112,7 @@
 -include_lib("horus/include/horus.hrl").
 
 -include("include/khepri.hrl").
+-include("src/khepri_batch.hrl").
 -include("src/khepri_cluster.hrl").
 -include("src/khepri_error.hrl").
 -include("src/khepri_evf.hrl").
@@ -485,14 +486,23 @@ fence(StoreId, Timeout) ->
         Other when Other =/= false       -> Other
     end.
 
--spec put(StoreId, PathPattern, Payload, Options) -> Ret when
+-spec put
+(StoreId, PathPattern, Payload, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Payload :: khepri_payload:payload(),
       Options :: khepri:command_options() |
                  khepri:tree_options() |
                  khepri:put_options(),
-      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret();
+(Batch, PathPattern, Payload, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Payload :: khepri_payload:payload(),
+      Options :: khepri:command_options() |
+                 khepri:tree_options() |
+                 khepri:put_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Creates or modifies a specific tree node in the tree structure.
 %%
 %% @param StoreId the name of the Ra cluster.
@@ -509,7 +519,8 @@ fence(StoreId, Timeout) ->
 %% @private
 
 put(StoreId, PathPattern, Payload, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso ?IS_KHEPRI_PAYLOAD(Payload) ->
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
+       ?IS_KHEPRI_PAYLOAD(Payload) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     Payload1 = khepri_payload:prepare(Payload),
@@ -552,11 +563,17 @@ put(_StoreId, PathPattern, Payload, _Options) ->
     ?khepri_misuse(invalid_payload, #{path => PathPattern,
                                       payload => Payload}).
 
--spec delete(StoreId, PathPattern, Options) -> Ret when
+-spec delete
+(StoreId, PathPattern, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:command_options() | khepri:tree_options(),
-      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:write_ret() | khepri_machine:async_ret();
+(Batch, PathPattern, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Options :: khepri:command_options() | khepri:tree_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Deletes all tree nodes matching the path pattern.
 %%
 %% @param StoreId the name of the Ra cluster.
@@ -568,7 +585,8 @@ put(_StoreId, PathPattern, Payload, _Options) ->
 %% in the case of an asynchronous put, always `ok' (the actual return value
 %% may be sent by a message if a correlation ID was specified).
 
-delete(StoreId, PathPattern, Options) when ?IS_KHEPRI_STORE_ID(StoreId) ->
+delete(StoreId, PathPattern, Options)
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) ->
     PathPattern1 = khepri_path:from_string(PathPattern),
     khepri_path:ensure_is_valid(PathPattern1),
     {CommandOptions, TreeOptions} = split_command_options(StoreId, Options),
@@ -584,7 +602,8 @@ delete(StoreId, PathPattern, Options) when ?IS_KHEPRI_STORE_ID(StoreId) ->
               end,
     process_command(StoreId, Command, CommandOptions).
 
--spec transaction(StoreId, FunOrPath, Args, ReadWrite, Options) -> Ret when
+-spec transaction
+(StoreId, FunOrPath, Args, ReadWrite, Options) -> Ret when
       StoreId :: khepri:store_id(),
       FunOrPath :: Fun | PathPattern,
       Fun :: khepri_tx:tx_fun(),
@@ -592,7 +611,16 @@ delete(StoreId, PathPattern, Options) when ?IS_KHEPRI_STORE_ID(StoreId) ->
       Args :: list(),
       ReadWrite :: ro | rw | auto,
       Options :: khepri:command_options() | khepri:query_options(),
-      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
+(Batch, FunOrPath, Args, ReadWrite, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: list(),
+      ReadWrite :: ro | rw | auto,
+      Options :: khepri:command_options() | khepri:query_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Runs a transaction and returns the result.
 %%
 %% @param StoreId the name of the Ra cluster.
@@ -608,8 +636,17 @@ delete(StoreId, PathPattern, Options) when ?IS_KHEPRI_STORE_ID(StoreId) ->
 %% always `ok' (the actual return value may be sent by a message if a
 %% correlation ID was specified).
 
-transaction(StoreId, Fun, Args, auto = ReadWrite, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+transaction(StoreId, Fun, Args, ReadWrite, Options) ->
+    case ?IS_KHEPRI_STORE_ID(StoreId) of
+        true ->
+            transaction1(StoreId, Fun, Args, ReadWrite, Options);
+        false ->
+            ?assert(khepri_batch:is_batch(StoreId)),
+            transaction1(StoreId, Fun, Args, rw, Options)
+    end.
+
+transaction1(StoreId, Fun, Args, auto = ReadWrite, Options)
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        is_list(Args) andalso
        is_function(Fun, length(Args)) andalso
        is_map(Options) ->
@@ -624,8 +661,8 @@ transaction(StoreId, Fun, Args, auto = ReadWrite, Options)
             {QueryOptions, _} = split_query_options(StoreId, Options1),
             readonly_transaction(StoreId, Fun, Args, QueryOptions)
     end;
-transaction(StoreId, PathPattern, Args, auto, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+transaction1(StoreId, PathPattern, Args, auto, Options)
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        ?IS_KHEPRI_PATH_PATTERN(PathPattern) andalso
        is_list(Args) andalso
        is_map(Options) ->
@@ -634,8 +671,8 @@ transaction(StoreId, PathPattern, Args, auto, Options)
     Options1 = remove_query_options(Options),
     {CommandOptions, _} = split_command_options(StoreId, Options1),
     readwrite_transaction(StoreId, PathPattern1, Args, CommandOptions);
-transaction(StoreId, Fun, Args, rw = ReadWrite, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+transaction1(StoreId, Fun, Args, rw = ReadWrite, Options)
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        is_list(Args) andalso
        is_function(Fun, length(Args)) andalso
        is_map(Options) ->
@@ -643,8 +680,8 @@ transaction(StoreId, Fun, Args, rw = ReadWrite, Options)
     Options1 = remove_query_options(Options),
     {CommandOptions, _} = split_command_options(StoreId, Options1),
     readwrite_transaction(StoreId, StandaloneFun, Args, CommandOptions);
-transaction(StoreId, PathPattern, Args, rw, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+transaction1(StoreId, PathPattern, Args, rw, Options)
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        ?IS_KHEPRI_PATH_PATTERN(PathPattern) andalso
        is_list(Args) andalso
        is_map(Options) ->
@@ -653,16 +690,16 @@ transaction(StoreId, PathPattern, Args, rw, Options)
     Options1 = remove_query_options(Options),
     {CommandOptions, _} = split_command_options(StoreId, Options1),
     readwrite_transaction(StoreId, PathPattern1, Args, CommandOptions);
-transaction(StoreId, Fun, Args, ro, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+transaction1(StoreId, Fun, Args, ro, Options)
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        is_list(Args) andalso
        is_function(Fun, length(Args)) andalso
        is_map(Options) ->
     Options1 = remove_command_options(Options),
     {QueryOptions, _} = split_query_options(StoreId, Options1),
     readonly_transaction(StoreId, Fun, Args, QueryOptions);
-transaction(StoreId, PathPattern, Args, ro, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+transaction1(StoreId, PathPattern, Args, ro, Options)
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        ?IS_KHEPRI_PATH_PATTERN(PathPattern) andalso
        is_list(Args) andalso
        is_map(Options) ->
@@ -671,8 +708,8 @@ transaction(StoreId, PathPattern, Args, ro, Options)
     Options1 = remove_command_options(Options),
     {QueryOptions, _} = split_query_options(StoreId, Options1),
     readonly_transaction(StoreId, PathPattern1, Args, QueryOptions);
-transaction(StoreId, Fun, Args, ReadWrite, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+transaction1(StoreId, Fun, Args, ReadWrite, Options)
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        is_function(Fun) andalso
        is_list(Args) andalso
        is_atom(ReadWrite) andalso
@@ -728,14 +765,23 @@ readonly_transaction(StoreId, PathPattern, Args, Options)
             {ok, Ret}
     end.
 
--spec readwrite_transaction(StoreId, FunOrPath, Args, Options) -> Ret when
+-spec readwrite_transaction
+(StoreId, FunOrPath, Args, Options) -> Ret when
       StoreId :: khepri:store_id(),
       FunOrPath :: Fun | PathPattern,
       Fun :: horus:horus_fun(),
       PathPattern :: khepri_path:pattern(),
       Args :: list(),
       Options :: khepri:command_options(),
-      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
+(Batch, FunOrPath, Args, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: horus:horus_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: list(),
+      Options :: khepri:command_options(),
+      NewBatch :: khepri_batch:batch().
 
 readwrite_transaction(
   StoreId, Fun, Args, Options)
@@ -769,8 +815,11 @@ readwrite_transaction1(StoreId, StandaloneFunOrPath, Args, Options) ->
                 sync          -> {ok, Ret};
                 {async, _, _} -> Ret
             end;
+        Ret when ?IS_KHEPRI_STORE_ID(StoreId) ->
+            {ok, Ret};
         Ret ->
-            {ok, Ret}
+            ?assert(khepri_batch:is_batch(StoreId)),
+            Ret
     end.
 
 handle_tx_exception(
@@ -793,9 +842,8 @@ handle_tx_exception(
   {exception, Class, Reason, Stacktrace}) ->
     erlang:raise(Class, Reason, Stacktrace).
 
--spec register_trigger(
-        StoreId, TriggerId, EventFilter, Action, Options) ->
-    Ret when
+-spec register_trigger
+(StoreId, TriggerId, EventFilter, Action, Options) -> Ret when
       StoreId :: khepri:store_id(),
       TriggerId :: khepri:trigger_id(),
       EventFilter :: khepri_evf:event_filter_or_compat(),
@@ -807,7 +855,20 @@ handle_tx_exception(
       MFA :: {module(), atom(), list()},
       Pid :: pid(),
       Options :: khepri:command_options() | khepri:trigger_options(),
-      Ret :: ok | khepri:error().
+      Ret :: ok | khepri:error();
+(Batch, TriggerId, EventFilter, Action, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      TriggerId :: khepri:trigger_id(),
+      EventFilter :: khepri_evf:event_filter_or_compat(),
+      Action :: StoredProcPath |
+                MFA |
+                Pid |
+                khepri_event_handler:trigger_action(),
+      StoredProcPath :: khepri_path:path(),
+      MFA :: {module(), atom(), list()},
+      Pid :: pid(),
+      Options :: khepri:command_options() | khepri:trigger_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Registers a trigger.
 %%
 %% @param StoreId the name of the Ra cluster.
@@ -822,8 +883,9 @@ handle_tx_exception(
 %% @returns `ok' if the trigger was registered, an `{error, Reason}' tuple
 %% otherwise.
 
-register_trigger(StoreId, TriggerId, EventFilter, Action, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) ->
+register_trigger(StoreId, TriggerId, EventFilter, Action, Options) ->
+    ?assert(?IS_KHEPRI_STORE_ID(StoreId) orelse
+            khepri_batch:is_batch(StoreId)),
     EventFilter1 = khepri_evf:wrap(EventFilter),
     Action1 = maybe_convert_to_action(StoreId, TriggerId, EventFilter, Action),
     {CommandOptions, NonCommandOptions} = split_command_options(
@@ -882,9 +944,11 @@ register_trigger_versioned(
     Command = #register_trigger_v{args = CommandArgs},
     process_command(StoreId, Command, CommandOptions).
 
--spec maybe_convert_to_action(StoreId, TriggerId, EventFilter, Action) ->
+-spec maybe_convert_to_action
+(StoreId | Batch, TriggerId, EventFilter, Action) ->
     NewAction when
       StoreId :: khepri:store_id(),
+      Batch :: khepri_batch:batch(),
       TriggerId :: khepri:trigger_id(),
       EventFilter :: khepri_evf:event_filter_or_compat(),
       Action :: StoredProcPath |
@@ -974,13 +1038,19 @@ maybe_convert_to_action(StoreId, TriggerId, EventFilter, Action) ->
             end
     end.
 
--spec register_projection(StoreId, PathPattern, Projection, Options) ->
-    Ret when
+-spec register_projection
+(StoreId, PathPattern, Projection, Options) -> Ret when
       StoreId :: khepri:store_id(),
       PathPattern :: khepri_path:pattern(),
       Projection :: khepri_projection:projection(),
       Options :: khepri:command_options(),
-      Ret :: ok | khepri:error().
+      Ret :: ok | khepri:error();
+(Batch, PathPattern, Projection, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      PathPattern :: khepri_path:pattern(),
+      Projection :: khepri_projection:projection(),
+      Options :: khepri:command_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Registers a projection.
 %%
 %% @param StoreId the name of the Ra cluster.
@@ -1028,11 +1098,17 @@ register_projection(
             Error
     end.
 
--spec unregister_projections(StoreId, Names, Options) -> Ret when
+-spec unregister_projections
+(StoreId, Names, Options) -> Ret when
       StoreId :: khepri:store_id(),
       Names :: all | [khepri_projection:name()],
       Options :: khepri:command_options(),
-      Ret :: khepri:ok(khepri_machine:projection_map()) | khepri:error().
+      Ret :: khepri:ok(khepri_machine:projection_map()) | khepri:error();
+(Batch, Names, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      Names :: all | [khepri_projection:name()],
+      Options :: khepri:command_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Removes the given projections from the store.
 %%
 %% `Names' may either be a list of projection names to remove or the atom
@@ -1049,7 +1125,7 @@ register_projection(
 %% projection was registered.
 
 unregister_projections(StoreId, Names, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+  when (?IS_KHEPRI_STORE_ID(StoreId) orelse ?IS_KHEPRI_BATCH(StoreId)) andalso
        (Names =:= all orelse is_list(Names)) andalso
        is_map(Options) ->
     Command = case does_api_comply_with(uniform_commands, StoreId) of
@@ -1213,9 +1289,10 @@ split_query_options(StoreId, Options) ->
               {Q, T1}
       end, {#{}, #{}}, Options1).
 
--spec split_command_options(StoreId, Options) ->
+-spec split_command_options(StoreId | Batch, Options) ->
     {CommandOptions, NonCommandOptions} when
       StoreId :: khepri:store_id(),
+      Batch :: khepri_batch:batch(),
       Options :: CommandOptions | NonCommandOptions,
       CommandOptions :: khepri:command_options(),
       NonCommandOptions :: khepri:tree_options() |
@@ -1336,11 +1413,17 @@ set_default_options(StoreId, Options) ->
     Options2 = Options1#{props_to_return => PropsToReturn1},
     Options2.
 
--spec process_command(StoreId, Command, Options) -> Ret when
+-spec process_command
+(StoreId, Command, Options) -> Ret when
       StoreId :: khepri:store_id(),
       Command :: command() | old_command(),
       Options :: khepri:command_options(),
-      Ret :: any().
+      Ret :: any();
+(Batch, Command, Options) -> NewBatch when
+      Batch :: khepri_batch:batch(),
+      Command :: command() | old_command(),
+      Options :: khepri:command_options(),
+      NewBatch :: khepri_batch:batch().
 %% @doc Processes a command which is appended to the Ra log and processed by
 %% this state machine code.
 %%
@@ -1359,7 +1442,14 @@ process_command(StoreId, Command, Options) ->
     {Command1, Options1} = maybe_set_reply_to(Command, Options),
     Command2 = compute_command_size(Command1),
     CommandType = select_command_type(Options1),
-    protect_command_against_dups(StoreId, Command2, Options1, CommandType).
+    maybe_add_to_batch(StoreId, Command2, Options1, CommandType).
+
+maybe_add_to_batch(StoreId, Command, Options, CommandType)
+  when ?IS_KHEPRI_STORE_ID(StoreId) ->
+    protect_command_against_dups(StoreId, Command, Options, CommandType);
+maybe_add_to_batch(Batch, Command, Options, sync) ->
+    Batch1 = khepri_batch:add(Batch, Command, Options),
+    Batch1.
 
 protect_command_against_dups(
   StoreId, Command,
@@ -3389,10 +3479,12 @@ api_behaviour_to_machine_version(Behaviour) when is_atom(Behaviour) ->
         _                      -> undefined
     end.
 
--spec does_api_comply_with(Behaviour, MacVer | StoreId) -> DoesUse when
+-spec does_api_comply_with(Behaviour, MacVer | StoreId | Batch) ->
+    DoesUse when
       Behaviour :: khepri_machine:api_behaviour(),
       MacVer :: ra_machine:version(),
       StoreId :: khepri:store_id(),
+      Batch :: khepri_batch:batch(),
       DoesUse :: boolean().
 %% @doc Indicates if a new behaviour of the transaction API is activated.
 %%
@@ -3412,12 +3504,14 @@ api_behaviour_to_machine_version(Behaviour) when is_atom(Behaviour) ->
 does_api_comply_with(Behaviour, MacVer) when is_integer(MacVer) ->
     RequiredVersion = api_behaviour_to_machine_version(Behaviour),
     is_integer(RequiredVersion) andalso MacVer >= RequiredVersion;
-does_api_comply_with(Behaviour, StoreId)
-  when ?IS_KHEPRI_STORE_ID(StoreId) ->
+does_api_comply_with(Behaviour, StoreId) when ?IS_KHEPRI_STORE_ID(StoreId) ->
     case effective_version(StoreId) of
         {ok, MacVer} -> does_api_comply_with(Behaviour, MacVer);
         _            -> false
-    end.
+    end;
+does_api_comply_with(Behaviour, Batch) when ?IS_KHEPRI_BATCH(Batch) ->
+    MacVer = khepri_batch:get_machine_version(Batch),
+    does_api_comply_with(Behaviour, MacVer).
 
 -spec wait_for_effective_machine_version(StoreId, MacVer, Timeout) -> Ret when
       StoreId :: khepri:store_id(),
