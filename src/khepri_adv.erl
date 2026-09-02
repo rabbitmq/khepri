@@ -46,7 +46,10 @@
          clear_many_payloads/3,
 
          unregister_projections/1, unregister_projections/2,
-         unregister_projections/3]).
+         unregister_projections/3,
+
+         transaction/1, transaction/2, transaction/3, transaction/4,
+         transaction/5]).
 
 %% -------------------------------------------------------------------
 %% get().
@@ -1180,3 +1183,294 @@ unregister_projections(StoreId, Names, Options)
        (Names =:= all orelse is_list(Names)) andalso
        is_map(Options) ->
     khepri_machine:unregister_projections(StoreId, Names, Options).
+
+%% -------------------------------------------------------------------
+%% transaction().
+%% -------------------------------------------------------------------
+
+-spec transaction(FunOrPath) -> Ret when
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Ret :: khepri_machine:tx_ret().
+%% @doc Runs a transaction and returns its result.
+%%
+%% Calling this function is the same as calling `transaction(FunOrPath, [])'
+%% with the default store ID.
+%%
+%% @see transaction/2.
+
+transaction(FunOrPath) ->
+    transaction(FunOrPath, []).
+
+-spec transaction
+(StoreId, FunOrPath) -> Ret when
+      StoreId :: khepri:store_id(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Ret :: khepri_machine:tx_ret();
+(FunOrPath, Args) -> Ret when
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: list(),
+      Ret :: khepri_machine:tx_ret();
+(FunOrPath, ReadWriteOrOptions) -> Ret when
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      ReadWriteOrOptions :: ReadWrite | Options,
+      ReadWrite :: ro | rw | auto,
+      Options :: khepri:command_options() | khepri:query_options(),
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
+%% @doc Runs a transaction and returns its result.
+%%
+%% This function accepts the following two forms:
+%% <ul>
+%% <li>`transaction(StoreId, FunOrPath)'. Calling it is the same as calling
+%% `transaction(StoreId, FunOrPath, [])'.</li>
+%% <li>`transaction(FunOrPath, Args)'. Calling it is the same as calling
+%% `transaction(StoreId, FunOrPath, Args)' with the default store ID.</li>
+%% <li>`transaction(FunOrPath, ReadWriteOrOptions)'. Calling it is the same as
+%% calling `transaction(StoreId, FunOrPath, [], ReadWriteOrOptions)' with the
+%% default store ID.</li>
+%% </ul>
+%%
+%% @see transaction/3.
+
+transaction(FunOrPath, Args)
+  when (is_function(FunOrPath) orelse
+        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
+       is_list(Args) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    transaction(StoreId, FunOrPath, Args);
+transaction(FunOrPath, ReadWriteOrOptions)
+  when (is_function(FunOrPath) orelse
+        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
+       (is_atom(ReadWriteOrOptions) orelse is_map(ReadWriteOrOptions)) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    transaction(StoreId, FunOrPath, ReadWriteOrOptions);
+transaction(StoreId, FunOrPath)
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+       (is_function(FunOrPath) orelse
+        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) ->
+    transaction(StoreId, FunOrPath, []).
+
+-spec transaction
+(StoreId, FunOrPath, Args) -> Ret when
+      StoreId :: khepri:store_id(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: list(),
+      Ret :: khepri_machine:tx_ret();
+(StoreId, FunOrPath, ReadWriteOrOptions) -> Ret when
+      StoreId :: khepri:store_id(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      ReadWriteOrOptions :: ReadWrite | Options,
+      ReadWrite :: ro | rw | auto,
+      Options :: khepri:command_options() | khepri:query_options(),
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
+(FunOrPath, Args, ReadWriteOrOptions) -> Ret when
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: list(),
+      ReadWriteOrOptions :: ReadWrite | Options,
+      ReadWrite :: ro | rw | auto,
+      Options :: khepri:command_options() | khepri:query_options(),
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
+(FunOrPath, ReadWrite, Options) -> Ret when
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      ReadWrite :: ro | rw | auto,
+      Options :: khepri:command_options() | khepri:query_options(),
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
+%% @doc Runs a transaction and returns its result.
+%%
+%% This function accepts the following two forms:
+%% <ul>
+%% <li>`transaction(StoreId, FunOrPath, Args)'. Calling it is the same as
+%% calling `transaction(StoreId, FunOrPath, Args, auto)'.</li>
+%% <li>`transaction(StoreId, FunOrPath, ReadWriteOrOptions)'. Calling it is
+%% the same as calling `transaction(StoreId, FunOrPath, [],
+%% ReadWriteOrOptions)'.</li>
+%% <li>`transaction(FunOrPath, Args, ReadWriteOrOptions)'. Calling it is the
+%% same as calling `transaction(StoreId, FunOrPath, Args, ReadWriteOrOptions)'
+%% with the default store ID.</li>
+%% </ul>
+%%
+%% @see transaction/4.
+
+transaction(StoreId, FunOrPath, Args)
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+       (is_function(FunOrPath) orelse
+        ?IS_KHEPRI_PATH_PATTERN(FunOrPath))
+       andalso is_list(Args) ->
+    transaction(StoreId, FunOrPath, Args, auto);
+transaction(StoreId, FunOrPath, ReadWriteOrOptions)
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+       (is_function(FunOrPath) orelse
+        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
+       (is_atom(ReadWriteOrOptions) orelse is_map(ReadWriteOrOptions)) ->
+    transaction(StoreId, FunOrPath, [], ReadWriteOrOptions);
+transaction(FunOrPath, Args, ReadWriteOrOptions)
+  when (is_function(FunOrPath) orelse
+        ?IS_KHEPRI_PATH_PATTERN(FunOrPath))
+       andalso is_list(Args) andalso
+       (is_atom(ReadWriteOrOptions) orelse is_map(ReadWriteOrOptions)) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    transaction(StoreId, FunOrPath, Args, ReadWriteOrOptions);
+transaction(FunOrPath, ReadWrite, Options)
+  when (is_function(FunOrPath) orelse
+        ?IS_KHEPRI_PATH_PATTERN(FunOrPath))
+       andalso is_atom(ReadWrite) andalso is_map(Options) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    transaction(StoreId, FunOrPath, ReadWrite, Options).
+
+-spec transaction
+(StoreId, FunOrPath, Args, ReadWrite) -> Ret when
+      StoreId :: khepri:store_id(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: list(),
+      ReadWrite :: ro | rw | auto,
+      Ret :: khepri_machine:tx_ret();
+(StoreId, FunOrPath, Args, Options) -> Ret when
+      StoreId :: khepri:store_id(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: list(),
+      Options :: khepri:command_options() | khepri:query_options(),
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
+(StoreId, FunOrPath, ReadWrite, Options) -> Ret when
+      StoreId :: khepri:store_id(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      ReadWrite :: ro | rw | auto,
+      Options :: khepri:command_options() | khepri:query_options(),
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
+(FunOrPath, Args, ReadWrite, Options) -> Ret when
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: list(),
+      ReadWrite :: ro | rw | auto,
+      Options :: khepri:command_options() | khepri:query_options(),
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
+%% @doc Runs a transaction and returns its result.
+%%
+%% This function accepts the following three forms:
+%% <ul>
+%% <li>`transaction(StoreId, FunOrPath, Args, ReadWrite)'. Calling it is the
+%% same as calling `transaction(StoreId, FunOrPath, Args, ReadWrite,
+%% #{})'.</li>
+%% <li>`transaction(StoreId, FunOrPath, Args, Options)'. Calling it is the
+%% same as calling `transaction(StoreId, FunOrPath, Args, auto,
+%% Options)'.</li>
+%% <li>`transaction(FunOrPath, Args, ReadWrite, Options)'. Calling it is the
+%% same as calling `transaction(StoreId, FunOrPath, Args, ReadWrite, Options)'
+%% with the default store ID.</li>
+%% </ul>
+%%
+%% @see transaction/5.
+
+transaction(StoreId, FunOrPath, Args, ReadWrite)
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+       (is_function(FunOrPath) orelse
+        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
+       is_list(Args) andalso is_atom(ReadWrite) ->
+    transaction(StoreId, FunOrPath, Args, ReadWrite, #{});
+transaction(StoreId, FunOrPath, Args, Options)
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+       (is_function(FunOrPath) orelse
+        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
+       is_list(Args) andalso is_map(Options) ->
+    transaction(StoreId, FunOrPath, Args, auto, Options);
+transaction(StoreId, FunOrPath, ReadWrite, Options)
+  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
+       (is_function(FunOrPath) orelse
+        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
+       is_atom(ReadWrite) andalso is_map(Options) ->
+    transaction(StoreId, FunOrPath, [], ReadWrite, Options);
+transaction(FunOrPath, Args, ReadWrite, Options)
+  when (is_function(FunOrPath) orelse
+        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
+       is_list(Args) andalso
+       is_atom(ReadWrite) andalso is_map(Options) ->
+    StoreId = khepri_cluster:get_default_store_id(),
+    transaction(StoreId, FunOrPath, Args, ReadWrite, Options).
+
+-spec transaction(StoreId, FunOrPath, Args, ReadWrite, Options) -> Ret when
+      StoreId :: khepri:store_id(),
+      FunOrPath :: Fun | PathPattern,
+      Fun :: khepri_tx:tx_fun(),
+      PathPattern :: khepri_path:pattern(),
+      Args :: list(),
+      ReadWrite :: ro | rw | auto,
+      Options :: khepri:command_options() | khepri:query_options(),
+      Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
+%% @doc Runs a transaction and returns its result.
+%%
+%% `Fun' is an arbitrary anonymous function which takes the content of `Args'
+%% as its arguments. In other words, the length of `Args' must correspond to
+%% the arity of `Fun'.
+%%
+%% Instead of `Fun', `PathPattern' can be passed. It must point to an existing
+%% stored procedure. The length to `Args' must correspond to the arity of that
+%% stored procedure.
+%%
+%% The `ReadWrite' flag determines what the `Fun' anonymous function is
+%% allowed to do and in which context it runs:
+%%
+%% <ul>
+%% <li>If `ReadWrite' is `ro', `Fun' can do whatever it wants, except modify
+%% the content of the store. In other words, uses of {@link khepri_tx:put/2}
+%% or {@link khepri_tx:delete/1} are forbidden and will abort the function.
+%% `Fun' is executed from a process on the leader Ra member.</li>
+%% <li>If `ReadWrite' is `rw', `Fun' can use the {@link khepri_tx} transaction
+%% API as well as any calls to other modules as long as those functions or what
+%% they do is permitted. See {@link khepri_tx} for more details. If `Fun' does
+%% or calls something forbidden, the transaction will be aborted. `Fun' is
+%% executed in the context of the state machine process on each Ra
+%% members.</li>
+%% <li>If `ReadWrite' is `auto', `Fun' is analyzed to determine if it calls
+%% {@link khepri_tx:put/2} or {@link khepri_tx:delete/1}, or uses any denied
+%% operations for a read/write transaction. If it does, this is the same as
+%% setting `ReadWrite' to true. Otherwise, this is the equivalent of setting
+%% `ReadWrite' to false.</li>
+%% </ul>
+%%
+%% When using `PathPattern', a `ReadWrite' of `auto' is synonymous of `rw'.
+%%
+%% `Options' is relevant for both read-only and read-write transactions
+%% (including audetected ones). However note that both types expect different
+%% options.
+%%
+%% The result of `FunOrPath' can be any term. That result is returned in an
+%% `{ok, Result}' tuple if the transaction is synchronous. The result is sent
+%% by message if the transaction is asynchronous and a correlation ID was
+%% specified.
+%%
+%% @param StoreId the name of the Khepri store.
+%% @param FunOrPath an arbitrary anonymous function or a path pattern pointing
+%%        to a stored procedure.
+%% @param Args a list of arguments to pass to `FunOrPath'.
+%% @param ReadWrite the read/write or read-only nature of the transaction.
+%% @param Options command options such as the command type.
+%%
+%% @returns in the case of a synchronous transaction, `{ok, Result}' where
+%% `Result' is the return value of `FunOrPath', or `{error, Reason}' if the
+%% anonymous function was aborted; in the case of an asynchronous transaction,
+%% always `ok' (the actual return value may be sent by a message if a
+%% correlation ID was specified).
+
+transaction(StoreId, FunOrPath, Args, ReadWrite, Options) ->
+    khepri_machine:transaction(StoreId, FunOrPath, Args, ReadWrite, Options).

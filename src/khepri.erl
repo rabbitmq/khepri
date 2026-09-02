@@ -3248,11 +3248,11 @@ has_projection(StoreId, ProjectionName, Options)
 %% @see transaction/2.
 
 transaction(FunOrPath) ->
-    transaction(FunOrPath, []).
+    khepri_adv:transaction(FunOrPath).
 
 -spec transaction
 (StoreId, FunOrPath) -> Ret when
-      StoreId :: store_id(),
+      StoreId :: khepri:store_id(),
       FunOrPath :: Fun | PathPattern,
       Fun :: khepri_tx:tx_fun(),
       PathPattern :: khepri_path:pattern(),
@@ -3269,7 +3269,7 @@ transaction(FunOrPath) ->
       PathPattern :: khepri_path:pattern(),
       ReadWriteOrOptions :: ReadWrite | Options,
       ReadWrite :: ro | rw | auto,
-      Options :: command_options() | query_options(),
+      Options :: khepri:command_options() | khepri:query_options(),
       Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
 %% @doc Runs a transaction and returns its result.
 %%
@@ -3286,40 +3286,25 @@ transaction(FunOrPath) ->
 %%
 %% @see transaction/3.
 
-transaction(FunOrPath, Args)
-  when (is_function(FunOrPath) orelse
-        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
-       is_list(Args) ->
-    StoreId = khepri_cluster:get_default_store_id(),
-    transaction(StoreId, FunOrPath, Args);
-transaction(FunOrPath, ReadWriteOrOptions)
-  when (is_function(FunOrPath) orelse
-        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
-       (is_atom(ReadWriteOrOptions) orelse is_map(ReadWriteOrOptions)) ->
-    StoreId = khepri_cluster:get_default_store_id(),
-    transaction(StoreId, FunOrPath, ReadWriteOrOptions);
-transaction(StoreId, FunOrPath)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
-       (is_function(FunOrPath) orelse
-        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) ->
-    transaction(StoreId, FunOrPath, []).
+transaction(FunOrPath, Args) ->
+    khepri_adv:transaction(FunOrPath, Args).
 
 -spec transaction
 (StoreId, FunOrPath, Args) -> Ret when
-      StoreId :: store_id(),
+      StoreId :: khepri:store_id(),
       FunOrPath :: Fun | PathPattern,
       Fun :: khepri_tx:tx_fun(),
       PathPattern :: khepri_path:pattern(),
       Args :: list(),
       Ret :: khepri_machine:tx_ret();
 (StoreId, FunOrPath, ReadWriteOrOptions) -> Ret when
-      StoreId :: store_id(),
+      StoreId :: khepri:store_id(),
       FunOrPath :: Fun | PathPattern,
       Fun :: khepri_tx:tx_fun(),
       PathPattern :: khepri_path:pattern(),
       ReadWriteOrOptions :: ReadWrite | Options,
       ReadWrite :: ro | rw | auto,
-      Options :: command_options() | query_options(),
+      Options :: khepri:command_options() | khepri:query_options(),
       Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
 (FunOrPath, Args, ReadWriteOrOptions) -> Ret when
       FunOrPath :: Fun | PathPattern,
@@ -3328,14 +3313,14 @@ transaction(StoreId, FunOrPath)
       Args :: list(),
       ReadWriteOrOptions :: ReadWrite | Options,
       ReadWrite :: ro | rw | auto,
-      Options :: command_options() | query_options(),
+      Options :: khepri:command_options() | khepri:query_options(),
       Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
 (FunOrPath, ReadWrite, Options) -> Ret when
       FunOrPath :: Fun | PathPattern,
       Fun :: khepri_tx:tx_fun(),
       PathPattern :: khepri_path:pattern(),
       ReadWrite :: ro | rw | auto,
-      Options :: command_options() | query_options(),
+      Options :: khepri:command_options() | khepri:query_options(),
       Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
 %% @doc Runs a transaction and returns its result.
 %%
@@ -3353,35 +3338,12 @@ transaction(StoreId, FunOrPath)
 %%
 %% @see transaction/4.
 
-transaction(StoreId, FunOrPath, Args)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
-       (is_function(FunOrPath) orelse
-        ?IS_KHEPRI_PATH_PATTERN(FunOrPath))
-       andalso is_list(Args) ->
-    transaction(StoreId, FunOrPath, Args, auto);
-transaction(StoreId, FunOrPath, ReadWriteOrOptions)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
-       (is_function(FunOrPath) orelse
-        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
-       (is_atom(ReadWriteOrOptions) orelse is_map(ReadWriteOrOptions)) ->
-    transaction(StoreId, FunOrPath, [], ReadWriteOrOptions);
-transaction(FunOrPath, Args, ReadWriteOrOptions)
-  when (is_function(FunOrPath) orelse
-        ?IS_KHEPRI_PATH_PATTERN(FunOrPath))
-       andalso is_list(Args) andalso
-       (is_atom(ReadWriteOrOptions) orelse is_map(ReadWriteOrOptions)) ->
-    StoreId = khepri_cluster:get_default_store_id(),
-    transaction(StoreId, FunOrPath, Args, ReadWriteOrOptions);
-transaction(FunOrPath, ReadWrite, Options)
-  when (is_function(FunOrPath) orelse
-        ?IS_KHEPRI_PATH_PATTERN(FunOrPath))
-       andalso is_atom(ReadWrite) andalso is_map(Options) ->
-    StoreId = khepri_cluster:get_default_store_id(),
-    transaction(StoreId, FunOrPath, ReadWrite, Options).
+transaction(StoreId, FunOrPath, Args) ->
+    khepri_adv:transaction(StoreId, FunOrPath, Args).
 
 -spec transaction
 (StoreId, FunOrPath, Args, ReadWrite) -> Ret when
-      StoreId :: store_id(),
+      StoreId :: khepri:store_id(),
       FunOrPath :: Fun | PathPattern,
       Fun :: khepri_tx:tx_fun(),
       PathPattern :: khepri_path:pattern(),
@@ -3389,20 +3351,20 @@ transaction(FunOrPath, ReadWrite, Options)
       ReadWrite :: ro | rw | auto,
       Ret :: khepri_machine:tx_ret();
 (StoreId, FunOrPath, Args, Options) -> Ret when
-      StoreId :: store_id(),
+      StoreId :: khepri:store_id(),
       FunOrPath :: Fun | PathPattern,
       Fun :: khepri_tx:tx_fun(),
       PathPattern :: khepri_path:pattern(),
       Args :: list(),
-      Options :: command_options() | query_options(),
+      Options :: khepri:command_options() | khepri:query_options(),
       Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
 (StoreId, FunOrPath, ReadWrite, Options) -> Ret when
-      StoreId :: store_id(),
+      StoreId :: khepri:store_id(),
       FunOrPath :: Fun | PathPattern,
       Fun :: khepri_tx:tx_fun(),
       PathPattern :: khepri_path:pattern(),
       ReadWrite :: ro | rw | auto,
-      Options :: command_options() | query_options(),
+      Options :: khepri:command_options() | khepri:query_options(),
       Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret();
 (FunOrPath, Args, ReadWrite, Options) -> Ret when
       FunOrPath :: Fun | PathPattern,
@@ -3410,7 +3372,7 @@ transaction(FunOrPath, ReadWrite, Options)
       PathPattern :: khepri_path:pattern(),
       Args :: list(),
       ReadWrite :: ro | rw | auto,
-      Options :: command_options() | query_options(),
+      Options :: khepri:command_options() | khepri:query_options(),
       Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
 %% @doc Runs a transaction and returns its result.
 %%
@@ -3429,34 +3391,11 @@ transaction(FunOrPath, ReadWrite, Options)
 %%
 %% @see transaction/5.
 
-transaction(StoreId, FunOrPath, Args, ReadWrite)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
-       (is_function(FunOrPath) orelse
-        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
-       is_list(Args) andalso is_atom(ReadWrite) ->
-    transaction(StoreId, FunOrPath, Args, ReadWrite, #{});
-transaction(StoreId, FunOrPath, Args, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
-       (is_function(FunOrPath) orelse
-        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
-       is_list(Args) andalso is_map(Options) ->
-    transaction(StoreId, FunOrPath, Args, auto, Options);
-transaction(StoreId, FunOrPath, ReadWrite, Options)
-  when ?IS_KHEPRI_STORE_ID(StoreId) andalso
-       (is_function(FunOrPath) orelse
-        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
-       is_atom(ReadWrite) andalso is_map(Options) ->
-    transaction(StoreId, FunOrPath, [], ReadWrite, Options);
-transaction(FunOrPath, Args, ReadWrite, Options)
-  when (is_function(FunOrPath) orelse
-        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) andalso
-       is_list(Args) andalso
-       is_atom(ReadWrite) andalso is_map(Options) ->
-    StoreId = khepri_cluster:get_default_store_id(),
-    transaction(StoreId, FunOrPath, Args, ReadWrite, Options).
+transaction(StoreId, FunOrPath, Args, ReadWrite) ->
+    khepri_adv:transaction(StoreId, FunOrPath, Args, ReadWrite).
 
 -spec transaction(StoreId, FunOrPath, Args, ReadWrite, Options) -> Ret when
-      StoreId :: store_id(),
+      StoreId :: khepri:store_id(),
       FunOrPath :: Fun | PathPattern,
       Fun :: khepri_tx:tx_fun(),
       PathPattern :: khepri_path:pattern(),
@@ -3520,7 +3459,7 @@ transaction(FunOrPath, Args, ReadWrite, Options)
 %% correlation ID was specified).
 
 transaction(StoreId, FunOrPath, Args, ReadWrite, Options) ->
-    khepri_machine:transaction(StoreId, FunOrPath, Args, ReadWrite, Options).
+    khepri_adv:transaction(StoreId, FunOrPath, Args, ReadWrite, Options).
 
 %% -------------------------------------------------------------------
 %% fence().
