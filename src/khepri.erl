@@ -289,16 +289,24 @@
 %% or unreachable, no reply may be sent even though the leader may have
 %% successfully handled the command.
 
--type reply_to_option() :: {reference(), any()}.
+-type reply_to_option() :: {reference(), any()} |
+                           {gen_statem, gen_statem:from()}.
 %% Option to indicate the process a command result should be sent to, instead
 %% of the caller by default.
 %%
-%% The first tuple element is a process alias ({@see erlan:alias/1})
-%% designating the recipient of the result. It must be a process alias and not
-%% a simple PID because it needs to be resistant to command replay.
-%%
-%% The second tuple element is an arbitrary term sent to the recipient with the
-%% result.
+%% There are several variants:
+%% <ul>
+%% <li>The result should be sent as a regular Erlang message: in this case, the
+%% tuple is made of:
+%% <ol>
+%% <li>A process alias ({@see erlan:alias/1}) designating the recipient of the
+%% result. It must be a process alias and not a simple PID because it needs to
+%% be resistant to command replay.</li>
+%% <li>An arbitrary term sent to the recipient with the result.</li>
+%% </ol></li>
+%% <li>The result should be sent using {@link gen_statem:reply/2}. The tuple is
+%% of the form `{gen_statem, From}'.</li>
+%% </ul>
 
 -type command_options() :: #{timeout => timeout(),
                              async => async_option(),

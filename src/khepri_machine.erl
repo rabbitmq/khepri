@@ -161,7 +161,9 @@
          effective_version/1,
          wait_for_effective_machine_version/3,
          wait_for_effective_behaviour/3,
-         convert_to_uniform_command/1]).
+         convert_to_uniform_command/1,
+         maybe_set_reply_to/2,
+         get_reply_to_option/1]).
 
 %% Internal functions to access the opaque #khepri_machine{} state.
 -export([is_state/1,
@@ -1330,7 +1332,8 @@ split_command_options(StoreId, Options) ->
               IsCompatible = does_api_comply_with(reply_to_option, StoreId),
               case ReplyTo of
                   {Alias, _Priv}
-                    when IsCompatible andalso is_reference(Alias) ->
+                    when IsCompatible andalso
+                         (is_reference(Alias) orelse Alias =:= gen_statem) ->
                       %% The target must be a process alias. It is required as
                       %% a protection against command replay.
                       C1 = C#{reply_to => ReplyTo},
@@ -1447,8 +1450,8 @@ process_command(StoreId, Command, Options) ->
 maybe_add_to_batch(StoreId, Command, Options, CommandType)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
     protect_command_against_dups(StoreId, Command, Options, CommandType);
-maybe_add_to_batch(Batch, Command, Options, sync) ->
-    Batch1 = khepri_batch:add(Batch, Command, Options),
+maybe_add_to_batch(Batch, Command, _Options, sync) ->
+    Batch1 = khepri_batch:add(Batch, Command),
     Batch1.
 
 protect_command_against_dups(
@@ -1540,7 +1543,7 @@ process_sync_command(StoreId, Command, Options) ->
     T0 = khepri_utils:start_timeout_window(Timeout),
     Dest = leader_id_or(StoreId, RaServer),
     sending_sync_command(Dest),
-    case ra:process_command(Dest, Command, CommandOptions) of
+    case process_or_batch_command(Dest, Command, CommandOptions) of
         {ok, Ret, _LeaderId} ->
             ?raise_exception_if_any(Ret);
         {timeout, _LeaderId} ->
@@ -1571,6 +1574,45 @@ process_sync_command(StoreId, Command, Options) ->
         {error, _} = Error ->
             Error
     end.
+
+process_or_batch_command(
+  {StoreId, _Node} = Dest, Command, #{timeout := Timeout} = Options) ->
+    case can_command_be_batched(Dest, Command, Options) of
+        true ->
+            try
+                khepri_batch_proxy:proxy_command(StoreId, Command, Timeout)
+            catch
+                error:no_batch_proxy ->
+                    ra:process_command(Dest, Command, Options);
+
+                exit:timeout ->
+                    LeaderId = ra_leaderboard:lookup_leader(StoreId),
+                    {timeout, LeaderId};
+                exit:shutdown ->
+                    {error, shutdown};
+                exit:Reason ->
+                    {error, Reason}
+            end;
+        false ->
+            ra:process_command(Dest, Command, Options)
+    end.
+
+can_command_be_batched(
+  _Dest, #submit_batch{}, _Options) ->
+    false;
+can_command_be_batched(
+  {StoreId, _Node}, Command, #{reply_from := ReplyFrom}) ->
+    %% The store must support batching.
+    does_api_comply_with(batching, StoreId) andalso
+    %% We must be able to set the `reply_to' common option.
+    does_command_support_common_args(Command) andalso
+    %% The `reply_to' common option must be unset before we add the command to
+    %% the batch.
+    get_reply_to_option(Command) =:= undefined andalso
+    %% The `reply_from' option must point to the local node because that is the
+    %% one who will handle the `send_msg' effect.
+    (ReplyFrom =:= {member, {StoreId, node()}} orelse
+     ReplyFrom =:= local).
 
 process_async_command(
   StoreId, Command, ?DEFAULT_RA_COMMAND_CORRELATION = Correlation, Priority) ->
@@ -2908,7 +2950,29 @@ return_result_to_appropriate_process(
             SideEffect = {send_msg, Alias, Msg},
             SideEffects1 = [SideEffect | SideEffects],
             {State, ok, SideEffects1};
-        _ ->
+        #common_v1{reply_to = {gen_statem, From}} ->
+            %% Reproduce the behaviour of `gen:reply/2'.
+            StoreId = get_store_id(State),
+            LeaderId = ra_leaderboard:lookup_leader(StoreId),
+            Result1 = {ok, Result, LeaderId},
+            {Target, Reply} = case From of
+                                  {_To, [alias|Alias] = Tag}
+                                    when is_reference(Alias) ->
+                                      {Alias, {Tag, Result1}};
+                                  {_To, [[alias|Alias] | _] = Tag}
+                                    when is_reference(Alias) ->
+                                      {Alias, {Tag, Result1}};
+                                  {To, Tag} ->
+                                      {To, {Tag, Result1}}
+                              end,
+            SideEffect = {send_msg, Target, Reply, [local]},
+            SideEffects1 = [SideEffect | SideEffects],
+            {State, ok, SideEffects1};
+        #common_v1{reply_to = undefined} ->
+            {State, Result, SideEffects};
+        none ->
+            {State, Result, SideEffects};
+        undefined ->
             {State, Result, SideEffects}
     end.
 
@@ -3257,13 +3321,20 @@ maybe_set_reply_to(Command, #{reply_to := ReplyTo} = Options) ->
                   end,
     Command1 = set_command_common_args(Command, CommonArgs1),
     ?assert(is_tuple(ReplyTo)),
-    ?assert(is_reference(element(1, ReplyTo))),
+    ?assert(is_reference(element(1, ReplyTo)) orelse element(1, ReplyTo) =:= gen_statem),
     CommonArgs2 = CommonArgs1#common_v1{reply_to = ReplyTo},
     Command2 = set_command_common_args(Command1, CommonArgs2),
     Options1 = maps:remove(reply_to, Options),
     {Command2, Options1};
 maybe_set_reply_to(Command, Options) ->
     {Command, Options}.
+
+get_reply_to_option(Command) ->
+    CommonArgs = get_command_common_args(Command),
+    case CommonArgs of
+        #common_v1{reply_to = ReplyTo} -> ReplyTo;
+        none                           -> undefined
+    end.
 
 %% @private
 
