@@ -12,7 +12,7 @@
 -include("src/khepri_batch.hrl").
 
 -export([new/0, new/1,
-         add/3,
+         add/2,
          submit/1, submit/2, submit/3,
          is_batch/1,
          get_commands/1,
@@ -109,7 +109,7 @@ use_effective_machive_version_from_store(StoreId)
         {error, _}            -> 0
     end.
 
-add(#batch{commands = Commands} = Batch, Command, _Options) ->
+add(#batch{commands = Commands} = Batch, Command) ->
     Commands1 = [Command | Commands],
     Batch1 = Batch#batch{commands = Commands1},
     Batch1.
