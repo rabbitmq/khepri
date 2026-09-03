@@ -380,6 +380,15 @@ ensure_server_started(
 
 ensure_server_started_locked(
   RaSystem, #{cluster_name := StoreId} = RaServerConfig, Timeout) ->
+    case khepri_batch_proxies_sup:start_proxy(StoreId) of
+        ok ->
+            ensure_server_started_locked1(RaSystem, RaServerConfig, Timeout);
+        Error ->
+            Error
+    end.
+
+ensure_server_started_locked1(
+  RaSystem, #{cluster_name := StoreId} = RaServerConfig, Timeout) ->
     ThisMember = this_member(StoreId),
     RaServerConfig1 = RaServerConfig#{id => ThisMember},
     ?LOG_DEBUG(
@@ -504,6 +513,7 @@ stop_locked(StoreId) ->
             ?LOG_DEBUG(
                "Stopping member ~0p in store \"~s\"",
                [ThisMember, StoreId]),
+            _ = khepri_batch_proxy:stop(StoreId),
             case ra:stop_server(RaSystem, ThisMember) of
                 ok ->
                     forget_store(StoreId),
