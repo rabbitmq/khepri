@@ -15,6 +15,8 @@
          add/2,
          submit/1, submit/2, submit/3,
          is_batch/1,
+         is_empty/1,
+         size/1,
          get_commands/1,
          get_options/1,
          get_machine_version/1]).
@@ -188,6 +190,24 @@ submit(StoreId, #batch{} = Batch, Options) ->
 
 is_batch(Term) ->
     ?IS_KHEPRI_BATCH(Term).
+
+-spec is_empty(Batch) -> IsEmpty when
+      Batch :: khepri_batch:batch(),
+      IsEmpty :: boolean().
+%% @doc Indicates if the given batch is empty.
+%%
+%% I.e. does it have commands inside or not?
+
+is_empty(#batch{commands = Commands}) ->
+    Commands =:= [].
+
+-spec size(Batch) -> Size when
+      Batch :: khepri_batch:batch(),
+      Size :: non_neg_integer().
+%% @doc Returns the number of commands in the given batch.
+
+size(#batch{commands = Commands}) ->
+    length(Commands).
 
 -spec get_commands(Batch) -> Commands when
       Batch :: khepri_batch:batch(),
