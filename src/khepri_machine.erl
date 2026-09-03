@@ -2903,7 +2903,7 @@ post_apply({State, Result, SideEffects}, Meta, Command) ->
 return_result_to_appropriate_process(
   State, Result, SideEffects, _Meta, Command) ->
     case get_command_common_args(Command) of
-         #common_v1{reply_to = {Alias, Priv}} ->
+        #common_v1{reply_to = {Alias, Priv}} when is_reference(Alias) ->
             Msg = #khepri_reply{result = Result, priv = Priv},
             SideEffect = {send_msg, Alias, Msg},
             SideEffects1 = [SideEffect | SideEffects],
