@@ -62,7 +62,9 @@ proxy_command(StoreId, Command, Timeout) ->
         end
     catch
         error:badarg ->
-            erlang:error(no_batch_proxy)
+            erlang:error(no_batch_proxy);
+        exit:{timeout, {gen_server, call, _}}:Stacktrace ->
+            erlang:raise(exit, timeout, Stacktrace)
     end.
 
 -spec flush_commands(StoreId) -> ok when
