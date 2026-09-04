@@ -222,7 +222,11 @@ process_batch(
 %             ok
 %     end.
 do_process_batch(StoreId, Batch) ->
-    Options = #{reply_from => {member, {StoreId, node()}}},
+    Options = #{reply_from => {member, {StoreId, node()}},
+                %% FIXME: How to manage timeout, especially if commands have
+                %% very different timeouts? How to be sure the callers are
+                %% still waiting?
+                timeout => infinity},
     Ret = khepri_batch:submit(StoreId, Batch, Options),
     case Ret of
         {ok, _} ->
