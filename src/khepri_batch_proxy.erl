@@ -237,7 +237,7 @@ do_process_batch(StoreId, Batch) ->
               fun(Command) ->
                       {gen_statem, From} = khepri_machine:get_reply_to_option(Command),
                       ?LOG_ERROR("Error = ~0p -> ~0p", [Error, From]),
-                      gen_statem:reply(From, Error)
+                      gen_server:reply(From, Error)
               end, Commands),
             ok
     end.
