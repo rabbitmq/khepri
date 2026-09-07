@@ -268,7 +268,7 @@
 %% </ul>
 
 -type reply_from_option() :: leader | local | {member, ra:server_id()}.
-%% Options to indicate which member of the cluster should reply to a command
+%% Option to indicate which member of the cluster should reply to a command
 %% request.
 %%
 %% Note that commands are always handled by the leader. This option only
