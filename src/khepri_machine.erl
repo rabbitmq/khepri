@@ -1664,7 +1664,7 @@ apply(
                        fun(Projection, Acc1) ->
                                Name = khepri_projection:name(Projection),
                                _ = khepri_projection:delete(Projection),
-                               maps:put(Name, Pattern, Acc1)
+                               Acc1#{Name => Pattern}
                        end, Acc, RemovedProjections),
               Projections2 = case Projections1 of
                                  [] ->

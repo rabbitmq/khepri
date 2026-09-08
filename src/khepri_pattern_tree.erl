@@ -106,18 +106,18 @@ is_empty(_PatternTree) ->
 update(PatternTree, [], UpdateFun) ->
     update_payload(PatternTree, UpdateFun);
 update(
-  #pattern_node{child_nodes = ChildNodes0} = PatternTree,
+  #pattern_node{child_nodes = ChildNodes} = PatternTree,
   [Component | Rest],
   UpdateFun) ->
-    PatternSubtree = case ChildNodes0 of
+    PatternSubtree = case ChildNodes of
                          #{Component := PatternNode} ->
                              PatternNode;
                          _ ->
                              empty()
                      end,
     PatternSubtree1 = update(PatternSubtree, Rest, UpdateFun),
-    ChildNodes = maps:put(Component, PatternSubtree1, ChildNodes0),
-    PatternTree#pattern_node{child_nodes = ChildNodes}.
+    ChildNodes1 = ChildNodes#{Component => PatternSubtree1},
+    PatternTree#pattern_node{child_nodes = ChildNodes1}.
 
 -spec update_payload(PatternTreeNode, UpdateFun) -> Ret when
       PatternTreeNode :: khepri_pattern_tree:tree_node(Payload),
