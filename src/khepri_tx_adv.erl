@@ -20,7 +20,6 @@
 
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
--include("src/khepri_machine.hrl").
 -include("src/khepri_ret.hrl").
 -include("src/khepri_tx.hrl").
 

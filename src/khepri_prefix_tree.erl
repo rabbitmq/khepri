@@ -174,6 +174,6 @@ update1(
                           %% Drop unused branches.
                           maps:remove(Component, ChildNodes);
                       Subtree1 ->
-                          maps:put(Component, Subtree1, ChildNodes)
+                          ChildNodes#{Component => Subtree1}
                   end,
     Tree#prefix_tree{child_nodes = ChildNodes1}.

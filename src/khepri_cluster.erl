@@ -130,10 +130,6 @@
                            join/2]}).
 
 -define(IS_RA_SYSTEM(RaSystem), is_atom(RaSystem)).
--define(IS_RA_SERVER(RaServer), (is_tuple(RaServer) andalso
-                                 size(RaServer) =:= 2 andalso
-                                 is_atom(element(1, RaServer)) andalso
-                                 is_atom(element(2, RaServer)))).
 -define(IS_DATA_DIR(DataDir), (is_list(DataDir) orelse is_binary(DataDir))).
 
 -type incomplete_ra_server_config() :: map().
@@ -335,7 +331,7 @@ verify_ra_system_and_start(DataDir, RaServerConfig, Timeout)
             ensure_server_started(RaSystem, RaServerConfig, Timeout);
         {error, {already_started, _}} ->
             ensure_server_started(RaSystem, RaServerConfig, Timeout);
-        Error ->
+        {error, _} = Error ->
             Error
     end;
 verify_ra_system_and_start(DataDir, RaServerConfig, Timeout)
@@ -832,7 +828,6 @@ do_join_locked(StoreId, ThisMember, RemoteNode, Timeout) ->
     ?LOG_DEBUG(
        "Adding this node (~0p) to the remote node's cluster (~0p)",
        [ThisMember, RemoteMember]),
-    RemoteMember = node_to_member(StoreId, RemoteNode),
     T1 = khepri_utils:start_timeout_window(Timeout),
     Ret1 = ra:add_member(RemoteMember, ThisMember, Timeout),
     Timeout1 = khepri_utils:end_timeout_window(Timeout, T1),

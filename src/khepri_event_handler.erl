@@ -12,9 +12,7 @@
 -behaviour(gen_server).
 
 -include_lib("kernel/include/logger.hrl").
--include_lib("stdlib/include/assert.hrl").
 
--include("include/khepri.hrl").
 -include("src/khepri_machine.hrl").
 
 -export([start_link/0,

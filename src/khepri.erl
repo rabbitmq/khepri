@@ -68,10 +68,7 @@
 
 -module(khepri).
 
--include_lib("kernel/include/logger.hrl").
-
 -include("include/khepri.hrl").
--include("src/khepri_cluster.hrl").
 -include("src/khepri_error.hrl").
 -include("src/khepri_ret.hrl").
 
@@ -268,7 +265,7 @@
 %% </ul>
 
 -type reply_from_option() :: leader | local | {member, ra:server_id()}.
-%% Options to indicate which member of the cluster should reply to a command
+%% Option to indicate which member of the cluster should reply to a command
 %% request.
 %%
 %% Note that commands are always handled by the leader. This option only
@@ -573,8 +570,7 @@ start(RaSystemOrDataDir) ->
       DataDir :: file:filename_all(),
       StoreId :: store_id(),
       RaServerConfig :: khepri_cluster:incomplete_ra_server_config(),
-      Ret :: khepri:ok(StoreId) | khepri:error(),
-      StoreId :: khepri:store_id().
+      Ret :: khepri:ok(StoreId) | khepri:error().
 %% @doc Starts a store.
 %%
 %% @see khepri_cluster:start/2.
@@ -589,8 +585,7 @@ start(RaSystemOrDataDir, StoreIdOrRaServerConfig) ->
       StoreId :: store_id(),
       RaServerConfig :: khepri_cluster:incomplete_ra_server_config(),
       Timeout :: timeout(),
-      Ret :: khepri:ok(StoreId) | khepri:error(),
-      StoreId :: khepri:store_id().
+      Ret :: khepri:ok(StoreId) | khepri:error().
 %% @doc Starts a store.
 %%
 %% @see khepri_cluster:start/3.
@@ -1986,7 +1981,7 @@ run_sproc(PathPattern, Args) ->
 (PathPattern, Args, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Args :: list(),
-      Options :: khepri:query_options() | khepri:tree_options(),
+      Options :: khepri:query_options(),
       Ret :: any().
 %% @doc Runs the stored procedure pointed to by the given path and returns the
 %% result.
