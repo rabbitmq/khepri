@@ -1984,7 +1984,7 @@ run_sproc(PathPattern, Args) ->
 (PathPattern, Args, Options) -> Ret when
       PathPattern :: khepri_path:pattern(),
       Args :: list(),
-      Options :: khepri:query_options() | khepri:tree_options(),
+      Options :: khepri:query_options(),
       Ret :: any().
 %% @doc Runs the stored procedure pointed to by the given path and returns the
 %% result.
