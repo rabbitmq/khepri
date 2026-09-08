@@ -44,8 +44,6 @@
 
 -module(khepri_path).
 
--include_lib("stdlib/include/assert.hrl").
-
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
 

@@ -68,10 +68,7 @@
 
 -module(khepri).
 
--include_lib("kernel/include/logger.hrl").
-
 -include("include/khepri.hrl").
--include("src/khepri_cluster.hrl").
 -include("src/khepri_error.hrl").
 -include("src/khepri_ret.hrl").
 

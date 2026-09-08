@@ -35,7 +35,6 @@
 -include_lib("horus/include/horus.hrl").
 
 -include("src/khepri_projection.hrl").
--include("src/khepri_machine.hrl").
 
 -export([new/2, new/3, name/1]).
 

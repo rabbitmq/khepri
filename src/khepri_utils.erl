@@ -12,9 +12,6 @@
 
 -include_lib("stdlib/include/assert.hrl").
 
--include("include/khepri.hrl").
--include("src/khepri_error.hrl").
-
 -export([start_timeout_window/1,
          end_timeout_window/2,
          sleep/2,

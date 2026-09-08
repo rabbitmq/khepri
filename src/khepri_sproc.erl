@@ -12,8 +12,6 @@
 
 -module(khepri_sproc).
 
--include_lib("stdlib/include/assert.hrl").
-
 -include_lib("horus/include/horus.hrl").
 
 -include("include/khepri.hrl").
