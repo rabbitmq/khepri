@@ -1392,7 +1392,7 @@ special_component_to_node_name(?THIS_KHEPRI_NODE, []) ->
 %% @private
 
 starting_node_in_rev_parent_tree(ReversedParentTree) ->
-    case hd(lists:reverse(ReversedParentTree)) of
+    case lists:last(ReversedParentTree) of
         {Node, child_created} -> Node;
         Node                  -> Node
     end.

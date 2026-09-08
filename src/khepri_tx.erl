@@ -45,11 +45,8 @@
 
 -module(khepri_tx).
 
--include_lib("stdlib/include/assert.hrl").
-
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
--include("src/khepri_machine.hrl").
 -include("src/khepri_ret.hrl").
 -include("src/khepri_tx.hrl").
 
@@ -323,9 +320,10 @@ get_many_or(PathPattern, Default, Options) ->
 %% exists().
 %% -------------------------------------------------------------------
 
--spec exists(PathPattern) -> Exists when
+-spec exists(PathPattern) -> Exists | Error when
       PathPattern :: khepri_path:pattern(),
-      Exists :: boolean().
+      Exists :: boolean(),
+      Error :: khepri:error().
 %% @doc Indicates if the tree node pointed to by the given path exists or not.
 %%
 %% This is the same as {@link khepri:exists/2} but inside the context of a
@@ -336,10 +334,11 @@ get_many_or(PathPattern, Default, Options) ->
 exists(PathPattern) ->
     exists(PathPattern, #{}).
 
--spec exists(PathPattern, Options) -> Exists when
+-spec exists(PathPattern, Options) -> Exists | Error when
       PathPattern :: khepri_path:pattern(),
       Options :: khepri:tree_options(),
-      Exists :: boolean().
+      Exists :: boolean(),
+      Error :: khepri:error().
 %% @doc Indicates if the tree node pointed to by the given path exists or not.
 %%
 %% This is the same as {@link khepri:exists/3} but inside the context of a

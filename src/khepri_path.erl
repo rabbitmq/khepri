@@ -44,8 +44,6 @@
 
 -module(khepri_path).
 
--include_lib("stdlib/include/assert.hrl").
-
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
 
@@ -335,7 +333,7 @@ from_string([], ReversedPath) ->
     finalize_path([], ReversedPath);
 
 from_string(Rest, ReversedPath) ->
-    NotPath = lists:reverse(ReversedPath) ++ Rest,
+    NotPath = lists:reverse(ReversedPath, Rest),
     ?reject_invalid_path(NotPath).
 
 parse_atom_from_string(Rest, ReversedPath) ->
@@ -407,7 +405,7 @@ prepend_component(Component, ReversedPath) ->
 finalize_path(Rest, []) ->
     Rest;
 finalize_path(Rest, ReversedPath) ->
-    case lists:reverse(ReversedPath) ++ Rest of
+    case lists:reverse(ReversedPath, Rest) of
         [?KHEPRI_ROOT_NODE | Path] -> Path;
         Path                -> Path
     end.

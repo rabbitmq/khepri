@@ -114,7 +114,6 @@
 -module(khepri_import_export).
 
 -include_lib("kernel/include/logger.hrl").
--include_lib("stdlib/include/assert.hrl").
 
 -include("include/khepri.hrl").
 -include("src/khepri_machine.hrl").
@@ -273,7 +272,7 @@ open_write(Module, ModulePriv) ->
 -spec write(MachineState, Path, Node, Module, ModulePriv) -> Ret when
       MachineState :: khepri_machine:state(),
       Path :: khepri_path:native_path(),
-      Node :: khepri_tree:tree_node(),
+      Node :: khepri_tree:tree_node() | {interrupted, any(), map()},
       Module :: module(),
       ModulePriv :: khepri_import_export:module_priv(),
       Ret :: {ok, ModulePriv} | {error, any()}.

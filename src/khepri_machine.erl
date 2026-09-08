@@ -1113,9 +1113,8 @@ get_keep_while_conds_state(StoreId, Options)
 -spec get_projections_state(StoreId, Options) -> Ret when
       StoreId :: khepri:store_id(),
       Options :: khepri:query_options(),
-      Ret :: khepri:ok(ProjectionState) | khepri:error(),
-      ProjectionState :: khepri_pattern_tree:tree(Projection),
-      Projection :: khepri_projection:projection().
+      Ret :: khepri:ok(ProjectionTree) | khepri:error(),
+      ProjectionTree :: khepri_machine:projection_tree().
 %% @doc Returns the `projections' internal state.
 %%
 %% The returned state is a pattern tree containing the projections registered
@@ -2364,7 +2363,7 @@ do_apply(
                        fun(Projection, Acc1) ->
                                Name = khepri_projection:name(Projection),
                                _ = khepri_projection:delete(Projection),
-                               maps:put(Name, Pattern, Acc1)
+                               Acc1#{Name => Pattern}
                        end, Acc, RemovedProjections),
               Projections2 = case Projections1 of
                                  [] ->
