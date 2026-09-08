@@ -272,8 +272,8 @@ pattern, or a default payload.</p>
 
 <h3 class="function"><a name="exists-1">exists/1</a></h3>
 <div class="spec">
-<p><code>exists(PathPattern) -&gt; Exists</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Exists = boolean()</code></li></ul></p>
+<p><code>exists(PathPattern) -&gt; Exists | Error</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Exists = boolean()</code></li><li><code>Error = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Indicates if the tree node pointed to by the given path exists or not.</p>
  
@@ -284,8 +284,8 @@ pattern, or a default payload.</p>
 
 <h3 class="function"><a name="exists-2">exists/2</a></h3>
 <div class="spec">
-<p><code>exists(PathPattern, Options) -&gt; Exists</code>
-<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a></code></li><li><code>Exists = boolean()</code></li></ul></p>
+<p><code>exists(PathPattern, Options) -&gt; Exists | Error</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Options = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-tree_options" docgen-rel="seetype" docgen-href="khepri:khepri#tree_options/0">khepri:tree_options()</a></code></li><li><code>Exists = boolean()</code></li><li><code>Error = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error()</a></code></li></ul></p>
 <p></p>
 </div><p><p>Indicates if the tree node pointed to by the given path exists or not.</p>
  
