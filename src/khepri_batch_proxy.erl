@@ -200,7 +200,7 @@ process_batch(
     %                       Submitters
     %               end,
     case khepri_batch:is_empty(Batch) of
-        false -> Submitter ! {batch, Batch};
+        false -> Submitter ! {batch, Batch}, ok;
         true  -> ok
     end,
     NewBatch = khepri_batch:new(#{machine_version_from_store => StoreId}),
@@ -251,8 +251,8 @@ submitter_loop(StoreId, InFlight, Seq) ->
                                   Acc
                           end, InFlight, Rets),
             submitter_loop(StoreId, InFlight1, Seq);
-        Other ->
-            logger:alert("SUBMIT: Other = ~p", [Other]),
+        _Other ->
+            % logger:alert("SUBMIT: Other = ~p", [Other]),
             submitter_loop(StoreId, InFlight, Seq)
     end.
 
@@ -263,7 +263,7 @@ do_process_batch(StoreId, Seq, Batch) ->
                 %% very different timeouts? How to be sure the callers are
                 %% still waiting?
                 timeout => infinity},
-    logger:alert("SUBMIT ~p: submitting batch of size ~b...", [self(), khepri_batch:size(Batch)]),
+    % logger:alert("SUBMIT ~p: submitting batch of size ~b...", [self(), khepri_batch:size(Batch)]),
     _Ret = khepri_batch:submit(StoreId, Batch, Options),
     % logger:alert("SUBMIT ~p: submission processed", [self()]),
     ok.
