@@ -33,7 +33,7 @@
                   submitters = [] :: [pid()]}).
 
 -define(MAX_SIZE, 10).
--define(MAX_AGE, 2).
+-define(MAX_AGE, 20).
 -define(PT_SERVER_PID(StoreId), {?MODULE, StoreId}).
 
 start_link(StoreId) when ?IS_KHEPRI_STORE_ID(StoreId) ->
@@ -94,9 +94,11 @@ init(#{store_id := StoreId}) ->
        [ThisPid, StoreId]),
     erlang:process_flag(trap_exit, true),
     persistent_term:put(?PT_SERVER_PID(StoreId), ThisPid),
+    Submitter = spawn_link(fun() -> submitter_loop(StoreId) end),
     Batch = khepri_batch:new(#{machine_version_from_store => StoreId}),
     State = #?MODULE{store_id = StoreId,
-                     batch = Batch},
+                     batch = Batch,
+                     submitters = [Submitter]},
     {ok, State}.
 
 handle_call(
@@ -176,6 +178,7 @@ maybe_process_batch(#?MODULE{batch = Batch, batch_age = Age} = State) ->
           Elapsed = Now - Age,
           Elapsed >= ?MAX_AGE
       end),
+    % logger:alert("PROXY: current batch = ~b commands -> process = ~s", [khepri_batch:size(Batch), ShouldProcessBatch]),
     case ShouldProcessBatch of
         true  -> process_batch(State);
         false -> State
@@ -184,21 +187,25 @@ maybe_process_batch(#?MODULE{batch = Batch, batch_age = Age} = State) ->
 process_batch(
   #?MODULE{store_id = StoreId,
            batch = Batch,
-           submitters = Submitters} = State) ->
-    Submitters1 = case khepri_batch:is_empty(Batch) of
-                      false ->
-                          Pid = spawn_link(
-                                  fun() ->
-                                          do_process_batch(StoreId, Batch)
-                                  end),
-                          [Pid | Submitters];
-                      true ->
-                          Submitters
-                  end,
+           submitters = [Submitter]} = State) ->
+    % Submitters1 = case khepri_batch:is_empty(Batch) of
+    %                   false ->
+    %                       Pid = spawn_link(
+    %                               fun() ->
+    %                                       do_process_batch(StoreId, Batch)
+    %                               end),
+    %                       % logger:alert("PROXY: new submitter ~p (~b commands in batch, ~0p messages in mailbox, ~b submitters)", [Pid, khepri_batch:size(Batch), erlang:process_info(self(), [message_queue_len]), length(Submitters) + 1]),
+    %                       [Pid | Submitters];
+    %                   true ->
+    %                       Submitters
+    %               end,
+    case khepri_batch:is_empty(Batch) of
+        false -> Submitter ! {batch, Batch};
+        true  -> ok
+    end,
     NewBatch = khepri_batch:new(#{machine_version_from_store => StoreId}),
     State1 = State#?MODULE{batch = NewBatch,
-                           batch_age = undefined,
-                           submitters = Submitters1},
+                           batch_age = undefined},
     State1.
 
 % do_process_batch(StoreId, Commands) ->
@@ -221,23 +228,55 @@ process_batch(
 %             ?LOG_ERROR("Error = ~p", [Error]),
 %             ok
 %     end.
-do_process_batch(StoreId, Batch) ->
+
+submitter_loop(StoreId) ->
+    submitter_loop(StoreId, #{}, 1).
+
+submitter_loop(StoreId, InFlight, Seq) ->
+    receive
+        {batch, Batch} ->
+            do_process_batch(StoreId, Seq, Batch),
+            InFlight1 = InFlight#{Seq => Batch},
+            Seq1 = Seq + 1,
+            submitter_loop(StoreId, InFlight1, Seq1);
+        {ra_event, _, _} = Event ->
+            Rets = khepri:handle_async_ret(Event),
+            InFlight1 = lists:foldl(
+                          fun
+                              ({CorrelationId, {ok, _}}, Acc) ->
+                                  maps:remove(CorrelationId, Acc);
+                              ({CorrelationId, {error, {not_leader, _}}}, Acc) ->
+                                  Batch = maps:get(CorrelationId, Acc),
+                                  do_process_batch(StoreId, CorrelationId, Batch),
+                                  Acc
+                          end, InFlight, Rets),
+            submitter_loop(StoreId, InFlight1, Seq);
+        Other ->
+            logger:alert("SUBMIT: Other = ~p", [Other]),
+            submitter_loop(StoreId, InFlight, Seq)
+    end.
+
+do_process_batch(StoreId, Seq, Batch) ->
     Options = #{reply_from => {member, {StoreId, node()}},
+                async => Seq,
                 %% FIXME: How to manage timeout, especially if commands have
                 %% very different timeouts? How to be sure the callers are
                 %% still waiting?
                 timeout => infinity},
-    Ret = khepri_batch:submit(StoreId, Batch, Options),
-    case Ret of
-        {ok, _} ->
-            ok;
-        Error ->
-            Commands = khepri_batch:get_commands(Batch),
-            lists:foreach(
-              fun(Command) ->
-                      {gen_server, From} = khepri_machine:get_reply_to_option(Command),
-                      ?LOG_ERROR("Error = ~0p -> ~0p", [Error, From]),
-                      gen_server:reply(From, Error)
-              end, Commands),
-            ok
-    end.
+    logger:alert("SUBMIT ~p: submitting batch of size ~b...", [self(), khepri_batch:size(Batch)]),
+    _Ret = khepri_batch:submit(StoreId, Batch, Options),
+    % logger:alert("SUBMIT ~p: submission processed", [self()]),
+    ok.
+    % case Ret of
+    %     {ok, _} ->
+    %         ok;
+    %     Error ->
+    %         Commands = khepri_batch:get_commands(Batch),
+    %         lists:foreach(
+    %           fun(Command) ->
+    %                   {gen_server, From} = khepri_machine:get_reply_to_option(Command),
+    %                   ?LOG_ERROR("Error = ~0p -> ~0p", [Error, From]),
+    %                   gen_server:reply(From, Error)
+    %           end, Commands),
+    %         ok
+    % end.
