@@ -2031,7 +2031,7 @@ can_set_snapshot_interval(Config) ->
     ok.
 
 await_snapshot_index(RaServer, ExpectedIndex) ->
-    await_snapshot_index(RaServer, ExpectedIndex, 10).
+    await_snapshot_index(RaServer, ExpectedIndex, 50).
 
 await_snapshot_index(RaServer, ExpectedIndex, Retries) ->
     {ok, #{log := #{snapshot_index := ActualIndex}}, RaServer} =

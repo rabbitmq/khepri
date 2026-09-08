@@ -12,7 +12,6 @@
 -behaviour(application).
 
 -include_lib("kernel/include/logger.hrl").
--include_lib("stdlib/include/assert.hrl").
 
 -include("src/khepri_cluster.hrl").
 -include("src/khepri_error.hrl").
@@ -30,7 +29,9 @@ start(normal, []) ->
 stop(_) ->
     StoreIds = khepri:get_store_ids(),
     lists:foreach(
-      fun(StoreId) -> _ = khepri_cluster:stop(StoreId) end,
+      fun(StoreId) when is_atom(StoreId) ->
+              _ = khepri_cluster:stop(StoreId)
+      end,
       StoreIds),
     khepri_utils:clear_list_of_modules_to_skip(),
     ok.
