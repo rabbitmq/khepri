@@ -335,7 +335,7 @@ verify_ra_system_and_start(DataDir, RaServerConfig, Timeout)
             ensure_server_started(RaSystem, RaServerConfig, Timeout);
         {error, {already_started, _}} ->
             ensure_server_started(RaSystem, RaServerConfig, Timeout);
-        Error ->
+        {error, _} = Error ->
             Error
     end;
 verify_ra_system_and_start(DataDir, RaServerConfig, Timeout)
