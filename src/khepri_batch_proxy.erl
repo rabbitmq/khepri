@@ -32,8 +32,8 @@
                   batch_age = undefined,
                   submitters = [] :: [pid()]}).
 
--define(MAX_SIZE, 20).
--define(MAX_AGE, 10).
+-define(MAX_SIZE, 10).
+-define(MAX_AGE, 2).
 -define(PT_SERVER_PID(StoreId), {?MODULE, StoreId}).
 
 start_link(StoreId) when ?IS_KHEPRI_STORE_ID(StoreId) ->
