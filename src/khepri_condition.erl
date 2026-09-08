@@ -400,13 +400,13 @@ compile(#if_not{condition = InnerCond} = Cond) ->
     InnerCond1 = compile(InnerCond),
     Cond#if_not{condition = InnerCond1};
 compile(#if_all{conditions = InnerConds} = Cond) ->
-    InnerConds1 = lists:map(fun compile/1, InnerConds),
+    InnerConds1 = [compile(InnerCond) || InnerCond <- InnerConds],
     case optimize_if_all_conditions(InnerConds1) of
         [InnerCond] -> InnerCond;
         InnerConds2 -> Cond#if_all{conditions = InnerConds2}
     end;
 compile(#if_any{conditions = InnerConds} = Cond) ->
-    InnerConds1 = lists:map(fun compile/1, InnerConds),
+    InnerConds1 = [compile(InnerCond) || InnerCond <- InnerConds],
     case optimize_if_any_conditions(InnerConds1) of
         [InnerCond] -> InnerCond;
         InnerConds2 -> Cond#if_any{conditions = InnerConds2}
