@@ -3893,7 +3893,8 @@ info(StoreId, Options) ->
                               WatchedPaths = lists:sort(maps:keys(Watched)),
                               lists:foreach(
                                 fun(WatchedPath) ->
-                                        Condition = maps:get(WatchedPath, Watched),
+                                        Condition = maps:get(
+                                                      WatchedPath, Watched),
                                         io:format(
                                           "    ~p:~n"
                                           "        ~p~n",

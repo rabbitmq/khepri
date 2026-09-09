@@ -511,10 +511,11 @@ put(StoreId, PathPattern, Payload, Options)
                           true ->
                               {TreeOptions, PutOptions} = split_put_options(
                                                             NonCommandOptions),
-                              CommandArgs = #put_v1{path = PathPattern1,
-                                                    payload = Payload1,
-                                                    put_options = PutOptions,
-                                                    tree_options = TreeOptions},
+                              CommandArgs = #put_v1{
+                                               path = PathPattern1,
+                                               payload = Payload1,
+                                               put_options = PutOptions,
+                                               tree_options = TreeOptions},
                               #put_v{args = CommandArgs};
                           false ->
                               #put{path = PathPattern1,
@@ -1791,9 +1792,10 @@ handle_aux(leader, cast, eval, AuxState, IntState) ->
                                Members2 ->
                                    [];
                                _ ->
-                                   Command1 = #cache_members_list{
-                                                 args = #cache_members_list_v1{
-                                                           members = Members2}},
+                                   Command1 = (
+                                     #cache_members_list{
+                                        args = #cache_members_list_v1{
+                                                  members = Members2}}),
                                    Command2 = compute_command_size(Command1),
                                    SideEffect1 = {append, Command2},
                                    [SideEffect1]
@@ -1867,7 +1869,8 @@ handle_aux(
 handle_aux(leader, cast, tick, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
     SideEffects0 = [],
-    SideEffects1 = handle_irrelevant_triggers(AuxState1, IntState, SideEffects0),
+    SideEffects1 = handle_irrelevant_triggers(
+                     AuxState1, IntState, SideEffects0),
     {AuxState2, SideEffects2} = handle_down_procs(
                                   AuxState1, IntState, SideEffects1),
     SideEffects3 = handle_expired_dedups(AuxState2, IntState, SideEffects2),
@@ -2149,17 +2152,18 @@ apply(
     catch
         Class:Reason:Stacktrace ->
             StoreId = get_store_id(State),
-            Msg = io_lib:format("State machine crash while applying a command~n"
-                                "  StoreId: ~s~n"
-                                "  Machine version: ~b~n"
-                                "  Command:~n"
-                                "    ~p~n"
-                                "  Crash:~n"
-                                "    ~ts",
-                                [StoreId, MacVer, Command,
-                                 khepri_utils:format_exception(
-                                   Class, Reason, Stacktrace,
-                                   #{column => 4})]),
+            Msg = io_lib:format(
+                    "State machine crash while applying a command~n"
+                    "  StoreId: ~s~n"
+                    "  Machine version: ~b~n"
+                    "  Command:~n"
+                    "    ~p~n"
+                    "  Crash:~n"
+                    "    ~ts",
+                    [StoreId, MacVer, Command,
+                     khepri_utils:format_exception(
+                       Class, Reason, Stacktrace,
+                       #{column => 4})]),
             ?LOG_ALERT(Msg, []),
             erlang:raise(Class, Reason, Stacktrace)
     end.
@@ -2687,10 +2691,14 @@ post_apply({State, Result}, Meta, Command) ->
     post_apply({State, Result, []}, Meta, Command);
 post_apply({State, Result, SideEffects}, Meta, Command) ->
     State1 = bump_unreleased_command_footprint(State, Command),
-    {State2, SideEffects2} = bump_applied_command_count(State1, SideEffects, Meta),
-    {State3, SideEffects3} = drop_expired_dedups(State2, SideEffects2, Meta),
-    {State4, SideEffects4} = trigger_delayed_aux_queries_eval(State3, SideEffects3, Meta),
-    {State5, SideEffects5} = maybe_request_snapshot(State4, SideEffects4, Meta),
+    {State2, SideEffects2} = bump_applied_command_count(
+                               State1, SideEffects, Meta),
+    {State3, SideEffects3} = drop_expired_dedups(
+                               State2, SideEffects2, Meta),
+    {State4, SideEffects4} = trigger_delayed_aux_queries_eval(
+                               State3, SideEffects3, Meta),
+    {State5, SideEffects5} = maybe_request_snapshot(
+                               State4, SideEffects4, Meta),
     {State5, Result, lists:reverse(SideEffects5)}.
 
 -spec bump_applied_command_count(State, SideEffects, Meta) ->
@@ -4156,7 +4164,8 @@ get_snapshot_interval(State) ->
 
 get_unreleased_command_footprint_threshold(State) ->
     Config = get_config(State),
-    Threshold = khepri_config:get_unreleased_command_footprint_threshold(Config),
+    Threshold = khepri_config:get_unreleased_command_footprint_threshold(
+                  Config),
     Threshold.
 
 -spec get_snapshot_time_interval(State) -> TimeInterval when
@@ -4458,7 +4467,8 @@ maybe_request_snapshot(State, SideEffects, #{index := RaftIndex}) ->
 should_request_snapshot(State) ->
     maybe
         continue ?= need_snapshot_after_some_time(State),
-        continue ?= request_snapshot_based_on_unreleased_command_footprint(State),
+        continue ?= request_snapshot_based_on_unreleased_command_footprint(
+                      State),
         request_snapshot_based_on_applied_command_count(State)
     end.
 

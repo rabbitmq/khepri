@@ -39,7 +39,8 @@
 -opaque machine_config_v1() :: #config{}.
 %% Configuration record, version 1.
 
--type machine_config() :: machine_config_v1() | khepri_config_v0:machine_config().
+-type machine_config() :: machine_config_v1() |
+                          khepri_config_v0:machine_config().
 %% Configuration record, holding read-only or rarely changing fields.
 
 -export_type([machine_config/0,
