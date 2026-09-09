@@ -21,4 +21,4 @@
 
 -record(node, {props = ?INIT_NODE_PROPS :: khepri_machine:props(),
                payload = ?NO_PAYLOAD :: khepri_payload:payload(),
-               child_nodes = #{} :: #{khepri_path:component() := #node{}}}).
+               child_nodes = #{} :: #{khepri_path:component() => #node{}}}).

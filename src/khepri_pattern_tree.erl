@@ -427,8 +427,8 @@ maps_filtermap_fold(_Fun, Acc, none, Pairs) ->
 -spec any(PatternTree, FindFun) -> Ret when
       PatternTree :: khepri_pattern_tree:tree(Payload),
       FindFun :: find_fun(Payload),
-      Ret :: payload() | undefined,
-      Payload :: payload().
+      Payload :: payload(),
+      Ret :: boolean().
 %% @doc Determines whether the pattern tree contains a tree node with a payload
 %% that matches the given predicate.
 %%
