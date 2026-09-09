@@ -102,7 +102,9 @@ jobs:
         run: sed -E -i -e 's/^@version.*/@version Development branch/' doc/overview.edoc
 
       - name: Generate
-        run: rebar3 edoc
+        run: |
+          rebar3 edoc
+          rm -rf doc/chunks
 
       - name: Ensure HTML files are there
         run: ls -l doc && test -f doc/index.html
