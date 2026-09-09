@@ -66,7 +66,7 @@ Using Rebar:
 
 ```erlang
 %% In rebar.config
-{deps, [{khepri, "0.18.1"}]}.
+{deps, [{khepri, "0.19.0"}]}.
 ```
 
 Using Erlang.mk:
@@ -74,7 +74,7 @@ Using Erlang.mk:
 ```make
 # In your Makefile
 DEPS += khepri
-dep_khepri = hex 0.18.1
+dep_khepri = hex 0.19.0
 ```
 
 Using Mix:
@@ -83,7 +83,7 @@ Using Mix:
 # In mix.exs
 defp deps do
   [
-    {:khepri, "0.18.1"}
+    {:khepri, "0.19.0"}
   ]
 end
 ```
