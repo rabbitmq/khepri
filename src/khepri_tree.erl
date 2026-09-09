@@ -1711,7 +1711,8 @@ list_deleted_nodes_recursively_from(
     maps:fold(
       fun(ChildName, ChildNode, AppliedChangesAcc1) ->
               ChildPath = Path ++ [ChildName],
-              TreeOptions = #{props_to_return => ?INTERNAL_LOOKUP_PROPS_TO_RETURN},
+              TreeOptions = #{props_to_return =>
+                              ?INTERNAL_LOOKUP_PROPS_TO_RETURN},
               InitialNodeProps = gather_node_props(ChildNode, TreeOptions),
               AppliedChangesAcc2 = add_change_to_applied_changes(
                                      AppliedChangesAcc1, ChildPath,
