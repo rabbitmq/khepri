@@ -110,9 +110,7 @@ jobs:
           sed -E -i -e "s/^@version.*/@version $version/" doc/overview.edoc
 
       - name: Generate
-        run: |
-          rebar3 edoc
-          rm -rf doc/chunks
+        run: rebar3 ex_doc
 
       - name: Ensure HTML files are there
         run: ls -l doc && test -f doc/index.html
@@ -200,4 +198,4 @@ jobs:
       - name: Publish to Hex.pm
         env:
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
-        run: rebar3 edoc && rebar3 hex publish -r hexpm --yes
+        run: rebar3 ex_doc && rebar3 hex publish -r hexpm --yes
