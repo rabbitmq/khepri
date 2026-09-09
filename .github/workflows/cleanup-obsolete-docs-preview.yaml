@@ -1,0 +1,33 @@
+name: Cleanup obsolete docs preview
+
+on:
+  - delete
+  - pull_request:
+      types:
+        - closed
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: gh-pages
+
+      - name: Cleanup
+        run: |
+          if test "${{ github.event.number }}";
+            msg="Clean preview of pull request ${{ github.event.number }}"
+            git rm -r previews/pr-${{ github.event.number }}
+          else
+            msg="Clean preview of branch ${{ github.ref_name }}"
+            git rm -r previews/${{ github.ref_name }}
+          fi
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          if ! git diff --cached --quiet; then
+            git commit -m "$msg"
+            git push || (git pull --rebase && git push)
+          fi
