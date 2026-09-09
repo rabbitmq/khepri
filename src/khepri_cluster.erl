@@ -1435,7 +1435,8 @@ wait_for_effective_machine_version({StoreId, _Node}, MacVer, Timeout) ->
     wait_for_effective_machine_version(StoreId, MacVer, Timeout);
 wait_for_effective_machine_version(StoreId, MacVer, Timeout)
   when ?IS_KHEPRI_STORE_ID(StoreId) ->
-    khepri_machine:wait_for_effective_machine_version(StoreId, MacVer, Timeout).
+    khepri_machine:wait_for_effective_machine_version(
+      StoreId, MacVer, Timeout).
 
 -spec wait_for_effective_behaviour(StoreIdOrRaServer, Behaviour) -> Ret when
       StoreIdOrRaServer :: StoreId | RaServer,

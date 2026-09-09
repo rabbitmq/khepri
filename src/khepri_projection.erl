@@ -103,7 +103,8 @@
 %%
 %% The simple projection function takes 4 arguments:
 %% <ol>
-%% <li>the table ID, or the map of table names/IDs if multiple tables where configured</li>
+%% <li>the table ID, or the map of table names/IDs if multiple tables where
+%% configured</li>
 %% <li>the tree node path</li>
 %% <li>the tree node properies before the update/deletion</li>
 %% <li>the tree node properies after the update/deletion</li>
@@ -118,11 +119,13 @@
 %% ProjectionName = wood_stocks,
 %% ProjectionFun = fun
 %%                     %% Stock update.
-%%                     (Tid, [stock, wood, Kind], _OldProps, #{data := Stock}) ->
+%%                     (Tid, [stock, wood, Kind],
+%%                      _OldProps, #{data := Stock}) ->
 %%                         ets:insert(Tid, {Kind, Stock});
 %%
 %%                     %% Stock deletion.
-%%                     (Tid, [stock, wood, Kind], #{data := Stock}, _NewProps) ->
+%%                     (Tid, [stock, wood, Kind],
+%%                      #{data := Stock}, _NewProps) ->
 %%                         ets:delete(Tid, {Kind, Stock})
 %%                 end,
 %% Options = #{type => set,
@@ -153,8 +156,8 @@
 %%                      #{data := Stock}) ->
 %%                         ets:insert(WoodStocksTid, {Kind, Stock}),
 %%
-%%                         %% Depending on the stock, we check if we need to order
-%%                         %% new wood.
+%%                         %% Depending on the stock, we check if we need to
+%%                         %% order new wood.
 %%                         if
 %%                             Stock < 50 ->
 %%                                 ets:insert(WoodNeedsTid, {Kind, true});
@@ -174,9 +177,9 @@
 %%                         %% We definitely need to order wood of this kind.
 %%                         ets:insert(WoodNeedsTid, {Kind, true});
 %%                 end,
-%% Options = #{%% Map of ETS tables and their specific ETS options; here, we don't
-%%             %% need specific ETS options: they will use the globablly defined
-%%             %% options as a fallback.
+%% Options = #{%% Map of ETS tables and their specific ETS options; here, we
+%%             %% don't need specific ETS options: they will use the
+%%             %% globablly defined options as a fallback.
 %%             tables => #{wood_stocks => #{},
 %%                         wood_needs => #{}},
 %%

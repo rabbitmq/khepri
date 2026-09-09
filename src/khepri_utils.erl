@@ -34,11 +34,14 @@
 -dialyzer(no_missing_calls).
 
 -type display_tree() :: #{data => khepri:data(),
+                          has_data => boolean(),
                           sproc => horus:horus_fun(),
+                          is_sproc => boolean(),
                           payload_version => khepri:payload_version(),
                           child_list_version => khepri:child_list_version(),
                           child_list_length => khepri:child_list_length(),
                           child_names => [khepri_path:node_id()],
+                          delete_reason => khepri:delete_reason(),
                           child_nodes => #{khepri_path:node_id() =>
                                            display_tree()}}.
 
@@ -59,7 +62,8 @@ start_timeout_window(_Timeout) ->
 
 end_timeout_window(infinity = Timeout, none) ->
     Timeout;
-end_timeout_window(Timeout, T0) ->
+end_timeout_window(Timeout, T0)
+  when is_integer(Timeout) andalso is_integer(T0) ->
     T1 = erlang:monotonic_time(),
     TDiff = erlang:convert_time_unit(T1 - T0, native, millisecond),
     Remaining = Timeout - TDiff,
