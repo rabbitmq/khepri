@@ -7,7 +7,7 @@
 Khepri is a tree-like replicated on-disk database library for Erlang and
 Elixir, built on top of the [Raft consensus algorithm](https://raft.github.io/).
 
-<img align="right" width="100" src="/doc/khepri-logo.svg">
+<img align="right" width="100" src="https://raw.githubusercontent.com/rabbitmq/khepri/main/doc/khepri-logo.svg">
 
 ## The basics
 
