@@ -2058,7 +2058,8 @@ clear_cached_effective_machine_version(StoreId) ->
       Behaviour :: khepri_machine:api_behaviour(),
       Ret :: MacVer | undefined,
       MacVer :: 1..3.
-%% @doc Returns the state machine version that implemented the given API behaviour.
+%% @doc Returns the state machine version that implemented the given API
+%% behaviour.
 %%
 %% If the behaviour is unknown to this implementation, `undefined' is returned.
 
