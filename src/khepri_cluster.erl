@@ -1428,8 +1428,6 @@ wait_for_effective_machine_version(StoreIdOrRaServer, MacVer) ->
 %%
 %% @returns `ok' when the state machine of the given store runs at least the
 %% given version or an `{error, Reason}' tuple.
-%%
-%% @private
 
 wait_for_effective_machine_version({StoreId, _Node}, MacVer, Timeout) ->
     wait_for_effective_machine_version(StoreId, MacVer, Timeout);
@@ -1478,8 +1476,6 @@ wait_for_effective_behaviour(StoreIdOrRaServer, Behaviour) ->
 %%
 %% @returns `ok' when the state machine of the given store supports the given
 %% API behaviour or an `{error, Reason}' tuple.
-%%
-%% @private
 
 wait_for_effective_behaviour({StoreId, _Node}, Behaviour, Timeout) ->
     wait_for_effective_behaviour(StoreId, Behaviour, Timeout);

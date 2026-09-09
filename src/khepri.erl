@@ -425,8 +425,8 @@
 %% action is triggered).</li>
 %% </ul>
 %%
-%% NOTE: When this list of trigger options is modified, {@link
-%% khepri_machine:split_command_options/2} must be adapted.
+%% NOTE: When this list of trigger options is modified,
+%% `khepri_machine:split_command_options/2' must be adapted.
 
 -type fold_fun() :: fun((khepri_path:native_path(),
                          khepri:node_props(),
