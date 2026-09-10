@@ -18,11 +18,15 @@ jobs:
       - name: Cleanup
         run: |
           if test "${{ github.event.number }}"; then
+            echo "Pull request: ${{ github.event.number }}"
             msg="Clean preview of pull request ${{ github.event.number }}"
             git rm -r previews/pr-${{ github.event.number }}
           else
-            msg="Clean preview of branch ${{ github.ref_name }}"
-            git rm -r previews/${{ github.ref_name }}
+            echo "Git ref: ${{ github.event.ref }}"
+            branch="${{ github.event.ref }}"
+            branch="${branch#refs/heads/}"
+            msg="Clean preview of branch $branch"
+            git rm -r "previews/$branch"
           fi
 
           git config user.name github-actions[bot]
