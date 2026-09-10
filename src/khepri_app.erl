@@ -6,7 +6,16 @@
 %% refers to Broadcom Inc. and/or its subsidiaries.
 %%
 
-%% @hidden
+%% @doc The Khepri application
+%%
+%% Khepri supports the following application environment variables:
+%% <ul>
+%% <li>`default_ra_system': the name of the Ra system by default for Khepri
+%% stores.</li>
+%% <li>`default_store_id': the name of the default store, used by API that
+%% don't take a `StoreId'.</li>
+%% <li>`default_timeout': the default timeout.</li>
+%% </ul>
 
 -module(khepri_app).
 -behaviour(application).

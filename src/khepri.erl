@@ -348,8 +348,8 @@
 %% `favor' computes a `condition' internally. Therefore if both options are
 %% set, `condition' takes precedence and `favor' is ignored.
 %%
-%% NOTE: When this list of query options is modified, {@link
-%% khepri_machine:split_query_options/2} must be adapted.
+%% NOTE: When this list of query options is modified,
+%% `khepri_machine:split_query_options/2' must be adapted.
 
 -type tree_options() :: #{expect_specific_node => boolean(),
                           props_to_return => [known_prop_to_return() |
@@ -375,9 +375,9 @@
 %% the effective machine version is too old.</li>
 %% </ul>
 %%
-%% NOTE: When this list of tree options is modified, {@link
-%% khepri_machine:split_query_options/2} and {@link
-%% khepri_machine:split_command_options/2} must be adapted.
+%% NOTE: When this list of tree options is modified,
+%% `khepri_machine:split_query_options/2' and
+%% `khepri_machine:split_command_options/2' must be adapted.
 
 -type known_prop_to_return() :: payload_version |
                                 child_list_version |
@@ -407,9 +407,9 @@
 %% created/updated tree node.</li>
 %% </ul>
 %%
-%% NOTE: When this list of put options is modified, {@link
-%% khepri_machine:split_command_options/2} and {@link
-%% khepri_machine:split_put_options/2} must be adapted.
+%% NOTE: When this list of put options is modified,
+%% `khepri_machine:split_command_options/2' and
+%% `khepri_machine:split_put_options/2' must be adapted.
 
 -type fold_fun() :: fun((khepri_path:native_path(),
                          khepri:node_props(),
