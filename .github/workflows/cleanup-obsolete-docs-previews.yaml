@@ -36,6 +36,7 @@ jobs:
                 fi
                 ;;
               *)
+                git fetch -p --all
                 git remote -v
                 git branch -va
                 git show "origin/$ref" | cat
