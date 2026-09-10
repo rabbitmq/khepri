@@ -2,6 +2,8 @@ name: Cleanup obsolete docs previews
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'
 
 jobs:
   run:
@@ -46,7 +48,9 @@ jobs:
             esac
 
             if test "$delete" = 'true'; then
-              echo git rm -r "$dir"
+              echo "Deleting '$dir'"
+              git rm -r "$dir"
+              echo
             fi
           done < index-files.txt
 
