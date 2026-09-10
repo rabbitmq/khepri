@@ -1,6 +1,7 @@
-name: Cleanup obsolete docs preview
+name: Cleanup obsolete docs previews
 
 on:
+  workflow_dispatch:
 
 jobs:
   run:
@@ -14,27 +15,27 @@ jobs:
       - name: Cleanup
         run: |
           find previews -name index.html -fprint index-files.txt
-	  while read index; do
-	    dir=$(dirname "$index")
+          while read index; do
+            dir=$(dirname "$index")
             ref="${dir#previews/}"
 
             case "$ref" in
               pr-*)
-		pr="${ref#pr-}"
-		if test $(gh pr view -R rabbitmq/khepri --json closed --jq .closed "$pr") = 'true'; then
-	          delete=true
-		fi
-		;;
-	      *)
-		if ! git show "origin/$ref" >/dev/null 2>&1; then
-	          delete=true
-		fi
-		;;
+                pr="${ref#pr-}"
+                if test $(gh pr view -R rabbitmq/khepri --json closed --jq .closed "$pr") = 'true'; then
+                  delete=true
+                fi
+                ;;
+              *)
+                if ! git show "origin/$ref" >/dev/null 2>&1; then
+                  delete=true
+                fi
+                ;;
             esac
 
-	    if "$delete" = 'true'; then
-	      echo git rm -r "$dir"
-	    fi
+            if "$delete" = 'true'; then
+              echo git rm -r "$dir"
+            fi
           done < index-files.txt
 
           git config user.name github-actions[bot]
