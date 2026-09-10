@@ -1,0 +1,45 @@
+name: Cleanup obsolete docs preview
+
+on:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: gh-pages
+
+      - name: Cleanup
+        run: |
+          find previews -name index.html -fprint index-files.txt
+	  while read index; do
+	    dir=$(dirname "$index")
+            ref="${dir#previews/}"
+
+            case "$ref" in
+              pr-*)
+		pr="${ref#pr-}"
+		if test $(gh pr view -R rabbitmq/khepri --json closed --jq .closed "$pr") = 'true'; then
+	          delete=true
+		fi
+		;;
+	      *)
+		if ! git show "origin/$ref" >/dev/null 2>&1; then
+	          delete=true
+		fi
+		;;
+            esac
+
+	    if "$delete" = 'true'; then
+	      echo git rm -r "$dir"
+	    fi
+          done < index-files.txt
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          if ! git diff --cached --quiet; then
+            git commit -m "$msg"
+            git push || (git pull --rebase && git push)
+          fi
