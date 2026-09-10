@@ -18,9 +18,12 @@ jobs:
         run: |
           set -e
 
+          git fetch -p --all
+
           find previews -name index.html -fprint index-files.txt
           while read index; do
             echo "Index file: $index"
+            delete=''
 
             dir=$(dirname "$index")
             echo "Preview dir: $dir"
@@ -36,10 +39,6 @@ jobs:
                 fi
                 ;;
               *)
-                git fetch -p --all
-                git remote -v
-                git branch -va
-                git show "origin/$ref" | cat
                 if ! git show "origin/$ref" >/dev/null 2>&1; then
                   delete=true
                 fi
