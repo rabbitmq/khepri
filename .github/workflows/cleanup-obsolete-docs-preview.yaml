@@ -2,7 +2,7 @@ name: Cleanup obsolete docs preview
 
 on:
   delete:
-  pull_request_target:
+  pull_request:
     types:
       - closed
 
