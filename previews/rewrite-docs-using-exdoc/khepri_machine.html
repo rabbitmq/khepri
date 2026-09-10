@@ -1,0 +1,1700 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.40.3">
+    <meta name="project" content="khepri v0.19.0">
+
+
+    <title>khepri_machine — khepri v0.19.0</title>
+
+    <link rel="stylesheet" href="dist/html-erlang-KCHZLXSC.css" />
+
+    <script defer src="dist/sidebar_items-55A96F02.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-Y2MUTVIN.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+      <div>
+        <a href="readme.html" class="sidebar-projectName" translate="no">
+khepri
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v0.19.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras="Pages"></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-module" id="main" data-type="modules">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of khepri</span>
+            <div class="search-input-wrapper">
+              <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+                <i class="ri-close-line ri-lg" title="Cancel search"></i>
+              </button>
+            </div>
+          </label>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <div class="engine-selector" data-multiple="false">
+          <button type="button" class="engine-button" aria-label="Select search engine" aria-haspopup="true" aria-expanded="false">
+            <i class="ri-search-2-line" aria-hidden="true"></i>
+            <span class="engine-name">Default</span>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          <div class="engine-dropdown" hidden role="menu">
+
+              <button type="button"
+                      class="engine-option"
+                      data-engine-url="search.html?q="
+                      role="menuitemradio"
+                      aria-checked="true">
+                <span class="name">Default</span>
+                <span class="help">In-browser search</span>
+              </button>
+
+          </div>
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>
+      <span translate="no">khepri_machine</span> 
+      <small class="app-vsn" translate="no">(khepri v0.19.0)</small>
+
+    </h1>
+
+
+      <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L105" title="View Source" class="icon-action" rel="help nofollow">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+  </div>
+
+
+    <section id="moduledoc">
+<p>Khepri private low-level API.</p><p>This module exposes the private &quot;low-level&quot; API to the Khepri database and state machine. Main functions correspond to Ra commands implemented by the state machine. All functions in <a href="khepri.html"><code>khepri</code></a> are built on top of this module.</p><p>This module is private. The documentation is still visible because it may help understand some implementation details. However, this module should never be called directly outside of Khepri.</p><h3 id="module-state-machine-history" class="section-heading"><a href="#module-state-machine-history" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text"><a name="State_machine_history">State machine history</a></span></h3><p>&lt;table&gt;&lt;tr&gt;&lt;th&gt;Version&lt;/th&gt;&lt;th&gt;What changed&lt;/th&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;0&lt;/td&gt;&lt;td&gt;Initial version&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;</p><ul><li>Added deduplication mechanism:<ul><li>new command option <code>protect_against_dups</code></li><li>new commands <code>#dedup{}</code> and <code>#dedup_ack{}</code></li><li>new state field <code>dedups</code></li></ul></li><li>Added command <code>#unregister_projections{}</code>. The previous <code>#unregister_projection{}</code> is still supported for backward-compatibility but it is no longer created.</li></ul><p>&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;2&lt;/td&gt;&lt;td&gt;</p><ul><li>Changed the data structure for the reverse index used to track keep-while conditions to be a prefix tree (see <a href="khepri_prefix_tree.html"><code>khepri_prefix_tree</code></a>).</li><li>Moved the expiration of dedups to the <code>tick</code> aux effect. This also introduces a new command <code>#drop_dedups{}</code>.</li><li>Added the <code>delete_reason</code> to the list of properties that can be returned. It is returned by default if the effective machine version is 2 or more.</li></ul><p>&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;3&lt;/td&gt;&lt;td&gt;</p><ul><li>Added support for multi-table projections (see <a href="khepri_projection.html"><code>khepri_projection</code></a>).</li></ul><p>&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;4&lt;/td&gt;&lt;td&gt;</p><ul><li>Added uniform commands, replacing all existing commands.</li><li>Added <code>#request_snapshot{}</code> helper command for tests.</li><li>Started to record init arguments in the machine state.</li><li>Started to track unreleased command footprint in state machine metrics.</li><li>Started to use unreleased command footprint to determine if a snapshot is needed.</li><li>Started to use the last snasphot timestamp to determine if a snapshot is needed.</li><li>Extended the trigger mechanism to support other types of action, in addition to stored procedures. This comes with two new records: the <code>#register_trigger_v2{}</code> command and <code>#triggered_v2{}</code>, stored in the machine state. The extended mechanism continues to support stored procedure (the previous mechanism is not used with version 4).</li><li>Started to cache the list of cluster member nodenames in the machine state. The machine state was modified to add the <code>cached_members</code> list at its end.</li><li>Added the <code>where</code> option for triggers, to allow the caller to decide on which cluster member(s) the trigger action is executed. See <a href="khepri.html#t:trigger_options/0"><code>khepri:trigger_options()</code></a>.</li><li>Added support for process-lifetime-based triggers. The trigger can be executed when a process exits.</li><li>Added support for process-lifetime-based <code>keep_while</code> condition. The <code>keep_while</code> put option can take a PID. The tree node will be deleted as soon as the associated process exits. See <a href="khepri_condition.html#t:keep_while/0"><code>khepri_condition:keep_while()</code></a>.</li><li>Added support for &quot;apply MFA&quot; and &quot;send message&quot; trigger actions.</li></ul><p>&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</p>
+    </section>
+
+</div>
+
+  <section id="summary" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h2>
+<div class="summary-types summary">
+  <h3>
+    <a href="#types">Types</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:api_behaviour/0" data-no-tooltip="" translate="no">api_behaviour/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Name of a state machine API behaviour.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:async_ret/0" data-no-tooltip="" translate="no">async_ret/0</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:aux_query/0" data-no-tooltip="" translate="no">aux_query/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Query executed through the Ra aux mechanism.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:cached_members_list/0" data-no-tooltip="" translate="no">cached_members_list/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Non-empty list of cluster member nodenames.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:command/0" data-no-tooltip="" translate="no">command/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Commands specific to this Ra machine.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:dedups_map/0" data-no-tooltip="" translate="no">dedups_map/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Map to handle command deduplication.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:delayed_aux_query/0" data-no-tooltip="" translate="no">delayed_aux_query/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Aux query that is delayed until a condition is met.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:machine_init_args/0" data-no-tooltip="" translate="no">machine_init_args/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Structure passed to <code>init/1</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:metrics/0" data-no-tooltip="" translate="no">metrics/0</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:old_command/0" data-no-tooltip="" translate="no">old_command/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Old commands that are still accepted by the Ra machine but never created.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:projection_map/0" data-no-tooltip="" translate="no">projection_map/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>A mapping between the names of projections and patterns to which each projection is registered.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:projection_tree/0" data-no-tooltip="" translate="no">projection_tree/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>A pattern tree that holds all registered projections in the machine's state.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:props/0" data-no-tooltip="" translate="no">props/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Properties attached to each node in the tree structure.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:query_fun/0" data-no-tooltip="" translate="no">query_fun/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Function representing a query and used <code>process_query/3</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:state/0" data-no-tooltip="" translate="no">state/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>State of this Ra state machine.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:state_v4/0" data-no-tooltip="" translate="no">state_v4/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>State of this Ra state machine, version 4.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:triggered/0" data-no-tooltip="" translate="no">triggered/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Record sent from <a href="khepri_event_handler.html"><code>khepri_event_handler</code></a> to the state machine to acknowledge the execution of a trigger.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:triggered_list/0" data-no-tooltip="" translate="no">triggered_list/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>List of <code>#triggered{}</code> or <code>#triggered_v2{}</code> records.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:triggered_v2/0" data-no-tooltip="" translate="no">triggered_v2/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Record sent from <a href="khepri_event_handler.html"><code>khepri_event_handler</code></a> to the state machine to acknowledge the execution of a trigger.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:triggers_map/0" data-no-tooltip="" translate="no">triggers_map/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Internal triggers map in the machine state.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:triggers_map_v2/0" data-no-tooltip="" translate="no">triggers_map_v2/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Internal triggers map in the machine state (v2).</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:tx_ret/0" data-no-tooltip="" translate="no">tx_ret/0</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:write_ret/0" data-no-tooltip="" translate="no">write_ret/0</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h3>
+    <a href="#functions">Functions</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#convert_to_uniform_command/1" data-no-tooltip="" translate="no">convert_to_uniform_command(Command)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#delete/3" data-no-tooltip="" translate="no">delete(StoreId, PathPattern, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Deletes all tree nodes matching the path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#does_api_comply_with/2" data-no-tooltip="" translate="no">does_api_comply_with(Behaviour, MacVer)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Indicates if a new behaviour of the transaction API is activated.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#fence/2" data-no-tooltip="" translate="no">fence(StoreId, Timeout)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Blocks until all updates received by the cluster leader are applied locally.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#fold/5" data-no-tooltip="" translate="no">fold(StoreId, PathPattern, Fun, Acc, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns all tree nodes matching the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#handle_tx_exception/1" data-no-tooltip="" translate="no">handle_tx_exception(_)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#register_projection/4" data-no-tooltip="" translate="no">register_projection(StoreId, PathPattern, Projection, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Registers a projection.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#register_trigger/5" data-no-tooltip="" translate="no">register_trigger(StoreId, TriggerId, EventFilter, Action, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Registers a trigger.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#transaction/5" data-no-tooltip="" translate="no">transaction(StoreId, FunOrPath, Args, ReadWrite, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Runs a transaction and returns the result.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#unregister_projections/3" data-no-tooltip="" translate="no">unregister_projections(StoreId, Names, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Removes the given projections from the store.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#version/0" data-no-tooltip="" translate="no">version()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the state machine version.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#which_module/1" data-no-tooltip="" translate="no">which_module(MacVer)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the state machine module corresponding to the given version.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h2>
+
+    <div class="types-list">
+<section class="detail" id="t:api_behaviour/0">
+
+  <div class="detail-header">
+    <a href="#t:api_behaviour/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">api_behaviour/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L355" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> api_behaviour() ::
+          dedup_protection | delete_reason_in_node_props | expire_dedups_from_tick |
+          indirect_deletes_in_ret | uniform_write_ret | multi_table_projections | uniform_commands |
+          request_snapshot | extended_trigger | cached_members_list | process_based_keep_while.</pre>
+
+      </div>
+
+<p>Name of a state machine API behaviour.</p>
+  </section>
+</section>
+<section class="detail" id="t:async_ret/0">
+
+  <div class="detail-header">
+    <a href="#t:async_ret/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">async_ret/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L345" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> async_ret() :: ok.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:aux_query/0">
+
+  <div class="detail-header">
+    <a href="#t:aux_query/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">aux_query/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L326" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> aux_query() :: {query, <a href="#t:query_fun/0">query_fun</a>(), <a href="khepri.html#t:query_options/0">khepri:query_options</a>()}.</pre>
+
+      </div>
+
+<p>Query executed through the Ra aux mechanism.</p>
+  </section>
+</section>
+<section class="detail" id="t:cached_members_list/0">
+
+  <div class="detail-header">
+    <a href="#t:cached_members_list/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">cached_members_list/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L320" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> cached_members_list() :: [<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:node/0">node</a>() | <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:node/0">node</a>()].</pre>
+
+      </div>
+
+<p>Non-empty list of cluster member nodenames.</p>
+  </section>
+</section>
+<section class="detail" id="t:command/0">
+
+  <div class="detail-header">
+    <a href="#t:command/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">command/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L212" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> command() ::
+          #put_v{args ::
+                     #put_v1{path :: <a href="khepri_path.html#t:native_pattern/0">khepri_path:native_pattern</a>(),
+                             payload :: <a href="khepri_payload.html#t:payload/0">khepri_payload:payload</a>(),
+                             put_options :: <a href="khepri.html#t:put_options/0">khepri:put_options</a>(),
+                             tree_options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>()},
+                 common ::
+                     #common_v1{command_size :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+                                dedup_ref :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:reference/0">reference</a>() | undefined,
+                                dedup_expiry :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>() | undefined} |
+                     none} |
+          #delete_v{args ::
+                        #delete_v1{path :: <a href="khepri_path.html#t:native_pattern/0">khepri_path:native_pattern</a>(),
+                                   tree_options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>()},
+                    common ::
+                        #common_v1{command_size :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+                                   dedup_ref :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:reference/0">reference</a>() | undefined,
+                                   dedup_expiry :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>() | undefined} |
+                        none} |
+          #tx_v{args :: #tx_v1{'fun' :: <a href="https://hexdocs.pm/horus/horus.html#t:horus_fun/0">horus:horus_fun</a>() | <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(), args :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:list/0">list</a>()},
+                common ::
+                    #common_v1{command_size :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+                               dedup_ref :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:reference/0">reference</a>() | undefined,
+                               dedup_expiry :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>() | undefined} |
+                    none} |
+          #register_trigger_v{args ::
+                                  #register_trigger_v1{id :: <a href="khepri.html#t:trigger_id/0">khepri:trigger_id</a>(),
+                                                       event_filter :: <a href="khepri_evf.html#t:event_filter/0">khepri_evf:event_filter</a>(),
+                                                       action :: <a href="khepri_event_handler.html#t:trigger_action/0">khepri_event_handler:trigger_action</a>(),
+                                                       options :: <a href="khepri.html#t:trigger_options/0">khepri:trigger_options</a>()},
+                              common ::
+                                  #common_v1{command_size :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+                                             dedup_ref :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:reference/0">reference</a>() | undefined,
+                                             dedup_expiry :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>() | undefined} |
+                                  none} |
+          #ack_triggered_v{args :: #ack_triggered_v1{triggered :: [<a href="khepri_machine.html#t:triggered/0">khepri_machine:triggered</a>()]},
+                           common ::
+                               #common_v1{command_size :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+                                          dedup_ref :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:reference/0">reference</a>() | undefined,
+                                          dedup_expiry :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>() | undefined} |
+                               none} |
+          #register_projection_v{args ::
+                                     #register_projection_v1{pattern :: <a href="khepri_path.html#t:native_pattern/0">khepri_path:native_pattern</a>(),
+                                                             projection ::
+                                                                 <a href="khepri_projection.html#t:projection/0">khepri_projection:projection</a>()},
+                                 common ::
+                                     #common_v1{command_size :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+                                                dedup_ref :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:reference/0">reference</a>() | undefined,
+                                                dedup_expiry :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>() | undefined} |
+                                     none} |
+          #unregister_projections_v{args ::
+                                        #unregister_projections_v1{names ::
+                                                                       all | [<a href="khepri_projection.html#t:name/0">khepri_projection:name</a>()]},
+                                    common ::
+                                        #common_v1{command_size :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+                                                   dedup_ref :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:reference/0">reference</a>() | undefined,
+                                                   dedup_expiry :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>() | undefined} |
+                                        none} |
+          #dedup_ack_v{args :: #dedup_ack_v1{ref :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:reference/0">reference</a>()},
+                       common ::
+                           #common_v1{command_size :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+                                      dedup_ref :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:reference/0">reference</a>() | undefined,
+                                      dedup_expiry :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>() | undefined} |
+                           none} |
+          #drop_dedups_v{args :: #drop_dedups_v1{refs :: [<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:reference/0">reference</a>()]},
+                         common ::
+                             #common_v1{command_size :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+                                        dedup_ref :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:reference/0">reference</a>() | undefined,
+                                        dedup_expiry :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>() | undefined} |
+                             none} |
+          #request_snapshot{args :: #request_snapshot_v1{reason :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:string/0">string</a>()},
+                            common ::
+                                #common_v1{command_size :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+                                           dedup_ref :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:reference/0">reference</a>() | undefined,
+                                           dedup_expiry :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>() | undefined} |
+                                none} |
+          #cache_members_list{args ::
+                                  #cache_members_list_v1{members :: <a href="khepri_machine.html#t:cached_members_list/0">khepri_machine:cached_members_list</a>()},
+                              common ::
+                                  #common_v1{command_size :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+                                             dedup_ref :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:reference/0">reference</a>() | undefined,
+                                             dedup_expiry :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>() | undefined} |
+                                  none}.</pre>
+
+      </div>
+
+<p>Commands specific to this Ra machine.</p>
+  </section>
+</section>
+<section class="detail" id="t:dedups_map/0">
+
+  <div class="detail-header">
+    <a href="#t:dedups_map/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">dedups_map/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L317" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> dedups_map() :: #{<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:reference/0">reference</a>() => {<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:any/0">any</a>(), <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>()}}.</pre>
+
+      </div>
+
+<p>Map to handle command deduplication.</p>
+  </section>
+</section>
+<section class="detail" id="t:delayed_aux_query/0">
+
+  <div class="detail-header">
+    <a href="#t:delayed_aux_query/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">delayed_aux_query/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L329" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> delayed_aux_query() :: {<a href="#t:aux_query/0">aux_query</a>(), <a href="https://www.erlang.org/doc/apps/stdlib/gen_statem.html#t:from/0">gen_statem:from</a>(), <a href="https://hexdocs.pm/ra/ra.html#t:query_condition/0">ra:query_condition</a>() | none}.</pre>
+
+      </div>
+
+<p>Aux query that is delayed until a condition is met.</p>
+  </section>
+</section>
+<section class="detail" id="t:machine_init_args/0">
+
+  <div class="detail-header">
+    <a href="#t:machine_init_args/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">machine_init_args/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L244" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> machine_init_args() ::
+          #{store_id := <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+            member := <a href="https://hexdocs.pm/ra/ra.html#t:server_id/0">ra:server_id</a>(),
+            snapshot_interval => <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+            commands =>
+                [<a href="#t:command/0">command</a>() | <a href="#t:old_command/0">old_command</a>() | {machine_version, <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()}],
+            <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:atom/0">atom</a>() => <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:any/0">any</a>()}.</pre>
+
+      </div>
+
+<p>Structure passed to <code>init/1</code>.</p>
+  </section>
+</section>
+<section class="detail" id="t:metrics/0">
+
+  <div class="detail-header">
+    <a href="#t:metrics/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">metrics/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L296" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> metrics() ::
+          #{applied_command_count => <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+            unreleased_command_footprint => <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+            last_snapshot_request_timestamp => <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>(),
+            init_args => <a href="khepri_machine.html#t:machine_init_args/0">khepri_machine:machine_init_args</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:old_command/0">
+
+  <div class="detail-header">
+    <a href="#t:old_command/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">old_command/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L225" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> old_command() ::
+          #put{path :: <a href="khepri_path.html#t:native_pattern/0">khepri_path:native_pattern</a>(),
+               payload :: <a href="khepri_payload.html#t:payload/0">khepri_payload:payload</a>(),
+               options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>() | <a href="khepri.html#t:put_options/0">khepri:put_options</a>()} |
+          #delete{path :: <a href="khepri_path.html#t:native_pattern/0">khepri_path:native_pattern</a>(), options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>()} |
+          #tx{'fun' :: <a href="https://hexdocs.pm/horus/horus.html#t:horus_fun/0">horus:horus_fun</a>() | <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(), args :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:list/0">list</a>()} |
+          #register_trigger{id :: <a href="khepri.html#t:trigger_id/0">khepri:trigger_id</a>(),
+                            event_filter :: <a href="khepri_evf.html#t:event_filter/0">khepri_evf:event_filter</a>(),
+                            sproc :: <a href="khepri_path.html#t:native_path/0">khepri_path:native_path</a>()} |
+          #ack_triggered{triggered :: [<a href="khepri_machine.html#t:triggered/0">khepri_machine:triggered</a>()]} |
+          #register_projection{pattern :: <a href="khepri_path.html#t:native_pattern/0">khepri_path:native_pattern</a>(),
+                               projection :: <a href="khepri_projection.html#t:projection/0">khepri_projection:projection</a>()} |
+          #unregister_projection{name :: <a href="khepri_projection.html#t:name/0">khepri_projection:name</a>()} |
+          #unregister_projections{names :: all | [<a href="khepri_projection.html#t:name/0">khepri_projection:name</a>()]} |
+          #dedup{ref :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:reference/0">reference</a>(),
+                 expiry :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:integer/0">integer</a>(),
+                 command :: <a href="khepri_machine.html#t:command/0">khepri_machine:command</a>() | <a href="khepri_machine.html#t:old_command/0">khepri_machine:old_command</a>()} |
+          #dedup_ack{ref :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:reference/0">reference</a>()} |
+          #drop_dedups{refs :: [<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:reference/0">reference</a>()]}.</pre>
+
+      </div>
+
+<p>Old commands that are still accepted by the Ra machine but never created.</p><p>Even though Khepri no longer creates these commands, they may still be present in existing Ra log files and thus be applied after an ugprade of Khepri.</p><p>We keep them supported for backward-compatibility.</p>
+  </section>
+</section>
+<section class="detail" id="t:projection_map/0">
+
+  <div class="detail-header">
+    <a href="#t:projection_map/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">projection_map/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L351" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> projection_map() :: #{<a href="khepri_projection.html#t:name/0">khepri_projection:name</a>() => <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>()}.</pre>
+
+      </div>
+
+<p>A mapping between the names of projections and patterns to which each projection is registered.</p>
+  </section>
+</section>
+<section class="detail" id="t:projection_tree/0">
+
+  <div class="detail-header">
+    <a href="#t:projection_tree/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">projection_tree/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L347" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> projection_tree() :: khepri_pattern_tree:tree([<a href="khepri_projection.html#t:projection/0">khepri_projection:projection</a>()]).</pre>
+
+      </div>
+
+<p>A pattern tree that holds all registered projections in the machine's state.</p>
+  </section>
+</section>
+<section class="detail" id="t:props/0">
+
+  <div class="detail-header">
+    <a href="#t:props/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">props/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L194" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> props() ::
+          #{payload_version := <a href="khepri.html#t:payload_version/0">khepri:payload_version</a>(),
+            child_list_version := <a href="khepri.html#t:child_list_version/0">khepri:child_list_version</a>()}.</pre>
+
+      </div>
+
+<p>Properties attached to each node in the tree structure.</p>
+  </section>
+</section>
+<section class="detail" id="t:query_fun/0">
+
+  <div class="detail-header">
+    <a href="#t:query_fun/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">query_fun/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L334" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> query_fun() :: fun((<a href="#t:state/0">state</a>()) -> <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:any/0">any</a>()) | fun((<a href="https://hexdocs.pm/ra/ra_machine.html#t:command_meta_data/0">ra_machine:command_meta_data</a>(), <a href="#t:state/0">state</a>()) -> <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:any/0">any</a>()).</pre>
+
+      </div>
+
+<p>Function representing a query and used <code>process_query/3</code>.</p>
+  </section>
+</section>
+<section class="detail" id="t:state/0">
+
+  <div class="detail-header">
+    <a href="#t:state/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">state/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L276" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> state() :: <a href="#t:state_v4/0">state_v4</a>() | khepri_machine_v1:state() | khepri_machine_v0:state().</pre>
+
+      </div>
+
+<p>State of this Ra state machine.</p>
+  </section>
+</section>
+<section class="detail" id="t:state_v4/0">
+
+  <div class="detail-header">
+    <a href="#t:state_v4/0" class="detail-link" data-no-tooltip="" aria-label="Link to this opaque">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">state_v4/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L273" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-opaque</span> state_v4()</pre>
+
+      </div>
+
+<p>State of this Ra state machine, version 4.</p>
+  </section>
+</section>
+<section class="detail" id="t:triggered/0">
+
+  <div class="detail-header">
+    <a href="#t:triggered/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">triggered/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L198" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> triggered() ::
+          #triggered{id :: <a href="khepri.html#t:trigger_id/0">khepri:trigger_id</a>(),
+                     event_filter :: <a href="khepri_evf.html#t:event_filter/0">khepri_evf:event_filter</a>(),
+                     sproc :: <a href="https://hexdocs.pm/horus/horus.html#t:horus_fun/0">horus:horus_fun</a>(),
+                     props :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:map/0">map</a>()}.</pre>
+
+      </div>
+
+<p>Record sent from <a href="khepri_event_handler.html"><code>khepri_event_handler</code></a> to the state machine to acknowledge the execution of a trigger.</p>
+  </section>
+</section>
+<section class="detail" id="t:triggered_list/0">
+
+  <div class="detail-header">
+    <a href="#t:triggered_list/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">triggered_list/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L208" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> triggered_list() :: [<a href="khepri_machine.html#t:triggered/0">khepri_machine:triggered</a>() | <a href="khepri_machine.html#t:triggered_v2/0">khepri_machine:triggered_v2</a>()].</pre>
+
+      </div>
+
+<p>List of <code>#triggered{}</code> or <code>#triggered_v2{}</code> records.</p>
+  </section>
+</section>
+<section class="detail" id="t:triggered_v2/0">
+
+  <div class="detail-header">
+    <a href="#t:triggered_v2/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">triggered_v2/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L202" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> triggered_v2() ::
+          #triggered_v2{id :: <a href="khepri.html#t:trigger_id/0">khepri:trigger_id</a>(),
+                        event_filter :: <a href="khepri_evf.html#t:event_filter/0">khepri_evf:event_filter</a>(),
+                        action :: <a href="khepri_event_handler.html#t:triggered_action/0">khepri_event_handler:triggered_action</a>(),
+                        where :: <a href="khepri_event_handler.html#t:trigger_exec_loc/0">khepri_event_handler:trigger_exec_loc</a>(),
+                        event :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+<p>Record sent from <a href="khepri_event_handler.html"><code>khepri_event_handler</code></a> to the state machine to acknowledge the execution of a trigger.</p><p>It replaced <code>triggered/0</code> in the state machine version 4.</p>
+  </section>
+</section>
+<section class="detail" id="t:triggers_map/0">
+
+  <div class="detail-header">
+    <a href="#t:triggers_map/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">triggers_map/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L281" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> triggers_map() ::
+          #{<a href="khepri.html#t:trigger_id/0">khepri:trigger_id</a>() =>
+                #{event_filter := <a href="khepri_evf.html#t:event_filter/0">khepri_evf:event_filter</a>(), sproc := <a href="khepri_path.html#t:native_path/0">khepri_path:native_path</a>()}}.</pre>
+
+      </div>
+
+<p>Internal triggers map in the machine state.</p>
+  </section>
+</section>
+<section class="detail" id="t:triggers_map_v2/0">
+
+  <div class="detail-header">
+    <a href="#t:triggers_map_v2/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">triggers_map_v2/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L286" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> triggers_map_v2() ::
+          #{<a href="khepri.html#t:trigger_id/0">khepri:trigger_id</a>() =>
+                #{event_filter := <a href="khepri_evf.html#t:event_filter/0">khepri_evf:event_filter</a>(),
+                  action := <a href="khepri_event_handler.html#t:trigger_action/0">khepri_event_handler:trigger_action</a>(),
+                  where := <a href="khepri_event_handler.html#t:trigger_exec_loc/0">khepri_event_handler:trigger_exec_loc</a>()}}.</pre>
+
+      </div>
+
+<p>Internal triggers map in the machine state (v2).</p><p>This new format was introduced in version 4 of the state machine to take into account the execution of an MFA or the send of a message to a process.</p>
+  </section>
+</section>
+<section class="detail" id="t:tx_ret/0">
+
+  <div class="detail-header">
+    <a href="#t:tx_ret/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">tx_ret/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L341" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> tx_ret() :: <a href="khepri.html#t:ok/1">khepri:ok</a>(<a href="khepri_tx.html#t:tx_fun_result/0">khepri_tx:tx_fun_result</a>()) | <a href="khepri_tx.html#t:tx_abort/0">khepri_tx:tx_abort</a>() | <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:no_return/0">no_return</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:write_ret/0">
+
+  <div class="detail-header">
+    <a href="#t:write_ret/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">write_ret/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L338" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> write_ret() :: <a href="khepri.html#t:ok/1">khepri:ok</a>(<a href="khepri.html#t:node_props_map/0">khepri:node_props_map</a>()) | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h2>
+
+    <div class="functions-list">
+<section class="detail" id="convert_to_uniform_command/1">
+
+  <div class="detail-header">
+    <a href="#convert_to_uniform_command/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">convert_to_uniform_command(Command)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L2573" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> convert_to_uniform_command(Command) -> NewCommand
+                                    when
+                                        Command ::
+                                            <a href="khepri_machine.html#t:command/0">khepri_machine:command</a>() | <a href="khepri_machine.html#t:old_command/0">khepri_machine:old_command</a>(),
+                                        NewCommand :: <a href="khepri_machine.html#t:command/0">khepri_machine:command</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="delete/3">
+
+  <div class="detail-header">
+    <a href="#delete/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">delete(StoreId, PathPattern, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L554" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> delete(StoreId, PathPattern, Options) -> Ret
+                when
+                    StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                    PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                    Options :: <a href="khepri.html#t:command_options/0">khepri:command_options</a>() | <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>(),
+                    Ret :: <a href="khepri_machine.html#t:write_ret/0">khepri_machine:write_ret</a>() | <a href="khepri_machine.html#t:async_ret/0">khepri_machine:async_ret</a>().</pre>
+
+      </div>
+
+<p>Deletes all tree nodes matching the path pattern.</p>
+  </section>
+</section>
+<section class="detail" id="does_api_comply_with/2">
+
+  <div class="detail-header">
+    <a href="#does_api_comply_with/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">does_api_comply_with(Behaviour, MacVer)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L3236" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> does_api_comply_with(Behaviour, MacVer | StoreId) -> DoesUse
+                              when
+                                  Behaviour :: <a href="khepri_machine.html#t:api_behaviour/0">khepri_machine:api_behaviour</a>(),
+                                  MacVer :: <a href="https://hexdocs.pm/ra/ra_machine.html#t:version/0">ra_machine:version</a>(),
+                                  StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                                  DoesUse :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>().</pre>
+
+      </div>
+
+<p>Indicates if a new behaviour of the transaction API is activated.</p><p>The transaction code is compiled on one Erlang node with a specific version of Khepri. However, it is executed on all members of the Khepri cluster. Some Erlang nodes might use another version of Khepri, newer or older, and the transaction API may differ.</p><p>For instance in Khepri 0.17.x, the return values of the <a href="khepri_tx_adv.html"><code>khepri_tx_adv</code></a> functions changed. The transaction code will have to handle both versions of the API to work correctly. Thus it can use this function to adapt.</p>
+  </section>
+</section>
+<section class="detail" id="fence/2">
+
+  <div class="detail-header">
+    <a href="#fence/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">fence(StoreId, Timeout)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L461" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> fence(StoreId, Timeout) -> Ret
+               when StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(), Timeout :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:timeout/0">timeout</a>(), Ret :: ok | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Blocks until all updates received by the cluster leader are applied locally.</p>
+  </section>
+</section>
+<section class="detail" id="fold/5">
+
+  <div class="detail-header">
+    <a href="#fold/5" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">fold(StoreId, PathPattern, Fun, Acc, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L428" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> fold(StoreId, PathPattern, Fun, Acc, Options) -> Ret
+              when
+                  StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                  PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                  Fun :: <a href="khepri.html#t:fold_fun/0">khepri:fold_fun</a>(),
+                  Acc :: <a href="khepri.html#t:fold_acc/0">khepri:fold_acc</a>(),
+                  Options :: <a href="khepri.html#t:query_options/0">khepri:query_options</a>() | <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>(),
+                  Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(NewAcc) | <a href="khepri.html#t:error/0">khepri:error</a>(),
+                  NewAcc :: Acc.</pre>
+
+      </div>
+
+<p>Returns all tree nodes matching the given path pattern.</p>
+  </section>
+</section>
+<section class="detail" id="handle_tx_exception/1">
+
+  <div class="detail-header">
+    <a href="#handle_tx_exception/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">handle_tx_exception(_)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L759" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+
+  </section>
+</section>
+<section class="detail" id="register_projection/4">
+
+  <div class="detail-header">
+    <a href="#register_projection/4" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">register_projection(StoreId, PathPattern, Projection, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L978" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> register_projection(StoreId, PathPattern, Projection, Options) -> Ret
+                             when
+                                 StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                                 PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                                 Projection :: <a href="khepri_projection.html#t:projection/0">khepri_projection:projection</a>(),
+                                 Options :: <a href="khepri.html#t:command_options/0">khepri:command_options</a>(),
+                                 Ret :: ok | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Registers a projection.</p>
+  </section>
+</section>
+<section class="detail" id="register_trigger/5">
+
+  <div class="detail-header">
+    <a href="#register_trigger/5" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">register_trigger(StoreId, TriggerId, EventFilter, Action, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L808" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> register_trigger(StoreId, TriggerId, EventFilter, Action, Options) -> Ret
+                          when
+                              StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                              TriggerId :: <a href="khepri.html#t:trigger_id/0">khepri:trigger_id</a>(),
+                              EventFilter :: <a href="khepri_evf.html#t:event_filter_or_compat/0">khepri_evf:event_filter_or_compat</a>(),
+                              Action ::
+                                  StoredProcPath | MFA | Pid | <a href="khepri_event_handler.html#t:trigger_action/0">khepri_event_handler:trigger_action</a>(),
+                              StoredProcPath :: <a href="khepri_path.html#t:path/0">khepri_path:path</a>(),
+                              MFA :: {<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:module/0">module</a>(), <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:list/0">list</a>()},
+                              Pid :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:pid/0">pid</a>(),
+                              Options :: <a href="khepri.html#t:command_options/0">khepri:command_options</a>() | <a href="khepri.html#t:trigger_options/0">khepri:trigger_options</a>(),
+                              Ret :: ok | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Registers a trigger.</p>
+  </section>
+</section>
+<section class="detail" id="transaction/5">
+
+  <div class="detail-header">
+    <a href="#transaction/5" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">transaction(StoreId, FunOrPath, Args, ReadWrite, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L594" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> transaction(StoreId, FunOrPath, Args, ReadWrite, Options) -> Ret
+                     when
+                         StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                         FunOrPath :: Fun | PathPattern,
+                         Fun :: <a href="khepri_tx.html#t:tx_fun/0">khepri_tx:tx_fun</a>(),
+                         PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                         Args :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:list/0">list</a>(),
+                         ReadWrite :: ro | rw | auto,
+                         Options :: <a href="khepri.html#t:command_options/0">khepri:command_options</a>() | <a href="khepri.html#t:query_options/0">khepri:query_options</a>(),
+                         Ret :: <a href="khepri_machine.html#t:tx_ret/0">khepri_machine:tx_ret</a>() | <a href="khepri_machine.html#t:async_ret/0">khepri_machine:async_ret</a>().</pre>
+
+      </div>
+
+<p>Runs a transaction and returns the result.</p>
+  </section>
+</section>
+<section class="detail" id="unregister_projections/3">
+
+  <div class="detail-header">
+    <a href="#unregister_projections/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">unregister_projections(StoreId, Names, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L1034" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> unregister_projections(StoreId, Names, Options) -> Ret
+                                when
+                                    StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                                    Names :: all | [<a href="khepri_projection.html#t:name/0">khepri_projection:name</a>()],
+                                    Options :: <a href="khepri.html#t:command_options/0">khepri:command_options</a>(),
+                                    Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(<a href="khepri_machine.html#t:projection_map/0">khepri_machine:projection_map</a>()) | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Removes the given projections from the store.</p><p><code>Names</code> may either be a list of projection names to remove or the atom <code>all</code>. When <code>all</code> is passed, every projection in the store is removed.</p>
+  </section>
+</section>
+<section class="detail" id="version/0">
+
+  <div class="detail-header">
+    <a href="#version/0" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">version()</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L3132" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> version() -> MacVer when MacVer :: 4.</pre>
+
+      </div>
+
+<p>Returns the state machine version.</p>
+  </section>
+</section>
+<section class="detail" id="which_module/1">
+
+  <div class="detail-header">
+    <a href="#which_module/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">which_module(MacVer)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_machine.erl#L3140" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> which_module(MacVer) -> Module when MacVer :: 0..4, Module :: khepri_machine.</pre>
+
+      </div>
+
+<p>Returns the state machine module corresponding to the given version.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+    <footer class="footer">
+
+        <p>
+
+            <span class="line">
+              <a href="https://hex.pm/packages/khepri/0.19.0">Hex Package</a>
+
+              <a href="https://preview.hex.pm/preview/khepri/0.19.0">Hex Preview</a>
+
+            </span>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Go to package docs">
+              Go to package docs
+            </button>
+
+
+              <a href="khepri.epub">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.40.3) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+
+
+    </footer>
+  </div>
+</main>
+</div>
+
+  </body>
+</html>

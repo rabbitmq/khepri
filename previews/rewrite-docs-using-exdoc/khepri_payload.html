@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.40.3">
+    <meta name="project" content="khepri v0.19.0">
+
+
+    <title>khepri_payload — khepri v0.19.0</title>
+
+    <link rel="stylesheet" href="dist/html-erlang-KCHZLXSC.css" />
+
+    <script defer src="dist/sidebar_items-55A96F02.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-Y2MUTVIN.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+      <div>
+        <a href="readme.html" class="sidebar-projectName" translate="no">
+khepri
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v0.19.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras="Pages"></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-module" id="main" data-type="modules">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of khepri</span>
+            <div class="search-input-wrapper">
+              <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+                <i class="ri-close-line ri-lg" title="Cancel search"></i>
+              </button>
+            </div>
+          </label>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <div class="engine-selector" data-multiple="false">
+          <button type="button" class="engine-button" aria-label="Select search engine" aria-haspopup="true" aria-expanded="false">
+            <i class="ri-search-2-line" aria-hidden="true"></i>
+            <span class="engine-name">Default</span>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          <div class="engine-dropdown" hidden role="menu">
+
+              <button type="button"
+                      class="engine-option"
+                      data-engine-url="search.html?q="
+                      role="menuitemradio"
+                      aria-checked="true">
+                <span class="name">Default</span>
+                <span class="help">In-browser search</span>
+              </button>
+
+          </div>
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>
+      <span translate="no">khepri_payload</span> 
+      <small class="app-vsn" translate="no">(khepri v0.19.0)</small>
+
+    </h1>
+
+
+      <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_payload.erl#L23" title="View Source" class="icon-action" rel="help nofollow">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+  </div>
+
+
+    <section id="moduledoc">
+<p>Khepri payloads.</p><p>Payloads are the structure used to attach something to a tree node in the store. Khepri supports the following payloads:</p><ul><li>No payload at all (<a href="#t:no_payload/0"><code>no_payload()</code></a></li><li>Data payload used to store any Erlang term (<a href="#t:data/0"><code>data()</code></a>)</li><li>Stored procedure payload used to store functions (<a href="#t:sproc/0"><code>sproc()</code></a>)</li></ul><p>Usually, there is no need to explicitly use this module as the type of payload will be autodetected, thanks to the <a href="#wrap/1"><code>wrap/1</code></a> function already called internally.</p>
+    </section>
+
+</div>
+
+  <section id="summary" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h2>
+<div class="summary-types summary">
+  <h3>
+    <a href="#types">Types</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:data/0" data-no-tooltip="" translate="no">data/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Internal structure to wrap any Erlang term before it can be stored in a tree node.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:no_payload/0" data-no-tooltip="" translate="no">no_payload/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Internal value used to mark that a tree node has no payload attached.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:payload/0" data-no-tooltip="" translate="no">payload/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>All types of payload stored in the nodes of the tree structure.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:sproc/0" data-no-tooltip="" translate="no">sproc/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Internal structure to wrap an anonymous function before it can be stored in a tree node and later executed.</p></div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h3>
+    <a href="#functions">Functions</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#data/1" data-no-tooltip="" translate="no">data(Term)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the same term wrapped into an internal structure ready to be stored in the tree.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#none/0" data-no-tooltip="" translate="no">none()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the internal value used to mark that a tree node has no payload attached.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#sproc/1" data-no-tooltip="" translate="no">sproc(Fun)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the same function wrapped into an internal structure ready to be stored in the tree.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#wrap/1" data-no-tooltip="" translate="no">wrap(Payload)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Automatically detects the payload type and ensures it is wrapped in one of the internal types.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h2>
+
+    <div class="types-list">
+<section class="detail" id="t:data/0">
+
+  <div class="detail-header">
+    <a href="#t:data/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">data/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_payload.erl#L40" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> data() :: #p_data{data :: <a href="khepri.html#t:data/0">khepri:data</a>()}.</pre>
+
+      </div>
+
+<p>Internal structure to wrap any Erlang term before it can be stored in a tree node.</p><p>The only constraint is the conversion to an Erlang binary must be supported by this term.</p>
+  </section>
+</section>
+<section class="detail" id="t:no_payload/0">
+
+  <div class="detail-header">
+    <a href="#t:no_payload/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">no_payload/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_payload.erl#L37" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> no_payload() :: '$__NO_PAYLOAD__'.</pre>
+
+      </div>
+
+<p>Internal value used to mark that a tree node has no payload attached.</p>
+  </section>
+</section>
+<section class="detail" id="t:payload/0">
+
+  <div class="detail-header">
+    <a href="#t:payload/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">payload/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_payload.erl#L51" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> payload() :: <a href="#t:no_payload/0">no_payload</a>() | <a href="#t:data/0">data</a>() | <a href="#t:sproc/0">sproc</a>().</pre>
+
+      </div>
+
+<p>All types of payload stored in the nodes of the tree structure.</p><p>Beside the absence of payload, the only type of payload supported is data.</p>
+  </section>
+</section>
+<section class="detail" id="t:sproc/0">
+
+  <div class="detail-header">
+    <a href="#t:sproc/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">sproc/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_payload.erl#L47" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> sproc() :: #p_sproc{sproc :: <a href="https://hexdocs.pm/horus/horus.html#t:horus_fun/0">horus:horus_fun</a>(), is_valid_as_tx_fun :: ro | rw | false}.</pre>
+
+      </div>
+
+<p>Internal structure to wrap an anonymous function before it can be stored in a tree node and later executed.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h2>
+
+    <div class="functions-list">
+<section class="detail" id="data/1">
+
+  <div class="detail-header">
+    <a href="#data/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">data(Term)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_payload.erl#L77" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> data(Term) -> Payload when Term :: <a href="khepri.html#t:data/0">khepri:data</a>(), Payload :: <a href="#t:data/0">data</a>().</pre>
+
+      </div>
+
+<p>Returns the same term wrapped into an internal structure ready to be stored in the tree.</p><p><em>See also: </em><a href="#t:data/0">data()</a>.</p>
+  </section>
+</section>
+<section class="detail" id="none/0">
+
+  <div class="detail-header">
+    <a href="#none/0" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">none()</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_payload.erl#L66" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> none() -> <a href="#t:no_payload/0">no_payload</a>().</pre>
+
+      </div>
+
+<p>Returns the internal value used to mark that a tree node has no payload attached.</p><p><em>See also: </em><a href="#t:no_payload/0">no_payload()</a>.</p>
+  </section>
+</section>
+<section class="detail" id="sproc/1">
+
+  <div class="detail-header">
+    <a href="#sproc/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">sproc(Fun)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_payload.erl#L88" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> sproc(Fun) -> Payload when Fun :: <a href="https://hexdocs.pm/horus/horus.html#t:horus_fun/0">horus:horus_fun</a>() | fun(), Payload :: <a href="#t:sproc/0">sproc</a>().</pre>
+
+      </div>
+
+<p>Returns the same function wrapped into an internal structure ready to be stored in the tree.</p><p><em>See also: </em><a href="#t:sproc/0">sproc()</a>.</p>
+  </section>
+</section>
+<section class="detail" id="wrap/1">
+
+  <div class="detail-header">
+    <a href="#wrap/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">wrap(Payload)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_payload.erl#L111" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> wrap(Payload) -> WrappedPayload
+              when Payload :: <a href="#t:payload/0">payload</a>() | <a href="khepri.html#t:data/0">khepri:data</a>() | fun(), WrappedPayload :: <a href="#t:payload/0">payload</a>().</pre>
+
+      </div>
+
+<p>Automatically detects the payload type and ensures it is wrapped in one of the internal types.</p><p>The internal types make sure we avoid any collision between any user-provided terms and internal structures.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+    <footer class="footer">
+
+        <p>
+
+            <span class="line">
+              <a href="https://hex.pm/packages/khepri/0.19.0">Hex Package</a>
+
+              <a href="https://preview.hex.pm/preview/khepri/0.19.0">Hex Preview</a>
+
+            </span>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Go to package docs">
+              Go to package docs
+            </button>
+
+
+              <a href="khepri.epub">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.40.3) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+
+
+    </footer>
+  </div>
+</main>
+</div>
+
+  </body>
+</html>

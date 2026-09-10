@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.40.3">
+    <meta name="project" content="khepri v0.19.0">
+
+
+    <title>khepri_projection — khepri v0.19.0</title>
+
+    <link rel="stylesheet" href="dist/html-erlang-KCHZLXSC.css" />
+
+    <script defer src="dist/sidebar_items-55A96F02.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-Y2MUTVIN.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+      <div>
+        <a href="readme.html" class="sidebar-projectName" translate="no">
+khepri
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v0.19.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras="Pages"></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-module" id="main" data-type="modules">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of khepri</span>
+            <div class="search-input-wrapper">
+              <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+                <i class="ri-close-line ri-lg" title="Cancel search"></i>
+              </button>
+            </div>
+          </label>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <div class="engine-selector" data-multiple="false">
+          <button type="button" class="engine-button" aria-label="Select search engine" aria-haspopup="true" aria-expanded="false">
+            <i class="ri-search-2-line" aria-hidden="true"></i>
+            <span class="engine-name">Default</span>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          <div class="engine-dropdown" hidden role="menu">
+
+              <button type="button"
+                      class="engine-option"
+                      data-engine-url="search.html?q="
+                      role="menuitemradio"
+                      aria-checked="true">
+                <span class="name">Default</span>
+                <span class="help">In-browser search</span>
+              </button>
+
+          </div>
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>
+      <span translate="no">khepri_projection</span> 
+      <small class="app-vsn" translate="no">(khepri v0.19.0)</small>
+
+    </h1>
+
+
+      <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L192" title="View Source" class="icon-action" rel="help nofollow">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+  </div>
+
+
+    <section id="moduledoc">
+<p>Khepri projections</p><p>Projections build a replicated ETS table using tree nodes from the store which match a <a href="khepri_path.html#t:pattern/0"><code>khepri_path:pattern()</code></a>. When a tree node matching a projection's pattern is changed in the store, the tree node is passed through the projection's <a href="#t:projection_fun/0"><code>projection_fun()</code></a> to create record(s). These records are then stored in the projection's ETS table for all members in a Khepri cluster.</p><p>Projections provide a way to query the store as fast as possible and are appropriate for lookups which require low latency and/or high throughput. Projection tables contain all records matching the pattern, though, so the memory footprint of a projection table grows with the number of tree nodes in the store matching the pattern.</p><p>Projection ETS tables are owned by the Khepri cluster and are deleted when the cluster stops.</p><p>Updates to projection tables are immediately consistent for the member of the cluster on which the change to the store is made and the leader member but are eventually consistent for all other followers.</p><h3 id="module-projection-functions" class="section-heading"><a href="#module-projection-functions" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text"><a name="Projection_functions">Projection functions</a></span></h3><p>There are three supported types of projection functions:</p><ol><li><code>copy</code> (the literal atom)</li><li>the simple projection function (identified by its arity of 2)</li><li>the extended projection function (identified by its arity of 4)</li></ol><h4><a name="copy">copy</a></h4><p>This projection &quot;function&quot; inserts the value of a tree node matching the projection path pattern to the ETS table. The value is expected to be a tuple or a record that can be inserted in the table.</p><p>If the tree node was deleted, the old value is deleted from the ETS table.</p><p>This is the most efficient projection function as it doesn't rely on an anonymous function.</p><h4><a name="Simple_projection_function">Simple projection function</a></h4><p>This projection function is called to convert the value of a tree node matching the projection path pattern to some arbitrary term. If the tree node is created or updated, the value passed to the projection function is the new value after the creation/update. If the tree node is deleted, the value is the one of the tree node before the deletion. The result of the projection function is then inserted in or deleted from the ETS table.</p><p>The projection function is expected to map one path/value to one ETS entry. There is no way for the projection function to indicate that a path/value should not be intserted in ETS for instance.</p><p>The simple projection function takes 2 arguments:</p><ol><li>the tree node path</li><li>the tree node value</li></ol><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="n">ProjectionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">wood_stocks</span><span class="p">,</span><span class="w">
+  </span><span class="n">ProjectionFun</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">fun</span><span class="p" data-group-id="1186660385-1">(</span><span class="p" data-group-id="1186660385-2">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="n">Kind</span><span class="p" data-group-id="1186660385-2">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_Path</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="1186660385-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                          </span><span class="p" data-group-id="1186660385-3">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="1186660385-3">}</span><span class="w">
+                  </span><span class="k">end</span><span class="p">,</span><span class="w">
+  </span><span class="n">Options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="1186660385-4">#{</span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">set</span><span class="p">,</span><span class="w">
+              </span><span class="ss">read_concurrency</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="1186660385-4">}</span><span class="p">,</span><span class="w">
+  </span><span class="n">Projection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri_projection</span><span class="p">:</span><span class="nf">new</span><span class="p" data-group-id="1186660385-5">(</span><span class="n">ProjectionName</span><span class="p">,</span><span class="w"> </span><span class="n">ProjectionFun</span><span class="p">,</span><span class="w"> </span><span class="n">Options</span><span class="p" data-group-id="1186660385-5">)</span><span class="p">.</span></code></pre><p>The resulting ETS will look like this:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="p" data-group-id="1327132849-1">[</span><span class="w">
+   </span><span class="p" data-group-id="1327132849-2">{</span><span class="p" data-group-id="1327132849-3">&lt;&lt;</span><span class="s">&quot;oak&quot;</span><span class="p" data-group-id="1327132849-3">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p" data-group-id="1327132849-2">}</span><span class="p">,</span><span class="w">
+   </span><span class="p" data-group-id="1327132849-4">{</span><span class="p" data-group-id="1327132849-5">&lt;&lt;</span><span class="s">&quot;maple&quot;</span><span class="p" data-group-id="1327132849-5">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="mi">180</span><span class="p" data-group-id="1327132849-4">}</span><span class="w">
+  </span><span class="p" data-group-id="1327132849-1">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">tab2list</span><span class="p" data-group-id="1327132849-6">(</span><span class="ss">wood_stoks</span><span class="p" data-group-id="1327132849-6">)</span><span class="p">.</span></code></pre><h4><a name="Extended_projection_function">Extended projection function</a></h4><p>This projection function is responsible for managing the content of the ETS table(s), even though the ETS tables are still created by Khepri.</p><p>This is useful when a tree node value can be mapped to several entries in an ETS table or it can be mapped to entries in several ETS tables.</p><p>By default, if the projection is created like a simple projection function, a single ETS table is created, named after the projection. To use several ETS tables, the caller has to specify the list of ETS tables and their per-table ETS options.</p><p>The simple projection function takes 4 arguments:</p><ol><li>the table ID, or the map of table names/IDs if multiple tables where configured</li><li>the tree node path</li><li>the tree node properies before the update/deletion</li><li>the tree node properies after the update/deletion</li></ol><p>Example:</p><p>This extended projection function reproduces the behaviour of the simple projection function from the example above basically.</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="n">ProjectionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">wood_stocks</span><span class="p">,</span><span class="w">
+  </span><span class="n">ProjectionFun</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">fun</span><span class="w">
+                      </span><span class="c1">%% Stock update.</span><span class="w">
+                      </span><span class="p" data-group-id="9035360314-1">(</span><span class="n">Tid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9035360314-2">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="n">Kind</span><span class="p" data-group-id="9035360314-2">]</span><span class="p">,</span><span class="w">
+                       </span><span class="n">_OldProps</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9035360314-3">#{</span><span class="ss">data</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="9035360314-3">}</span><span class="p" data-group-id="9035360314-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                          </span><span class="nc">ets</span><span class="p">:</span><span class="nf">insert</span><span class="p" data-group-id="9035360314-4">(</span><span class="n">Tid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9035360314-5">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="9035360314-5">}</span><span class="p" data-group-id="9035360314-4">)</span><span class="p">;</span><span class="w">
+ 
+                      </span><span class="c1">%% Stock deletion.</span><span class="w">
+                      </span><span class="p" data-group-id="9035360314-6">(</span><span class="n">Tid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9035360314-7">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="n">Kind</span><span class="p" data-group-id="9035360314-7">]</span><span class="p">,</span><span class="w">
+                       </span><span class="p" data-group-id="9035360314-8">#{</span><span class="ss">data</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="9035360314-8">}</span><span class="p">,</span><span class="w"> </span><span class="n">_NewProps</span><span class="p" data-group-id="9035360314-6">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                          </span><span class="nc">ets</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="9035360314-9">(</span><span class="n">Tid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9035360314-10">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="9035360314-10">}</span><span class="p" data-group-id="9035360314-9">)</span><span class="w">
+                  </span><span class="k">end</span><span class="p">,</span><span class="w">
+  </span><span class="n">Options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="9035360314-11">#{</span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">set</span><span class="p">,</span><span class="w">
+              </span><span class="ss">read_concurrency</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="9035360314-11">}</span><span class="p">,</span><span class="w">
+  </span><span class="n">Projection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri_projection</span><span class="p">:</span><span class="nf">new</span><span class="p" data-group-id="9035360314-12">(</span><span class="n">ProjectionName</span><span class="p">,</span><span class="w"> </span><span class="n">ProjectionFun</span><span class="p">,</span><span class="w"> </span><span class="n">Options</span><span class="p" data-group-id="9035360314-12">)</span><span class="p">.</span></code></pre><p>The resulting ETS will look like this:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="p" data-group-id="6315011757-1">[</span><span class="w">
+   </span><span class="p" data-group-id="6315011757-2">{</span><span class="p" data-group-id="6315011757-3">&lt;&lt;</span><span class="s">&quot;oak&quot;</span><span class="p" data-group-id="6315011757-3">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p" data-group-id="6315011757-2">}</span><span class="p">,</span><span class="w">
+   </span><span class="p" data-group-id="6315011757-4">{</span><span class="p" data-group-id="6315011757-5">&lt;&lt;</span><span class="s">&quot;maple&quot;</span><span class="p" data-group-id="6315011757-5">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="mi">180</span><span class="p" data-group-id="6315011757-4">}</span><span class="w">
+  </span><span class="p" data-group-id="6315011757-1">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">tab2list</span><span class="p" data-group-id="6315011757-6">(</span><span class="ss">wood_stoks</span><span class="p" data-group-id="6315011757-6">)</span><span class="p">.</span></code></pre><p>A projection function becomes useful when there are more involved mapping of ETS entries and possibly multiple ETS tables to manage:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="n">ProjectionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">wood_stocks</span><span class="p">,</span><span class="w">
+  </span><span class="n">ProjectionFun</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">fun</span><span class="w">
+                      </span><span class="c1">%% Stock update.</span><span class="w">
+                      </span><span class="p" data-group-id="1246364833-1">(</span><span class="p" data-group-id="1246364833-2">#{</span><span class="ss">wood_stocks</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">WoodStocksTid</span><span class="p">,</span><span class="w">
+                         </span><span class="ss">wood_needs</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">WoodNeedsTid</span><span class="p" data-group-id="1246364833-2">}</span><span class="p">,</span><span class="w">
+                       </span><span class="p" data-group-id="1246364833-3">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="n">Kind</span><span class="p" data-group-id="1246364833-3">]</span><span class="p">,</span><span class="w">
+                       </span><span class="n">_OldProps</span><span class="p">,</span><span class="w">
+                       </span><span class="p" data-group-id="1246364833-4">#{</span><span class="ss">data</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="1246364833-4">}</span><span class="p" data-group-id="1246364833-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                          </span><span class="nc">ets</span><span class="p">:</span><span class="nf">insert</span><span class="p" data-group-id="1246364833-5">(</span><span class="n">WoodStocksTid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1246364833-6">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="1246364833-6">}</span><span class="p" data-group-id="1246364833-5">)</span><span class="p">,</span><span class="w">
+ 
+                          </span><span class="c1">%% Depending on the stock, we check if we need to</span><span class="w">
+                          </span><span class="c1">%% order new wood.</span><span class="w">
+                          </span><span class="k">if</span><span class="w">
+                              </span><span class="n">Stock</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">50</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                                  </span><span class="nc">ets</span><span class="p">:</span><span class="nf">insert</span><span class="p" data-group-id="1246364833-7">(</span><span class="n">WoodNeedsTid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1246364833-8">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="1246364833-8">}</span><span class="p" data-group-id="1246364833-7">)</span><span class="p">;</span><span class="w">
+                              </span><span class="n">Stock</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                                  </span><span class="nc">ets</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="1246364833-9">(</span><span class="n">WoodNeedsTid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1246364833-10">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="1246364833-10">}</span><span class="p" data-group-id="1246364833-9">)</span><span class="p">;</span><span class="w">
+                              </span><span class="ss">true</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                                  </span><span class="ss">ok</span><span class="w">
+                          </span><span class="k">end</span><span class="p">;</span><span class="w">
+ 
+                      </span><span class="c1">%% Stock deletion.</span><span class="w">
+                      </span><span class="p" data-group-id="1246364833-11">(</span><span class="p" data-group-id="1246364833-12">#{</span><span class="ss">wood_stocks</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">WoodStocksTid</span><span class="p">,</span><span class="w">
+                         </span><span class="ss">wood_needs</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">WoodNeedsTid</span><span class="p" data-group-id="1246364833-12">}</span><span class="p">,</span><span class="w">
+                       </span><span class="p" data-group-id="1246364833-13">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="n">Kind</span><span class="p" data-group-id="1246364833-13">]</span><span class="p">,</span><span class="w">
+                       </span><span class="p" data-group-id="1246364833-14">#{</span><span class="ss">data</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="1246364833-14">}</span><span class="p">,</span><span class="w">
+                       </span><span class="n">_NewProps</span><span class="p" data-group-id="1246364833-11">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                          </span><span class="nc">ets</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="1246364833-15">(</span><span class="n">WoodStocksTid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1246364833-16">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="1246364833-16">}</span><span class="p" data-group-id="1246364833-15">)</span><span class="p">,</span><span class="w">
+                          </span><span class="c1">%% We definitely need to order wood of this kind.</span><span class="w">
+                          </span><span class="nc">ets</span><span class="p">:</span><span class="nf">insert</span><span class="p" data-group-id="1246364833-17">(</span><span class="n">WoodNeedsTid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1246364833-18">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="1246364833-18">}</span><span class="p" data-group-id="1246364833-17">)</span><span class="p">;</span><span class="w">
+                  </span><span class="k">end</span><span class="p">,</span><span class="w">
+  </span><span class="n">Options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="1246364833-19">#{</span><span class="c1">%% Map of ETS tables and their specific ETS options; here, we</span><span class="w">
+              </span><span class="c1">%% don&#39;t need specific ETS options: they will use the</span><span class="w">
+              </span><span class="c1">%% globablly defined options as a fallback.</span><span class="w">
+              </span><span class="ss">tables</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="1246364833-20">#{</span><span class="ss">wood_stocks</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="1246364833-21">#{</span><span class="p" data-group-id="1246364833-21">}</span><span class="p">,</span><span class="w">
+                          </span><span class="ss">wood_needs</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="1246364833-22">#{</span><span class="p" data-group-id="1246364833-22">}</span><span class="p" data-group-id="1246364833-20">}</span><span class="p">,</span><span class="w">
+ 
+              </span><span class="c1">%% Global ETS options used for tables that do not override them.</span><span class="w">
+              </span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">set</span><span class="p">,</span><span class="w">
+              </span><span class="ss">read_concurrency</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="1246364833-19">}</span><span class="p">,</span><span class="w">
+  </span><span class="n">Projection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri_projection</span><span class="p">:</span><span class="nf">new</span><span class="p" data-group-id="1246364833-23">(</span><span class="n">ProjectionName</span><span class="p">,</span><span class="w"> </span><span class="n">ProjectionFun</span><span class="p">,</span><span class="w"> </span><span class="n">Options</span><span class="p" data-group-id="1246364833-23">)</span><span class="p">.</span></code></pre>
+    </section>
+
+</div>
+
+  <section id="summary" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h2>
+<div class="summary-types summary">
+  <h3>
+    <a href="#types">Types</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:ets_options/0" data-no-tooltip="" translate="no">ets_options/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>List of ETS options, passed to <a href="https://www.erlang.org/doc/apps/stdlib/ets.html#new/2"><code>ets:new/2</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:extended_projection_fun/0" data-no-tooltip="" translate="no">extended_projection_fun/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>An extended projection function.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:multi_table_options/0" data-no-tooltip="" translate="no">multi_table_options/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Options which control multiple created ETS tables.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:name/0" data-no-tooltip="" translate="no">name/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>The name of a projection.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:options/0" data-no-tooltip="" translate="no">options/0</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:overridable_ets_options/0" data-no-tooltip="" translate="no">overridable_ets_options/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Overrideable ETS options.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:projection/0" data-no-tooltip="" translate="no">projection/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>A projection resource.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:projection_fun/0" data-no-tooltip="" translate="no">projection_fun/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>A function that formats an entry in the tree into a record to be stored in a projection.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:simple_projection_fun/0" data-no-tooltip="" translate="no">simple_projection_fun/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>A simple projection function.</p></div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h3>
+    <a href="#functions">Functions</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#name/1" data-no-tooltip="" translate="no">name(Projection)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the name of the given <code>Projection</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#new/2" data-no-tooltip="" translate="no">new(Name, ProjectionFun)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p><em>See also: </em><a href="khepri.html#register_projection/4">khepri:register_projection/4</a>, <a href="#new/3">khepri_projection:new/3</a>, <a href="#new/3">khepri_projection:new/3</a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#new/3" data-no-tooltip="" translate="no">new(Name, ProjectionFun, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Creates a new projection data structure.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h2>
+
+    <div class="types-list">
+<section class="detail" id="t:ets_options/0">
+
+  <div class="detail-header">
+    <a href="#t:ets_options/0" class="detail-link" data-no-tooltip="" aria-label="Link to this opaque">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">ets_options/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L332" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-opaque</span> ets_options()</pre>
+
+      </div>
+
+<p>List of ETS options, passed to <a href="https://www.erlang.org/doc/apps/stdlib/ets.html#new/2"><code>ets:new/2</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="t:extended_projection_fun/0">
+
+  <div class="detail-header">
+    <a href="#t:extended_projection_fun/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">extended_projection_fun/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L231" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> extended_projection_fun() ::
+          fun((Tids :: <a href="https://www.erlang.org/doc/apps/stdlib/ets.html#t:tid/0">ets:tid</a>() | #{<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:atom/0">atom</a>() => <a href="https://www.erlang.org/doc/apps/stdlib/ets.html#t:tid/0">ets:tid</a>()},
+               Path :: <a href="khepri_path.html#t:native_path/0">khepri_path:native_path</a>(),
+               OldPayload :: <a href="khepri.html#t:node_props/0">khepri:node_props</a>(),
+               NewPayload :: <a href="khepri.html#t:node_props/0">khepri:node_props</a>()) ->
+                  <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:any/0">any</a>()).</pre>
+
+      </div>
+
+<p>An extended projection function.</p><p>In some cases, a tree node in the store might correspond to many objects in one or more projection tables. Extended projection functions are allowed and expected to call ETS functions directly in order to build the projection table.</p><p><code>OldPayload</code> or <code>NewPayload</code> are empty maps if there is no tree node. For example, a newly created tree node will have an empty map for <code>OldPayload</code> and a <a href="khepri.html#t:node_props/0"><code>khepri:node_props()</code></a> map with values for <code>NewPayload</code>.</p><p>This function is compiled like a transaction function except that calls to the <a href="https://www.erlang.org/doc/apps/stdlib/ets.html"><code>ets</code></a> module are allowed.</p><p>The return value of this function is ignored.</p>
+  </section>
+</section>
+<section class="detail" id="t:multi_table_options/0">
+
+  <div class="detail-header">
+    <a href="#t:multi_table_options/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">multi_table_options/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L326" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> multi_table_options() :: #{<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:atom/0">atom</a>() => <a href="#t:overridable_ets_options/0">overridable_ets_options</a>()}.</pre>
+
+      </div>
+
+<p>Options which control multiple created ETS tables.</p><p>When the projection needs multiple ETS options, this map associates a specific ETS table to its options.</p>
+  </section>
+</section>
+<section class="detail" id="t:name/0">
+
+  <div class="detail-header">
+    <a href="#t:name/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">name/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L207" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> name() :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:atom/0">atom</a>().</pre>
+
+      </div>
+
+<p>The name of a projection.</p>
+  </section>
+</section>
+<section class="detail" id="t:options/0">
+
+  <div class="detail-header">
+    <a href="#t:options/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">options/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L303" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> options() ::
+          #{tables => <a href="#t:multi_table_options/0">multi_table_options</a>(),
+            standalone_fun_options => <a href="https://hexdocs.pm/horus/horus.html#t:options/0">horus:options</a>(),
+            type => <a href="https://www.erlang.org/doc/apps/stdlib/ets.html#t:table_type/0">ets:table_type</a>(),
+            keypos => <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>(),
+            read_concurrency => <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+            write_concurrency => <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>() | auto,
+            compressed => <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+            protection => <a href="https://www.erlang.org/doc/apps/stdlib/ets.html#t:table_access/0">ets:table_access</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:overridable_ets_options/0">
+
+  <div class="detail-header">
+    <a href="#t:overridable_ets_options/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">overridable_ets_options/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L275" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> overridable_ets_options() ::
+          #{type => <a href="https://www.erlang.org/doc/apps/stdlib/ets.html#t:table_type/0">ets:table_type</a>(),
+            keypos => <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>(),
+            read_concurrency => <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+            write_concurrency => <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>() | auto,
+            compressed => <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+            protection => <a href="https://www.erlang.org/doc/apps/stdlib/ets.html#t:table_access/0">ets:table_access</a>()}.</pre>
+
+      </div>
+
+<p>Overrideable ETS options.</p><p>They can be used for single-table and multi-table projections. For the latter, each per-table option takes precedence over the global option if specified twice.</p><p>When a projection is created from a <a href="#t:simple_projection_fun/0"><code>simple_projection_fun()</code></a>, the <code>type</code> option may only be <code>set</code> or <code>ordered_set</code>: <code>bag</code> types are not allowed. <a href="#t:extended_projection_fun/0"><code>extended_projection_fun()</code></a>s may use any valid <a href="https://www.erlang.org/doc/apps/stdlib/ets.html#t:table_type/0"><code>ets:table_type()</code></a>.</p><p><strong>Warning about <code>protection</code>:</strong> By default, projection ETS tables are <code>protected</code> and owned by the Ra server process. If you override <code>protection</code> to <code>public</code>, any process may insert or delete objects in the table. This can break assumptions that Khepri makes when using <code>copy</code> or <a href="#t:simple_projection_fun/0"><code>simple_projection_fun()</code></a> projection functions: Khepri assumes that a record exists in the table if and only if the corresponding tree node exists in the store. If external processes modify the table, this invariant no longer holds and the projection may become inconsistent with the store. Only use <code>public</code> with <a href="#t:extended_projection_fun/0"><code>extended_projection_fun()</code></a> where you manage ETS operations directly and can account for external modifications.</p>
+  </section>
+</section>
+<section class="detail" id="t:projection/0">
+
+  <div class="detail-header">
+    <a href="#t:projection/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">projection/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L212" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> projection() ::
+          #khepri_projection{name :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:atom/0">atom</a>(),
+                             projection_fun :: copy | <a href="https://hexdocs.pm/horus/horus.html#t:horus_fun/0">horus:horus_fun</a>(),
+                             ets_options ::
+                                 <a href="khepri_projection.html#t:ets_options/0">khepri_projection:ets_options</a>() |
+                                 #{<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:atom/0">atom</a>() => <a href="khepri_projection.html#t:ets_options/0">khepri_projection:ets_options</a>()}}.</pre>
+
+      </div>
+
+<p>A projection resource.</p>
+  </section>
+</section>
+<section class="detail" id="t:projection_fun/0">
+
+  <div class="detail-header">
+    <a href="#t:projection_fun/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">projection_fun/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L252" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> projection_fun() :: copy | <a href="#t:simple_projection_fun/0">simple_projection_fun</a>() | <a href="#t:extended_projection_fun/0">extended_projection_fun</a>().</pre>
+
+      </div>
+
+<p>A function that formats an entry in the tree into a record to be stored in a projection.</p><p>Projection functions may either be:</p><ul><li>&quot;simple&quot; - a function that takes the path within the tree for a tree node and the payload and returns a record. See <a href="#t:simple_projection_fun/0"><code>simple_projection_fun()</code></a>.</li><li>&quot;copy&quot; - a projection that ignores the path and use the tree node's payload as the record directly. This is a special case that avoids the overhead of executing standalone functions for the sake of performance.</li><li>&quot;extended&quot; - a function that takes the ETS table identifier, path, and old and new tree node properties and executes ETS functions directly. See <a href="#t:extended_projection_fun/0"><code>extended_projection_fun()</code></a>.</li></ul><p>The projection function is executed directly by the Ra server process. The function should be as simple and fast as possible to avoid slowing down the server.</p>
+  </section>
+</section>
+<section class="detail" id="t:simple_projection_fun/0">
+
+  <div class="detail-header">
+    <a href="#t:simple_projection_fun/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">simple_projection_fun/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L218" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> simple_projection_fun() ::
+          fun((Path :: <a href="khepri_path.html#t:native_path/0">khepri_path:native_path</a>(), Payload :: <a href="khepri.html#t:data/0">khepri:data</a>()) -> Record :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:tuple/0">tuple</a>()).</pre>
+
+      </div>
+
+<p>A simple projection function.</p><p>Simple projection functions only take the path and payload for a tree node in the store. The record produced by the function is used to create and delete objects in the ETS table.</p><p>This function is compiled the same way as a transaction function: all side-effects are not allowed. Additionally, for any <code>Path</code> and <code>Payload</code> inputs, this function must consistently return the same <code>Record</code>.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h2>
+
+    <div class="functions-list">
+<section class="detail" id="name/1">
+
+  <div class="detail-header">
+    <a href="#name/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">name(Projection)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L534" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> name(Projection) -> Name when Projection :: <a href="#t:projection/0">projection</a>(), Name :: <a href="khepri_projection.html#t:name/0">khepri_projection:name</a>().</pre>
+
+      </div>
+
+<p>Returns the name of the given <code>Projection</code>.</p>
+  </section>
+</section>
+<section class="detail" id="new/2">
+
+  <div class="detail-header">
+    <a href="#new/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">new(Name, ProjectionFun)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L359" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> new(Name, ProjectionFun) -> Projection
+             when
+                 Name :: <a href="khepri_projection.html#t:name/0">khepri_projection:name</a>(),
+                 ProjectionFun :: <a href="khepri_projection.html#t:projection_fun/0">khepri_projection:projection_fun</a>(),
+                 Projection :: <a href="khepri_projection.html#t:projection/0">khepri_projection:projection</a>().</pre>
+
+      </div>
+
+<p><em>See also: </em><a href="khepri.html#register_projection/4">khepri:register_projection/4</a>, <a href="#new/3">khepri_projection:new/3</a>, <a href="#new/3">khepri_projection:new/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="new/3">
+
+  <div class="detail-header">
+    <a href="#new/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">new(Name, ProjectionFun, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L384" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> new(Name, ProjectionFun, Options) -> Projection
+             when
+                 Name :: <a href="khepri_projection.html#t:name/0">khepri_projection:name</a>(),
+                 ProjectionFun :: <a href="khepri_projection.html#t:projection_fun/0">khepri_projection:projection_fun</a>(),
+                 Options :: <a href="khepri_projection.html#t:options/0">khepri_projection:options</a>(),
+                 Projection :: <a href="khepri_projection.html#t:projection/0">khepri_projection:projection</a>().</pre>
+
+      </div>
+
+<p>Creates a new projection data structure.</p><p>This function throws an error in the shape of <code>{unexpected_option, Key, Value}</code> when an unknown or invalid <code>option()</code> is passed. For example, if the passed <code>ProjectionFun</code> is a <a href="#t:simple_projection_fun/0"><code>simple_projection_fun()</code></a> and the <code>Options</code> map sets the <code>type</code> to <code>bag</code>, this function throws <code>{unexpected_option, type, bag}</code> since <code>bag</code> is not valid for simple projection funs.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+    <footer class="footer">
+
+        <p>
+
+            <span class="line">
+              <a href="https://hex.pm/packages/khepri/0.19.0">Hex Package</a>
+
+              <a href="https://preview.hex.pm/preview/khepri/0.19.0">Hex Preview</a>
+
+            </span>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Go to package docs">
+              Go to package docs
+            </button>
+
+
+              <a href="khepri.epub">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.40.3) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+
+
+    </footer>
+  </div>
+</main>
+</div>
+
+  </body>
+</html>

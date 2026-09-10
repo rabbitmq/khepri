@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.40.3">
+    <meta name="project" content="khepri v0.19.0">
+
+
+    <title>khepri_prefix_tree — khepri v0.19.0</title>
+
+    <link rel="stylesheet" href="dist/html-erlang-KCHZLXSC.css" />
+
+    <script defer src="dist/sidebar_items-55A96F02.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-Y2MUTVIN.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+      <div>
+        <a href="readme.html" class="sidebar-projectName" translate="no">
+khepri
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v0.19.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras="Pages"></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-module" id="main" data-type="modules">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of khepri</span>
+            <div class="search-input-wrapper">
+              <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+                <i class="ri-close-line ri-lg" title="Cancel search"></i>
+              </button>
+            </div>
+          </label>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <div class="engine-selector" data-multiple="false">
+          <button type="button" class="engine-button" aria-label="Select search engine" aria-haspopup="true" aria-expanded="false">
+            <i class="ri-search-2-line" aria-hidden="true"></i>
+            <span class="engine-name">Default</span>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          <div class="engine-dropdown" hidden role="menu">
+
+              <button type="button"
+                      class="engine-option"
+                      data-engine-url="search.html?q="
+                      role="menuitemradio"
+                      aria-checked="true">
+                <span class="name">Default</span>
+                <span class="help">In-browser search</span>
+              </button>
+
+          </div>
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>
+      <span translate="no">khepri_prefix_tree</span> 
+      <small class="app-vsn" translate="no">(khepri v0.19.0)</small>
+
+    </h1>
+
+
+      <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_prefix_tree.erl#L9" title="View Source" class="icon-action" rel="help nofollow">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+  </div>
+
+
+</div>
+
+  <section id="summary" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h2>
+<div class="summary-types summary">
+  <h3>
+    <a href="#types">Types</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:tree/1" data-no-tooltip="" translate="no">tree/1</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h3>
+    <a href="#functions">Functions</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#empty/0" data-no-tooltip="" translate="no">empty()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a new empty tree.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#find_path/2" data-no-tooltip="" translate="no">find_path(Path, Tree)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the payload associated with a path in the tree.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#fold_prefixes_of/4" data-no-tooltip="" translate="no">fold_prefixes_of(Fun, Acc, Path, Tree)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Folds over all nodes in the tree which are prefixed by the given <code>Path</code> building an accumulated value with the given fold function and initial accumulator.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#from_map/1" data-no-tooltip="" translate="no">from_map(Map)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Converts a map of paths to payloads into a prefix tree.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#is_prefix_tree/1" data-no-tooltip="" translate="no">is_prefix_tree(Prefix_tree)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Determines whether the given term is a prefix tree.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#update/3" data-no-tooltip="" translate="no">update(Fun, Path, Tree)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Updates a given path in the tree.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h2>
+
+    <div class="types-list">
+<section class="detail" id="t:tree/1">
+
+  <div class="detail-header">
+    <a href="#t:tree/1" class="detail-link" data-no-tooltip="" aria-label="Link to this opaque">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">tree/1</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_prefix_tree.erl#L34" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-opaque</span> tree(Payload)</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h2>
+
+    <div class="functions-list">
+<section class="detail" id="empty/0">
+
+  <div class="detail-header">
+    <a href="#empty/0" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">empty()</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_prefix_tree.erl#L51" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> empty() -> <a href="#t:tree/1">tree</a>(_).</pre>
+
+      </div>
+
+<p>Returns a new empty tree.</p><p><em>See also: </em>tree().</p>
+  </section>
+</section>
+<section class="detail" id="find_path/2">
+
+  <div class="detail-header">
+    <a href="#find_path/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">find_path(Path, Tree)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_prefix_tree.erl#L127" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> find_path(Path, Tree) -> Ret
+                   when
+                       Path :: <a href="khepri_path.html#t:native_path/0">khepri_path:native_path</a>(),
+                       Tree :: <a href="khepri_prefix_tree.html#t:tree/1">khepri_prefix_tree:tree</a>(Payload),
+                       Payload :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:any/0">any</a>(),
+                       Ret :: {ok, Payload} | error.</pre>
+
+      </div>
+
+<p>Returns the payload associated with a path in the tree.</p>
+  </section>
+</section>
+<section class="detail" id="fold_prefixes_of/4">
+
+  <div class="detail-header">
+    <a href="#fold_prefixes_of/4" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">fold_prefixes_of(Fun, Acc, Path, Tree)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_prefix_tree.erl#L93" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> fold_prefixes_of(Fun, Acc, Path, Tree) -> Ret
+                          when
+                              Fun :: fun((Payload, Acc) -> Acc1),
+                              Acc :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:any/0">any</a>(),
+                              Acc1 :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:any/0">any</a>(),
+                              Path :: <a href="khepri_path.html#t:native_path/0">khepri_path:native_path</a>(),
+                              Tree :: <a href="khepri_prefix_tree.html#t:tree/1">khepri_prefix_tree:tree</a>(Payload),
+                              Payload :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:any/0">any</a>(),
+                              Ret :: Acc1.</pre>
+
+      </div>
+
+<p>Folds over all nodes in the tree which are prefixed by the given <code>Path</code> building an accumulated value with the given fold function and initial accumulator.</p>
+  </section>
+</section>
+<section class="detail" id="from_map/1">
+
+  <div class="detail-header">
+    <a href="#from_map/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">from_map(Map)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_prefix_tree.erl#L69" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> from_map(Map) -> Tree
+                  when
+                      Map :: #{<a href="khepri_path.html#t:native_path/0">khepri_path:native_path</a>() => Payload},
+                      Tree :: <a href="khepri_prefix_tree.html#t:tree/1">khepri_prefix_tree:tree</a>(Payload),
+                      Payload :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:any/0">any</a>().</pre>
+
+      </div>
+
+<p>Converts a map of paths to payloads into a prefix tree.</p>
+  </section>
+</section>
+<section class="detail" id="is_prefix_tree/1">
+
+  <div class="detail-header">
+    <a href="#is_prefix_tree/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">is_prefix_tree(Prefix_tree)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_prefix_tree.erl#L58" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> is_prefix_tree(<a href="#t:tree/1">tree</a>(_)) -> true;
+                    (<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:any/0">any</a>()) -> false.</pre>
+
+      </div>
+
+<p>Determines whether the given term is a prefix tree.</p>
+  </section>
+</section>
+<section class="detail" id="update/3">
+
+  <div class="detail-header">
+    <a href="#update/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">update(Fun, Path, Tree)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_prefix_tree.erl#L163" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> update(Fun, Path, Tree) -> Ret
+                when
+                    Fun :: fun((Payload | '$__NO_PAYLOAD__') -> Payload | '$__NO_PAYLOAD__'),
+                    Path :: <a href="khepri_path.html#t:native_path/0">khepri_path:native_path</a>(),
+                    Tree :: <a href="khepri_prefix_tree.html#t:tree/1">khepri_prefix_tree:tree</a>(Payload),
+                    Payload :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:any/0">any</a>(),
+                    Ret :: <a href="khepri_prefix_tree.html#t:tree/1">khepri_prefix_tree:tree</a>(Payload).</pre>
+
+      </div>
+
+<p>Updates a given path in the tree.</p><p>This function can be used to create, update or delete tree nodes. If the tree node does not exist for the given path, the update function is passed <code>?NO_PAYLOAD</code>. If the update function returns <code>?NO_PAYLOAD</code> then the tree node and all of its ancestors which do not have a payload or children are removed.</p><p>The update function is also be passed <code>?NO_PAYLOAD</code> if a tree node exists but does not have a payload: being passed <code>?NO_PAYLOAD</code> is not a reliable sign that a tree node did not exist prior to an update.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+    <footer class="footer">
+
+        <p>
+
+            <span class="line">
+              <a href="https://hex.pm/packages/khepri/0.19.0">Hex Package</a>
+
+              <a href="https://preview.hex.pm/preview/khepri/0.19.0">Hex Preview</a>
+
+            </span>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Go to package docs">
+              Go to package docs
+            </button>
+
+
+              <a href="khepri.epub">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.40.3) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+
+
+    </footer>
+  </div>
+</main>
+</div>
+
+  </body>
+</html>

@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.40.3">
+    <meta name="project" content="khepri v0.19.0">
+
+
+    <title>khepri_cluster — khepri v0.19.0</title>
+
+    <link rel="stylesheet" href="dist/html-erlang-KCHZLXSC.css" />
+
+    <script defer src="dist/sidebar_items-55A96F02.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-Y2MUTVIN.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+      <div>
+        <a href="readme.html" class="sidebar-projectName" translate="no">
+khepri
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v0.19.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras="Pages"></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-module" id="main" data-type="modules">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of khepri</span>
+            <div class="search-input-wrapper">
+              <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+                <i class="ri-close-line ri-lg" title="Cancel search"></i>
+              </button>
+            </div>
+          </label>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <div class="engine-selector" data-multiple="false">
+          <button type="button" class="engine-button" aria-label="Select search engine" aria-haspopup="true" aria-expanded="false">
+            <i class="ri-search-2-line" aria-hidden="true"></i>
+            <span class="engine-name">Default</span>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          <div class="engine-dropdown" hidden role="menu">
+
+              <button type="button"
+                      class="engine-option"
+                      data-engine-url="search.html?q="
+                      role="menuitemradio"
+                      aria-checked="true">
+                <span class="name">Default</span>
+                <span class="help">In-browser search</span>
+              </button>
+
+          </div>
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>
+      <span translate="no">khepri_cluster</span> 
+      <small class="app-vsn" translate="no">(khepri v0.19.0)</small>
+
+    </h1>
+
+
+      <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L97" title="View Source" class="icon-action" rel="help nofollow">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+  </div>
+
+
+    <section id="moduledoc">
+<p>Khepri service and cluster management API.</p><p>This module provides the public API for the service and cluster management. For convenience, some functions of this API are repeated in the <a href="khepri.html"><code>khepri</code></a> module for easier access.</p><h3 id="module-the-khepri-store-and-the-ra-cluster" class="section-heading"><a href="#module-the-khepri-store-and-the-ra-cluster" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text"><a name="The_Khepri_store_and_the_Ra_cluster">The Khepri store and the Ra cluster</a></span></h3><p>A Khepri store is a Ra server inside a Ra cluster. The Khepri store and the Ra cluster share the same name in fact. The only constraint is that the name must be an atom, even though Ra accepts other Erlang types as cluster names.</p><p>By default, Khepri uses <code>khepri</code> as the store ID (and thus Ra cluster name). This default can be overridden using an argument to the <code>start()</code> functions or the <code>default_store_id</code> application environment variable.</p><p>Examples:</p><ul><li>Use the default Khepri store ID:<pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="1216731363-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="ss">khepri</span><span class="p" data-group-id="1216731363-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="1216731363-2">(</span><span class="p" data-group-id="1216731363-2">)</span><span class="p">.</span></code></pre></li><li>Override the default store ID using an argument:<pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="8259994558-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="ss">my_store</span><span class="p" data-group-id="8259994558-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="8259994558-2">(</span><span class="s">&quot;/var/lib/khepri&quot;</span><span class="p">,</span><span class="w"> </span><span class="ss">my_store</span><span class="p" data-group-id="8259994558-2">)</span><span class="p">.</span></code></pre></li><li>Override the default store ID using an application environment variable:<pre><code class="makeup erlang" translate="no"><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">application</span><span class="p">:</span><span class="nf">set_env</span><span class="p" data-group-id="9870745983-1">(</span><span class="w">
+         </span><span class="ss">khepri</span><span class="p">,</span><span class="w"> </span><span class="ss">default_store_id</span><span class="p">,</span><span class="w"> </span><span class="ss">my_store</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9870745983-2">[</span><span class="p" data-group-id="9870745983-3">{</span><span class="ss">persistent</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="9870745983-3">}</span><span class="p" data-group-id="9870745983-2">]</span><span class="p" data-group-id="9870745983-1">)</span><span class="p">,</span><span class="w">
+ 
+  </span><span class="p" data-group-id="9870745983-4">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="ss">my_store</span><span class="p" data-group-id="9870745983-4">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="9870745983-5">(</span><span class="p" data-group-id="9870745983-5">)</span><span class="p">.</span></code></pre></li></ul><h3 id="module-the-data-directory-and-the-ra-system" class="section-heading"><a href="#module-the-data-directory-and-the-ra-system" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text"><a name="The_data_directory_and_the_Ra_system">The data directory and the Ra system</a></span></h3><p>A Ra server relies on a Ra system to provide various functions and to configure the directory where the data should be stored on disk.</p><p>By default, Khepri will configure its own Ra system to write data under <code>khepri#Nodename</code> in the current working directory, where <code>Nodename</code> is the name of the Erlang node.</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="p" data-group-id="8347621453-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">StoreId</span><span class="p" data-group-id="8347621453-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="8347621453-2">(</span><span class="p" data-group-id="8347621453-2">)</span><span class="p">.</span><span class="w">
+ 
+  </span><span class="c1">%% If the Erlang node was started without distribution (the default), the</span><span class="w">
+  </span><span class="c1">%% statement above will start a Ra system called like the store (`khepri&#39;)</span><span class="w">
+  </span><span class="c1">%% and will use the `khepri#nonode@nohost&#39; directory.</span></code></pre><p>The default data directory or Ra system name can be overridden using an argument to the <code>start()</code> or the <code>default_ra_system</code> application environment variable. Both a directory (string or binary) or the name of an already running Ra system are accepted.</p><p>Examples:</p><ul><li>Override the default with the name of a running Ra system using an argument:<pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="5555309231-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">StoreId</span><span class="p" data-group-id="5555309231-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="5555309231-2">(</span><span class="ss">my_ra_system</span><span class="p" data-group-id="5555309231-2">)</span><span class="p">.</span></code></pre></li><li>Override the default data directory using an application environment variable:<pre><code class="makeup erlang" translate="no"><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">application</span><span class="p">:</span><span class="nf">set_env</span><span class="p" data-group-id="8908957609-1">(</span><span class="w">
+         </span><span class="ss">khepri</span><span class="p">,</span><span class="w"> </span><span class="ss">default_ra_system</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;/var/lib/khepri&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="8908957609-2">[</span><span class="p" data-group-id="8908957609-3">{</span><span class="ss">persistent</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="8908957609-3">}</span><span class="p" data-group-id="8908957609-2">]</span><span class="p" data-group-id="8908957609-1">)</span><span class="p">,</span><span class="w">
+ 
+  </span><span class="p" data-group-id="8908957609-4">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">StoreId</span><span class="p" data-group-id="8908957609-4">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="8908957609-5">(</span><span class="p" data-group-id="8908957609-5">)</span><span class="p">.</span></code></pre></li></ul><p>Please refer to <a rel="nofollow" href="https://github.com/rabbitmq/ra">Ra documentation</a> to learn more about Ra systems and Ra clusters.</p><h3 id="module-managing-ra-cluster-members" class="section-heading"><a href="#module-managing-ra-cluster-members" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text"><a name="Managing_Ra_cluster_members">Managing Ra cluster members</a></span></h3><p>A Khepri/Ra cluster can be expanded by telling a node to join a remote cluster. Note that the Khepri store/Ra server to add to the cluster must run before it can join.</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="c1">%% Start the local Khepri store.</span><span class="w">
+  </span><span class="p" data-group-id="3769448195-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">StoreId</span><span class="p" data-group-id="3769448195-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="3769448195-2">(</span><span class="p" data-group-id="3769448195-2">)</span><span class="p">.</span><span class="w">
+ 
+  </span><span class="c1">%% Join a remote cluster.</span><span class="w">
+  </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri_cluster</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="3769448195-3">(</span><span class="n">RemoteNode</span><span class="p" data-group-id="3769448195-3">)</span><span class="p">.</span></code></pre><p>To remove the local Khepri store node from the cluster, it must be reset.</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="c1">%% Start the local Khepri store.</span><span class="w">
+  </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri_cluster</span><span class="p">:</span><span class="nf">reset</span><span class="p" data-group-id="2998451727-1">(</span><span class="p" data-group-id="2998451727-1">)</span><span class="p">.</span></code></pre>
+    </section>
+
+</div>
+
+  <section id="summary" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h2>
+<div class="summary-types summary">
+  <h3>
+    <a href="#types">Types</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:incomplete_ra_server_config/0" data-no-tooltip="" translate="no">incomplete_ra_server_config/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>A Ra server config map.</p></div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h3>
+    <a href="#functions">Functions</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_default_ra_system_or_data_dir/0" data-no-tooltip="" translate="no">get_default_ra_system_or_data_dir()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the default Ra system name or data directory.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_default_store_id/0" data-no-tooltip="" translate="no">get_default_store_id()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the default Khepri store ID.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_store_ids/0" data-no-tooltip="" translate="no">get_store_ids()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the list of running stores.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#is_store_running/1" data-no-tooltip="" translate="no">is_store_running(StoreId)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Indicates if <code>StoreId</code> is running or not.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#join/1" data-no-tooltip="" translate="no">join(RemoteNode)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Adds the local running Khepri store to a remote cluster.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#join/2" data-no-tooltip="" translate="no">join(RemoteNode, Timeout)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Adds the local running Khepri store to a remote cluster.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#members/0" data-no-tooltip="" translate="no">members()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the list of Ra members that are part of the cluster.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#members/1" data-no-tooltip="" translate="no">members(StoreId)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the list of Ra members that are part of the cluster.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#members/2" data-no-tooltip="" translate="no">members(StoreId, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the list of Ra members that are part of the cluster.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#nodes/0" data-no-tooltip="" translate="no">nodes()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the list of Erlang nodes that are part of the cluster.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#nodes/1" data-no-tooltip="" translate="no">nodes(StoreIdOrOptions)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the list of Erlang nodes that are part of the cluster.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#nodes/2" data-no-tooltip="" translate="no">nodes(StoreId, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the list of Erlang nodes that are part of the cluster.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#reset/0" data-no-tooltip="" translate="no">reset()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Resets the store on this Erlang node.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#reset/1" data-no-tooltip="" translate="no">reset(Timeout)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Resets the store on this Erlang node.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#reset/2" data-no-tooltip="" translate="no">reset(StoreId, Timeout)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Resets the store on this Erlang node.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start/0" data-no-tooltip="" translate="no">start()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Starts a store.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start/1" data-no-tooltip="" translate="no">start(RaSystemOrDataDir)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Starts a store.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start/2" data-no-tooltip="" translate="no">start(RaSystemOrDataDir, StoreIdOrRaServerConfig)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Starts a store.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start/3" data-no-tooltip="" translate="no">start(RaSystemOrDataDir, StoreIdOrRaServerConfig, Timeout)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Starts a store.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#stop/0" data-no-tooltip="" translate="no">stop()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Stops a store.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#stop/1" data-no-tooltip="" translate="no">stop(StoreId)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Stops a store.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#wait_for_effective_behaviour/2" data-no-tooltip="" translate="no">wait_for_effective_behaviour(StoreIdOrRaServer, Behaviour)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Waits for the store to support the given API behaviour.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#wait_for_effective_behaviour/3" data-no-tooltip="" translate="no">wait_for_effective_behaviour(StoreIdOrRaServer, Behaviour, Timeout)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Waits for the store to support the given API behaviour.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#wait_for_effective_machine_version/2" data-no-tooltip="" translate="no">wait_for_effective_machine_version(StoreIdOrRaServer, MacVer)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Waits for the store to run the given machine version.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#wait_for_effective_machine_version/3" data-no-tooltip="" translate="no">wait_for_effective_machine_version(StoreIdOrRaServer, MacVer, Timeout)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Waits for the store to run the given machine version.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#wait_for_leader/0" data-no-tooltip="" translate="no">wait_for_leader()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Waits for a leader to be elected.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#wait_for_leader/1" data-no-tooltip="" translate="no">wait_for_leader(StoreIdOrRaServer)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Waits for a leader to be elected.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#wait_for_leader/2" data-no-tooltip="" translate="no">wait_for_leader(StoreIdOrRaServer, Timeout)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Waits for a leader to be elected.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h2>
+
+    <div class="types-list">
+<section class="detail" id="t:incomplete_ra_server_config/0">
+
+  <div class="detail-header">
+    <a href="#t:incomplete_ra_server_config/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">incomplete_ra_server_config/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L139" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> incomplete_ra_server_config() :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:map/0">map</a>().</pre>
+
+      </div>
+
+<p>A Ra server config map.</p><p>This configuration map can lack the required parameters, Khepri will fill them if necessary. Important parameters for Khepri (e.g. <code>machine</code>) will be overridden anyway.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h2>
+
+    <div class="functions-list">
+<section class="detail" id="get_default_ra_system_or_data_dir/0">
+
+  <div class="detail-header">
+    <a href="#get_default_ra_system_or_data_dir/0" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">get_default_ra_system_or_data_dir()</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1051" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_default_ra_system_or_data_dir() -> RaSystem | DataDir
+                                           when RaSystem :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:atom/0">atom</a>(), DataDir :: <a href="https://www.erlang.org/doc/apps/kernel/file.html#t:filename_all/0">file:filename_all</a>().</pre>
+
+      </div>
+
+<p>Returns the default Ra system name or data directory.</p><p>This is based on Khepri's <code>default_ra_system` application environment variable. The variable can be set to: &lt;ul&gt; &lt;li&gt;A directory (a string or binary) where data should be stored. A new Ra system called `khepri` will be initialized with this directory.&lt;/li&gt; &lt;li&gt;A Ra system name (an atom). In this case, the user is expected to configure and start the Ra system before starting Khepri.&lt;/li&gt; &lt;/ul&gt; If this application environment variable is unset, the default is to configure a Ra system called `khepri</code> which will write data in <code>&quot;khepri-$NODE&quot;</code> in the current working directory where <code>$NODE</code> is the Erlang node name.</p><p>Example of an Erlang configuration file for Khepri:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="p" data-group-id="4522965689-1">{</span><span class="ss">khepri</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4522965689-2">[</span><span class="p" data-group-id="4522965689-3">{</span><span class="ss">default_ra_system</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;/var/db/khepri&quot;</span><span class="p" data-group-id="4522965689-3">}</span><span class="p" data-group-id="4522965689-2">]</span><span class="p" data-group-id="4522965689-1">}</span><span class="p">.</span></code></pre>
+  </section>
+</section>
+<section class="detail" id="get_default_store_id/0">
+
+  <div class="detail-header">
+    <a href="#get_default_store_id/0" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">get_default_store_id()</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1084" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_default_store_id() -> StoreId when StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>().</pre>
+
+      </div>
+
+<p>Returns the default Khepri store ID.</p><p>This is based on Khepri's <code>default_store_id</code> application environment variable. The variable can be set to an atom. The default is <code>khepri</code>.</p>
+  </section>
+</section>
+<section class="detail" id="get_store_ids/0">
+
+  <div class="detail-header">
+    <a href="#get_store_ids/0" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">get_store_ids()</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1635" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_store_ids() -> [StoreId] when StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>().</pre>
+
+      </div>
+
+<p>Returns the list of running stores.</p>
+  </section>
+</section>
+<section class="detail" id="is_store_running/1">
+
+  <div class="detail-header">
+    <a href="#is_store_running/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">is_store_running(StoreId)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1645" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> is_store_running(StoreId) -> IsRunning when StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(), IsRunning :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>().</pre>
+
+      </div>
+
+<p>Indicates if <code>StoreId</code> is running or not.</p>
+  </section>
+</section>
+<section class="detail" id="join/1">
+
+  <div class="detail-header">
+    <a href="#join/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">join(RemoteNode)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L565" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> join(RemoteMember | RemoteNode) -> Ret
+              when RemoteMember :: <a href="https://hexdocs.pm/ra/ra.html#t:server_id/0">ra:server_id</a>(), RemoteNode :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:node/0">node</a>(), Ret :: ok | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Adds the local running Khepri store to a remote cluster.</p><p>This function accepts the following forms:</p><ul><li><code>join(RemoteNode)</code>. Calling it is the same as calling <code>join(DefaultStoreId, RemoteNode)</code> where <code>DefaultStoreId</code> is returned by <a href="#get_default_store_id/0"><code>get_default_store_id/0</code></a>.</li><li><code>join(RemoteMember)</code>. Calling it is the same as calling <code>join(StoreId, RemoteNode)</code> where <code>StoreId</code> and <code>RemoteNode</code> are derived from <code>RemoteMember</code>.</li></ul><p><em>See also: </em><a href="#join/2">join/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="join/2">
+
+  <div class="detail-header">
+    <a href="#join/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">join(RemoteNode, Timeout)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L596" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> join(RemoteMember | RemoteNode | StoreId, Timeout | RemoteNode) -> Ret
+              when
+                  RemoteMember :: <a href="https://hexdocs.pm/ra/ra.html#t:server_id/0">ra:server_id</a>(),
+                  RemoteNode :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:node/0">node</a>(),
+                  StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                  Timeout :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:timeout/0">timeout</a>(),
+                  Ret :: ok | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Adds the local running Khepri store to a remote cluster.</p><p>This function accepts the following forms:</p><ul><li><code>join(RemoteNode, Timeout)</code>. Calling it is the same as calling <code>join(DefaultStoreId, RemoteNode, Timeout)</code> where <code>DefaultStoreId</code> is returned by <a href="#get_default_store_id/0"><code>get_default_store_id/0</code></a>.</li><li><code>join(StoreId, RemoteNode)</code>. Calling it is the same as calling <code>join(StoreId, RemoteNode, DefaultTimeout)</code> where <code>DefaultTimeout</code> is returned by <a href="khepri_app.html#get_default_timeout/0"><code>khepri_app:get_default_timeout/0</code></a>.</li><li><code>join(RemoteMember, Timeout)</code>. Calling it is the same as calling <code>join(StoreId, RemoteNode, Timeout)</code> where <code>StoreId</code> and <code>RemoteNode</code> are derived from <code>RemoteMember</code>.</li></ul><p><em>See also: </em>join/3.</p>
+  </section>
+</section>
+<section class="detail" id="members/0">
+
+  <div class="detail-header">
+    <a href="#members/0" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">members()</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1113" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> members() -> Ret when Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(Members) | <a href="khepri.html#t:error/0">khepri:error</a>(), Members :: [<a href="https://hexdocs.pm/ra/ra.html#t:server_id/0">ra:server_id</a>(), ...].</pre>
+
+      </div>
+
+<p>Returns the list of Ra members that are part of the cluster.</p><p>Calling this function is the same as calling <code>members(StoreId)</code> with the default store ID (see <a href="#get_default_store_id/0"><code>khepri_cluster:get_default_store_id/0</code></a>).</p><p><em>See also: </em><a href="#members/1">members/1</a>, <a href="#members/2">members/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="members/1">
+
+  <div class="detail-header">
+    <a href="#members/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">members(StoreId)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1135" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> members(StoreId | Options) -> Ret
+                 when
+                     StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                     Options :: <a href="khepri.html#t:query_options/0">khepri:query_options</a>(),
+                     Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(Members) | <a href="khepri.html#t:error/0">khepri:error</a>(),
+                     Members :: [<a href="https://hexdocs.pm/ra/ra.html#t:server_id/0">ra:server_id</a>(), ...].</pre>
+
+      </div>
+
+<p>Returns the list of Ra members that are part of the cluster.</p><p>This function accepts the following two forms:</p><ul><li><code>members(StoreId)</code>. Calling it is the same as calling <code>members(StoreId, #{})</code>.</li><li><code>members(Options)</code>. Calling it is the same as calling <code>members(StoreId, Options)</code> with the default store ID (see <a href="#get_default_store_id/0"><code>khepri_cluster:get_default_store_id/0</code></a>).</li></ul><p><em>See also: </em><a href="#members/2">members/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="members/2">
+
+  <div class="detail-header">
+    <a href="#members/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">members(StoreId, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1164" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> members(StoreId, Options) -> Ret
+                 when
+                     StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                     Options :: <a href="khepri.html#t:query_options/0">khepri:query_options</a>(),
+                     Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(Members) | <a href="khepri.html#t:error/0">khepri:error</a>(),
+                     Members :: [<a href="https://hexdocs.pm/ra/ra.html#t:server_id/0">ra:server_id</a>(), ...].</pre>
+
+      </div>
+
+<p>Returns the list of Ra members that are part of the cluster.</p><p>If the <code>favor</code> option is set to <code>consistency</code>, the Ra leader is queried for the list of members, therefore the membership view is consistent with the rest of the cluster.</p><p>If the <code>favor</code> option is set to <code>low_latency</code>, the local Ra server is queried. The query will be faster at the cost of returning a possibly out-of-date result.</p><p>The <code>condition</code> query option is unsupported.</p>
+  </section>
+</section>
+<section class="detail" id="nodes/0">
+
+  <div class="detail-header">
+    <a href="#nodes/0" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">nodes()</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1252" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> nodes() -> Ret when Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(Nodes) | <a href="khepri.html#t:error/0">khepri:error</a>(), Nodes :: [<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:node/0">node</a>(), ...].</pre>
+
+      </div>
+
+<p>Returns the list of Erlang nodes that are part of the cluster.</p><p>Calling this function is the same as calling <code>nodes(StoreId)</code> with the default store ID (see <a href="#get_default_store_id/0"><code>khepri_cluster:get_default_store_id/0</code></a>).</p><p><em>See also: </em><a href="#nodes/1">nodes/1</a>, <a href="#nodes/2">nodes/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="nodes/1">
+
+  <div class="detail-header">
+    <a href="#nodes/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">nodes(StoreIdOrOptions)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1276" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> nodes(StoreId | Options) -> Ret
+               when
+                   StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                   Options :: <a href="khepri.html#t:query_options/0">khepri:query_options</a>(),
+                   Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(Nodes) | <a href="khepri.html#t:error/0">khepri:error</a>(),
+                   Nodes :: [<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:node/0">node</a>(), ...].</pre>
+
+      </div>
+
+<p>Returns the list of Erlang nodes that are part of the cluster.</p><p>This function accepts the following two forms:</p><ul><li><code>nodes(StoreId)</code>. Calling it is the same as calling <code>nodes(StoreId, #{})</code>.</li><li><code>nodes(Options)</code>. Calling it is the same as calling <code>nodes(StoreId, Options)</code> with the default store ID (see <a href="#get_default_store_id/0"><code>khepri_cluster:get_default_store_id/0</code></a>).</li></ul><p><em>See also: </em><a href="#nodes/2">nodes/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="nodes/2">
+
+  <div class="detail-header">
+    <a href="#nodes/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">nodes(StoreId, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1301" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> nodes(StoreId, Options) -> Ret
+               when
+                   StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                   Options :: <a href="khepri.html#t:query_options/0">khepri:query_options</a>(),
+                   Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(Nodes) | <a href="khepri.html#t:error/0">khepri:error</a>(),
+                   Nodes :: [<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:node/0">node</a>(), ...].</pre>
+
+      </div>
+
+<p>Returns the list of Erlang nodes that are part of the cluster.</p><p>If the <code>favor</code> option is set to <code>consistency</code>, the Ra leader is queried for the list of members, therefore the membership view is consistent with the rest of the cluster.</p><p>If the <code>favor</code> option is set to <code>low_latency</code>, the local Ra server is queried. The query will be faster at the cost of returning a possibly out-of-date result.</p><p>The <code>condition</code> query option is unsupported.</p><p><em>See also: </em><a href="#members/2">members/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="reset/0">
+
+  <div class="detail-header">
+    <a href="#reset/0" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">reset()</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L899" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> reset() -> Ret when Ret :: ok | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Resets the store on this Erlang node.</p>
+  </section>
+</section>
+<section class="detail" id="reset/1">
+
+  <div class="detail-header">
+    <a href="#reset/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">reset(Timeout)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L909" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> reset(StoreId | Timeout) -> Ret
+               when StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(), Timeout :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:timeout/0">timeout</a>(), Ret :: ok | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Resets the store on this Erlang node.</p>
+  </section>
+</section>
+<section class="detail" id="reset/2">
+
+  <div class="detail-header">
+    <a href="#reset/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">reset(StoreId, Timeout)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L931" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> reset(StoreId, Timeout) -> Ret
+               when StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(), Timeout :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:timeout/0">timeout</a>(), Ret :: ok | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Resets the store on this Erlang node.</p><p>It does that by force-deleting the Ra local server.</p><p>This function is also used to gracefully remove the local Khepri store node from a cluster.</p>
+  </section>
+</section>
+<section class="detail" id="start/0">
+
+  <div class="detail-header">
+    <a href="#start/0" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">start()</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L174" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start() -> Ret when Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(StoreId) | <a href="khepri.html#t:error/0">khepri:error</a>(), StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>().</pre>
+
+      </div>
+
+<p>Starts a store.</p><p>Calling this function is the same as calling <code>start(DefaultRaSystem)</code> where <code>DefaultRaSystem</code> is returned by <a href="#get_default_ra_system_or_data_dir/0"><code>get_default_ra_system_or_data_dir/0</code></a>.</p><p><em>See also: </em><a href="#start/1">start/1</a>, <a href="https://hexdocs.pm/ra/ra_server.html#t:ra_server_config/0">ra_server:ra_server_config()</a>.</p>
+  </section>
+</section>
+<section class="detail" id="start/1">
+
+  <div class="detail-header">
+    <a href="#start/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">start(RaSystemOrDataDir)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L196" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start(RaSystem | DataDir) -> Ret
+               when
+                   RaSystem :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:atom/0">atom</a>(),
+                   DataDir :: <a href="https://www.erlang.org/doc/apps/kernel/file.html#t:filename_all/0">file:filename_all</a>(),
+                   Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(StoreId) | <a href="khepri.html#t:error/0">khepri:error</a>(),
+                   StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>().</pre>
+
+      </div>
+
+<p>Starts a store.</p><p>Calling this function is the same as calling <code>start(RaSystemOrDataDir, DefaultStoreId)</code> where <code>DefaultStoreId</code> is returned by <a href="#get_default_store_id/0"><code>get_default_store_id/0</code></a>.</p><p><em>See also: </em><a href="#start/2">start/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="start/2">
+
+  <div class="detail-header">
+    <a href="#start/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">start(RaSystemOrDataDir, StoreIdOrRaServerConfig)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L224" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start(RaSystem | DataDir, StoreId | RaServerConfig) -> Ret
+               when
+                   RaSystem :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:atom/0">atom</a>(),
+                   DataDir :: <a href="https://www.erlang.org/doc/apps/kernel/file.html#t:filename_all/0">file:filename_all</a>(),
+                   StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                   RaServerConfig :: <a href="#t:incomplete_ra_server_config/0">incomplete_ra_server_config</a>(),
+                   Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(StoreId) | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Starts a store.</p><p>Calling this function is the same as calling <code>start(RaSystemOrDataDir, StoreIdOrRaServerConfig, DefaultTimeout)</code> where <code>DefaultTimeout</code> is returned by <a href="khepri_app.html#get_default_timeout/0"><code>khepri_app:get_default_timeout/0</code></a>.</p><p><em>See also: </em><a href="#start/3">start/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="start/3">
+
+  <div class="detail-header">
+    <a href="#start/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">start(RaSystemOrDataDir, StoreIdOrRaServerConfig, Timeout)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L267" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start(RaSystem | DataDir, StoreId | RaServerConfig, Timeout) -> Ret
+               when
+                   RaSystem :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:atom/0">atom</a>(),
+                   DataDir :: <a href="https://www.erlang.org/doc/apps/kernel/file.html#t:filename_all/0">file:filename_all</a>(),
+                   StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                   RaServerConfig :: <a href="#t:incomplete_ra_server_config/0">incomplete_ra_server_config</a>(),
+                   Timeout :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:timeout/0">timeout</a>(),
+                   Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(StoreId) | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Starts a store.</p><p>It accepts either a Ra system name (atom) or a data directory (string or binary) as its first argument. If a Ra system name is given, that Ra system must be running when this function is called. If a data directory is given, a new Ra system will be started, using this directory. The directory will be created automatically if it doesn't exist. The Ra system will use the same name as the Khepri store.</p><p>It accepts a Khepri store ID or a Ra server configuration as its second argument. If a store ID is given, a Ra server configuration will be created based on it. If a Ra server configuration is given, the name of the Khepri store will be derived from it.</p><p>If this is a new store, the Ra server is started and an election is triggered so that it becomes its own leader and is ready to process commands and queries.</p><p>If the store was started in the past and stopped, it will be restarted. In this case, <code>RaServerConfig</code> will be ignored. Ra will take care of the eletion automatically.</p>
+  </section>
+</section>
+<section class="detail" id="stop/0">
+
+  <div class="detail-header">
+    <a href="#stop/0" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">stop()</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L466" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> stop() -> Ret when Ret :: ok | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Stops a store.</p><p>Calling this function is the same as calling <code>stop(DefaultStoreId)</code> where <code>DefaultStoreId</code> is returned by <a href="#get_default_store_id/0"><code>get_default_store_id/0</code></a>.</p><p><em>See also: </em><a href="#stop/1">stop/1</a>.</p>
+  </section>
+</section>
+<section class="detail" id="stop/1">
+
+  <div class="detail-header">
+    <a href="#stop/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">stop(StoreId)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L479" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> stop(StoreId) -> Ret when StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(), Ret :: ok | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Stops a store.</p>
+  </section>
+</section>
+<section class="detail" id="wait_for_effective_behaviour/2">
+
+  <div class="detail-header">
+    <a href="#wait_for_effective_behaviour/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">wait_for_effective_behaviour(StoreIdOrRaServer, Behaviour)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1456" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> wait_for_effective_behaviour(StoreIdOrRaServer, Behaviour) -> Ret
+                                      when
+                                          StoreIdOrRaServer :: StoreId | RaServer,
+                                          StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                                          RaServer :: <a href="https://hexdocs.pm/ra/ra.html#t:server_id/0">ra:server_id</a>(),
+                                          Behaviour :: <a href="khepri_machine.html#t:api_behaviour/0">khepri_machine:api_behaviour</a>(),
+                                          Ret :: ok | {error, Reason},
+                                          Reason ::
+                                              timeout |
+                                              {khepri, unknown_api_hehaviour, #{behaviour := <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:atom/0">atom</a>()}} |
+                                              {khepri, effective_machine_version_not_defined, <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:map/0">map</a>()}.</pre>
+
+      </div>
+
+<p>Waits for the store to support the given API behaviour.</p><p>Calling this function is the same as calling <code>wait_for_effective_behaviour(StoreId, Behaviour, DefaultTimeout)</code> where <code>DefaultTimeout</code> is returned by <a href="khepri_app.html#get_default_timeout/0"><code>khepri_app:get_default_timeout/0</code></a>.</p><p><em>See also: </em><a href="#wait_for_effective_behaviour/3">wait_for_effective_behaviour/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="wait_for_effective_behaviour/3">
+
+  <div class="detail-header">
+    <a href="#wait_for_effective_behaviour/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">wait_for_effective_behaviour(StoreIdOrRaServer, Behaviour, Timeout)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1480" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> wait_for_effective_behaviour(StoreIdOrRaServer, Behaviour, Timeout) -> Ret
+                                      when
+                                          StoreIdOrRaServer :: StoreId | RaServer,
+                                          StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                                          RaServer :: <a href="https://hexdocs.pm/ra/ra.html#t:server_id/0">ra:server_id</a>(),
+                                          Behaviour :: <a href="khepri_machine.html#t:api_behaviour/0">khepri_machine:api_behaviour</a>(),
+                                          Timeout :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:timeout/0">timeout</a>(),
+                                          Ret :: ok | {error, Reason},
+                                          Reason ::
+                                              timeout |
+                                              {khepri, unknown_api_hehaviour, #{behaviour := <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:atom/0">atom</a>()}} |
+                                              {khepri, effective_machine_version_not_defined, <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:map/0">map</a>()}.</pre>
+
+      </div>
+
+<p>Waits for the store to support the given API behaviour.</p>
+  </section>
+</section>
+<section class="detail" id="wait_for_effective_machine_version/2">
+
+  <div class="detail-header">
+    <a href="#wait_for_effective_machine_version/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">wait_for_effective_machine_version(StoreIdOrRaServer, MacVer)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1402" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> wait_for_effective_machine_version(StoreIdOrRaServer, MacVer) -> Ret
+                                            when
+                                                StoreIdOrRaServer :: StoreId | RaServer,
+                                                StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                                                RaServer :: <a href="https://hexdocs.pm/ra/ra.html#t:server_id/0">ra:server_id</a>(),
+                                                MacVer :: <a href="https://hexdocs.pm/ra/ra_machine.html#t:version/0">ra_machine:version</a>() | latest,
+                                                Ret :: ok | {error, Reason},
+                                                Reason ::
+                                                    timeout |
+                                                    {khepri, effective_machine_version_not_defined,
+                                                     <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:map/0">map</a>()}.</pre>
+
+      </div>
+
+<p>Waits for the store to run the given machine version.</p><p>Calling this function is the same as calling <code>wait_for_effective_machine_version(StoreId, MacVer, DefaultTimeout)</code> where <code>DefaultTimeout</code> is returned by <a href="khepri_app.html#get_default_timeout/0"><code>khepri_app:get_default_timeout/0</code></a>.</p><p><em>See also: </em><a href="#wait_for_effective_machine_version/3">wait_for_effective_machine_version/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="wait_for_effective_machine_version/3">
+
+  <div class="detail-header">
+    <a href="#wait_for_effective_machine_version/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">wait_for_effective_machine_version(StoreIdOrRaServer, MacVer, Timeout)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1432" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> wait_for_effective_machine_version(StoreIdOrRaServer, MacVer, Timeout) -> Ret
+                                            when
+                                                StoreIdOrRaServer :: StoreId | RaServer,
+                                                StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                                                RaServer :: <a href="https://hexdocs.pm/ra/ra.html#t:server_id/0">ra:server_id</a>(),
+                                                MacVer :: <a href="https://hexdocs.pm/ra/ra_machine.html#t:version/0">ra_machine:version</a>() | latest,
+                                                Timeout :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:timeout/0">timeout</a>(),
+                                                Ret :: ok | {error, Reason},
+                                                Reason ::
+                                                    timeout |
+                                                    {khepri, effective_machine_version_not_defined,
+                                                     <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:map/0">map</a>()}.</pre>
+
+      </div>
+
+<p>Waits for the store to run the given machine version.</p><p><code>MacVer</code> can be an integer if the caller needs to wait for a specific state machine version. It can also be the atom <code>latest</code>. In this case, the version of the local state machine module is taken as this &quot;latest&quot; version. It is possible that another node can support a greater version. Therefore, this functions can wait for the latest version from the point of view of the local version of Khepri, not the overnall latest version.</p>
+  </section>
+</section>
+<section class="detail" id="wait_for_leader/0">
+
+  <div class="detail-header">
+    <a href="#wait_for_leader/0" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">wait_for_leader()</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1318" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> wait_for_leader() -> Ret when Ret :: ok | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Waits for a leader to be elected.</p><p>Calling this function is the same as calling <code>wait_for_leader(StoreId)</code> with the default store ID (see <a href="#get_default_store_id/0"><code>khepri_cluster:get_default_store_id/0</code></a>).</p><p><em>See also: </em><a href="#wait_for_leader/1">wait_for_leader/1</a>, <a href="#wait_for_leader/2">wait_for_leader/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="wait_for_leader/1">
+
+  <div class="detail-header">
+    <a href="#wait_for_leader/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">wait_for_leader(StoreIdOrRaServer)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1335" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> wait_for_leader(StoreIdOrRaServer) -> Ret
+                         when
+                             StoreIdOrRaServer :: StoreId | RaServer,
+                             StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                             RaServer :: <a href="https://hexdocs.pm/ra/ra.html#t:server_id/0">ra:server_id</a>(),
+                             Ret :: ok | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Waits for a leader to be elected.</p><p>Calling this function is the same as calling <code>wait_for_leader(StoreId, DefaultTimeout)</code> where <code>DefaultTimeout</code> is returned by <a href="khepri_app.html#get_default_timeout/0"><code>khepri_app:get_default_timeout/0</code></a>.</p><p><em>See also: </em><a href="#wait_for_leader/2">wait_for_leader/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="wait_for_leader/2">
+
+  <div class="detail-header">
+    <a href="#wait_for_leader/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">wait_for_leader(StoreIdOrRaServer, Timeout)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1357" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> wait_for_leader(StoreIdOrRaServer, Timeout) -> Ret
+                         when
+                             StoreIdOrRaServer :: StoreId | RaServer,
+                             StoreId :: <a href="khepri.html#t:store_id/0">khepri:store_id</a>(),
+                             RaServer :: <a href="https://hexdocs.pm/ra/ra.html#t:server_id/0">ra:server_id</a>(),
+                             Timeout :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:timeout/0">timeout</a>(),
+                             Ret :: ok | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Waits for a leader to be elected.</p><p>This is useful if you want to be sure the clustered store is ready before issueing writes and queries. Note that there are obviously no guaranties that the Raft quorum will be lost just after this call.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+    <footer class="footer">
+
+        <p>
+
+            <span class="line">
+              <a href="https://hex.pm/packages/khepri/0.19.0">Hex Package</a>
+
+              <a href="https://preview.hex.pm/preview/khepri/0.19.0">Hex Preview</a>
+
+            </span>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Go to package docs">
+              Go to package docs
+            </button>
+
+
+              <a href="khepri.epub">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.40.3) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+
+
+    </footer>
+  </div>
+</main>
+</div>
+
+  </body>
+</html>

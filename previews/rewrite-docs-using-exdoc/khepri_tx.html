@@ -1,0 +1,2274 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.40.3">
+    <meta name="project" content="khepri v0.19.0">
+
+
+    <title>khepri_tx — khepri v0.19.0</title>
+
+    <link rel="stylesheet" href="dist/html-erlang-KCHZLXSC.css" />
+
+    <script defer src="dist/sidebar_items-55A96F02.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-Y2MUTVIN.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+      <div>
+        <a href="readme.html" class="sidebar-projectName" translate="no">
+khepri
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v0.19.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras="Pages"></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-module" id="main" data-type="modules">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of khepri</span>
+            <div class="search-input-wrapper">
+              <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+                <i class="ri-close-line ri-lg" title="Cancel search"></i>
+              </button>
+            </div>
+          </label>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <div class="engine-selector" data-multiple="false">
+          <button type="button" class="engine-button" aria-label="Select search engine" aria-haspopup="true" aria-expanded="false">
+            <i class="ri-search-2-line" aria-hidden="true"></i>
+            <span class="engine-name">Default</span>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          <div class="engine-dropdown" hidden role="menu">
+
+              <button type="button"
+                      class="engine-option"
+                      data-engine-url="search.html?q="
+                      role="menuitemradio"
+                      aria-checked="true">
+                <span class="name">Default</span>
+                <span class="help">In-browser search</span>
+              </button>
+
+          </div>
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>
+      <span translate="no">khepri_tx</span> 
+      <small class="app-vsn" translate="no">(khepri v0.19.0)</small>
+
+    </h1>
+
+
+      <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L46" title="View Source" class="icon-action" rel="help nofollow">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+  </div>
+
+
+    <section id="moduledoc">
+<p>Khepri API for transactional queries and updates.</p><p>Transactions are anonymous functions which take no arguments, much like what Mnesia supports. However, unlike with Mnesia, transaction functions in Khepri are restricted:</p><ul><li>Calls to BIFs and other functions is limited to a set of whitelisted APIs. See <code>khepri_tx_adv:is_remote_call_valid/3</code> for the complete list.</li><li>Sending or receiving messages is denied.</li></ul><p>The reason is that the transaction function must always have the exact same outcome given its inputs. Indeed, the transaction function is executed on every Ra cluster members participating in the consensus. The function must therefore modify the Khepri state (the database) identically on all Ra members. This is also true for Ra members joining the cluster later or catching up after a network partition.</p><p>To achieve that:</p><ol><li>The code of the transaction function is extracted from the its initial Erlang module. This way, the transaction function does not depend on the initial module availability and is not affected by a module reload. See Horus documentation</li><li>The code is verified to make sure it does not perform any denied operations.</li><li>The extracted transaction function is stored as a Khepri state machine command in the Ra journal to be replicated on all Ra members.</li></ol><p>Functions in this module have simplified return values to cover most frequent use cases. If you need more details about the queried or modified tree nodes, like the ability to distinguish a non-existent tree node from a tree node with no payload, you can use the <a href="khepri_tx_adv.html"><code>khepri_tx_adv</code></a> module.</p>
+    </section>
+
+</div>
+
+  <section id="summary" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h2>
+<div class="summary-types summary">
+  <h3>
+    <a href="#types">Types</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:tx_abort/0" data-no-tooltip="" translate="no">tx_abort/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Return value after a transaction function aborted.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:tx_fun/0" data-no-tooltip="" translate="no">tx_fun/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Transaction function signature.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:tx_fun_result/0" data-no-tooltip="" translate="no">tx_fun_result/0</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Return value of a transaction function.</p></div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h3>
+    <a href="#functions">Functions</a>
+  </h3>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#abort/1" data-no-tooltip="" translate="no">abort(Reason)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Aborts the transaction.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#clear_many_payloads/1" data-no-tooltip="" translate="no">clear_many_payloads(PathPattern)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Deletes the payload of all tree nodes matching the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#clear_many_payloads/2" data-no-tooltip="" translate="no">clear_many_payloads(PathPattern, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Deletes the payload of all tree nodes matching the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#clear_payload/1" data-no-tooltip="" translate="no">clear_payload(PathPattern)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Deletes the payload of the tree node pointed to by the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#clear_payload/2" data-no-tooltip="" translate="no">clear_payload(PathPattern, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Deletes the payload of the tree node pointed to by the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#compare_and_swap/3" data-no-tooltip="" translate="no">compare_and_swap(PathPattern, DataPattern, Data)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Updates an existing tree node with the given payload only if its data matches the given pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#compare_and_swap/4" data-no-tooltip="" translate="no">compare_and_swap(PathPattern, DataPattern, Data, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Updates an existing tree node with the given payload only if its data matches the given pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#count/1" data-no-tooltip="" translate="no">count(PathPattern)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Counts all tree nodes matching the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#count/2" data-no-tooltip="" translate="no">count(PathPattern, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Counts all tree nodes matching the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#create/2" data-no-tooltip="" translate="no">create(PathPattern, Data)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Creates a tree node with the given payload.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#create/3" data-no-tooltip="" translate="no">create(PathPattern, Data, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Creates a tree node with the given payload.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#delete/1" data-no-tooltip="" translate="no">delete(PathPattern)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Deletes the tree node pointed to by the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#delete/2" data-no-tooltip="" translate="no">delete(PathPattern, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Deletes the tree node pointed to by the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#delete_many/1" data-no-tooltip="" translate="no">delete_many(PathPattern)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Deletes all tree nodes matching the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#delete_many/2" data-no-tooltip="" translate="no">delete_many(PathPattern, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Deletes all tree nodes matching the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#does_api_comply_with/1" data-no-tooltip="" translate="no">does_api_comply_with(Behaviour)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Indicates if a new behaviour of the transaction API is activated.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#exists/1" data-no-tooltip="" translate="no">exists(PathPattern)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Indicates if the tree node pointed to by the given path exists or not.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#exists/2" data-no-tooltip="" translate="no">exists(PathPattern, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Indicates if the tree node pointed to by the given path exists or not.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#filter/2" data-no-tooltip="" translate="no">filter(PathPattern, Pred)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a map for which predicate <code>Pred</code> holds true in tree nodes matching the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#filter/3" data-no-tooltip="" translate="no">filter(PathPattern, Pred, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a map for which predicate <code>Pred</code> holds true in tree nodes matching the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#fold/3" data-no-tooltip="" translate="no">fold(PathPattern, Fun, Acc)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Calls <code>Fun</code> on successive tree nodes matching the given path pattern, starting with <code>Acc</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#fold/4" data-no-tooltip="" translate="no">fold(PathPattern, Fun, Acc, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Calls <code>Fun</code> on successive tree nodes matching the given path pattern, starting with <code>Acc</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#foreach/2" data-no-tooltip="" translate="no">foreach(PathPattern, Fun)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Calls <code>Fun</code> for each tree node matching the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#foreach/3" data-no-tooltip="" translate="no">foreach(PathPattern, Fun, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Calls <code>Fun</code> for each tree node matching the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get/1" data-no-tooltip="" translate="no">get(PathPattern)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the payload of the tree node pointed to by the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get/2" data-no-tooltip="" translate="no">get(PathPattern, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the payload of the tree node pointed to by the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_many/1" data-no-tooltip="" translate="no">get_many(PathPattern)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns payloads of all the tree nodes matching the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_many/2" data-no-tooltip="" translate="no">get_many(PathPattern, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns payloads of all the tree nodes matching the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_many_or/2" data-no-tooltip="" translate="no">get_many_or(PathPattern, Default)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns payloads of all the tree nodes matching the given path pattern, or a default payload.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_many_or/3" data-no-tooltip="" translate="no">get_many_or(PathPattern, Default, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns payloads of all the tree nodes matching the given path pattern, or a default payload.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_or/2" data-no-tooltip="" translate="no">get_or(PathPattern, Default)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the payload of the tree node pointed to by the given path pattern, or a default value.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_or/3" data-no-tooltip="" translate="no">get_or(PathPattern, Default, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the payload of the tree node pointed to by the given path pattern, or a default value.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#has_data/1" data-no-tooltip="" translate="no">has_data(PathPattern)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Indicates if the tree node pointed to by the given path has data or not.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#has_data/2" data-no-tooltip="" translate="no">has_data(PathPattern, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Indicates if the tree node pointed to by the given path has data or not.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#is_empty/0" data-no-tooltip="" translate="no">is_empty()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Indicates if the store is empty or not.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#is_empty/1" data-no-tooltip="" translate="no">is_empty(Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Indicates if the store is empty or not.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#is_sproc/1" data-no-tooltip="" translate="no">is_sproc(PathPattern)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Indicates if the tree node pointed to by the given path holds a stored procedure or not.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#is_sproc/2" data-no-tooltip="" translate="no">is_sproc(PathPattern, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Indicates if the tree node pointed to by the given path holds a stored procedure or not.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#is_transaction/0" data-no-tooltip="" translate="no">is_transaction()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Indicates if the calling function runs in the context of a transaction function.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#map/2" data-no-tooltip="" translate="no">map(PathPattern, Fun)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Produces a new map by calling <code>Fun</code> for each tree node matching the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#map/3" data-no-tooltip="" translate="no">map(PathPattern, Fun, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Produces a new map by calling <code>Fun</code> for each tree node matching the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#put/2" data-no-tooltip="" translate="no">put(PathPattern, Data)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Sets the payload of the tree node pointed to by the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#put/3" data-no-tooltip="" translate="no">put(PathPattern, Data, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Sets the payload of the tree node pointed to by the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#put_many/2" data-no-tooltip="" translate="no">put_many(PathPattern, Data)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Sets the payload of all the tree nodes matching the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#put_many/3" data-no-tooltip="" translate="no">put_many(PathPattern, Data, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Sets the payload of all the tree nodes matching the given path pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#update/2" data-no-tooltip="" translate="no">update(PathPattern, Data)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Updates an existing tree node with the given payload.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#update/3" data-no-tooltip="" translate="no">update(PathPattern, Data, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Updates an existing tree node with the given payload.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h2>
+
+    <div class="types-list">
+<section class="detail" id="t:tx_abort/0">
+
+  <div class="detail-header">
+    <a href="#t:tx_abort/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">tx_abort/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L104" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> tx_abort() :: <a href="khepri.html#t:error/1">khepri:error</a>(<a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:any/0">any</a>()).</pre>
+
+      </div>
+
+<p>Return value after a transaction function aborted.</p>
+  </section>
+</section>
+<section class="detail" id="t:tx_fun/0">
+
+  <div class="detail-header">
+    <a href="#t:tx_fun/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">tx_fun/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L101" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> tx_fun() :: fun().</pre>
+
+      </div>
+
+<p>Transaction function signature.</p>
+  </section>
+</section>
+<section class="detail" id="t:tx_fun_result/0">
+
+  <div class="detail-header">
+    <a href="#t:tx_fun_result/0" class="detail-link" data-no-tooltip="" aria-label="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">tx_fun_result/0</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L98" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> tx_fun_result() :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:any/0">any</a>() | <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:no_return/0">no_return</a>().</pre>
+
+      </div>
+
+<p>Return value of a transaction function.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h2 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h2>
+
+    <div class="functions-list">
+<section class="detail" id="abort/1">
+
+  <div class="detail-header">
+    <a href="#abort/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">abort(Reason)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L1004" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> abort(Reason) -> <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:no_return/0">no_return</a>() when Reason :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:any/0">any</a>().</pre>
+
+      </div>
+
+<p>Aborts the transaction.</p><p>Any changes so far are not committed to the store.</p><p><a href="khepri.html#transaction/1"><code>khepri:transaction/1</code></a> and friends will return <a href="#t:tx_abort/0"><code>tx_abort()</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="clear_many_payloads/1">
+
+  <div class="detail-header">
+    <a href="#clear_many_payloads/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">clear_many_payloads(PathPattern)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L971" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> clear_many_payloads(PathPattern) -> Ret
+                             when PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(), Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Deletes the payload of all tree nodes matching the given path pattern.</p><p>This is the same as <a href="khepri.html#clear_many_payloads/2"><code>khepri:clear_many_payloads/2</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#clear_many_payloads/2">khepri:clear_many_payloads/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="clear_many_payloads/2">
+
+  <div class="detail-header">
+    <a href="#clear_many_payloads/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">clear_many_payloads(PathPattern, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L985" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> clear_many_payloads(PathPattern, Options) -> Ret
+                             when
+                                 PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                                 Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>() | <a href="khepri.html#t:put_options/0">khepri:put_options</a>(),
+                                 Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Deletes the payload of all tree nodes matching the given path pattern.</p><p>This is the same as <a href="khepri.html#clear_many_payloads/3"><code>khepri:clear_many_payloads/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#clear_many_payloads/3">khepri:clear_many_payloads/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="clear_payload/1">
+
+  <div class="detail-header">
+    <a href="#clear_payload/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">clear_payload(PathPattern)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L937" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> clear_payload(PathPattern) -> Ret
+                       when PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(), Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Deletes the payload of the tree node pointed to by the given path pattern.</p><p>This is the same as <a href="khepri.html#clear_payload/2"><code>khepri:clear_payload/2</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#clear_payload/2">khepri:clear_payload/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="clear_payload/2">
+
+  <div class="detail-header">
+    <a href="#clear_payload/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">clear_payload(PathPattern, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L952" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> clear_payload(PathPattern, Options) -> Ret
+                       when
+                           PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                           Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>() | <a href="khepri.html#t:put_options/0">khepri:put_options</a>(),
+                           Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Deletes the payload of the tree node pointed to by the given path pattern.</p><p>This is the same as <a href="khepri.html#clear_payload/3"><code>khepri:clear_payload/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#clear_payload/3">khepri:clear_payload/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="compare_and_swap/3">
+
+  <div class="detail-header">
+    <a href="#compare_and_swap/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">compare_and_swap(PathPattern, DataPattern, Data)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L832" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> compare_and_swap(PathPattern, DataPattern, Data) -> Ret
+                          when
+                              PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                              DataPattern :: <a href="https://www.erlang.org/doc/apps/stdlib/ets.html#t:match_pattern/0">ets:match_pattern</a>(),
+                              Data :: <a href="khepri_payload.html#t:payload/0">khepri_payload:payload</a>() | <a href="khepri.html#t:data/0">khepri:data</a>() | fun(),
+                              Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Updates an existing tree node with the given payload only if its data matches the given pattern.</p><p>This is the same as <a href="khepri.html#compare_and_swap/4"><code>khepri:compare_and_swap/4</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#compare_and_swap/4">khepri:compare_and_swap/4</a>.</p>
+  </section>
+</section>
+<section class="detail" id="compare_and_swap/4">
+
+  <div class="detail-header">
+    <a href="#compare_and_swap/4" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">compare_and_swap(PathPattern, DataPattern, Data, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L850" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> compare_and_swap(PathPattern, DataPattern, Data, Options) -> Ret
+                          when
+                              PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                              DataPattern :: <a href="https://www.erlang.org/doc/apps/stdlib/ets.html#t:match_pattern/0">ets:match_pattern</a>(),
+                              Data :: <a href="khepri_payload.html#t:payload/0">khepri_payload:payload</a>() | <a href="khepri.html#t:data/0">khepri:data</a>() | fun(),
+                              Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>() | <a href="khepri.html#t:put_options/0">khepri:put_options</a>(),
+                              Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Updates an existing tree node with the given payload only if its data matches the given pattern.</p><p>This is the same as <a href="khepri.html#compare_and_swap/5"><code>khepri:compare_and_swap/5</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#compare_and_swap/5">khepri:compare_and_swap/5</a>.</p>
+  </section>
+</section>
+<section class="detail" id="count/1">
+
+  <div class="detail-header">
+    <a href="#count/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">count(PathPattern)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L463" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> count(PathPattern) -> Ret
+               when
+                   PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                   Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(Count) | <a href="khepri.html#t:error/0">khepri:error</a>(),
+                   Count :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>().</pre>
+
+      </div>
+
+<p>Counts all tree nodes matching the given path pattern.</p><p>This is the same as <a href="khepri.html#count/2"><code>khepri:count/2</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#count/2">khepri:count/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="count/2">
+
+  <div class="detail-header">
+    <a href="#count/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">count(PathPattern, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L478" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> count(PathPattern, Options) -> Ret
+               when
+                   PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                   Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>(),
+                   Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(Count) | <a href="khepri.html#t:error/0">khepri:error</a>(),
+                   Count :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>().</pre>
+
+      </div>
+
+<p>Counts all tree nodes matching the given path pattern.</p><p>This is the same as <a href="khepri.html#count/3"><code>khepri:count/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#count/3">khepri:count/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="create/2">
+
+  <div class="detail-header">
+    <a href="#create/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">create(PathPattern, Data)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L760" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> create(PathPattern, Data) -> Ret
+                when
+                    PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                    Data :: <a href="khepri_payload.html#t:payload/0">khepri_payload:payload</a>() | <a href="khepri.html#t:data/0">khepri:data</a>() | fun(),
+                    Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Creates a tree node with the given payload.</p><p>This is the same as <a href="khepri.html#create/3"><code>khepri:create/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#create/3">khepri:create/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="create/3">
+
+  <div class="detail-header">
+    <a href="#create/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">create(PathPattern, Data, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L775" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> create(PathPattern, Data, Options) -> Ret
+                when
+                    PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                    Data :: <a href="khepri_payload.html#t:payload/0">khepri_payload:payload</a>() | <a href="khepri.html#t:data/0">khepri:data</a>() | fun(),
+                    Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>() | <a href="khepri.html#t:put_options/0">khepri:put_options</a>(),
+                    Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Creates a tree node with the given payload.</p><p>This is the same as <a href="khepri.html#create/4"><code>khepri:create/4</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#create/4">khepri:create/4</a>.</p>
+  </section>
+</section>
+<section class="detail" id="delete/1">
+
+  <div class="detail-header">
+    <a href="#delete/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">delete(PathPattern)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L870" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> delete(PathPattern) -> Ret when PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(), Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Deletes the tree node pointed to by the given path pattern.</p><p>This is the same as <a href="khepri.html#delete/2"><code>khepri:delete/2</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#delete/2">khepri:delete/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="delete/2">
+
+  <div class="detail-header">
+    <a href="#delete/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">delete(PathPattern, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L884" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> delete(PathPattern, Options) -> Ret
+                when
+                    PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                    Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>(),
+                    Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Deletes the tree node pointed to by the given path pattern.</p><p>This is the same as <a href="khepri.html#delete/3"><code>khepri:delete/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#delete/3">khepri:delete/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="delete_many/1">
+
+  <div class="detail-header">
+    <a href="#delete_many/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">delete_many(PathPattern)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L903" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> delete_many(PathPattern) -> Ret
+                     when PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(), Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Deletes all tree nodes matching the given path pattern.</p><p>This is the same as <a href="khepri.html#delete_many/2"><code>khepri:delete_many/2</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#delete_many/2">khepri:delete_many/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="delete_many/2">
+
+  <div class="detail-header">
+    <a href="#delete_many/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">delete_many(PathPattern, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L917" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> delete_many(PathPattern, Options) -> Ret
+                     when
+                         PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                         Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>(),
+                         Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Deletes all tree nodes matching the given path pattern.</p><p>This is the same as <a href="khepri.html#delete_many/3"><code>khepri:delete_many/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#delete_many/3">khepri:delete_many/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="does_api_comply_with/1">
+
+  <div class="detail-header">
+    <a href="#does_api_comply_with/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">does_api_comply_with(Behaviour)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L1047" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> does_api_comply_with(Behaviour) -> DoesUse
+                              when Behaviour :: <a href="khepri_machine.html#t:api_behaviour/0">khepri_machine:api_behaviour</a>(), DoesUse :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>().</pre>
+
+      </div>
+
+<p>Indicates if a new behaviour of the transaction API is activated.</p><p>The transaction code is compiled on one Erlang node with a specific version of Khepri. However, it is executed on all members of the Khepri cluster. Some Erlang nodes might use another version of Khepri, newer or older, and the transaction API may differ.</p><p>For instance in Khepri 0.17.x, the return values of the <a href="khepri_tx_adv.html"><code>khepri_tx_adv</code></a> functions changed. The transaction code will have to handle both versions of the API to work correctly. Thus it can use this function to adapt.</p>
+  </section>
+</section>
+<section class="detail" id="exists/1">
+
+  <div class="detail-header">
+    <a href="#exists/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">exists(PathPattern)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L334" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> exists(PathPattern) -> Exists | Error
+                when PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(), Exists :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>(), Error :: <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Indicates if the tree node pointed to by the given path exists or not.</p><p>This is the same as <a href="khepri.html#exists/2"><code>khepri:exists/2</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#exists/2">khepri:exists/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="exists/2">
+
+  <div class="detail-header">
+    <a href="#exists/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">exists(PathPattern, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L349" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> exists(PathPattern, Options) -> Exists | Error
+                when
+                    PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                    Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>(),
+                    Exists :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+                    Error :: <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Indicates if the tree node pointed to by the given path exists or not.</p><p>This is the same as <a href="khepri.html#exists/3"><code>khepri:exists/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#exists/3">khepri:exists/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="filter/2">
+
+  <div class="detail-header">
+    <a href="#filter/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">filter(PathPattern, Pred)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L644" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> filter(PathPattern, Pred) -> Ret
+                when
+                    PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                    Pred :: <a href="khepri.html#t:filter_fun/0">khepri:filter_fun</a>(),
+                    Ret :: <a href="khepri.html#t:many_payloads_ret/0">khepri:many_payloads_ret</a>().</pre>
+
+      </div>
+
+<p>Returns a map for which predicate <code>Pred</code> holds true in tree nodes matching the given path pattern.</p><p>This is the same as <a href="khepri.html#filter/3"><code>khepri:filter/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#filter/3">khepri:filter/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="filter/3">
+
+  <div class="detail-header">
+    <a href="#filter/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">filter(PathPattern, Pred, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L660" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> filter(PathPattern, Pred, Options) -> Ret
+                when
+                    PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                    Pred :: <a href="khepri.html#t:filter_fun/0">khepri:filter_fun</a>(),
+                    Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>(),
+                    Ret :: <a href="khepri.html#t:many_payloads_ret/0">khepri:many_payloads_ret</a>().</pre>
+
+      </div>
+
+<p>Returns a map for which predicate <code>Pred</code> holds true in tree nodes matching the given path pattern.</p><p>This is the same as <a href="khepri.html#filter/4"><code>khepri:filter/4</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#filter/4">khepri:filter/4</a>.</p>
+  </section>
+</section>
+<section class="detail" id="fold/3">
+
+  <div class="detail-header">
+    <a href="#fold/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">fold(PathPattern, Fun, Acc)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L513" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> fold(PathPattern, Fun, Acc) -> Ret
+              when
+                  PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                  Fun :: <a href="khepri.html#t:fold_fun/0">khepri:fold_fun</a>(),
+                  Acc :: <a href="khepri.html#t:fold_acc/0">khepri:fold_acc</a>(),
+                  Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(NewAcc) | <a href="khepri.html#t:error/0">khepri:error</a>(),
+                  NewAcc :: Acc.</pre>
+
+      </div>
+
+<p>Calls <code>Fun</code> on successive tree nodes matching the given path pattern, starting with <code>Acc</code>.</p><p>This is the same as <a href="khepri.html#fold/4"><code>khepri:fold/4</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#fold/4">khepri:fold/4</a>.</p>
+  </section>
+</section>
+<section class="detail" id="fold/4">
+
+  <div class="detail-header">
+    <a href="#fold/4" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">fold(PathPattern, Fun, Acc, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L531" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> fold(PathPattern, Fun, Acc, Options) -> Ret
+              when
+                  PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                  Fun :: <a href="khepri.html#t:fold_fun/0">khepri:fold_fun</a>(),
+                  Acc :: <a href="khepri.html#t:fold_acc/0">khepri:fold_acc</a>(),
+                  Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>(),
+                  Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(NewAcc) | <a href="khepri.html#t:error/0">khepri:error</a>(),
+                  NewAcc :: Acc.</pre>
+
+      </div>
+
+<p>Calls <code>Fun</code> on successive tree nodes matching the given path pattern, starting with <code>Acc</code>.</p><p>This is the same as <a href="khepri.html#fold/5"><code>khepri:fold/5</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#fold/5">khepri:fold/5</a>.</p>
+  </section>
+</section>
+<section class="detail" id="foreach/2">
+
+  <div class="detail-header">
+    <a href="#foreach/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">foreach(PathPattern, Fun)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L562" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> foreach(PathPattern, Fun) -> Ret
+                 when
+                     PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                     Fun :: <a href="khepri.html#t:foreach_fun/0">khepri:foreach_fun</a>(),
+                     Ret :: ok | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Calls <code>Fun</code> for each tree node matching the given path pattern.</p><p>This is the same as <a href="khepri.html#foreach/3"><code>khepri:foreach/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#foreach/3">khepri:foreach/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="foreach/3">
+
+  <div class="detail-header">
+    <a href="#foreach/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">foreach(PathPattern, Fun, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L577" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> foreach(PathPattern, Fun, Options) -> Ret
+                 when
+                     PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                     Fun :: <a href="khepri.html#t:foreach_fun/0">khepri:foreach_fun</a>(),
+                     Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>(),
+                     Ret :: ok | <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Calls <code>Fun</code> for each tree node matching the given path pattern.</p><p>This is the same as <a href="khepri.html#foreach/4"><code>khepri:foreach/4</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#foreach/4">khepri:foreach/4</a>.</p>
+  </section>
+</section>
+<section class="detail" id="get/1">
+
+  <div class="detail-header">
+    <a href="#get/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">get(PathPattern)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L164" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get(PathPattern) -> Ret when PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(), Ret :: <a href="khepri.html#t:payload_ret/0">khepri:payload_ret</a>().</pre>
+
+      </div>
+
+<p>Returns the payload of the tree node pointed to by the given path pattern.</p><p>This is the same as <a href="khepri.html#get/2"><code>khepri:get/2</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#get/2">khepri:get/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="get/2">
+
+  <div class="detail-header">
+    <a href="#get/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">get(PathPattern, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L179" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get(PathPattern, Options) -> Ret
+             when
+                 PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                 Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>(),
+                 Ret :: <a href="khepri.html#t:payload_ret/0">khepri:payload_ret</a>().</pre>
+
+      </div>
+
+<p>Returns the payload of the tree node pointed to by the given path pattern.</p><p>This is the same as <a href="khepri.html#get/3"><code>khepri:get/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#get/3">khepri:get/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="get_many/1">
+
+  <div class="detail-header">
+    <a href="#get_many/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">get_many(PathPattern)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L260" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_many(PathPattern) -> Ret
+                  when PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(), Ret :: <a href="khepri.html#t:many_payloads_ret/0">khepri:many_payloads_ret</a>().</pre>
+
+      </div>
+
+<p>Returns payloads of all the tree nodes matching the given path pattern.</p><p>This is the same as <a href="khepri.html#get_many/2"><code>khepri:get_many/2</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#get_many/2">khepri:get_many/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="get_many/2">
+
+  <div class="detail-header">
+    <a href="#get_many/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">get_many(PathPattern, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L275" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_many(PathPattern, Options) -> Ret
+                  when
+                      PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                      Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>(),
+                      Ret :: <a href="khepri.html#t:many_payloads_ret/0">khepri:many_payloads_ret</a>().</pre>
+
+      </div>
+
+<p>Returns payloads of all the tree nodes matching the given path pattern.</p><p>This is the same as <a href="khepri.html#get_many/3"><code>khepri:get_many/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#get_many/3">khepri:get_many/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="get_many_or/2">
+
+  <div class="detail-header">
+    <a href="#get_many_or/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">get_many_or(PathPattern, Default)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L294" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_many_or(PathPattern, Default) -> Ret
+                     when
+                         PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                         Default :: <a href="khepri.html#t:data/0">khepri:data</a>(),
+                         Ret :: <a href="khepri.html#t:many_payloads_ret/0">khepri:many_payloads_ret</a>().</pre>
+
+      </div>
+
+<p>Returns payloads of all the tree nodes matching the given path pattern, or a default payload.</p><p>This is the same as <a href="khepri.html#get_many_or/3"><code>khepri:get_many_or/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#get_many_or/3">khepri:get_many_or/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="get_many_or/3">
+
+  <div class="detail-header">
+    <a href="#get_many_or/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">get_many_or(PathPattern, Default, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L310" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_many_or(PathPattern, Default, Options) -> Ret
+                     when
+                         PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                         Default :: <a href="khepri.html#t:data/0">khepri:data</a>(),
+                         Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>(),
+                         Ret :: <a href="khepri.html#t:many_payloads_ret/0">khepri:many_payloads_ret</a>().</pre>
+
+      </div>
+
+<p>Returns payloads of all the tree nodes matching the given path pattern, or a default payload.</p><p>This is the same as <a href="khepri.html#get_many_or/4"><code>khepri:get_many_or/4</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#get_many_or/4">khepri:get_many_or/4</a>.</p>
+  </section>
+</section>
+<section class="detail" id="get_or/2">
+
+  <div class="detail-header">
+    <a href="#get_or/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">get_or(PathPattern, Default)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L211" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_or(PathPattern, Default) -> Ret
+                when
+                    PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                    Default :: <a href="khepri.html#t:data/0">khepri:data</a>(),
+                    Ret :: <a href="khepri.html#t:payload_ret/0">khepri:payload_ret</a>().</pre>
+
+      </div>
+
+<p>Returns the payload of the tree node pointed to by the given path pattern, or a default value.</p><p>This is the same as <a href="khepri.html#get_or/3"><code>khepri:get_or/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#get_or/3">khepri:get_or/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="get_or/3">
+
+  <div class="detail-header">
+    <a href="#get_or/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">get_or(PathPattern, Default, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L227" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_or(PathPattern, Default, Options) -> Ret
+                when
+                    PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                    Default :: <a href="khepri.html#t:data/0">khepri:data</a>(),
+                    Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>(),
+                    Ret :: <a href="khepri.html#t:payload_ret/0">khepri:payload_ret</a>().</pre>
+
+      </div>
+
+<p>Returns the payload of the tree node pointed to by the given path pattern, or a default value.</p><p>This is the same as <a href="khepri.html#get_or/4"><code>khepri:get_or/4</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#get_or/4">khepri:get_or/4</a>.</p>
+  </section>
+</section>
+<section class="detail" id="has_data/1">
+
+  <div class="detail-header">
+    <a href="#has_data/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">has_data(PathPattern)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L374" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> has_data(PathPattern) -> HasData | Error
+                  when
+                      PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                      HasData :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+                      Error :: <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Indicates if the tree node pointed to by the given path has data or not.</p><p>This is the same as <a href="khepri.html#has_data/2"><code>khepri:has_data/2</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#has_data/2">khepri:has_data/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="has_data/2">
+
+  <div class="detail-header">
+    <a href="#has_data/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">has_data(PathPattern, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L390" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> has_data(PathPattern, Options) -> HasData | Error
+                  when
+                      PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                      Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>(),
+                      HasData :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+                      Error :: <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Indicates if the tree node pointed to by the given path has data or not.</p><p>This is the same as <a href="khepri.html#has_data/3"><code>khepri:has_data/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#has_data/3">khepri:has_data/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="is_empty/0">
+
+  <div class="detail-header">
+    <a href="#is_empty/0" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">is_empty()</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L126" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> is_empty() -> IsEmpty | Error when IsEmpty :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>(), Error :: <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Indicates if the store is empty or not.</p><p>This is the same as <a href="khepri.html#is_empty/1"><code>khepri:is_empty/1</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="#is_empty/1">is_empty/1</a>, <a href="khepri.html#is_empty/2">khepri:is_empty/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="is_empty/1">
+
+  <div class="detail-header">
+    <a href="#is_empty/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">is_empty(Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L140" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> is_empty(Options) -> IsEmpty | Error
+                  when Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>(), IsEmpty :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>(), Error :: <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Indicates if the store is empty or not.</p><p>This is the same as <a href="khepri.html#is_empty/2"><code>khepri:is_empty/2</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#is_empty/2">khepri:is_empty/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="is_sproc/1">
+
+  <div class="detail-header">
+    <a href="#is_sproc/1" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">is_sproc(PathPattern)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L419" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> is_sproc(PathPattern) -> IsSproc | Error
+                  when
+                      PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                      IsSproc :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+                      Error :: <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Indicates if the tree node pointed to by the given path holds a stored procedure or not.</p><p>This is the same as <a href="khepri.html#is_sproc/2"><code>khepri:is_sproc/2</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#is_sproc/2">khepri:is_sproc/2</a>.</p>
+  </section>
+</section>
+<section class="detail" id="is_sproc/2">
+
+  <div class="detail-header">
+    <a href="#is_sproc/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">is_sproc(PathPattern, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L435" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> is_sproc(PathPattern, Options) -> IsSproc | Error
+                  when
+                      PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                      Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>(),
+                      IsSproc :: <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+                      Error :: <a href="khepri.html#t:error/0">khepri:error</a>().</pre>
+
+      </div>
+
+<p>Indicates if the tree node pointed to by the given path holds a stored procedure or not.</p><p>This is the same as <a href="khepri.html#is_sproc/3"><code>khepri:is_sproc/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#is_sproc/3">khepri:is_sproc/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="is_transaction/0">
+
+  <div class="detail-header">
+    <a href="#is_transaction/0" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">is_transaction()</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L1018" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> is_transaction() -> <a href="https://www.erlang.org/doc/apps/erts/erlang.html#t:boolean/0">boolean</a>().</pre>
+
+      </div>
+
+<p>Indicates if the calling function runs in the context of a transaction function.</p>
+  </section>
+</section>
+<section class="detail" id="map/2">
+
+  <div class="detail-header">
+    <a href="#map/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">map(PathPattern, Fun)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L604" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> map(PathPattern, Fun) -> Ret
+             when
+                 PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                 Fun :: <a href="khepri.html#t:map_fun/0">khepri:map_fun</a>(),
+                 Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(Map) | <a href="khepri.html#t:error/0">khepri:error</a>(),
+                 Map :: #{<a href="khepri_path.html#t:native_path/0">khepri_path:native_path</a>() => <a href="khepri.html#t:map_fun_ret/0">khepri:map_fun_ret</a>()}.</pre>
+
+      </div>
+
+<p>Produces a new map by calling <code>Fun</code> for each tree node matching the given path pattern.</p><p>This is the same as <a href="khepri.html#map/3"><code>khepri:map/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#map/3">khepri:map/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="map/3">
+
+  <div class="detail-header">
+    <a href="#map/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">map(PathPattern, Fun, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L621" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> map(PathPattern, Fun, Options) -> Ret
+             when
+                 PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                 Fun :: <a href="khepri.html#t:map_fun/0">khepri:map_fun</a>(),
+                 Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>(),
+                 Ret :: <a href="khepri.html#t:ok/1">khepri:ok</a>(Map) | <a href="khepri.html#t:error/0">khepri:error</a>(),
+                 Map :: #{<a href="khepri_path.html#t:native_path/0">khepri_path:native_path</a>() => <a href="khepri.html#t:map_fun_ret/0">khepri:map_fun_ret</a>()}.</pre>
+
+      </div>
+
+<p>Produces a new map by calling <code>Fun</code> for each tree node matching the given path pattern.</p><p>This is the same as <a href="khepri.html#map/4"><code>khepri:map/4</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#map/4">khepri:map/4</a>.</p>
+  </section>
+</section>
+<section class="detail" id="put/2">
+
+  <div class="detail-header">
+    <a href="#put/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">put(PathPattern, Data)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L689" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> put(PathPattern, Data) -> Ret
+             when
+                 PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                 Data :: <a href="khepri_payload.html#t:payload/0">khepri_payload:payload</a>() | <a href="khepri.html#t:data/0">khepri:data</a>() | fun(),
+                 Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Sets the payload of the tree node pointed to by the given path pattern.</p><p>This is the same as <a href="khepri.html#put/3"><code>khepri:put/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#put/3">khepri:put/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="put/3">
+
+  <div class="detail-header">
+    <a href="#put/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">put(PathPattern, Data, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L705" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> put(PathPattern, Data, Options) -> Ret
+             when
+                 PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                 Data :: <a href="khepri_payload.html#t:payload/0">khepri_payload:payload</a>() | <a href="khepri.html#t:data/0">khepri:data</a>() | fun(),
+                 Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>() | <a href="khepri.html#t:put_options/0">khepri:put_options</a>(),
+                 Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Sets the payload of the tree node pointed to by the given path pattern.</p><p>This is the same as <a href="khepri.html#put/4"><code>khepri:put/4</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#put/4">khepri:put/4</a>.</p>
+  </section>
+</section>
+<section class="detail" id="put_many/2">
+
+  <div class="detail-header">
+    <a href="#put_many/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">put_many(PathPattern, Data)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L725" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> put_many(PathPattern, Data) -> Ret
+                  when
+                      PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                      Data :: <a href="khepri_payload.html#t:payload/0">khepri_payload:payload</a>() | <a href="khepri.html#t:data/0">khepri:data</a>() | fun(),
+                      Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Sets the payload of all the tree nodes matching the given path pattern.</p><p>This is the same as <a href="khepri.html#put_many/3"><code>khepri:put_many/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#put_many/3">khepri:put_many/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="put_many/3">
+
+  <div class="detail-header">
+    <a href="#put_many/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">put_many(PathPattern, Data, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L740" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> put_many(PathPattern, Data, Options) -> Ret
+                  when
+                      PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                      Data :: <a href="khepri_payload.html#t:payload/0">khepri_payload:payload</a>() | <a href="khepri.html#t:data/0">khepri:data</a>() | fun(),
+                      Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>() | <a href="khepri.html#t:put_options/0">khepri:put_options</a>(),
+                      Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Sets the payload of all the tree nodes matching the given path pattern.</p><p>This is the same as <a href="khepri.html#put_many/4"><code>khepri:put_many/4</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#put_many/4">khepri:put_many/4</a>.</p>
+  </section>
+</section>
+<section class="detail" id="update/2">
+
+  <div class="detail-header">
+    <a href="#update/2" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">update(PathPattern, Data)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L795" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> update(PathPattern, Data) -> Ret
+                when
+                    PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                    Data :: <a href="khepri_payload.html#t:payload/0">khepri_payload:payload</a>() | <a href="khepri.html#t:data/0">khepri:data</a>() | fun(),
+                    Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Updates an existing tree node with the given payload.</p><p>This is the same as <a href="khepri.html#update/3"><code>khepri:update/3</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#update/3">khepri:update/3</a>.</p>
+  </section>
+</section>
+<section class="detail" id="update/3">
+
+  <div class="detail-header">
+    <a href="#update/3" class="detail-link" data-no-tooltip="" aria-label="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+    </a>
+    <div class="heading-with-actions">
+      <h1 class="signature" translate="no">update(PathPattern, Data, Options)</h1>
+
+
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_tx.erl#L810" class="icon-action" rel="help nofollow" aria-label="View Source">
+          <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        </a>
+
+    </div>
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> update(PathPattern, Data, Options) -> Ret
+                when
+                    PathPattern :: <a href="khepri_path.html#t:pattern/0">khepri_path:pattern</a>(),
+                    Data :: <a href="khepri_payload.html#t:payload/0">khepri_payload:payload</a>() | <a href="khepri.html#t:data/0">khepri:data</a>() | fun(),
+                    Options :: <a href="khepri.html#t:tree_options/0">khepri:tree_options</a>() | <a href="khepri.html#t:put_options/0">khepri:put_options</a>(),
+                    Ret :: <a href="khepri.html#t:minimal_ret/0">khepri:minimal_ret</a>().</pre>
+
+      </div>
+
+<p>Updates an existing tree node with the given payload.</p><p>This is the same as <a href="khepri.html#update/4"><code>khepri:update/4</code></a> but inside the context of a transaction function.</p><p><em>See also: </em><a href="khepri.html#update/4">khepri:update/4</a>.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+    <footer class="footer">
+
+        <p>
+
+            <span class="line">
+              <a href="https://hex.pm/packages/khepri/0.19.0">Hex Package</a>
+
+              <a href="https://preview.hex.pm/preview/khepri/0.19.0">Hex Preview</a>
+
+            </span>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Go to package docs">
+              Go to package docs
+            </button>
+
+
+              <a href="khepri.epub">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.40.3) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+
+
+    </footer>
+  </div>
+</main>
+</div>
+
+  </body>
+</html>

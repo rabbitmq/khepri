@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.40.3">
+    <meta name="project" content="khepri v0.19.0">
+
+
+    <title>The Khepri database library — khepri v0.19.0</title>
+
+    <link rel="stylesheet" href="dist/html-erlang-KCHZLXSC.css" />
+
+    <script defer src="dist/sidebar_items-55A96F02.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-Y2MUTVIN.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+      <div>
+        <a href="readme.html" class="sidebar-projectName" translate="no">
+khepri
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v0.19.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras="Pages"></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-extra" id="main" data-type="extras">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of khepri</span>
+            <div class="search-input-wrapper">
+              <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+                <i class="ri-close-line ri-lg" title="Cancel search"></i>
+              </button>
+            </div>
+          </label>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <div class="engine-selector" data-multiple="false">
+          <button type="button" class="engine-button" aria-label="Select search engine" aria-haspopup="true" aria-expanded="false">
+            <i class="ri-search-2-line" aria-hidden="true"></i>
+            <span class="engine-name">Default</span>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          <div class="engine-dropdown" hidden role="menu">
+
+              <button type="button"
+                      class="engine-option"
+                      data-engine-url="search.html?q="
+                      role="menuitemradio"
+                      aria-checked="true">
+                <span class="name">Default</span>
+                <span class="help">In-browser search</span>
+              </button>
+
+          </div>
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>The Khepri database library</h1>
+
+
+
+      <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/README.md#L1" title="View Source" class="icon-action" rel="help nofollow">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+  </div>
+
+
+<p><a href="https://hex.pm/packages/khepri/"><img src="https://img.shields.io/hexpm/v/khepri" alt="Hex.pm"/></a>
+<a rel="nofollow" href="https://github.com/rabbitmq/khepri/actions/workflows/test-and-release.yaml"><img src="https://github.com/rabbitmq/khepri/actions/workflows/test-and-release.yaml/badge.svg" alt="Test"/></a>
+<a rel="nofollow" href="https://codecov.io/gh/rabbitmq/khepri"><img src="https://codecov.io/gh/rabbitmq/khepri/branch/main/graph/badge.svg?token=R0OGKZ2RK2" alt="Codecov"/></a></p><p>Khepri is a tree-like replicated on-disk database library for Erlang and
+Elixir, built on top of the <a rel="nofollow" href="https://raft.github.io/">Raft consensus algorithm</a>.</p><img align="right" width="100" src="https://raw.githubusercontent.com/rabbitmq/khepri/main/doc/khepri-logo.svg"/><h2 id="the-basics" class="section-heading"><a href="#the-basics" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">The basics</span></h2><p>Data are stored in a <strong>tree structure</strong>. Each node in the tree is referenced by
+its path from the root node. A path is a list of Erlang atoms and/or binaries.
+For ease of use, Unix-like path strings are accepted as well.</p><p>For <strong>consistency and replication</strong> and to manage data on disk, Khepri relies
+on <a rel="nofollow" href="https://github.com/rabbitmq/ra">Ra</a>, an Erlang implementation of the <a rel="nofollow" href="https://raft.github.io/">Raft
+consensus algorithm</a>. In Ra parlance, Khepri is a
+state machine in a Ra cluster.</p><h2 id="project-maturity" class="section-heading"><a href="#project-maturity" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Project maturity</span></h2><p>Khepri is still under active development. That said, it is <strong>safe to be used in
+production</strong>. As an example, it is used as the default metadata store in
+RabbitMQ 4.2.x and it is even the only supported one starting from RabbitMQ
+4.3.0.</p><p>From an API stand point, the <strong>API will continue to evolve</strong>, sometimes with
+breaking changes, as we are not 100% satisfied with it. That is why Khepri
+1.0.0 is not released yet. When we have to introduce a breaking change:</p><ol><li>We try to provide backward compatibility first</li><li>When it is not possible, we describe how the change impacts a program
+depending on Khepri, with examples showing how to adapt the source code.</li></ol><h2 id="fundamental-assumptions" class="section-heading"><a href="#fundamental-assumptions" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Fundamental assumptions</span></h2><p>As a Raft-based system, Khepri <strong>requires durable storage</strong>, including
+between node restarts, and stable node (replica) identities.</p><p>Likewise, as a Raft-based system, Khepri requires a majority of nodes to be
+online at all times. When this is not the case, the cluster will lose its
+availability, specifically for writes.</p><h2 id="known-limitations" class="section-heading"><a href="#known-limitations" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Known limitations</span></h2><p>Khepri currently hosts the entire data set <strong>in memory as well as on disk</strong>, so
+there is a realistic limit to how large a data set can be stored in it.</p><p>For this reason and others, storing <strong>blobs of files</strong> in Khepri is not
+recommended. For that, use an external blob store.</p><h2 id="documentation" class="section-heading"><a href="#documentation" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Documentation</span></h2><ul><li>A short tutorial in the <a href="#getting-started">Getting started</a> section below</li><li><a rel="nofollow" href="https://rabbitmq.github.io/khepri/">Documentation and API reference</a></li></ul><h2 id="getting-started" class="section-heading"><a href="#getting-started" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Getting started</span></h2><h3 id="add-as-a-dependency" class="section-heading"><a href="#add-as-a-dependency" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Add as a dependency</span></h3><p>Add Khepri as a dependency of your project:</p><p>Using Rebar:</p><pre><code class="makeup erlang" translate="no"><span class="c1">%% In rebar.config</span><span class="w">
+</span><span class="p" data-group-id="4518641668-1">{</span><span class="ss">deps</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4518641668-2">[</span><span class="p" data-group-id="4518641668-3">{</span><span class="ss">khepri</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;0.19.0&quot;</span><span class="p" data-group-id="4518641668-3">}</span><span class="p" data-group-id="4518641668-2">]</span><span class="p" data-group-id="4518641668-1">}</span><span class="p">.</span></code></pre><p>Using Erlang.mk:</p><pre><code class="make"># In your Makefile
+DEPS += khepri
+dep_khepri = hex 0.19.0</code></pre><p>Using Mix:</p><pre><code class="makeup elixir" translate="no"><span class="c1"># In mix.exs</span><span class="w">
+</span><span class="kd">defp</span><span class="w"> </span><span class="nf">deps</span><span class="w"> </span><span class="k" data-group-id="2570478760-1">do</span><span class="w">
+  </span><span class="p" data-group-id="2570478760-2">[</span><span class="w">
+    </span><span class="p" data-group-id="2570478760-3">{</span><span class="ss">:khepri</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;0.19.0&quot;</span><span class="p" data-group-id="2570478760-3">}</span><span class="w">
+  </span><span class="p" data-group-id="2570478760-2">]</span><span class="w">
+</span><span class="k" data-group-id="2570478760-1">end</span></code></pre><h3 id="start-default-khepri-store" class="section-heading"><a href="#start-default-khepri-store" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Start default Khepri store</span></h3><p>To start the default store, use <a href="khepri.html#start/0"><code class="inline">khepri:start/0</code></a>:</p><pre><code class="makeup erlang" translate="no"><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="3949600079-1">(</span><span class="p" data-group-id="3949600079-1">)</span><span class="p">.</span></code></pre><p>The default Khepri store uses the default Ra system. Data is stored in the
+configured default Ra system data directory, which is <code class="inline">khepri#$NODENAME</code> in
+the current working directory.</p><p>It is fine to get started and play with Khepri. However, it is recommended to
+configure your own Ra system and Ra cluster to select the directory where data
+is stored and to be able to have multiple Khepri database instances running on
+the same Erlang node.</p><h3 id="insert-data" class="section-heading"><a href="#insert-data" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Insert data</span></h3><p>Here's how to <strong>insert</strong> a piece of data, say, an email address of Alice:</p><pre><code class="makeup erlang" translate="no"><span class="c1">%% Using a native path:</span><span class="w">
+</span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nb">put</span><span class="p" data-group-id="9636711310-1">(</span><span class="p" data-group-id="9636711310-2">[</span><span class="ss">emails</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9636711310-3">&lt;&lt;</span><span class="s">&quot;alice&quot;</span><span class="p" data-group-id="9636711310-3">&gt;&gt;</span><span class="p" data-group-id="9636711310-2">]</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;alice@example.org&quot;</span><span class="p" data-group-id="9636711310-1">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Using a Unix-like path string:</span><span class="w">
+</span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nb">put</span><span class="p" data-group-id="9636711310-4">(</span><span class="s">&quot;/:emails/alice&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;alice@example.org&quot;</span><span class="p" data-group-id="9636711310-4">)</span><span class="p">.</span></code></pre><h3 id="read-data-back" class="section-heading"><a href="#read-data-back" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Read data back</span></h3><p>To get Alice's email address back, <strong>query</strong> the same path:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="8089660365-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;alice@example.org&quot;</span><span class="p" data-group-id="8089660365-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nb">get</span><span class="p" data-group-id="8089660365-2">(</span><span class="s">&quot;/:emails/alice&quot;</span><span class="p" data-group-id="8089660365-2">)</span><span class="p">.</span></code></pre><h3 id="delete-data" class="section-heading"><a href="#delete-data" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Delete data</span></h3><p>To <strong>delete</strong> Alice's email address:</p><pre><code class="makeup erlang" translate="no"><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="1256594071-1">(</span><span class="s">&quot;/:emails/alice&quot;</span><span class="p" data-group-id="1256594071-1">)</span><span class="p">.</span></code></pre><p>The <code class="inline">emails</code> parent node was automatically created when the <code class="inline">alice</code> node was
+inserted earlier. It has no data attached to it. However, after the <code class="inline">alice</code>
+node is deleted, the <code class="inline">emails</code> node will stay around. It is possible to tell
+Khepri to automatically remove <code class="inline">emails</code> as soon as its last child node is
+deleted. Khepri supports many more conditions by the way.</p><h3 id="transactional-operations" class="section-heading"><a href="#transactional-operations" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Transactional Operations</span></h3><p>It is also possible to perform <strong>transactional queries and updates</strong> using
+anonymous functions, similar to Mnesia:</p><pre><code class="makeup erlang" translate="no"><span class="c1">%% This transaction checks the quantity of wood left and returns `true` or</span><span class="w">
+</span><span class="c1">%% `false` if we need to process a new order.</span><span class="w">
+</span><span class="nc">khepri</span><span class="p">:</span><span class="nf">transaction</span><span class="p" data-group-id="9124234019-1">(</span><span class="w">
+    </span><span class="k">fun</span><span class="p" data-group-id="9124234019-2">(</span><span class="p" data-group-id="9124234019-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="k">case</span><span class="w"> </span><span class="nc">khepri_tx</span><span class="p">:</span><span class="nb">get</span><span class="p" data-group-id="9124234019-3">(</span><span class="p" data-group-id="9124234019-4">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p" data-group-id="9124234019-4">]</span><span class="p" data-group-id="9124234019-3">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+            </span><span class="p" data-group-id="9124234019-5">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Quantity</span><span class="p" data-group-id="9124234019-5">}</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">Quantity</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">100</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                </span><span class="c1">%% There is enough wood left.</span><span class="w">
+                </span><span class="ss">false</span><span class="p">;</span><span class="w">
+            </span><span class="p">_</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                </span><span class="c1">%% There is less than 100 pieces of wood, or there is none</span><span class="w">
+                </span><span class="c1">%% at all (the node does not exist in Khepri). We need to</span><span class="w">
+                </span><span class="c1">%% request a new order.</span><span class="w">
+                </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri_tx</span><span class="p">:</span><span class="nb">put</span><span class="p" data-group-id="9124234019-6">(</span><span class="p" data-group-id="9124234019-7">[</span><span class="ss">order</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p" data-group-id="9124234019-7">]</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p" data-group-id="9124234019-6">)</span><span class="p">,</span><span class="w">
+                </span><span class="ss">true</span><span class="w">
+        </span><span class="k">end</span><span class="w">
+    </span><span class="k">end</span><span class="p" data-group-id="9124234019-1">)</span><span class="p">.</span></code></pre><p>In this example, the transaction returns a boolean indicating if orders are
+ready to be processed. It does not send a message to a process or write
+something on disk for instance.</p><p>Because of the nature of the Raft consensus algorithm, transactions are not
+allowed to have side effects or take non-deterministic inputs such as the node
+name or the current date &amp; time.</p><h3 id="triggers" class="section-heading"><a href="#triggers" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Triggers</span></h3><p>Khepri supports <em>stored procedures</em> and <em>triggers</em>. They allow to store code in
+the database itself and automatically execute it after some event occurs.</p><ol><li><p> Store an anonymous function in the tree:</p><pre><code class="makeup erlang" translate="no"><span class="n">StoredProcPath</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="0221758439-1">[</span><span class="ss">path</span><span class="p">,</span><span class="w"> </span><span class="ss">to</span><span class="p">,</span><span class="w"> </span><span class="ss">stored_procedure</span><span class="p" data-group-id="0221758439-1">]</span><span class="p">,</span><span class="w">
+
+</span><span class="n">Fun</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">fun</span><span class="p" data-group-id="0221758439-2">(</span><span class="n">Props</span><span class="p" data-group-id="0221758439-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+          </span><span class="p" data-group-id="0221758439-3">#{</span><span class="ss">path</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Path</span><span class="p">,</span><span class="w">
+            </span><span class="ss">on_action</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Action</span><span class="p" data-group-id="0221758439-3">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Props</span><span class="w">
+      </span><span class="k">end</span><span class="p">,</span><span class="w">
+
+</span><span class="nc">khepri</span><span class="p">:</span><span class="nb">put</span><span class="p" data-group-id="0221758439-4">(</span><span class="n">StoreId</span><span class="p">,</span><span class="w"> </span><span class="n">StoredProcPath</span><span class="p">,</span><span class="w"> </span><span class="n">Fun</span><span class="p" data-group-id="0221758439-4">)</span><span class="p">.</span></code></pre></li><li><p> Register a trigger using an event filter:</p><pre><code class="makeup erlang" translate="no"><span class="c1">%% A path is automatically considered a tree event filter.</span><span class="w">
+</span><span class="n">EventFilter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="2617515025-1">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2617515025-2">&lt;&lt;</span><span class="s">&quot;oak&quot;</span><span class="p" data-group-id="2617515025-2">&gt;&gt;</span><span class="p" data-group-id="2617515025-1">]</span><span class="p">,</span><span class="w">
+
+</span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">register_trigger</span><span class="p" data-group-id="2617515025-3">(</span><span class="w">
+       </span><span class="n">StoreId</span><span class="p">,</span><span class="w">
+       </span><span class="n">TriggerId</span><span class="p">,</span><span class="w">
+       </span><span class="n">EventFilter</span><span class="p">,</span><span class="w">
+       </span><span class="n">StoredProcPath</span><span class="p" data-group-id="2617515025-3">)</span><span class="p">.</span></code></pre></li></ol><p>In the example above, as soon as the <code class="inline">[stock, wood, &lt;&lt;&quot;oak&quot;&gt;&gt;]</code> node is
+created, updated or deleted, the anonymous function will be executed.</p><p>The function is executed at least once on the Ra leader's Erlang node. It may
+be executed multiple times if the leader changes and thus should be idempotent.</p><p>Unlike transaction functions, stored procedures may have whatever side effects
+they want.</p><h2 id="migrating-from-mnesia" class="section-heading"><a href="#migrating-from-mnesia" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Migrating from Mnesia</span></h2><p>To help you migrate an existing Mnesia database, you can use <a rel="nofollow" href="https://github.com/rabbitmq/khepri_mnesia_migration/">the
+<code class="inline">khepri_mnesia_migration</code>
+application</a>. It can take
+care of:</p><ul><li>synchronizing the cluster membership and</li><li>copying Mnesia tables to a Khepri store.</li></ul><h2 id="how-to-build" class="section-heading"><a href="#how-to-build" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">How to build</span></h2><h3 id="build" class="section-heading"><a href="#build" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Build</span></h3><pre><code class="makeup erlang" translate="no"><span class="ss">rebar3</span><span class="w"> </span><span class="ss">compile</span></code></pre><h3 id="build-documentation" class="section-heading"><a href="#build-documentation" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Build documentation</span></h3><pre><code class="makeup erlang" translate="no"><span class="ss">rebar3</span><span class="w"> </span><span class="ss">edoc</span></code></pre><h3 id="test" class="section-heading"><a href="#test" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Test</span></h3><pre><code class="makeup erlang" translate="no"><span class="ss">rebar3</span><span class="w"> </span><span class="ss">xref</span><span class="w">
+</span><span class="ss">rebar3</span><span class="w"> </span><span class="ss">eunit</span><span class="w">
+</span><span class="ss">rebar3</span><span class="w"> </span><span class="ss">proper</span><span class="w">
+</span><span class="ss">rebar3</span><span class="w"> </span><span class="ss">ct</span><span class="w"> </span><span class="o">--</span><span class="ss">sname</span><span class="w"> </span><span class="ss">ct</span><span class="w">
+</span><span class="ss">rebar3</span><span class="w"> </span><span class="ss">as</span><span class="w"> </span><span class="ss">test</span><span class="w"> </span><span class="ss">dialyzer</span></code></pre><h2 id="copyright-and-license" class="section-heading"><a href="#copyright-and-license" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Copyright and License</span></h2><p>© 2021-2026 Broadcom. All Rights Reserved. The term &quot;Broadcom&quot; refers to
+Broadcom Inc. and/or its subsidiaries.</p><p>This work is dual-licensed under the Apache License 2.0 and the Mozilla Public
+License 2.0. Users can choose any of these licenses according to their needs.</p><p>The logo (<code class="inline">doc/khepri-logo.svg</code>) and the favicon (<code class="inline">doc/khepri-favicon.svg</code>) are
+based on the following two resources:</p><ul><li><a rel="nofollow" href="https://www.svgrepo.com/svg/55105/rabbit">https://www.svgrepo.com/svg/55105/rabbit</a> (license: CC0)</li><li><a rel="nofollow" href="https://www.svgrepo.com/svg/336625/database-point">https://www.svgrepo.com/svg/336625/database-point</a> (license: MIT)</li></ul><blockquote><p>[!NOTE]
+<a rel="nofollow" href="https://ai-free.io/">AI-free — <em>Human Made</em></a></p><p>Khepri is developed by humans and no AI agents were involved in the design or
+the writing of this library, including its tests and its documentation.</p></blockquote><p>SPDX-License-Identifier: Apache-2.0 OR MPL-2.0</p>
+
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+  </div>
+  <div class="bottom-actions-item">
+
+  </div>
+</div>
+    <footer class="footer">
+
+        <p>
+
+            <span class="line">
+              <a href="https://hex.pm/packages/khepri/0.19.0">Hex Package</a>
+
+              <a href="https://preview.hex.pm/preview/khepri/0.19.0">Hex Preview</a>
+
+                (<a href="https://preview.hex.pm/preview/khepri/0.19.0/show/README.md">current file</a>)
+
+            </span>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Go to package docs">
+              Go to package docs
+            </button>
+
+
+              <a href="khepri.epub">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.40.3) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+
+
+    </footer>
+  </div>
+</main>
+</div>
+
+  </body>
+</html>
