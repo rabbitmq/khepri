@@ -13,7 +13,11 @@ jobs:
           ref: gh-pages
 
       - name: Cleanup
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -e
+
           find previews -name index.html -fprint index-files.txt
           while read index; do
             echo "Index file: $index"
@@ -32,6 +36,9 @@ jobs:
                 fi
                 ;;
               *)
+                git remote -v
+                git branch -va
+                git show "origin/$ref" | cat
                 if ! git show "origin/$ref" >/dev/null 2>&1; then
                   delete=true
                 fi
