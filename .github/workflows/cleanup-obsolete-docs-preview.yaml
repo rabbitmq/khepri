@@ -1,10 +1,10 @@
 name: Cleanup obsolete docs preview
 
 on:
-  - delete
-  - pull_request:
-      types:
-        - closed
+  delete:
+  pull_request:
+    types:
+      - closed
 
 jobs:
   run:
