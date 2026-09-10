@@ -49,8 +49,8 @@
 %% <li>Changed the data structure for the reverse index used to track
 %% keep-while conditions to be a prefix tree (see {@link khepri_prefix_tree}).
 %% </li>
-%% <li>Moved the expiration of dedups to the `tick' aux effect (see {@link
-%% handle_aux/5}). This also introduces a new command `#drop_dedups{}'.</li>
+%% <li>Moved the expiration of dedups to the `tick' aux effect. This also
+%% introduces a new command `#drop_dedups{}'.</li>
 %% <li>Added the `delete_reason' to the list of properties that can be
 %% returned. It is returned by default if the effective machine version is 2 or
 %% more.</li>
