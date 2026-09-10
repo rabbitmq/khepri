@@ -17,7 +17,7 @@ jobs:
 
       - name: Cleanup
         run: |
-          if test "${{ github.event.number }}";
+          if test "${{ github.event.number }}"; then
             msg="Clean preview of pull request ${{ github.event.number }}"
             git rm -r previews/pr-${{ github.event.number }}
           else
