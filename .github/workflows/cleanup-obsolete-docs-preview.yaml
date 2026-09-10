@@ -2,7 +2,7 @@ name: Cleanup obsolete docs preview
 
 on:
   delete:
-  pull_request:
+  pull_request_target:
     types:
       - closed
 
@@ -20,15 +20,30 @@ jobs:
           if test "${{ github.event.number }}"; then
             echo "Pull request: ${{ github.event.number }}"
             msg="Clean preview of pull request ${{ github.event.number }}"
-            git rm -r previews/pr-${{ github.event.number }}
+
+            subdir="pr-${{ github.event.number }}"
           else
             echo "Git ref: ${{ github.event.ref }}"
             branch="${{ github.event.ref }}"
             branch="${branch#refs/heads/}"
             msg="Clean preview of branch $branch"
-            git rm -r "previews/$branch"
+
+            subdir="$branch"
           fi
 
+          previews_dir="$PWD/previews"
+          target_dir="$previews_dir/$subdir"
+          if ! test -d "$target_dir"; then
+            exit 0
+          fi
+
+          dir=$(cd "$target_dir" && pwd)
+	  if test "$dir" != "$target_dir"; then
+	    echo "Target dir is suspicious: $target_dir"
+	    exit 1
+	  fi
+
+          git rm -r "$dir"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           if ! git diff --cached --quiet; then
