@@ -352,7 +352,7 @@ put(StoreId, PathPattern, Data) ->
 %% khepri:command_options()}, {@link khepri:tree_options()} and {@link
 %% khepri:put_options()}.
 %%
-%% When doing an asynchronous update, the {@link handle_async_ret/1}
+%% When doing an asynchronous update, the {@link khepri:handle_async_ret/1}
 %% function should be used to handle the message received from Ra.
 %%
 %% The returned `{ok, NodeProps}' tuple contains a map with the properties and
@@ -479,7 +479,7 @@ put_many(StoreId, PathPattern, Data) ->
 %% khepri:command_options()}, {@link khepri:tree_options()} and {@link
 %% khepri:put_options()}.
 %%
-%% When doing an asynchronous update, the {@link handle_async_ret/1}
+%% When doing an asynchronous update, the {@link khepri:handle_async_ret/1}
 %% function should be used to handle the message received from Ra.
 %%
 %% Example:
@@ -843,7 +843,7 @@ delete(PathPattern, Options) when is_map(Options) ->
 %% the `delete_reason' key set to `keep_while' instead. (See {@link
 %% khepri_condition:keep_while()}.)
 %%
-%% When doing an asynchronous update, the {@link handle_async_ret/1}
+%% When doing an asynchronous update, the {@link khepri:handle_async_ret/1}
 %% function should be used to handle the message received from Ra.
 %%
 %% Example:
@@ -941,7 +941,7 @@ delete_many(PathPattern, Options) when is_map(Options) ->
 %% the `delete_reason' key set to `keep_while' instead. (See {@link
 %% khepri_condition:keep_while()}.)
 %%
-%% When doing an asynchronous update, the {@link handle_async_ret/1}
+%% When doing an asynchronous update, the {@link khepri:handle_async_ret/1}
 %% function should be used to handle the message received from Ra.
 %%
 %% Example:
