@@ -674,32 +674,16 @@ transaction(StoreId, Fun, Args, ReadWrite, Options)
       Options :: khepri:query_options(),
       Ret :: khepri_machine:tx_ret().
 
-readonly_transaction(StoreId, Fun, Args, Options)
-  when is_list(Args) andalso is_function(Fun, length(Args)) ->
+readonly_transaction(StoreId, FunOrPath, Args, Options)
+  when is_list(Args) andalso
+       (is_function(FunOrPath, length(Args)) orelse
+        ?IS_KHEPRI_PATH_PATTERN(FunOrPath)) ->
     Query = fun(Meta, State) ->
                     %% It is a read-only transaction, therefore we assert that
                     %% the state is unchanged and that there are no side
                     %% effects.
-                    {State1, Ret, []} = khepri_tx_adv:run(
-                                          State, Fun, Args, false,
-                                          Meta),
-                    assert_equal(State, State1),
-                    Ret
-            end,
-    case process_query(StoreId, Query, Options) of
-        {exception, _, _, _} = Exception ->
-            handle_tx_exception(Exception);
-        Ret ->
-            {ok, Ret}
-    end;
-readonly_transaction(StoreId, PathPattern, Args, Options)
-  when ?IS_KHEPRI_PATH_PATTERN(PathPattern) andalso is_list(Args) ->
-    Query = fun(Meta, State) ->
-                    %% It is a read-only transaction, therefore we assert that
-                    %% the state is unchanged and that there are no side
-                    %% effects.
-                    {State1, Ret, []} = locate_sproc_and_execute_tx(
-                                          State, PathPattern, Args, false,
+                    {State1, Ret, []} = execute_tx(
+                                          State, FunOrPath, Args, false,
                                           Meta),
                     assert_equal(State, State1),
                     Ret
@@ -2267,17 +2251,10 @@ do_apply(
     post_apply(Ret, Meta, Command);
 do_apply(
   Meta,
-  #tx_v{args = #tx_v1{'fun' = StandaloneFun,
+  #tx_v{args = #tx_v1{'fun' = StandaloneFunOrPath,
                       args = Args}} = Command,
-  State) when ?IS_HORUS_FUN(StandaloneFun) ->
-    Ret = khepri_tx_adv:run(State, StandaloneFun, Args, true, Meta),
-    post_apply(Ret, Meta, Command);
-do_apply(
-  Meta,
-  #tx_v{args = #tx_v1{'fun' = PathPattern,
-                      args = Args}} = Command,
-  State) when ?IS_KHEPRI_PATH_PATTERN(PathPattern) ->
-    Ret = locate_sproc_and_execute_tx(State, PathPattern, Args, true, Meta),
+  State) ->
+    Ret = execute_tx(State, StandaloneFunOrPath, Args, true, Meta),
     post_apply(Ret, Meta, Command);
 do_apply(
   Meta,
@@ -3311,6 +3288,16 @@ wait_for_effective_behaviour(StoreId, Behaviour, Timeout) ->
 %% -------------------------------------------------------------------
 %% Internal functions.
 %% -------------------------------------------------------------------
+
+execute_tx(State, StandaloneFun, Args, AllowUpdates, Meta)
+  when ?IS_HORUS_FUN(StandaloneFun) ->
+    Ret = khepri_tx_adv:run(State, StandaloneFun, Args, AllowUpdates, Meta),
+    Ret;
+execute_tx(State, PathPattern, Args, AllowUpdates, Meta)
+  when ?IS_KHEPRI_PATH_PATTERN(PathPattern) ->
+    Ret = locate_sproc_and_execute_tx(
+            State, PathPattern, Args, AllowUpdates, Meta),
+    Ret.
 
 locate_sproc_and_execute_tx(State, PathPattern, Args, AllowUpdates, Meta) ->
     Tree = get_tree(State),
