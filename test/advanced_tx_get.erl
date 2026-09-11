@@ -21,10 +21,9 @@ get_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok,
-          {error, ?khepri_error(node_not_found, #{node_name => foo,
-                                                  node_path => [foo],
-                                                  node_is_target => true})}},
+         {error, ?khepri_error(node_not_found, #{node_name => foo,
+                                                 node_path => [foo],
+                                                 node_is_target => true})},
          begin
              Fun = fun() ->
                            khepri_tx_adv:get([foo])
@@ -40,9 +39,8 @@ get_existing_node_test_() ->
          {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo] => #{data => foo_value,
-                            payload_version => 1}}}},
+         {ok, #{[foo] => #{data => foo_value,
+                           payload_version => 1}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:get([foo])
@@ -50,9 +48,8 @@ get_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo] => #{data => foo_value,
-                            payload_version => 1}}}},
+         {ok, #{[foo] => #{data => foo_value,
+                           payload_version => 1}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:get([foo])
@@ -68,8 +65,8 @@ get_existing_node_with_sproc_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [foo], fun() -> ok end)),
       ?_assertMatch(
-         {ok, {ok, #{[foo] := #{sproc := StoredFun,
-                                payload_version := 1}}}}
+         {ok, #{[foo] := #{sproc := StoredFun,
+                           payload_version := 1}}}
            when ?IS_HORUS_STANDALONE_FUN(StoredFun),
          begin
              Fun = fun() ->
@@ -86,8 +83,7 @@ get_existing_node_with_no_payload_test_() ->
          {ok, #{[foo, bar] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo, bar], bar_value)),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo] => #{payload_version => 1}}}},
+         {ok, #{[foo] => #{payload_version => 1}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:get([foo])
@@ -115,7 +111,7 @@ get_many_non_existing_nodes_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {ok, #{}}},
+         {ok, #{}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:get_many([?KHEPRI_WILDCARD_STAR])
@@ -134,10 +130,9 @@ get_many_existing_nodes_test_() ->
          {ok, #{[baz] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [baz], baz_value)),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo] => #{payload_version => 1},
-                 [baz] => #{data => baz_value,
-                            payload_version => 1}}}},
+         {ok, #{[foo] => #{payload_version => 1},
+                [baz] => #{data => baz_value,
+                           payload_version => 1}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:get_many([?KHEPRI_WILDCARD_STAR])
@@ -145,10 +140,9 @@ get_many_existing_nodes_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo] => #{payload_version => 1},
-                 [baz] => #{data => baz_value,
-                            payload_version => 1}}}},
+         {ok, #{[foo] => #{payload_version => 1},
+                [baz] => #{data => baz_value,
+                           payload_version => 1}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:get_many([?KHEPRI_WILDCARD_STAR])
