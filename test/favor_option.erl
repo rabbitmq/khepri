@@ -112,12 +112,11 @@ favor_consistency_in_transaction_test_() ->
              lists:foreach(
                fun(I) ->
                        ?assertEqual(
-                          {ok,
-                           {error,
-                            ?khepri_error(
-                               node_not_found, #{node_name => I,
-                                                 node_path => [I],
-                                                 node_is_target => true})}},
+                          {error,
+                           ?khepri_error(
+                              node_not_found, #{node_name => I,
+                                                node_path => [I],
+                                                node_is_target => true})},
                           khepri:transaction(
                             ?FUNCTION_NAME, Fun, [I], #{favor => consistency}))
                end, List),
@@ -130,14 +129,14 @@ favor_consistency_in_transaction_test_() ->
                end, List),
 
              ?assertEqual(
-                {ok, {ok, hd(List)}},
+                {ok, hd(List)},
                 khepri:transaction(
                   ?FUNCTION_NAME, Fun, [hd(List)], #{favor => consistency})),
 
              lists:foreach(
                fun(I) ->
                        ?assertEqual(
-                          {ok, {ok, I}},
+                          {ok, I},
                           khepri:transaction(
                             ?FUNCTION_NAME, Fun, [I], #{favor => consistency}))
                end, tl(List))
@@ -155,12 +154,11 @@ favor_low_latency_in_transaction_test_() ->
              lists:foreach(
                fun(I) ->
                        ?assertEqual(
-                          {ok,
-                           {error,
-                            ?khepri_error(
-                               node_not_found, #{node_name => I,
-                                                 node_path => [I],
-                                                 node_is_target => true})}},
+                          {error,
+                           ?khepri_error(
+                              node_not_found, #{node_name => I,
+                                                node_path => [I],
+                                                node_is_target => true})},
                           khepri:transaction(
                             ?FUNCTION_NAME, Fun, [I], #{favor => low_latency}))
                end, List),
@@ -176,20 +174,19 @@ favor_low_latency_in_transaction_test_() ->
                fun(I) ->
                        try
                            ?assertEqual(
-                              {ok, {ok, I}},
+                              {ok, I},
                               khepri:transaction(
                                 ?FUNCTION_NAME, Fun, [I],
                                 #{favor => low_latency}))
                        catch
                            error:{assertEqual, Props} ->
                                ?assertEqual(
-                                  {ok,
-                                   {error,
-                                    ?khepri_error(
-                                       node_not_found,
-                                       #{node_name => I,
-                                         node_path => [I],
-                                         node_is_target => true})}},
+                                  {error,
+                                   ?khepri_error(
+                                      node_not_found,
+                                      #{node_name => I,
+                                        node_path => [I],
+                                        node_is_target => true})},
                                   proplists:get_value(value, Props))
                        end
                end, List)
