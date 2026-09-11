@@ -3500,10 +3500,14 @@ transaction(FunOrPath, Args, ReadWrite, Options)
 %% (including audetected ones). However note that both types expect different
 %% options.
 %%
-%% The result of `FunOrPath' can be any term. That result is returned in an
-%% `{ok, Result}' tuple if the transaction is synchronous. The result is sent
-%% by message if the transaction is asynchronous and a correlation ID was
-%% specified.
+%% The result of `FunOrPath' can be any term. That result is returned as is if
+%% the transaction is synchronous, like if the transaction function was
+%% executed directly outside of Khepri. Any exceptions are also raised as is.
+%% If there is an error with the communication with the store, a new exception
+%% is raised with the error.
+%%
+%% The result is sent by message if the transaction is asynchronous and a
+%% correlation ID was specified.
 %%
 %% @param StoreId the name of the Khepri store.
 %% @param FunOrPath an arbitrary anonymous function or a path pattern pointing
@@ -3512,11 +3516,10 @@ transaction(FunOrPath, Args, ReadWrite, Options)
 %% @param ReadWrite the read/write or read-only nature of the transaction.
 %% @param Options command options such as the command type.
 %%
-%% @returns in the case of a synchronous transaction, `{ok, Result}' where
-%% `Result' is the return value of `FunOrPath', or `{error, Reason}' if the
-%% anonymous function was aborted; in the case of an asynchronous transaction,
-%% always `ok' (the actual return value may be sent by a message if a
-%% correlation ID was specified).
+%% @returns in the case of a synchronous transaction, `Result' where `Result'
+%% is the return value of `FunOrPath' execution; in the case of an asynchronous
+%% transaction, always `ok' (the actual return value may be sent by a message
+%% if a correlation ID was specified).
 
 transaction(StoreId, FunOrPath, Args, ReadWrite, Options) ->
     khepri_machine:transaction(StoreId, FunOrPath, Args, ReadWrite, Options).
@@ -3666,6 +3669,8 @@ handle_async_ret(
                           Reply0;
                       {ok, _} ->
                           Reply0;
+                      {txfun_ret, TxRet} ->
+                          TxRet;
                       {error, _} ->
                           Reply0;
                       {exception, _, ?TX_ABORT(Reason), _} ->
