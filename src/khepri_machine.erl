@@ -100,6 +100,16 @@
 %% </ul>
 %% </td>
 %% </tr>
+%% <tr>
+%% <td style="text-align: right; vertical-align: top;">5</td>
+%% <td>
+%% <ul>
+%% <li>Changed the transaction return value to help distinguish the transaction
+%% function return value from an error with the communication with the Ra
+%% server.</li>
+%% </ul>
+%% </td>
+%% </tr>
 %% </table>
 
 -module(khepri_machine).
@@ -362,7 +372,8 @@
                          request_snapshot |
                          extended_trigger |
                          cached_members_list |
-                         process_based_keep_while.
+                         process_based_keep_while |
+                         simplified_tx_ret.
 %% Name of a state machine API behaviour.
 
 -export_type([write_ret/0,
@@ -689,10 +700,15 @@ readonly_transaction(StoreId, FunOrPath, Args, Options)
                     Ret
             end,
     case process_query(StoreId, Query, Options) of
+        {txfun_ret, TxRet} ->
+            {ok, TxRet};
         {exception, _, _, _} = Exception ->
             handle_tx_exception(Exception);
         Ret ->
-            {ok, Ret}
+            case does_api_comply_with(simplified_tx_ret, StoreId) of
+                true  -> Ret;
+                false -> {ok, Ret}
+            end
     end.
 
 -spec readwrite_transaction(StoreId, FunOrPath, Args, Options) -> Ret when
@@ -732,12 +748,17 @@ readwrite_transaction1(StoreId, StandaloneFunOrPath, Args, Options) ->
                   {async, _, _} -> true
               end,
     case process_command(StoreId, Command, Options1) of
+        {txfun_ret, TxRet} ->
+            {ok, TxRet};
         {exception, _, _, _} = Exception ->
             handle_tx_exception(Exception);
         ok = Ret when IsAsync ->
             Ret;
         Ret ->
-            {ok, Ret}
+            case does_api_comply_with(simplified_tx_ret, StoreId) of
+                true  -> Ret;
+                false -> {ok, Ret}
+            end
     end.
 
 handle_tx_exception(
@@ -3292,12 +3313,22 @@ wait_for_effective_behaviour(StoreId, Behaviour, Timeout) ->
 execute_tx(State, StandaloneFun, Args, AllowUpdates, Meta)
   when ?IS_HORUS_FUN(StandaloneFun) ->
     Ret = khepri_tx_adv:run(State, StandaloneFun, Args, AllowUpdates, Meta),
-    Ret;
+    execute_tx1(Ret, Meta);
 execute_tx(State, PathPattern, Args, AllowUpdates, Meta)
   when ?IS_KHEPRI_PATH_PATTERN(PathPattern) ->
     Ret = locate_sproc_and_execute_tx(
             State, PathPattern, Args, AllowUpdates, Meta),
-    Ret.
+    execute_tx1(Ret, Meta).
+
+execute_tx1(Ret, #{machine_version := MacVer})
+  when MacVer >= ?API_BEHAV_MACVER(simplified_tx_ret) ->
+    Ret;
+execute_tx1({State, Result, SideEffects}, _Meta) ->
+    Result1 = case Result of
+                  {txfun_ret, TxRet} -> TxRet;
+                  _                  -> Result
+              end,
+    {State, Result1, SideEffects}.
 
 locate_sproc_and_execute_tx(State, PathPattern, Args, AllowUpdates, Meta) ->
     Tree = get_tree(State),
@@ -4250,7 +4281,9 @@ convert_state1(State, 3, 4) ->
                           trigger_v1_to_v2(Trigger)
                   end, Triggers),
     State3 = set_triggers(State2, Triggers1),
-    State3.
+    State3;
+convert_state1(State, 4, 5) ->
+    State.
 
 trigger_v1_to_v2(#{sproc := StoredProcPath} = Trigger) ->
     Trigger1 = Trigger#{action => {sproc, StoredProcPath},

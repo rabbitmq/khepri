@@ -16,7 +16,7 @@
 %% The current/latest version of the state machine is defined in this macro
 %% instead of `khepri_machine:version/0' only. This way, it can be used in
 %% function specs too.
--define(LATEST_MACVER, 4).
+-define(LATEST_MACVER, 5).
 
 %% Map API behaviours with the state machine version they were introduced in.
 -define(API_BEHAV_MACVER_MAP,
@@ -33,7 +33,9 @@
           request_snapshot            => 4,
           extended_trigger            => 4,
           cached_members_list         => 4,
-          process_based_keep_while    => 4}).
+          process_based_keep_while    => 4,
+
+          simplified_tx_ret           => 5}).
 
 %% Get the state machine version the given API behaviour was introduced in.
 %% This is similar to `khepri_machine:api_behaviour_to_machine_version/1' but

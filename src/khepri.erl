@@ -3658,6 +3658,8 @@ handle_async_ret(
     lists:map(
       fun({CorrelationId, Reply0}) ->
           Reply = case Reply0 of
+                      {txfun_ret, TxRet} ->
+                          TxRet;
                       {exception, _, _, _} = Exception ->
                           khepri_machine:handle_tx_exception(Exception);
                       ok ->

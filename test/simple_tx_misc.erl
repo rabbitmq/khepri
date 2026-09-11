@@ -696,3 +696,45 @@ tx_using_erl_eval_test_() ->
                fun local_fun_using_erl_eval/0,
                rw)
          end)]}.
+
+readonly_transaction_propagates_infra_error_test_() ->
+    %% Same expectation as the read-write case, but for a read-only
+    %% transaction going through `process_query/3'. The infrastructure error
+    %% must be propagated verbatim rather than wrapped as
+    %% `{ok, {error, noproc}}'.
+    %%
+    %% `?FUNCTION_NAME' is a store ID that is never started, so the query
+    %% cannot reach a Ra server.
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {error, timeout},
+         begin
+             Fun = fun() -> timer:sleep(100) end,
+             khepri:transaction(
+               ?FUNCTION_NAME, Fun, [], ro, #{timeout => 0})
+         end)]}.
+
+readwrite_transaction_propagates_infra_error_test_() ->
+    %% When the store is not running, `process_command/3' returns an
+    %% infrastructure error such as `{error, noproc}'.
+    %% `readwrite_transaction1/3' must propagate that error tuple directly
+    %% instead of wrapping it as `{ok, {error, noproc}}'; a caller matching
+    %% on `{ok, Value}' would otherwise mistake the error for a successful
+    %% transaction result and crash downstream.
+    %%
+    %% A path-pattern transaction is used so the command reaches
+    %% `process_command/3' without going through stand-alone function
+    %% extraction. `?FUNCTION_NAME' is a store ID that is never started, so
+    %% the command cannot reach a Ra server.
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         {error, timeout},
+         begin
+             Fun = fun() -> timer:sleep(100) end,
+             khepri:transaction(
+               ?FUNCTION_NAME, Fun, [], rw, #{timeout => 0})
+         end)]}.

@@ -991,7 +991,8 @@ is_standalone_fun_still_needed(#{calls := Calls}, auto) ->
       Args :: list(),
       AllowUpdates :: boolean(),
       RaMeta :: ra_machine:command_meta_data(),
-      Ret :: {State, khepri_tx:tx_fun_result() | Exception, SideEffects},
+      Ret :: {State, Result | Exception, SideEffects},
+      Result :: {txfun_ret, khepri_tx:tx_fun_result()},
       Exception :: {exception, Class, Reason, Stacktrace},
       Class :: error | exit | throw,
       Reason :: any(),
@@ -1012,7 +1013,8 @@ run(State, StandaloneFun, Args, AllowUpdates, RaMeta)
     ?assertEqual(undefined, NoState),
     ?assertEqual(undefined, NoProps),
     try
-        Ret = horus:exec(StandaloneFun, Args),
+        TxRet = horus:exec(StandaloneFun, Args),
+        Ret = {txfun_ret, TxRet},
 
         {NewState, NewSideEffects} = erlang:erase(?TX_STATE_KEY),
         NewTxProps = erlang:erase(?TX_PROPS),
