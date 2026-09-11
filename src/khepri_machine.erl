@@ -727,15 +727,15 @@ readwrite_transaction1(StoreId, StandaloneFunOrPath, Args, Options) ->
                       #tx{'fun' = StandaloneFunOrPath, args = Args}
               end,
     Options1 = maps:merge(#{protect_against_dups => true}, Options),
+    IsAsync = case select_command_type(Options) of
+                  sync          -> false;
+                  {async, _, _} -> true
+              end,
     case process_command(StoreId, Command, Options1) of
         {exception, _, _, _} = Exception ->
             handle_tx_exception(Exception);
-        ok = Ret ->
-            CommandType = select_command_type(Options),
-            case CommandType of
-                sync          -> {ok, Ret};
-                {async, _, _} -> Ret
-            end;
+        ok = Ret when IsAsync ->
+            Ret;
         Ret ->
             {ok, Ret}
     end.
