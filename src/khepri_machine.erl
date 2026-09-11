@@ -100,6 +100,16 @@
 %% </ul>
 %% </td>
 %% </tr>
+%% <tr>
+%% <td style="text-align: right; vertical-align: top;">5</td>
+%% <td>
+%% <ul>
+%% <li>Changed the transaction return value to help distinguish the transaction
+%% function return value from an error with the communication with the Ra
+%% server.</li>
+%% </ul>
+%% </td>
+%% </tr>
 %% </table>
 
 -module(khepri_machine).
@@ -152,7 +162,7 @@
          split_put_options/1,
          insert_or_update_node/6,
          delete_matching_nodes/4,
-         handle_tx_exception/1,
+         handle_exception/1,
          process_query/3,
          process_command/3,
          does_api_comply_with/2,
@@ -338,7 +348,7 @@
 -type write_ret() :: khepri:ok(khepri:node_props_map()) |
                      khepri:error().
 
--type tx_ret() :: khepri:ok(khepri_tx:tx_fun_result()) |
+-type tx_ret() :: khepri_tx:tx_fun_result() |
                   khepri_tx:tx_abort() |
                   no_return().
 
@@ -362,7 +372,8 @@
                          request_snapshot |
                          extended_trigger |
                          cached_members_list |
-                         process_based_keep_while.
+                         process_based_keep_while |
+                         transparent_tx_funs.
 %% Name of a state machine API behaviour.
 
 -export_type([write_ret/0,
@@ -442,7 +453,7 @@ fold(StoreId, PathPattern, Fun, Acc, Options)
                     end
             end,
     case process_query(StoreId, Query, QueryOptions) of
-        {exception, _, _, _} = Exception -> handle_tx_exception(Exception);
+        {exception, _, _, _} = Exception -> handle_exception(Exception);
         Ret                              -> Ret
     end.
 
@@ -463,9 +474,8 @@ fence(StoreId, Timeout) ->
     Options = #{favor => consistency,
                 timeout => Timeout},
     case process_query(StoreId, QueryFun, Options) of
-        {exception, _, _, _} = Exception -> handle_tx_exception(Exception);
-        true                             -> ok;
-        Other when Other =/= false       -> Other
+        true                       -> ok;
+        Other when Other =/= false -> Other
     end.
 
 -spec put(StoreId, PathPattern, Payload, Options) -> Ret when
@@ -578,6 +588,17 @@ delete(StoreId, PathPattern, Options) when ?IS_KHEPRI_STORE_ID(StoreId) ->
       Ret :: khepri_machine:tx_ret() | khepri_machine:async_ret().
 %% @doc Runs a transaction and returns the result.
 %%
+%% In the case of a synchronous transaction, the transaction function, whether
+%% it is an anonymous function or a store procedure, is executed as if Khepri
+%% was not involved: the return value of {@link transaction/5} is the return
+%% value of the transaction function.
+%%
+%% If the transaction function throws an exception, the exception is raised as
+%% is. If there is an error with the communication with the store, a new
+%% exception is raised with the error.
+%%
+%% In the case of an asynchronous transaction, `ok' is always returned.
+%%
 %% @param StoreId the name of the Ra cluster.
 %% @param FunOrPath an arbitrary anonymous function or a path pattern pointing
 %%        to a stored procedure.
@@ -585,11 +606,10 @@ delete(StoreId, PathPattern, Options) when ?IS_KHEPRI_STORE_ID(StoreId) ->
 %% @param ReadWrite the read/write or read-only nature of the transaction.
 %% @param Options command options such as the command type.
 %%
-%% @returns in the case of a synchronous transaction, `{ok, Result}' where
-%% `Result' is the return value of `FunOrPath', or `{error, Reason}' if the
-%% anonymous function was aborted; in the case of an asynchronous transaction,
-%% always `ok' (the actual return value may be sent by a message if a
-%% correlation ID was specified).
+%% @returns in the case of a synchronous transaction, `Result' where `Result'
+%% is the return value of `FunOrPath' execution; in the case of an asynchronous
+%% transaction, always `ok' (the actual return value may be sent by a message
+%% if a correlation ID was specified).
 
 transaction(StoreId, Fun, Args, auto = ReadWrite, Options)
   when ?IS_KHEPRI_STORE_ID(StoreId) andalso
@@ -689,7 +709,7 @@ readonly_transaction(StoreId, FunOrPath, Args, Options)
                     Ret
             end,
     Ret = process_query(StoreId, Query, Options),
-    handle_tx_ret(Ret).
+    handle_tx_ret(StoreId, Ret).
 
 -spec readwrite_transaction(StoreId, FunOrPath, Args, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -726,24 +746,58 @@ readwrite_transaction1(StoreId, StandaloneFunOrPath, Args, Options) ->
     Ret = process_command(StoreId, Command, Options1),
     case select_command_type(Options1) of
         sync ->
-            handle_tx_ret(Ret);
+            handle_tx_ret(StoreId, Ret);
         {async, _, _} ->
             ?assertEqual(ok, Ret),
             Ret
     end.
 
-handle_tx_ret(Ret) ->
+handle_tx_ret(StoreId, Ret) ->
+    TxSubmissionError = ?khepri_error(
+                           tx_submission_error,
+                           #{store_id => StoreId,
+                             reason => Ret}),
     case Ret of
+        {txfun_ret, TxRet} ->
+            TxRet;
+        {exception, Class, ?TX_ABORT(Reason), Stacktrace} ->
+            %% `khepri_tx:abort/1' is deprecated. Any exception can be used
+            %% directly.
+            handle_exception({exception, Class, Reason, Stacktrace});
         {exception, _, _, _} = Exception ->
-            handle_tx_exception(Exception);
+            handle_exception(Exception);
         _ ->
-            {ok, Ret}
+            case does_api_comply_with(transparent_tx_funs, StoreId) of
+                true ->
+                    %% Any return value that does not come from the transaction
+                    %% function is raised as an exception.
+                    erlang:error(TxSubmissionError);
+                false ->
+                    %% We need to support old machine code that did not wrap
+                    %% the transaction function return value in `{txfun_ret,
+                    %% _}'.
+                    case Ret of
+                        {error, Reason}
+                          when Reason == noproc orelse Reason == nodedown orelse
+                               Reason == shutdown orelse Reason == normal orelse
+                               Reason == timeout ->
+                            %% Either the state machine does not support the behaviour, or
+                            %% the Ra server is down and we could not determine
+                            %% which behaviours it supported.
+                            %%
+                            %% For the common errors that we can get from query
+                            %% and command processing, we raise an exception.
+                            erlang:error(TxSubmissionError);
+                        _ ->
+                            %% We can only return the value as is because we
+                            %% can't tell the source of that return value. We
+                            %% assume it is from the transaction function.
+                            Ret
+                    end
+            end
     end.
 
-handle_tx_exception(
-  {exception, _, ?TX_ABORT(Reason), _}) ->
-    {error, Reason};
-handle_tx_exception(
+handle_exception(
   {exception, error, ?khepri_exception(_, _) = Reason, _Stacktrace}) ->
     %% If the exception is a programming misuse of Khepri, we
     %% re-throw a new exception instead of using `erlang:raise()'.
@@ -756,7 +810,7 @@ handle_tx_exception(
     %% By throwing a new exception, we increase the chance that there
     %% is a frame pointing to the transaction function.
     ?khepri_misuse(Reason);
-handle_tx_exception(
+handle_exception(
   {exception, Class, Reason, Stacktrace}) ->
     erlang:raise(Class, Reason, Stacktrace).
 
@@ -3292,12 +3346,22 @@ wait_for_effective_behaviour(StoreId, Behaviour, Timeout) ->
 execute_tx(State, StandaloneFun, Args, AllowUpdates, Meta)
   when ?IS_HORUS_FUN(StandaloneFun) ->
     Ret = khepri_tx_adv:run(State, StandaloneFun, Args, AllowUpdates, Meta),
-    Ret;
+    execute_tx1(Ret, Meta);
 execute_tx(State, PathPattern, Args, AllowUpdates, Meta)
   when ?IS_KHEPRI_PATH_PATTERN(PathPattern) ->
     Ret = locate_sproc_and_execute_tx(
             State, PathPattern, Args, AllowUpdates, Meta),
-    Ret.
+    execute_tx1(Ret, Meta).
+
+execute_tx1(Ret, #{machine_version := MacVer})
+  when MacVer >= ?API_BEHAV_MACVER(transparent_tx_funs) ->
+    Ret;
+execute_tx1({State, Result, SideEffects}, _Meta) ->
+    Result1 = case Result of
+                  {txfun_ret, TxRet} -> TxRet;
+                  _                  -> Result
+              end,
+    {State, Result1, SideEffects}.
 
 locate_sproc_and_execute_tx(State, PathPattern, Args, AllowUpdates, Meta) ->
     Tree = get_tree(State),
@@ -3339,7 +3403,7 @@ locate_sproc_and_execute_tx(State, PathPattern, Args, AllowUpdates, Meta) ->
 %% @private
 
 failed_to_locate_sproc(Reason) ->
-    khepri_tx:abort(Reason).
+    erlang:error(Reason).
 
 -spec insert_or_update_node(
     State, PathPattern, Payload, PutOptions, TreeOptions, SideEffects) ->
@@ -4250,7 +4314,9 @@ convert_state1(State, 3, 4) ->
                           trigger_v1_to_v2(Trigger)
                   end, Triggers),
     State3 = set_triggers(State2, Triggers1),
-    State3.
+    State3;
+convert_state1(State, 4, 5) ->
+    State.
 
 trigger_v1_to_v2(#{sproc := StoredProcPath} = Trigger) ->
     Trigger1 = Trigger#{action => {sproc, StoredProcPath},

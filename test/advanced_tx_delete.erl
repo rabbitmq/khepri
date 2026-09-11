@@ -20,7 +20,7 @@ delete_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {ok, #{}}},
+         {ok, #{}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:delete([foo])
@@ -42,7 +42,7 @@ delete_non_existing_node_using_legacy_ret_test_() ->
      end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {ok, #{}}},
+         {ok, #{}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:delete([foo])
@@ -71,10 +71,9 @@ delete_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo] => #{data => foo_value,
-                            payload_version => 1,
-                            delete_reason => explicit}}}},
+         {ok, #{[foo] => #{data => foo_value,
+                           payload_version => 1,
+                           delete_reason => explicit}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:delete([foo])
@@ -107,7 +106,7 @@ delete_many_on_non_existing_node_with_condition_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {ok, #{}}},
+         {ok, #{}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:delete_many(
@@ -138,10 +137,9 @@ delete_many_on_existing_node_with_condition_true_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo] => #{data => foo_value,
-                            payload_version => 1,
-                            delete_reason => explicit}}}},
+         {ok, #{[foo] => #{data => foo_value,
+                           payload_version => 1,
+                           delete_reason => explicit}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:delete_many(
@@ -163,7 +161,7 @@ delete_many_on_existing_node_with_condition_false_test_() ->
          {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
-         {ok, {ok, #{}}},
+         {ok, #{}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:delete_many(
@@ -181,7 +179,7 @@ clear_payload_from_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {ok, #{}}},
+         {ok, #{}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:clear_payload([foo])
@@ -210,9 +208,8 @@ clear_payload_from_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo] => #{data => foo_value,
-                            payload_version => 2}}}},
+         {ok, #{[foo] => #{data => foo_value,
+                           payload_version => 2}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:clear_payload([foo])
@@ -231,9 +228,8 @@ clear_payload_with_keep_while_test_() ->
          {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo] => #{data => foo_value,
-                            payload_version => 2}}}},
+         {ok, #{[foo] => #{data => foo_value,
+                           payload_version => 2}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:clear_payload(
@@ -253,9 +249,8 @@ clear_payload_with_options_test_() ->
          {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo] => #{data => foo_value,
-                            payload_version => 2}}}},
+         {ok, #{[foo] => #{data => foo_value,
+                           payload_version => 2}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:clear_payload(
@@ -272,7 +267,7 @@ clear_many_payloads_from_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {ok, #{}}},
+         {ok, #{}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:clear_many_payloads(
@@ -305,10 +300,9 @@ clear_many_payloads_from_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo1] => #{data => foo1_value,
-                             payload_version => 2},
-                 [foo2] => #{payload_version => 1}}}},
+         {ok, #{[foo1] => #{data => foo1_value,
+                            payload_version => 2},
+                [foo2] => #{payload_version => 1}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:clear_many_payloads(
@@ -324,9 +318,8 @@ clear_many_payloads_from_existing_node_test_() ->
          khepri_adv:get_many(
            ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR_STAR])),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo1] => #{payload_version => 2},
-                 [foo2] => #{payload_version => 1}}}},
+         {ok, #{[foo1] => #{payload_version => 2},
+                [foo2] => #{payload_version => 1}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:clear_many_payloads(
@@ -335,9 +328,8 @@ clear_many_payloads_from_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo1] => #{payload_version => 2},
-                 [foo2] => #{payload_version => 1}}}},
+         {ok, #{[foo1] => #{payload_version => 2},
+                [foo2] => #{payload_version => 1}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:clear_many_payloads(

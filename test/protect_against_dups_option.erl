@@ -159,7 +159,7 @@ dedup_expiry_test_() ->
 
        {"Trigger the transaction",
         ?_assertEqual(
-            ok,
+            {txfun_ret, ok},
             khepri_machine:do_process_sync_command(
               ?FUNCTION_NAME, DedupCommand, #{}))},
 
@@ -170,7 +170,7 @@ dedup_expiry_test_() ->
 
        {"Trigger the transaction again before the dedup can be expired",
         ?_assertEqual(
-            ok,
+            {txfun_ret, ok},
             khepri_machine:do_process_sync_command(
               ?FUNCTION_NAME, DedupCommand, #{}))},
 
@@ -191,7 +191,7 @@ dedup_expiry_test_() ->
                 %% The dedup should be expired so this duplicate command should
                 %% be handled and the data should be incremented.
                 ?assertEqual(
-                   ok,
+                   {txfun_ret, ok},
                    khepri_machine:do_process_sync_command(
                      ?FUNCTION_NAME, DedupCommand, #{}))
             end)},

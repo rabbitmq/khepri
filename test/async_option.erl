@@ -309,7 +309,7 @@ async_unset_in_transaction_test_() ->
          begin
              Fun = fun() -> khepri_tx:put([foo], ?NO_PAYLOAD) end,
              ?assertEqual(
-                {ok, ok},
+                ok,
                 khepri:transaction(?FUNCTION_NAME, Fun)),
              ?assertEqual(
                 {ok, #{[foo] => #{payload_version => 1}}},
@@ -325,7 +325,7 @@ async_false_in_transaction_test_() ->
          begin
              Fun = fun() -> khepri_tx:put([foo], ?NO_PAYLOAD) end,
              ?assertEqual(
-                {ok, ok},
+                ok,
                 khepri:transaction(
                   ?FUNCTION_NAME, Fun, #{async => false})),
              ?assertEqual(
