@@ -220,7 +220,7 @@ acknowledge the execution of a trigger.</p>
   into account the execution of an MFA or the send of a message to a process.</p>
 
 <h3 class="typedecl"><a name="type-tx_ret">tx_ret()</a></h3>
-<p><code>tx_ret() = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok" docgen-rel="seetype" docgen-href="khepri:khepri#ok/0">khepri:ok</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result" docgen-rel="seetype" docgen-href="khepri:khepri_tx#tx_fun_result/0">khepri_tx:tx_fun_result()</a>) | <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort" docgen-rel="seetype" docgen-href="khepri:khepri_tx#tx_abort/0">khepri_tx:tx_abort()</a> | no_return()</code></p>
+<p><code>tx_ret() = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result" docgen-rel="seetype" docgen-href="khepri:khepri_tx#tx_fun_result/0">khepri_tx:tx_fun_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort" docgen-rel="seetype" docgen-href="khepri:khepri_tx#tx_abort/0">khepri_tx:tx_abort()</a> | no_return()</code></p>
 
 
 <h3 class="typedecl"><a name="type-write_ret">write_ret()</a></h3>
@@ -233,7 +233,7 @@ acknowledge the execution of a trigger.</p>
   locally.</td></tr>
 <tr><td valign="top"><a href="#delete-3">delete/3</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#transaction-5">transaction/5</a></td><td>Runs a transaction and returns the result.</td></tr>
-<tr><td valign="top"><a href="#handle_tx_exception-1">handle_tx_exception/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_exception-1">handle_exception/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#register_trigger-5">register_trigger/5</a></td><td>Registers a trigger.</td></tr>
 <tr><td valign="top"><a href="#register_projection-4">register_projection/4</a></td><td>Registers a projection.</td></tr>
 <tr><td valign="top"><a href="#unregister_projections-3">unregister_projections/3</a></td><td>Removes the given projections from the store.</td></tr>
@@ -308,9 +308,9 @@ acknowledge the execution of a trigger.</p>
 </div><p>Runs a transaction and returns the result.
  </p>
 
-<h3 class="function"><a name="handle_tx_exception-1">handle_tx_exception/1</a></h3>
+<h3 class="function"><a name="handle_exception-1">handle_exception/1</a></h3>
 <div class="spec">
-<p><code>handle_tx_exception(X1) -&gt; any()</code></p>
+<p><code>handle_exception(X1) -&gt; any()</code></p>
 <p></p>
 </div>
 
