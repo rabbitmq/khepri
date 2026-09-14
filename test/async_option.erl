@@ -401,7 +401,32 @@ async_with_correlation_in_aborted_transaction_test_() ->
                   ?FUNCTION_NAME, Fun, rw, #{async => Correlation})),
              RaEvent = receive {ra_event, _, _} = Event -> Event end,
              ?assertEqual(
-               [{Correlation, {error, abort_reason}}],
+               [{Correlation, {error, ?khepri_error(aborted_tx, #{reason => abort_reason})}}],
+               khepri:handle_async_ret(?FUNCTION_NAME, RaEvent)),
+             ?assertEqual(
+                {error,
+                 ?khepri_error(node_not_found, #{node_name => foo,
+                                                 node_path => [foo],
+                                                 node_is_target => true})},
+                khepri_adv:get(?FUNCTION_NAME, [foo]))
+         end)
+     ]}.
+
+async_with_correlation_in_crashed_transaction_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_test(
+         begin
+             Fun = fun() -> throw(oops) end,
+             Correlation = 1,
+             ?assertEqual(
+                ok,
+                khepri:transaction(
+                  ?FUNCTION_NAME, Fun, rw, #{async => Correlation})),
+             RaEvent = receive {ra_event, _, _} = Event -> Event end,
+             ?assertMatch(
+               [{Correlation, {error, {exception, throw, oops, _}}}],
                khepri:handle_async_ret(?FUNCTION_NAME, RaEvent)),
              ?assertEqual(
                 {error,
