@@ -71,6 +71,7 @@
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
 -include("src/khepri_ret.hrl").
+-include("src/khepri_tx.hrl").
 
 -export([
          %% Functions to start & stop a Khepri store; for more
@@ -496,8 +497,11 @@
 %%
 %% `undefined' is returned if a tree node has no payload attached to it.
 
--type async_ret() :: khepri_machine:write_ret() |
+-type async_ret() :: khepri:minimal_ret() |
+                     khepri_machine:write_ret() |
                      khepri_tx:tx_fun_result() |
+                     khepri:error({aborted_tx, any()}) |
+                     khepri:error({exception, atom(), any(), list()}) |
                      khepri:error({not_leader, ra:server_id()}).
 %% The value returned from of a command function which was executed
 %% asynchronously.
@@ -3658,14 +3662,17 @@ handle_async_ret(
     lists:map(
       fun({CorrelationId, Reply0}) ->
           Reply = case Reply0 of
-                      {exception, _, _, _} = Exception ->
-                          khepri_machine:handle_tx_exception(Exception);
                       ok ->
                           Reply0;
                       {ok, _} ->
                           Reply0;
                       {error, _} ->
-                          Reply0
+                          Reply0;
+                      {exception, _, ?TX_ABORT(Reason), _} ->
+                          Error = ?khepri_error(aborted_tx, #{reason => Reason}),
+                          {error, Error};
+                      {exception, _, _, _} = Exception ->
+                          {error, Exception}
                   end,
           {CorrelationId, Reply}
       end, Correlations0);
