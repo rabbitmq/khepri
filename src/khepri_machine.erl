@@ -688,12 +688,8 @@ readonly_transaction(StoreId, FunOrPath, Args, Options)
                     assert_equal(State, State1),
                     Ret
             end,
-    case process_query(StoreId, Query, Options) of
-        {exception, _, _, _} = Exception ->
-            handle_tx_exception(Exception);
-        Ret ->
-            {ok, Ret}
-    end.
+    Ret = process_query(StoreId, Query, Options),
+    handle_tx_ret(Ret).
 
 -spec readwrite_transaction(StoreId, FunOrPath, Args, Options) -> Ret when
       StoreId :: khepri:store_id(),
@@ -730,15 +726,18 @@ readwrite_transaction1(StoreId, StandaloneFunOrPath, Args, Options) ->
     Ret = process_command(StoreId, Command, Options1),
     case select_command_type(Options1) of
         sync ->
-            case Ret of
-                {exception, _, _, _} = Exception ->
-                    handle_tx_exception(Exception);
-                _ ->
-                    {ok, Ret}
-            end;
+            handle_tx_ret(Ret);
         {async, _, _} ->
             ?assertEqual(ok, Ret),
             Ret
+    end.
+
+handle_tx_ret(Ret) ->
+    case Ret of
+        {exception, _, _, _} = Exception ->
+            handle_tx_exception(Exception);
+        _ ->
+            {ok, Ret}
     end.
 
 handle_tx_exception(
