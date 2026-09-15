@@ -300,12 +300,22 @@ acknowledge the execution of a trigger.</p>
 <code>Options</code>: command options such as the command type.
  <br>
 </p>
-<p>returns: in the case of a synchronous transaction, <code>{ok, Result}</code> where
-  <code>Result</code> is the return value of <code>FunOrPath</code>, or <code>{error, Reason}</code> if the
-  anonymous function was aborted; in the case of an asynchronous transaction,
-  always <code>ok</code> (the actual return value may be sent by a message if a
-  correlation ID was specified).</p>
-</div><p>Runs a transaction and returns the result.
+<p>returns: in the case of a synchronous transaction, <code>Result</code> where <code>Result</code>
+  is the return value of <code>FunOrPath</code> execution; in the case of an asynchronous
+  transaction, always <code>ok</code> (the actual return value may be sent by a message
+  if a correlation ID was specified).</p>
+</div><p><p>Runs a transaction and returns the result.</p>
+ 
+  <p>In the case of a synchronous transaction, the transaction function, whether
+  it is an anonymous function or a store procedure, is executed as if Khepri
+  was not involved: the return value of <a docgen-rel="seemfa" docgen-href="#transaction/5" href="#transaction-5"><code>transaction/5</code></a> is the return  
+value of the transaction function.</p>
+ 
+  <p>If the transaction function throws an exception, the exception is raised as  
+is. If there is an error with the communication with the store, a new  
+exception is raised with the error.</p>
+ 
+  In the case of an asynchronous transaction, <code>ok</code> is always returned.
  </p>
 
 <h3 class="function"><a name="handle_exception-1">handle_exception/1</a></h3>

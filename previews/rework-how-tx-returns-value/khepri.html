@@ -2543,11 +2543,10 @@ name.</p>
 <code>Options</code>: command options such as the command type.
  <br>
 </p>
-<p>returns: in the case of a synchronous transaction, <code>{ok, Result}</code> where
-  <code>Result</code> is the return value of <code>FunOrPath</code>, or <code>{error, Reason}</code> if the
-  anonymous function was aborted; in the case of an asynchronous transaction,
-  always <code>ok</code> (the actual return value may be sent by a message if a
-  correlation ID was specified).</p>
+<p>returns: in the case of a synchronous transaction, <code>Result</code> where <code>Result</code>
+  is the return value of <code>FunOrPath</code> execution; in the case of an asynchronous
+  transaction, always <code>ok</code> (the actual return value may be sent by a message
+  if a correlation ID was specified).</p>
 </div><p><p>Runs a transaction and returns its result.</p>
  
   <p><code>Fun</code> is an arbitrary anonymous function which takes the content of <code>Args</code>
@@ -2585,10 +2584,14 @@ allowed to do and in which context it runs:</p>
 (including audetected ones). However note that both types expect different  
 options.</p>
  
-  The result of <code>FunOrPath</code> can be any term. That result is returned in an
-  <code>{ok, Result}</code> tuple if the transaction is synchronous. The result is sent
-  by message if the transaction is asynchronous and a correlation ID was
-  specified.
+  <p>The result of <code>FunOrPath</code> can be any term. That result is returned as is if  
+the transaction is synchronous, like if the transaction function was  
+executed directly outside of Khepri. Any exceptions are also raised as is.  
+If there is an error with the communication with the store, a new exception  
+is raised with the error.</p>
+ 
+  The result is sent by message if the transaction is asynchronous and a
+  correlation ID was specified.
  </p>
 
 <h3 class="function"><a name="fence-0">fence/0</a></h3>
