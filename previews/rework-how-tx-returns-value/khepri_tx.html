@@ -699,14 +699,18 @@ pattern.</p>
 <div class="spec">
 <p><code>abort(Reason) -&gt; no_return()</code>
 <ul class="definitions"><li><code>Reason = any()</code></li></ul></p>
-<p><code>Reason</code>: term to return to caller of the transaction.
+<p><code>Reason</code>: term to raise as an exception for caller of the transaction.
  <br>
 </p>
 </div><p><p>Aborts the transaction.</p>
  
   <p>Any changes so far are not committed to the store.</p>
  
-  <a docgen-rel="seemfa" docgen-href="khepri#transaction/1" href="khepri.html#transaction-1"><code>khepri:transaction/1</code></a> and friends will return <a docgen-rel="seetype" docgen-href="#tx_abort/0" href="#type-tx_abort"><code>tx_abort()</code></a>.
+  <p><a docgen-rel="seemfa" docgen-href="khepri#transaction/1" href="khepri.html#transaction-1"><code>khepri:transaction/1</code></a> and friends will throw <code>Reason</code> as an  
+exception.</p>
+ 
+  This API is deprecated. Any exception can be used in the transaction
+  function to abort a transaction.
  </p>
 
 <h3 class="function"><a name="is_transaction-0">is_transaction/0</a></h3>
