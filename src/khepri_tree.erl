@@ -615,11 +615,12 @@ find_matching_nodes_cb(Path, #node{} = Node, Fun, Acc, TreeOptions) ->
     {ok, keep, Acc1};
 find_matching_nodes_cb(
   _,
-  {interrupted, node_not_found = Reason, Info},
+  {interrupted, Reason, Info},
   _Fun, _Acc,
   #{expect_specific_node := true}) ->
     %% If we are collecting node properties (the result is a map) and the path
-    %% targets a specific node which is not found, we return an error.
+    %% targets a specific node which is not found or does not match the
+    %% pattern, we return an error.
     %%
     %% If we are counting nodes, that's fine and the next function clause will
     %% run. The walk won't be interrupted.
