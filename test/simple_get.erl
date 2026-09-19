@@ -37,6 +37,28 @@ get_existing_node_test_() ->
          {ok, foo_value},
          khepri:get(?FUNCTION_NAME, [foo]))]}.
 
+get_existing_node_with_pattern_test_() ->
+    Value = foo_value,
+    Condition = #if_payload_version{version = 10},
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertEqual(
+         ok,
+         khepri:create(?FUNCTION_NAME, [foo], Value)),
+      ?_assertEqual(
+         {error, ?khepri_error(
+                    mismatching_node,
+                    #{node_name => foo,
+                      node_path => [foo],
+                      node_is_target => true,
+                      node_props => #{data => Value,
+                                      payload_version => 1},
+                      condition => Condition})},
+         khepri:get(
+           ?FUNCTION_NAME,
+           [#if_all{conditions = [foo, Condition]}]))]}.
+
 get_existing_node_with_sproc_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
