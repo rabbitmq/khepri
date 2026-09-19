@@ -89,7 +89,7 @@ is_store_empty_in_a_tx_on_an_empty_store_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, true},
+         true,
          begin
              Fun = fun() ->
                            khepri_tx:is_empty()
@@ -102,7 +102,7 @@ is_store_empty_in_a_tx_on_a_non_empty_store_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, false},
+         false,
          begin
              Fun = fun() ->
                            ok = khepri_tx:create([foo], foo_value),

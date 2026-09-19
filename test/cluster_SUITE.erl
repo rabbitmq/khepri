@@ -325,7 +325,7 @@ handle_timeout_during_recovery(Config) ->
       fun(I) ->
               ct:pal("- transaction ~b/~b", [I, TxCount]),
               ?assertEqual(
-                 {ok, ok},
+                 ok,
                  khepri:transaction(
                    StoreId,
                    fun() -> timer:sleep(100) end, rw))
@@ -1883,9 +1883,9 @@ can_use_default_store_on_single_node(_Config) ->
        {ok, #{}},
        khepri_adv:unregister_projections([ProjectionName2], #{})),
 
-    ?assertEqual({ok, ok}, khepri:transaction(fun() -> ok end)),
-    ?assertEqual({ok, ok}, khepri:transaction(fun() -> ok end, ro)),
-    ?assertEqual({ok, ok}, khepri:transaction(fun() -> ok end, ro, #{})),
+    ?assertEqual(ok, khepri:transaction(fun() -> ok end)),
+    ?assertEqual(ok, khepri:transaction(fun() -> ok end, ro)),
+    ?assertEqual(ok, khepri:transaction(fun() -> ok end, ro, #{})),
 
     ?assertEqual(ok, khepri:create([bar], value1)),
     ?assertEqual(ok, khepri:clear_payload([bar])),
@@ -2688,10 +2688,10 @@ bump_counter_proc(Config, Parent, Node, StoreId, Runs) ->
               ?LOG_INFO(
                  "Transaction run #~b on node ~0p",
                  [NewRuns, Node]),
-              {ok, Ret} = helpers:call(Config,
-                            Node, khepri, transaction,
-                            [StoreId, fun bump_counter_tx/0, rw,
-                             #{reply_from => leader}]),
+              Ret = helpers:call(Config,
+                                 Node, khepri, transaction,
+                                 [StoreId, fun bump_counter_tx/0, rw,
+                                  #{reply_from => leader}]),
               ?LOG_INFO(
                  "Transaction returned ~p after ~b runs",
                  [Ret, NewRuns]),
