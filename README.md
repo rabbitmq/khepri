@@ -1,31 +1,33 @@
+<div align="centeralign="center"">
+
+![Khepri logo](/doc/khepri-logo.svg)
+
 # The Khepri database library
 
 [![Hex.pm](https://img.shields.io/hexpm/v/khepri)](https://hex.pm/packages/khepri/)
 [![Test](https://github.com/rabbitmq/khepri/actions/workflows/test-and-release.yaml/badge.svg)](https://github.com/rabbitmq/khepri/actions/workflows/test-and-release.yaml)
 [![Codecov](https://codecov.io/gh/rabbitmq/khepri/branch/main/graph/badge.svg?token=R0OGKZ2RK2)](https://codecov.io/gh/rabbitmq/khepri)
 
-Khepri is a tree-like replicated on-disk database library for Erlang and
-Elixir, built on top of the [Raft consensus algorithm](https://raft.github.io/).
+</div>
 
-<img align="right" width="100" src="https://raw.githubusercontent.com/rabbitmq/khepri/main/doc/khepri-logo.svg">
+Khepri is a tree-like replicated on-disk database library built on top of the
+[Raft consensus algorithm](https://raft.github.io/) for Erlang and other
+programming languages running on top of the BEAM virtual machine (Elixir,
+Gleam, and so on).
 
-## The basics
+## Features
 
-Data are stored in a **tree structure**. Each node in the tree is referenced by
-its path from the root node. A path is a list of Erlang atoms and/or binaries.
-For ease of use, Unix-like path strings are accepted as well.
-
-For **consistency and replication** and to manage data on disk, Khepri relies
-on [Ra](https://github.com/rabbitmq/ra), an Erlang implementation of the [Raft
-consensus algorithm](https://raft.github.io/). In Ra parlance, Khepri is a
-state machine in a Ra cluster.
+* **Represents data as a tree** (instead of a flat key/value structure).
+* Supports simple operations and complex transactions.
+* Supports event-based actions.
+* Supports projections for very fast queries.
+* Supports data import/export.
+* Based on [Ra](https://github.com/rabbitmq/ra) for consensus and data safety.
 
 ## Project maturity
 
 Khepri is still under active development. That said, it is **safe to be used in
-production**. As an example, it is used as the default metadata store in
-RabbitMQ 4.2.x and it is even the only supported one starting from RabbitMQ
-4.3.0.
+production**.
 
 From an API stand point, the **API will continue to evolve**, sometimes with
 breaking changes, as we are not 100% satisfied with it. That is why Khepri
@@ -34,29 +36,11 @@ breaking changes, as we are not 100% satisfied with it. That is why Khepri
 2. When it is not possible, we describe how the change impacts a program
    depending on Khepri, with examples showing how to adapt the source code.
 
-## Fundamental assumptions
-
-As a Raft-based system, Khepri **requires durable storage**, including
-between node restarts, and stable node (replica) identities.
-
-Likewise, as a Raft-based system, Khepri requires a majority of nodes to be
-online at all times. When this is not the case, the cluster will lose its
-availability, specifically for writes.
-
-## Known limitations
-
-Khepri currently hosts the entire data set **in memory as well as on disk**, so
-there is a realistic limit to how large a data set can be stored in it.
-
-For this reason and others, storing **blobs of files** in Khepri is not
-recommended. For that, use an external blob store.
-
-## Documentation
-
-* A short tutorial in the [Getting started](#getting-started) section below
-* [Documentation and API reference](https://rabbitmq.github.io/khepri/)
-
 ## Getting started
+
+The following sections demonstrate the common basis usages of Khepri. To learn
+more, please refer to the [full
+documentation](https://rabbitmq.github.io/khepri/).
 
 ### Add as a dependency
 
@@ -102,8 +86,8 @@ the current working directory.
 
 It is fine to get started and play with Khepri. However, it is recommended to
 configure your own Ra system and Ra cluster to select the directory where data
-is stored and to be able to have multiple Khepri database instances running on
-the same Erlang node.
+is stored and to be able to have multiple Khepri stores running on the same
+Erlang node.
 
 ### Insert data
 
@@ -134,10 +118,10 @@ ok = khepri:delete("/:emails/alice").
 ```
 
 The `emails` parent node was automatically created when the `alice` node was
-inserted earlier. It has no data attached to it. However, after the `alice`
-node is deleted, the `emails` node will stay around. It is possible to tell
-Khepri to automatically remove `emails` as soon as its last child node is
-deleted. Khepri supports many more conditions by the way.
+inserted earlier. It has no data attached to it. At the same time the `alice`
+node is deleted, the `emails` node is automatically deleted too (if it still
+has no data). You can define how the lifetime of a tree node is linked to the
+lifetime of another tree node or a process.
 
 ### Transactional Operations
 
@@ -181,9 +165,11 @@ the database itself and automatically execute it after some event occurs.
     ```erlang
     StoredProcPath = [path, to, stored_procedure],
 
-    Fun = fun(Props) ->
-              #{path := Path,
-                on_action := Action} = Props
+    Fun = fun(#khepri_trigger{event = #{path := Path,
+                                        change := update,
+                                        old_node_props := OldNodeProps,
+                                        new_node_props := NewNodeProps}}) ->
+              ...
           end,
 
     khepri:put(StoreId, StoredProcPath, Fun).
@@ -192,8 +178,8 @@ the database itself and automatically execute it after some event occurs.
 2.  Register a trigger using an event filter:
 
     ```erlang
-    %% A path is automatically considered a tree event filter.
-    EventFilter = [stock, wood, <<"oak">>],
+    %% A path is automatically considered as a tree event filter.
+    EventFilter = [stock, wood, ?KHEPRI_WILDCARD_STAR],
 
     ok = khepri:register_trigger(
            StoreId,
@@ -202,10 +188,10 @@ the database itself and automatically execute it after some event occurs.
            StoredProcPath).
     ```
 
-In the example above, as soon as the `[stock, wood, <<"oak">>]` node is
+In the example above, as soon as a tree node like `[stock, wood, <<"oak">>]` is
 created, updated or deleted, the anonymous function will be executed.
 
-The function is executed at least once on the Ra leader's Erlang node. It may
+By default, the function is executed at least once on the Ra leader's Erlang node. It may
 be executed multiple times if the leader changes and thus should be idempotent.
 
 Unlike transaction functions, stored procedures may have whatever side effects
@@ -231,7 +217,7 @@ rebar3 compile
 ### Build documentation
 
 ```
-rebar3 edoc
+rebar3 ex_doc
 ```
 
 ### Test
@@ -240,7 +226,7 @@ rebar3 edoc
 rebar3 xref
 rebar3 eunit
 rebar3 proper
-rebar3 ct --sname ct
+rebar3 ct
 rebar3 as test dialyzer
 ```
 
@@ -257,7 +243,11 @@ based on the following two resources:
 * https://www.svgrepo.com/svg/55105/rabbit (license: CC0)
 * https://www.svgrepo.com/svg/336625/database-point (license: MIT)
 
+
 > [!NOTE]
+>
+> <a href="https://ai-free.io"><img align="right" decoding="async" src="https://ai-free.io/AI-free.io-CODE.png" width="80"/></a>
+>
 > [AI-free — *Human Made*](https://ai-free.io/)
 >
 > Khepri is developed by humans and no AI agents were involved in the design or
