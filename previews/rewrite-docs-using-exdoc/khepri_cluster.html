@@ -5,14 +5,14 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.40.3">
-    <meta name="project" content="khepri v0.19.0">
+    <meta name="project" content="khepri v0.19.1">
 
 
-    <title>khepri_cluster — khepri v0.19.0</title>
+    <title>khepri_cluster — khepri v0.19.1</title>
 
     <link rel="stylesheet" href="dist/html-erlang-KCHZLXSC.css" />
 
-    <script defer src="dist/sidebar_items-55A96F02.js"></script>
+    <script defer src="dist/sidebar_items-7535B109.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-Y2MUTVIN.js"></script>
 
@@ -37,7 +37,7 @@
 khepri
         </a>
         <div class="sidebar-projectVersion" translate="no">
-          v0.19.0
+          v0.19.1
         </div>
       </div>
     </div>
@@ -94,12 +94,12 @@ khepri
   <div class="heading-with-actions top-heading">
     <h1>
       <span translate="no">khepri_cluster</span> 
-      <small class="app-vsn" translate="no">(khepri v0.19.0)</small>
+      <small class="app-vsn" translate="no">(khepri v0.19.1)</small>
 
     </h1>
 
 
-      <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L97" title="View Source" class="icon-action" rel="help nofollow">
+      <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L97" title="View Source" class="icon-action" rel="help nofollow">
         <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         <span class="sr-only">View Source</span>
       </a>
@@ -108,22 +108,22 @@ khepri
 
 
     <section id="moduledoc">
-<p>Khepri service and cluster management API.</p><p>This module provides the public API for the service and cluster management. For convenience, some functions of this API are repeated in the <a href="khepri.html"><code>khepri</code></a> module for easier access.</p><h3 id="module-the-khepri-store-and-the-ra-cluster" class="section-heading"><a href="#module-the-khepri-store-and-the-ra-cluster" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text"><a name="The_Khepri_store_and_the_Ra_cluster">The Khepri store and the Ra cluster</a></span></h3><p>A Khepri store is a Ra server inside a Ra cluster. The Khepri store and the Ra cluster share the same name in fact. The only constraint is that the name must be an atom, even though Ra accepts other Erlang types as cluster names.</p><p>By default, Khepri uses <code>khepri</code> as the store ID (and thus Ra cluster name). This default can be overridden using an argument to the <code>start()</code> functions or the <code>default_store_id</code> application environment variable.</p><p>Examples:</p><ul><li>Use the default Khepri store ID:<pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="1216731363-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="ss">khepri</span><span class="p" data-group-id="1216731363-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="1216731363-2">(</span><span class="p" data-group-id="1216731363-2">)</span><span class="p">.</span></code></pre></li><li>Override the default store ID using an argument:<pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="8259994558-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="ss">my_store</span><span class="p" data-group-id="8259994558-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="8259994558-2">(</span><span class="s">&quot;/var/lib/khepri&quot;</span><span class="p">,</span><span class="w"> </span><span class="ss">my_store</span><span class="p" data-group-id="8259994558-2">)</span><span class="p">.</span></code></pre></li><li>Override the default store ID using an application environment variable:<pre><code class="makeup erlang" translate="no"><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">application</span><span class="p">:</span><span class="nf">set_env</span><span class="p" data-group-id="9870745983-1">(</span><span class="w">
-         </span><span class="ss">khepri</span><span class="p">,</span><span class="w"> </span><span class="ss">default_store_id</span><span class="p">,</span><span class="w"> </span><span class="ss">my_store</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9870745983-2">[</span><span class="p" data-group-id="9870745983-3">{</span><span class="ss">persistent</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="9870745983-3">}</span><span class="p" data-group-id="9870745983-2">]</span><span class="p" data-group-id="9870745983-1">)</span><span class="p">,</span><span class="w">
+<p>Khepri service and cluster management API.</p><p>This module provides the public API for the service and cluster management. For convenience, some functions of this API are repeated in the <a href="khepri.html"><code>khepri</code></a> module for easier access.</p><h3 id="module-the-khepri-store-and-the-ra-cluster" class="section-heading"><a href="#module-the-khepri-store-and-the-ra-cluster" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text"><a name="The_Khepri_store_and_the_Ra_cluster">The Khepri store and the Ra cluster</a></span></h3><p>A Khepri store is a Ra server inside a Ra cluster. The Khepri store and the Ra cluster share the same name in fact. The only constraint is that the name must be an atom, even though Ra accepts other Erlang types as cluster names.</p><p>By default, Khepri uses <code>khepri</code> as the store ID (and thus Ra cluster name). This default can be overridden using an argument to the <code>start()</code> functions or the <code>default_store_id</code> application environment variable.</p><p>Examples:</p><ul><li>Use the default Khepri store ID:<pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="9356080763-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="ss">khepri</span><span class="p" data-group-id="9356080763-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="9356080763-2">(</span><span class="p" data-group-id="9356080763-2">)</span><span class="p">.</span></code></pre></li><li>Override the default store ID using an argument:<pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="6569052206-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="ss">my_store</span><span class="p" data-group-id="6569052206-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="6569052206-2">(</span><span class="s">&quot;/var/lib/khepri&quot;</span><span class="p">,</span><span class="w"> </span><span class="ss">my_store</span><span class="p" data-group-id="6569052206-2">)</span><span class="p">.</span></code></pre></li><li>Override the default store ID using an application environment variable:<pre><code class="makeup erlang" translate="no"><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">application</span><span class="p">:</span><span class="nf">set_env</span><span class="p" data-group-id="0250821267-1">(</span><span class="w">
+         </span><span class="ss">khepri</span><span class="p">,</span><span class="w"> </span><span class="ss">default_store_id</span><span class="p">,</span><span class="w"> </span><span class="ss">my_store</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0250821267-2">[</span><span class="p" data-group-id="0250821267-3">{</span><span class="ss">persistent</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="0250821267-3">}</span><span class="p" data-group-id="0250821267-2">]</span><span class="p" data-group-id="0250821267-1">)</span><span class="p">,</span><span class="w">
  
-  </span><span class="p" data-group-id="9870745983-4">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="ss">my_store</span><span class="p" data-group-id="9870745983-4">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="9870745983-5">(</span><span class="p" data-group-id="9870745983-5">)</span><span class="p">.</span></code></pre></li></ul><h3 id="module-the-data-directory-and-the-ra-system" class="section-heading"><a href="#module-the-data-directory-and-the-ra-system" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text"><a name="The_data_directory_and_the_Ra_system">The data directory and the Ra system</a></span></h3><p>A Ra server relies on a Ra system to provide various functions and to configure the directory where the data should be stored on disk.</p><p>By default, Khepri will configure its own Ra system to write data under <code>khepri#Nodename</code> in the current working directory, where <code>Nodename</code> is the name of the Erlang node.</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="p" data-group-id="8347621453-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">StoreId</span><span class="p" data-group-id="8347621453-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="8347621453-2">(</span><span class="p" data-group-id="8347621453-2">)</span><span class="p">.</span><span class="w">
+  </span><span class="p" data-group-id="0250821267-4">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="ss">my_store</span><span class="p" data-group-id="0250821267-4">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="0250821267-5">(</span><span class="p" data-group-id="0250821267-5">)</span><span class="p">.</span></code></pre></li></ul><h3 id="module-the-data-directory-and-the-ra-system" class="section-heading"><a href="#module-the-data-directory-and-the-ra-system" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text"><a name="The_data_directory_and_the_Ra_system">The data directory and the Ra system</a></span></h3><p>A Ra server relies on a Ra system to provide various functions and to configure the directory where the data should be stored on disk.</p><p>By default, Khepri will configure its own Ra system to write data under <code>khepri#Nodename</code> in the current working directory, where <code>Nodename</code> is the name of the Erlang node.</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="p" data-group-id="9497398734-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">StoreId</span><span class="p" data-group-id="9497398734-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="9497398734-2">(</span><span class="p" data-group-id="9497398734-2">)</span><span class="p">.</span><span class="w">
  
   </span><span class="c1">%% If the Erlang node was started without distribution (the default), the</span><span class="w">
   </span><span class="c1">%% statement above will start a Ra system called like the store (`khepri&#39;)</span><span class="w">
-  </span><span class="c1">%% and will use the `khepri#nonode@nohost&#39; directory.</span></code></pre><p>The default data directory or Ra system name can be overridden using an argument to the <code>start()</code> or the <code>default_ra_system</code> application environment variable. Both a directory (string or binary) or the name of an already running Ra system are accepted.</p><p>Examples:</p><ul><li>Override the default with the name of a running Ra system using an argument:<pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="5555309231-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">StoreId</span><span class="p" data-group-id="5555309231-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="5555309231-2">(</span><span class="ss">my_ra_system</span><span class="p" data-group-id="5555309231-2">)</span><span class="p">.</span></code></pre></li><li>Override the default data directory using an application environment variable:<pre><code class="makeup erlang" translate="no"><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">application</span><span class="p">:</span><span class="nf">set_env</span><span class="p" data-group-id="8908957609-1">(</span><span class="w">
-         </span><span class="ss">khepri</span><span class="p">,</span><span class="w"> </span><span class="ss">default_ra_system</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;/var/lib/khepri&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="8908957609-2">[</span><span class="p" data-group-id="8908957609-3">{</span><span class="ss">persistent</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="8908957609-3">}</span><span class="p" data-group-id="8908957609-2">]</span><span class="p" data-group-id="8908957609-1">)</span><span class="p">,</span><span class="w">
+  </span><span class="c1">%% and will use the `khepri#nonode@nohost&#39; directory.</span></code></pre><p>The default data directory or Ra system name can be overridden using an argument to the <code>start()</code> or the <code>default_ra_system</code> application environment variable. Both a directory (string or binary) or the name of an already running Ra system are accepted.</p><p>Examples:</p><ul><li>Override the default with the name of a running Ra system using an argument:<pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="3058035627-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">StoreId</span><span class="p" data-group-id="3058035627-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="3058035627-2">(</span><span class="ss">my_ra_system</span><span class="p" data-group-id="3058035627-2">)</span><span class="p">.</span></code></pre></li><li>Override the default data directory using an application environment variable:<pre><code class="makeup erlang" translate="no"><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">application</span><span class="p">:</span><span class="nf">set_env</span><span class="p" data-group-id="3699039170-1">(</span><span class="w">
+         </span><span class="ss">khepri</span><span class="p">,</span><span class="w"> </span><span class="ss">default_ra_system</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;/var/lib/khepri&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3699039170-2">[</span><span class="p" data-group-id="3699039170-3">{</span><span class="ss">persistent</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="3699039170-3">}</span><span class="p" data-group-id="3699039170-2">]</span><span class="p" data-group-id="3699039170-1">)</span><span class="p">,</span><span class="w">
  
-  </span><span class="p" data-group-id="8908957609-4">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">StoreId</span><span class="p" data-group-id="8908957609-4">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="8908957609-5">(</span><span class="p" data-group-id="8908957609-5">)</span><span class="p">.</span></code></pre></li></ul><p>Please refer to <a rel="nofollow" href="https://github.com/rabbitmq/ra">Ra documentation</a> to learn more about Ra systems and Ra clusters.</p><h3 id="module-managing-ra-cluster-members" class="section-heading"><a href="#module-managing-ra-cluster-members" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text"><a name="Managing_Ra_cluster_members">Managing Ra cluster members</a></span></h3><p>A Khepri/Ra cluster can be expanded by telling a node to join a remote cluster. Note that the Khepri store/Ra server to add to the cluster must run before it can join.</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="c1">%% Start the local Khepri store.</span><span class="w">
-  </span><span class="p" data-group-id="3769448195-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">StoreId</span><span class="p" data-group-id="3769448195-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="3769448195-2">(</span><span class="p" data-group-id="3769448195-2">)</span><span class="p">.</span><span class="w">
+  </span><span class="p" data-group-id="3699039170-4">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">StoreId</span><span class="p" data-group-id="3699039170-4">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="3699039170-5">(</span><span class="p" data-group-id="3699039170-5">)</span><span class="p">.</span></code></pre></li></ul><p>Please refer to <a rel="nofollow" href="https://github.com/rabbitmq/ra">Ra documentation</a> to learn more about Ra systems and Ra clusters.</p><h3 id="module-managing-ra-cluster-members" class="section-heading"><a href="#module-managing-ra-cluster-members" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text"><a name="Managing_Ra_cluster_members">Managing Ra cluster members</a></span></h3><p>A Khepri/Ra cluster can be expanded by telling a node to join a remote cluster. Note that the Khepri store/Ra server to add to the cluster must run before it can join.</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="c1">%% Start the local Khepri store.</span><span class="w">
+  </span><span class="p" data-group-id="0615616309-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">StoreId</span><span class="p" data-group-id="0615616309-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="0615616309-2">(</span><span class="p" data-group-id="0615616309-2">)</span><span class="p">.</span><span class="w">
  
   </span><span class="c1">%% Join a remote cluster.</span><span class="w">
-  </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri_cluster</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="3769448195-3">(</span><span class="n">RemoteNode</span><span class="p" data-group-id="3769448195-3">)</span><span class="p">.</span></code></pre><p>To remove the local Khepri store node from the cluster, it must be reset.</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="c1">%% Start the local Khepri store.</span><span class="w">
-  </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri_cluster</span><span class="p">:</span><span class="nf">reset</span><span class="p" data-group-id="2998451727-1">(</span><span class="p" data-group-id="2998451727-1">)</span><span class="p">.</span></code></pre>
+  </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri_cluster</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="0615616309-3">(</span><span class="n">RemoteNode</span><span class="p" data-group-id="0615616309-3">)</span><span class="p">.</span></code></pre><p>To remove the local Khepri store node from the cluster, it must be reset.</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="c1">%% Start the local Khepri store.</span><span class="w">
+  </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri_cluster</span><span class="p">:</span><span class="nf">reset</span><span class="p" data-group-id="1281290487-1">(</span><span class="p" data-group-id="1281290487-1">)</span><span class="p">.</span></code></pre>
     </section>
 
 </div>
@@ -460,7 +460,7 @@ khepri
       <h1 class="signature" translate="no">incomplete_ra_server_config/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L139" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L139" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -501,7 +501,7 @@ khepri
       <h1 class="signature" translate="no">get_default_ra_system_or_data_dir()</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1051" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L1051" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -517,7 +517,7 @@ khepri
 
       </div>
 
-<p>Returns the default Ra system name or data directory.</p><p>This is based on Khepri's <code>default_ra_system` application environment variable. The variable can be set to: &lt;ul&gt; &lt;li&gt;A directory (a string or binary) where data should be stored. A new Ra system called `khepri` will be initialized with this directory.&lt;/li&gt; &lt;li&gt;A Ra system name (an atom). In this case, the user is expected to configure and start the Ra system before starting Khepri.&lt;/li&gt; &lt;/ul&gt; If this application environment variable is unset, the default is to configure a Ra system called `khepri</code> which will write data in <code>&quot;khepri-$NODE&quot;</code> in the current working directory where <code>$NODE</code> is the Erlang node name.</p><p>Example of an Erlang configuration file for Khepri:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="p" data-group-id="4522965689-1">{</span><span class="ss">khepri</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4522965689-2">[</span><span class="p" data-group-id="4522965689-3">{</span><span class="ss">default_ra_system</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;/var/db/khepri&quot;</span><span class="p" data-group-id="4522965689-3">}</span><span class="p" data-group-id="4522965689-2">]</span><span class="p" data-group-id="4522965689-1">}</span><span class="p">.</span></code></pre>
+<p>Returns the default Ra system name or data directory.</p><p>This is based on Khepri's <code>default_ra_system` application environment variable. The variable can be set to: &lt;ul&gt; &lt;li&gt;A directory (a string or binary) where data should be stored. A new Ra system called `khepri` will be initialized with this directory.&lt;/li&gt; &lt;li&gt;A Ra system name (an atom). In this case, the user is expected to configure and start the Ra system before starting Khepri.&lt;/li&gt; &lt;/ul&gt; If this application environment variable is unset, the default is to configure a Ra system called `khepri</code> which will write data in <code>&quot;khepri-$NODE&quot;</code> in the current working directory where <code>$NODE</code> is the Erlang node name.</p><p>Example of an Erlang configuration file for Khepri:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="p" data-group-id="3011550481-1">{</span><span class="ss">khepri</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3011550481-2">[</span><span class="p" data-group-id="3011550481-3">{</span><span class="ss">default_ra_system</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;/var/db/khepri&quot;</span><span class="p" data-group-id="3011550481-3">}</span><span class="p" data-group-id="3011550481-2">]</span><span class="p" data-group-id="3011550481-1">}</span><span class="p">.</span></code></pre>
   </section>
 </section>
 <section class="detail" id="get_default_store_id/0">
@@ -530,7 +530,7 @@ khepri
       <h1 class="signature" translate="no">get_default_store_id()</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1084" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L1084" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -558,7 +558,7 @@ khepri
       <h1 class="signature" translate="no">get_store_ids()</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1635" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L1635" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -586,7 +586,7 @@ khepri
       <h1 class="signature" translate="no">is_store_running(StoreId)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1645" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L1645" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -614,7 +614,7 @@ khepri
       <h1 class="signature" translate="no">join(RemoteNode)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L565" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L565" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -643,7 +643,7 @@ khepri
       <h1 class="signature" translate="no">join(RemoteNode, Timeout)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L596" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L596" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -677,7 +677,7 @@ khepri
       <h1 class="signature" translate="no">members()</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1113" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L1113" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -705,7 +705,7 @@ khepri
       <h1 class="signature" translate="no">members(StoreId)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1135" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L1135" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -738,7 +738,7 @@ khepri
       <h1 class="signature" translate="no">members(StoreId, Options)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1164" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L1164" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -771,7 +771,7 @@ khepri
       <h1 class="signature" translate="no">nodes()</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1252" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L1252" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -799,7 +799,7 @@ khepri
       <h1 class="signature" translate="no">nodes(StoreIdOrOptions)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1276" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L1276" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -832,7 +832,7 @@ khepri
       <h1 class="signature" translate="no">nodes(StoreId, Options)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1301" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L1301" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -865,7 +865,7 @@ khepri
       <h1 class="signature" translate="no">reset()</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L899" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L899" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -893,7 +893,7 @@ khepri
       <h1 class="signature" translate="no">reset(Timeout)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L909" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L909" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -922,7 +922,7 @@ khepri
       <h1 class="signature" translate="no">reset(StoreId, Timeout)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L931" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L931" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -951,7 +951,7 @@ khepri
       <h1 class="signature" translate="no">start()</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L174" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L174" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -979,7 +979,7 @@ khepri
       <h1 class="signature" translate="no">start(RaSystemOrDataDir)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L196" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L196" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -1012,7 +1012,7 @@ khepri
       <h1 class="signature" translate="no">start(RaSystemOrDataDir, StoreIdOrRaServerConfig)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L224" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L224" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -1046,7 +1046,7 @@ khepri
       <h1 class="signature" translate="no">start(RaSystemOrDataDir, StoreIdOrRaServerConfig, Timeout)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L267" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L267" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -1081,7 +1081,7 @@ khepri
       <h1 class="signature" translate="no">stop()</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L466" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L466" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -1109,7 +1109,7 @@ khepri
       <h1 class="signature" translate="no">stop(StoreId)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L479" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L479" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -1137,7 +1137,7 @@ khepri
       <h1 class="signature" translate="no">wait_for_effective_behaviour(StoreIdOrRaServer, Behaviour)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1456" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L1456" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -1175,7 +1175,7 @@ khepri
       <h1 class="signature" translate="no">wait_for_effective_behaviour(StoreIdOrRaServer, Behaviour, Timeout)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1480" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L1480" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -1214,7 +1214,7 @@ khepri
       <h1 class="signature" translate="no">wait_for_effective_machine_version(StoreIdOrRaServer, MacVer)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1402" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L1402" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -1252,7 +1252,7 @@ khepri
       <h1 class="signature" translate="no">wait_for_effective_machine_version(StoreIdOrRaServer, MacVer, Timeout)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1432" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L1432" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -1291,7 +1291,7 @@ khepri
       <h1 class="signature" translate="no">wait_for_leader()</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1318" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L1318" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -1319,7 +1319,7 @@ khepri
       <h1 class="signature" translate="no">wait_for_leader(StoreIdOrRaServer)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1335" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L1335" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -1352,7 +1352,7 @@ khepri
       <h1 class="signature" translate="no">wait_for_leader(StoreIdOrRaServer, Timeout)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_cluster.erl#L1357" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_cluster.erl#L1357" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -1385,9 +1385,9 @@ khepri
         <p>
 
             <span class="line">
-              <a href="https://hex.pm/packages/khepri/0.19.0">Hex Package</a>
+              <a href="https://hex.pm/packages/khepri/0.19.1">Hex Package</a>
 
-              <a href="https://preview.hex.pm/preview/khepri/0.19.0">Hex Preview</a>
+              <a href="https://preview.hex.pm/preview/khepri/0.19.1">Hex Preview</a>
 
             </span>
 

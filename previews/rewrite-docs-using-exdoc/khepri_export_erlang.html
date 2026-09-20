@@ -5,14 +5,14 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.40.3">
-    <meta name="project" content="khepri v0.19.0">
+    <meta name="project" content="khepri v0.19.1">
 
 
-    <title>khepri_export_erlang — khepri v0.19.0</title>
+    <title>khepri_export_erlang — khepri v0.19.1</title>
 
     <link rel="stylesheet" href="dist/html-erlang-KCHZLXSC.css" />
 
-    <script defer src="dist/sidebar_items-55A96F02.js"></script>
+    <script defer src="dist/sidebar_items-7535B109.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-Y2MUTVIN.js"></script>
 
@@ -37,7 +37,7 @@
 khepri
         </a>
         <div class="sidebar-projectVersion" translate="no">
-          v0.19.0
+          v0.19.1
         </div>
       </div>
     </div>
@@ -94,12 +94,12 @@ khepri
   <div class="heading-with-actions top-heading">
     <h1>
       <span translate="no">khepri_export_erlang</span> 
-      <small class="app-vsn" translate="no">(khepri v0.19.0)</small>
+      <small class="app-vsn" translate="no">(khepri v0.19.1)</small>
 
     </h1>
 
 
-      <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_export_erlang.erl#L31" title="View Source" class="icon-action" rel="help nofollow">
+      <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_export_erlang.erl#L31" title="View Source" class="icon-action" rel="help nofollow">
         <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         <span class="sr-only">View Source</span>
       </a>
@@ -108,10 +108,10 @@ khepri
 
 
     <section id="moduledoc">
-<p>Khepri import/export callback module using Erlang terms formatted as plain text as its external format.</p><p>The exported file could be read using <a href="https://www.erlang.org/doc/apps/kernel/file.html#consult/1"><code>file:consult/1</code></a> to get back the list of backup items.</p><p>This callback module takes a filename or an opened file descriptor as its private data passed to <a href="khepri.html#export/4"><code>khepri:export/4</code></a> and <a href="khepri.html#import/3"><code>khepri:import/3</code></a>.</p><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nb">put</span><span class="p" data-group-id="6941710857-1">(</span><span class="n">StoreId</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;/:stock/:wood/Oak&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p" data-group-id="6941710857-1">)</span><span class="p">.</span><span class="w">
-  </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nb">put</span><span class="p" data-group-id="6941710857-2">(</span><span class="n">StoreId</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;/:stock/:wood/Maple&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">55</span><span class="p" data-group-id="6941710857-2">)</span><span class="p">.</span><span class="w">
-  </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">export</span><span class="p" data-group-id="6941710857-3">(</span><span class="n">StoreId</span><span class="p">,</span><span class="w"> </span><span class="ss">khepri_export_erlang</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;export.erl&quot;</span><span class="p" data-group-id="6941710857-3">)</span><span class="p">.</span></code></pre><p>Content of <code>export.erl</code>:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="p" data-group-id="3838125055-1">{</span><span class="nb">put</span><span class="p">,</span><span class="p" data-group-id="3838125055-2">[</span><span class="ss">stock</span><span class="p">,</span><span class="ss">wood</span><span class="p">,</span><span class="p" data-group-id="3838125055-3">&lt;&lt;</span><span class="s">&quot;Maple&quot;</span><span class="p" data-group-id="3838125055-3">&gt;&gt;</span><span class="p" data-group-id="3838125055-2">]</span><span class="p">,</span><span class="p" data-group-id="3838125055-4">{</span><span class="ss">p_data</span><span class="p">,</span><span class="mi">55</span><span class="p" data-group-id="3838125055-4">}</span><span class="p">,</span><span class="p" data-group-id="3838125055-5">#{</span><span class="p" data-group-id="3838125055-5">}</span><span class="p">,</span><span class="p" data-group-id="3838125055-6">#{</span><span class="p" data-group-id="3838125055-6">}</span><span class="p" data-group-id="3838125055-1">}</span><span class="p">.</span><span class="w">
-  </span><span class="p" data-group-id="3838125055-7">{</span><span class="nb">put</span><span class="p">,</span><span class="p" data-group-id="3838125055-8">[</span><span class="ss">stock</span><span class="p">,</span><span class="ss">wood</span><span class="p">,</span><span class="p" data-group-id="3838125055-9">&lt;&lt;</span><span class="s">&quot;Oak&quot;</span><span class="p" data-group-id="3838125055-9">&gt;&gt;</span><span class="p" data-group-id="3838125055-8">]</span><span class="p">,</span><span class="p" data-group-id="3838125055-10">{</span><span class="ss">p_data</span><span class="p">,</span><span class="mi">100</span><span class="p" data-group-id="3838125055-10">}</span><span class="p">,</span><span class="p" data-group-id="3838125055-11">#{</span><span class="p" data-group-id="3838125055-11">}</span><span class="p">,</span><span class="p" data-group-id="3838125055-12">#{</span><span class="p" data-group-id="3838125055-12">}</span><span class="p" data-group-id="3838125055-7">}</span><span class="p">.</span></code></pre>
+<p>Khepri import/export callback module using Erlang terms formatted as plain text as its external format.</p><p>The exported file could be read using <a href="https://www.erlang.org/doc/apps/kernel/file.html#consult/1"><code>file:consult/1</code></a> to get back the list of backup items.</p><p>This callback module takes a filename or an opened file descriptor as its private data passed to <a href="khepri.html#export/4"><code>khepri:export/4</code></a> and <a href="khepri.html#import/3"><code>khepri:import/3</code></a>.</p><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nb">put</span><span class="p" data-group-id="6806841875-1">(</span><span class="n">StoreId</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;/:stock/:wood/Oak&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p" data-group-id="6806841875-1">)</span><span class="p">.</span><span class="w">
+  </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nb">put</span><span class="p" data-group-id="6806841875-2">(</span><span class="n">StoreId</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;/:stock/:wood/Maple&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">55</span><span class="p" data-group-id="6806841875-2">)</span><span class="p">.</span><span class="w">
+  </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri</span><span class="p">:</span><span class="nf">export</span><span class="p" data-group-id="6806841875-3">(</span><span class="n">StoreId</span><span class="p">,</span><span class="w"> </span><span class="ss">khepri_export_erlang</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;export.erl&quot;</span><span class="p" data-group-id="6806841875-3">)</span><span class="p">.</span></code></pre><p>Content of <code>export.erl</code>:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="p" data-group-id="6420545028-1">{</span><span class="nb">put</span><span class="p">,</span><span class="p" data-group-id="6420545028-2">[</span><span class="ss">stock</span><span class="p">,</span><span class="ss">wood</span><span class="p">,</span><span class="p" data-group-id="6420545028-3">&lt;&lt;</span><span class="s">&quot;Maple&quot;</span><span class="p" data-group-id="6420545028-3">&gt;&gt;</span><span class="p" data-group-id="6420545028-2">]</span><span class="p">,</span><span class="p" data-group-id="6420545028-4">{</span><span class="ss">p_data</span><span class="p">,</span><span class="mi">55</span><span class="p" data-group-id="6420545028-4">}</span><span class="p">,</span><span class="p" data-group-id="6420545028-5">#{</span><span class="p" data-group-id="6420545028-5">}</span><span class="p">,</span><span class="p" data-group-id="6420545028-6">#{</span><span class="p" data-group-id="6420545028-6">}</span><span class="p" data-group-id="6420545028-1">}</span><span class="p">.</span><span class="w">
+  </span><span class="p" data-group-id="6420545028-7">{</span><span class="nb">put</span><span class="p">,</span><span class="p" data-group-id="6420545028-8">[</span><span class="ss">stock</span><span class="p">,</span><span class="ss">wood</span><span class="p">,</span><span class="p" data-group-id="6420545028-9">&lt;&lt;</span><span class="s">&quot;Oak&quot;</span><span class="p" data-group-id="6420545028-9">&gt;&gt;</span><span class="p" data-group-id="6420545028-8">]</span><span class="p">,</span><span class="p" data-group-id="6420545028-10">{</span><span class="ss">p_data</span><span class="p">,</span><span class="mi">100</span><span class="p" data-group-id="6420545028-10">}</span><span class="p">,</span><span class="p" data-group-id="6420545028-11">#{</span><span class="p" data-group-id="6420545028-11">}</span><span class="p">,</span><span class="p" data-group-id="6420545028-12">#{</span><span class="p" data-group-id="6420545028-12">}</span><span class="p" data-group-id="6420545028-7">}</span><span class="p">.</span></code></pre>
     </section>
 
 </div>
@@ -122,9 +122,9 @@ khepri
         <p>
 
             <span class="line">
-              <a href="https://hex.pm/packages/khepri/0.19.0">Hex Package</a>
+              <a href="https://hex.pm/packages/khepri/0.19.1">Hex Package</a>
 
-              <a href="https://preview.hex.pm/preview/khepri/0.19.0">Hex Preview</a>
+              <a href="https://preview.hex.pm/preview/khepri/0.19.1">Hex Preview</a>
 
             </span>
 

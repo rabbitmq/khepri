@@ -5,14 +5,14 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.40.3">
-    <meta name="project" content="khepri v0.19.0">
+    <meta name="project" content="khepri v0.19.1">
 
 
-    <title>khepri_projection — khepri v0.19.0</title>
+    <title>khepri_projection — khepri v0.19.1</title>
 
     <link rel="stylesheet" href="dist/html-erlang-KCHZLXSC.css" />
 
-    <script defer src="dist/sidebar_items-55A96F02.js"></script>
+    <script defer src="dist/sidebar_items-7535B109.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-Y2MUTVIN.js"></script>
 
@@ -37,7 +37,7 @@
 khepri
         </a>
         <div class="sidebar-projectVersion" translate="no">
-          v0.19.0
+          v0.19.1
         </div>
       </div>
     </div>
@@ -94,12 +94,12 @@ khepri
   <div class="heading-with-actions top-heading">
     <h1>
       <span translate="no">khepri_projection</span> 
-      <small class="app-vsn" translate="no">(khepri v0.19.0)</small>
+      <small class="app-vsn" translate="no">(khepri v0.19.1)</small>
 
     </h1>
 
 
-      <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L192" title="View Source" class="icon-action" rel="help nofollow">
+      <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_projection.erl#L192" title="View Source" class="icon-action" rel="help nofollow">
         <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         <span class="sr-only">View Source</span>
       </a>
@@ -109,72 +109,72 @@ khepri
 
     <section id="moduledoc">
 <p>Khepri projections</p><p>Projections build a replicated ETS table using tree nodes from the store which match a <a href="khepri_path.html#t:pattern/0"><code>khepri_path:pattern()</code></a>. When a tree node matching a projection's pattern is changed in the store, the tree node is passed through the projection's <a href="#t:projection_fun/0"><code>projection_fun()</code></a> to create record(s). These records are then stored in the projection's ETS table for all members in a Khepri cluster.</p><p>Projections provide a way to query the store as fast as possible and are appropriate for lookups which require low latency and/or high throughput. Projection tables contain all records matching the pattern, though, so the memory footprint of a projection table grows with the number of tree nodes in the store matching the pattern.</p><p>Projection ETS tables are owned by the Khepri cluster and are deleted when the cluster stops.</p><p>Updates to projection tables are immediately consistent for the member of the cluster on which the change to the store is made and the leader member but are eventually consistent for all other followers.</p><h3 id="module-projection-functions" class="section-heading"><a href="#module-projection-functions" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text"><a name="Projection_functions">Projection functions</a></span></h3><p>There are three supported types of projection functions:</p><ol><li><code>copy</code> (the literal atom)</li><li>the simple projection function (identified by its arity of 2)</li><li>the extended projection function (identified by its arity of 4)</li></ol><h4><a name="copy">copy</a></h4><p>This projection &quot;function&quot; inserts the value of a tree node matching the projection path pattern to the ETS table. The value is expected to be a tuple or a record that can be inserted in the table.</p><p>If the tree node was deleted, the old value is deleted from the ETS table.</p><p>This is the most efficient projection function as it doesn't rely on an anonymous function.</p><h4><a name="Simple_projection_function">Simple projection function</a></h4><p>This projection function is called to convert the value of a tree node matching the projection path pattern to some arbitrary term. If the tree node is created or updated, the value passed to the projection function is the new value after the creation/update. If the tree node is deleted, the value is the one of the tree node before the deletion. The result of the projection function is then inserted in or deleted from the ETS table.</p><p>The projection function is expected to map one path/value to one ETS entry. There is no way for the projection function to indicate that a path/value should not be intserted in ETS for instance.</p><p>The simple projection function takes 2 arguments:</p><ol><li>the tree node path</li><li>the tree node value</li></ol><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="n">ProjectionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">wood_stocks</span><span class="p">,</span><span class="w">
-  </span><span class="n">ProjectionFun</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">fun</span><span class="p" data-group-id="1186660385-1">(</span><span class="p" data-group-id="1186660385-2">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="n">Kind</span><span class="p" data-group-id="1186660385-2">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_Path</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="1186660385-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
-                          </span><span class="p" data-group-id="1186660385-3">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="1186660385-3">}</span><span class="w">
+  </span><span class="n">ProjectionFun</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">fun</span><span class="p" data-group-id="4131063599-1">(</span><span class="p" data-group-id="4131063599-2">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="n">Kind</span><span class="p" data-group-id="4131063599-2">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_Path</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="4131063599-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                          </span><span class="p" data-group-id="4131063599-3">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="4131063599-3">}</span><span class="w">
                   </span><span class="k">end</span><span class="p">,</span><span class="w">
-  </span><span class="n">Options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="1186660385-4">#{</span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">set</span><span class="p">,</span><span class="w">
-              </span><span class="ss">read_concurrency</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="1186660385-4">}</span><span class="p">,</span><span class="w">
-  </span><span class="n">Projection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri_projection</span><span class="p">:</span><span class="nf">new</span><span class="p" data-group-id="1186660385-5">(</span><span class="n">ProjectionName</span><span class="p">,</span><span class="w"> </span><span class="n">ProjectionFun</span><span class="p">,</span><span class="w"> </span><span class="n">Options</span><span class="p" data-group-id="1186660385-5">)</span><span class="p">.</span></code></pre><p>The resulting ETS will look like this:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="p" data-group-id="1327132849-1">[</span><span class="w">
-   </span><span class="p" data-group-id="1327132849-2">{</span><span class="p" data-group-id="1327132849-3">&lt;&lt;</span><span class="s">&quot;oak&quot;</span><span class="p" data-group-id="1327132849-3">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p" data-group-id="1327132849-2">}</span><span class="p">,</span><span class="w">
-   </span><span class="p" data-group-id="1327132849-4">{</span><span class="p" data-group-id="1327132849-5">&lt;&lt;</span><span class="s">&quot;maple&quot;</span><span class="p" data-group-id="1327132849-5">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="mi">180</span><span class="p" data-group-id="1327132849-4">}</span><span class="w">
-  </span><span class="p" data-group-id="1327132849-1">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">tab2list</span><span class="p" data-group-id="1327132849-6">(</span><span class="ss">wood_stoks</span><span class="p" data-group-id="1327132849-6">)</span><span class="p">.</span></code></pre><h4><a name="Extended_projection_function">Extended projection function</a></h4><p>This projection function is responsible for managing the content of the ETS table(s), even though the ETS tables are still created by Khepri.</p><p>This is useful when a tree node value can be mapped to several entries in an ETS table or it can be mapped to entries in several ETS tables.</p><p>By default, if the projection is created like a simple projection function, a single ETS table is created, named after the projection. To use several ETS tables, the caller has to specify the list of ETS tables and their per-table ETS options.</p><p>The simple projection function takes 4 arguments:</p><ol><li>the table ID, or the map of table names/IDs if multiple tables where configured</li><li>the tree node path</li><li>the tree node properies before the update/deletion</li><li>the tree node properies after the update/deletion</li></ol><p>Example:</p><p>This extended projection function reproduces the behaviour of the simple projection function from the example above basically.</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="n">ProjectionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">wood_stocks</span><span class="p">,</span><span class="w">
+  </span><span class="n">Options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="4131063599-4">#{</span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">set</span><span class="p">,</span><span class="w">
+              </span><span class="ss">read_concurrency</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="4131063599-4">}</span><span class="p">,</span><span class="w">
+  </span><span class="n">Projection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri_projection</span><span class="p">:</span><span class="nf">new</span><span class="p" data-group-id="4131063599-5">(</span><span class="n">ProjectionName</span><span class="p">,</span><span class="w"> </span><span class="n">ProjectionFun</span><span class="p">,</span><span class="w"> </span><span class="n">Options</span><span class="p" data-group-id="4131063599-5">)</span><span class="p">.</span></code></pre><p>The resulting ETS will look like this:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="p" data-group-id="0849744185-1">[</span><span class="w">
+   </span><span class="p" data-group-id="0849744185-2">{</span><span class="p" data-group-id="0849744185-3">&lt;&lt;</span><span class="s">&quot;oak&quot;</span><span class="p" data-group-id="0849744185-3">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p" data-group-id="0849744185-2">}</span><span class="p">,</span><span class="w">
+   </span><span class="p" data-group-id="0849744185-4">{</span><span class="p" data-group-id="0849744185-5">&lt;&lt;</span><span class="s">&quot;maple&quot;</span><span class="p" data-group-id="0849744185-5">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="mi">180</span><span class="p" data-group-id="0849744185-4">}</span><span class="w">
+  </span><span class="p" data-group-id="0849744185-1">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">tab2list</span><span class="p" data-group-id="0849744185-6">(</span><span class="ss">wood_stoks</span><span class="p" data-group-id="0849744185-6">)</span><span class="p">.</span></code></pre><h4><a name="Extended_projection_function">Extended projection function</a></h4><p>This projection function is responsible for managing the content of the ETS table(s), even though the ETS tables are still created by Khepri.</p><p>This is useful when a tree node value can be mapped to several entries in an ETS table or it can be mapped to entries in several ETS tables.</p><p>By default, if the projection is created like a simple projection function, a single ETS table is created, named after the projection. To use several ETS tables, the caller has to specify the list of ETS tables and their per-table ETS options.</p><p>The simple projection function takes 4 arguments:</p><ol><li>the table ID, or the map of table names/IDs if multiple tables where configured</li><li>the tree node path</li><li>the tree node properies before the update/deletion</li><li>the tree node properies after the update/deletion</li></ol><p>Example:</p><p>This extended projection function reproduces the behaviour of the simple projection function from the example above basically.</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="n">ProjectionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">wood_stocks</span><span class="p">,</span><span class="w">
   </span><span class="n">ProjectionFun</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">fun</span><span class="w">
                       </span><span class="c1">%% Stock update.</span><span class="w">
-                      </span><span class="p" data-group-id="9035360314-1">(</span><span class="n">Tid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9035360314-2">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="n">Kind</span><span class="p" data-group-id="9035360314-2">]</span><span class="p">,</span><span class="w">
-                       </span><span class="n">_OldProps</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9035360314-3">#{</span><span class="ss">data</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="9035360314-3">}</span><span class="p" data-group-id="9035360314-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
-                          </span><span class="nc">ets</span><span class="p">:</span><span class="nf">insert</span><span class="p" data-group-id="9035360314-4">(</span><span class="n">Tid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9035360314-5">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="9035360314-5">}</span><span class="p" data-group-id="9035360314-4">)</span><span class="p">;</span><span class="w">
+                      </span><span class="p" data-group-id="4068107275-1">(</span><span class="n">Tid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4068107275-2">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="n">Kind</span><span class="p" data-group-id="4068107275-2">]</span><span class="p">,</span><span class="w">
+                       </span><span class="n">_OldProps</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4068107275-3">#{</span><span class="ss">data</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="4068107275-3">}</span><span class="p" data-group-id="4068107275-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                          </span><span class="nc">ets</span><span class="p">:</span><span class="nf">insert</span><span class="p" data-group-id="4068107275-4">(</span><span class="n">Tid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4068107275-5">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="4068107275-5">}</span><span class="p" data-group-id="4068107275-4">)</span><span class="p">;</span><span class="w">
  
                       </span><span class="c1">%% Stock deletion.</span><span class="w">
-                      </span><span class="p" data-group-id="9035360314-6">(</span><span class="n">Tid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9035360314-7">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="n">Kind</span><span class="p" data-group-id="9035360314-7">]</span><span class="p">,</span><span class="w">
-                       </span><span class="p" data-group-id="9035360314-8">#{</span><span class="ss">data</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="9035360314-8">}</span><span class="p">,</span><span class="w"> </span><span class="n">_NewProps</span><span class="p" data-group-id="9035360314-6">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
-                          </span><span class="nc">ets</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="9035360314-9">(</span><span class="n">Tid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9035360314-10">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="9035360314-10">}</span><span class="p" data-group-id="9035360314-9">)</span><span class="w">
+                      </span><span class="p" data-group-id="4068107275-6">(</span><span class="n">Tid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4068107275-7">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="n">Kind</span><span class="p" data-group-id="4068107275-7">]</span><span class="p">,</span><span class="w">
+                       </span><span class="p" data-group-id="4068107275-8">#{</span><span class="ss">data</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="4068107275-8">}</span><span class="p">,</span><span class="w"> </span><span class="n">_NewProps</span><span class="p" data-group-id="4068107275-6">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                          </span><span class="nc">ets</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="4068107275-9">(</span><span class="n">Tid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4068107275-10">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="4068107275-10">}</span><span class="p" data-group-id="4068107275-9">)</span><span class="w">
                   </span><span class="k">end</span><span class="p">,</span><span class="w">
-  </span><span class="n">Options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="9035360314-11">#{</span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">set</span><span class="p">,</span><span class="w">
-              </span><span class="ss">read_concurrency</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="9035360314-11">}</span><span class="p">,</span><span class="w">
-  </span><span class="n">Projection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri_projection</span><span class="p">:</span><span class="nf">new</span><span class="p" data-group-id="9035360314-12">(</span><span class="n">ProjectionName</span><span class="p">,</span><span class="w"> </span><span class="n">ProjectionFun</span><span class="p">,</span><span class="w"> </span><span class="n">Options</span><span class="p" data-group-id="9035360314-12">)</span><span class="p">.</span></code></pre><p>The resulting ETS will look like this:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="p" data-group-id="6315011757-1">[</span><span class="w">
-   </span><span class="p" data-group-id="6315011757-2">{</span><span class="p" data-group-id="6315011757-3">&lt;&lt;</span><span class="s">&quot;oak&quot;</span><span class="p" data-group-id="6315011757-3">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p" data-group-id="6315011757-2">}</span><span class="p">,</span><span class="w">
-   </span><span class="p" data-group-id="6315011757-4">{</span><span class="p" data-group-id="6315011757-5">&lt;&lt;</span><span class="s">&quot;maple&quot;</span><span class="p" data-group-id="6315011757-5">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="mi">180</span><span class="p" data-group-id="6315011757-4">}</span><span class="w">
-  </span><span class="p" data-group-id="6315011757-1">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">tab2list</span><span class="p" data-group-id="6315011757-6">(</span><span class="ss">wood_stoks</span><span class="p" data-group-id="6315011757-6">)</span><span class="p">.</span></code></pre><p>A projection function becomes useful when there are more involved mapping of ETS entries and possibly multiple ETS tables to manage:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="n">ProjectionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">wood_stocks</span><span class="p">,</span><span class="w">
+  </span><span class="n">Options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="4068107275-11">#{</span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">set</span><span class="p">,</span><span class="w">
+              </span><span class="ss">read_concurrency</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="4068107275-11">}</span><span class="p">,</span><span class="w">
+  </span><span class="n">Projection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri_projection</span><span class="p">:</span><span class="nf">new</span><span class="p" data-group-id="4068107275-12">(</span><span class="n">ProjectionName</span><span class="p">,</span><span class="w"> </span><span class="n">ProjectionFun</span><span class="p">,</span><span class="w"> </span><span class="n">Options</span><span class="p" data-group-id="4068107275-12">)</span><span class="p">.</span></code></pre><p>The resulting ETS will look like this:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="p" data-group-id="7496604208-1">[</span><span class="w">
+   </span><span class="p" data-group-id="7496604208-2">{</span><span class="p" data-group-id="7496604208-3">&lt;&lt;</span><span class="s">&quot;oak&quot;</span><span class="p" data-group-id="7496604208-3">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p" data-group-id="7496604208-2">}</span><span class="p">,</span><span class="w">
+   </span><span class="p" data-group-id="7496604208-4">{</span><span class="p" data-group-id="7496604208-5">&lt;&lt;</span><span class="s">&quot;maple&quot;</span><span class="p" data-group-id="7496604208-5">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="mi">180</span><span class="p" data-group-id="7496604208-4">}</span><span class="w">
+  </span><span class="p" data-group-id="7496604208-1">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">tab2list</span><span class="p" data-group-id="7496604208-6">(</span><span class="ss">wood_stoks</span><span class="p" data-group-id="7496604208-6">)</span><span class="p">.</span></code></pre><p>A projection function becomes useful when there are more involved mapping of ETS entries and possibly multiple ETS tables to manage:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="n">ProjectionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">wood_stocks</span><span class="p">,</span><span class="w">
   </span><span class="n">ProjectionFun</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">fun</span><span class="w">
                       </span><span class="c1">%% Stock update.</span><span class="w">
-                      </span><span class="p" data-group-id="1246364833-1">(</span><span class="p" data-group-id="1246364833-2">#{</span><span class="ss">wood_stocks</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">WoodStocksTid</span><span class="p">,</span><span class="w">
-                         </span><span class="ss">wood_needs</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">WoodNeedsTid</span><span class="p" data-group-id="1246364833-2">}</span><span class="p">,</span><span class="w">
-                       </span><span class="p" data-group-id="1246364833-3">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="n">Kind</span><span class="p" data-group-id="1246364833-3">]</span><span class="p">,</span><span class="w">
+                      </span><span class="p" data-group-id="3551089992-1">(</span><span class="p" data-group-id="3551089992-2">#{</span><span class="ss">wood_stocks</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">WoodStocksTid</span><span class="p">,</span><span class="w">
+                         </span><span class="ss">wood_needs</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">WoodNeedsTid</span><span class="p" data-group-id="3551089992-2">}</span><span class="p">,</span><span class="w">
+                       </span><span class="p" data-group-id="3551089992-3">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="n">Kind</span><span class="p" data-group-id="3551089992-3">]</span><span class="p">,</span><span class="w">
                        </span><span class="n">_OldProps</span><span class="p">,</span><span class="w">
-                       </span><span class="p" data-group-id="1246364833-4">#{</span><span class="ss">data</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="1246364833-4">}</span><span class="p" data-group-id="1246364833-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
-                          </span><span class="nc">ets</span><span class="p">:</span><span class="nf">insert</span><span class="p" data-group-id="1246364833-5">(</span><span class="n">WoodStocksTid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1246364833-6">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="1246364833-6">}</span><span class="p" data-group-id="1246364833-5">)</span><span class="p">,</span><span class="w">
+                       </span><span class="p" data-group-id="3551089992-4">#{</span><span class="ss">data</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="3551089992-4">}</span><span class="p" data-group-id="3551089992-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                          </span><span class="nc">ets</span><span class="p">:</span><span class="nf">insert</span><span class="p" data-group-id="3551089992-5">(</span><span class="n">WoodStocksTid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3551089992-6">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="3551089992-6">}</span><span class="p" data-group-id="3551089992-5">)</span><span class="p">,</span><span class="w">
  
                           </span><span class="c1">%% Depending on the stock, we check if we need to</span><span class="w">
                           </span><span class="c1">%% order new wood.</span><span class="w">
                           </span><span class="k">if</span><span class="w">
                               </span><span class="n">Stock</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">50</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
-                                  </span><span class="nc">ets</span><span class="p">:</span><span class="nf">insert</span><span class="p" data-group-id="1246364833-7">(</span><span class="n">WoodNeedsTid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1246364833-8">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="1246364833-8">}</span><span class="p" data-group-id="1246364833-7">)</span><span class="p">;</span><span class="w">
+                                  </span><span class="nc">ets</span><span class="p">:</span><span class="nf">insert</span><span class="p" data-group-id="3551089992-7">(</span><span class="n">WoodNeedsTid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3551089992-8">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="3551089992-8">}</span><span class="p" data-group-id="3551089992-7">)</span><span class="p">;</span><span class="w">
                               </span><span class="n">Stock</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
-                                  </span><span class="nc">ets</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="1246364833-9">(</span><span class="n">WoodNeedsTid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1246364833-10">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="1246364833-10">}</span><span class="p" data-group-id="1246364833-9">)</span><span class="p">;</span><span class="w">
+                                  </span><span class="nc">ets</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="3551089992-9">(</span><span class="n">WoodNeedsTid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3551089992-10">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="3551089992-10">}</span><span class="p" data-group-id="3551089992-9">)</span><span class="p">;</span><span class="w">
                               </span><span class="ss">true</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
                                   </span><span class="ss">ok</span><span class="w">
                           </span><span class="k">end</span><span class="p">;</span><span class="w">
  
                       </span><span class="c1">%% Stock deletion.</span><span class="w">
-                      </span><span class="p" data-group-id="1246364833-11">(</span><span class="p" data-group-id="1246364833-12">#{</span><span class="ss">wood_stocks</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">WoodStocksTid</span><span class="p">,</span><span class="w">
-                         </span><span class="ss">wood_needs</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">WoodNeedsTid</span><span class="p" data-group-id="1246364833-12">}</span><span class="p">,</span><span class="w">
-                       </span><span class="p" data-group-id="1246364833-13">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="n">Kind</span><span class="p" data-group-id="1246364833-13">]</span><span class="p">,</span><span class="w">
-                       </span><span class="p" data-group-id="1246364833-14">#{</span><span class="ss">data</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="1246364833-14">}</span><span class="p">,</span><span class="w">
-                       </span><span class="n">_NewProps</span><span class="p" data-group-id="1246364833-11">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
-                          </span><span class="nc">ets</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="1246364833-15">(</span><span class="n">WoodStocksTid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1246364833-16">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="1246364833-16">}</span><span class="p" data-group-id="1246364833-15">)</span><span class="p">,</span><span class="w">
+                      </span><span class="p" data-group-id="3551089992-11">(</span><span class="p" data-group-id="3551089992-12">#{</span><span class="ss">wood_stocks</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">WoodStocksTid</span><span class="p">,</span><span class="w">
+                         </span><span class="ss">wood_needs</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">WoodNeedsTid</span><span class="p" data-group-id="3551089992-12">}</span><span class="p">,</span><span class="w">
+                       </span><span class="p" data-group-id="3551089992-13">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="n">Kind</span><span class="p" data-group-id="3551089992-13">]</span><span class="p">,</span><span class="w">
+                       </span><span class="p" data-group-id="3551089992-14">#{</span><span class="ss">data</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="3551089992-14">}</span><span class="p">,</span><span class="w">
+                       </span><span class="n">_NewProps</span><span class="p" data-group-id="3551089992-11">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                          </span><span class="nc">ets</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="3551089992-15">(</span><span class="n">WoodStocksTid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3551089992-16">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="n">Stock</span><span class="p" data-group-id="3551089992-16">}</span><span class="p" data-group-id="3551089992-15">)</span><span class="p">,</span><span class="w">
                           </span><span class="c1">%% We definitely need to order wood of this kind.</span><span class="w">
-                          </span><span class="nc">ets</span><span class="p">:</span><span class="nf">insert</span><span class="p" data-group-id="1246364833-17">(</span><span class="n">WoodNeedsTid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1246364833-18">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="1246364833-18">}</span><span class="p" data-group-id="1246364833-17">)</span><span class="p">;</span><span class="w">
+                          </span><span class="nc">ets</span><span class="p">:</span><span class="nf">insert</span><span class="p" data-group-id="3551089992-17">(</span><span class="n">WoodNeedsTid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3551089992-18">{</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="3551089992-18">}</span><span class="p" data-group-id="3551089992-17">)</span><span class="p">;</span><span class="w">
                   </span><span class="k">end</span><span class="p">,</span><span class="w">
-  </span><span class="n">Options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="1246364833-19">#{</span><span class="c1">%% Map of ETS tables and their specific ETS options; here, we</span><span class="w">
+  </span><span class="n">Options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="3551089992-19">#{</span><span class="c1">%% Map of ETS tables and their specific ETS options; here, we</span><span class="w">
               </span><span class="c1">%% don&#39;t need specific ETS options: they will use the</span><span class="w">
               </span><span class="c1">%% globablly defined options as a fallback.</span><span class="w">
-              </span><span class="ss">tables</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="1246364833-20">#{</span><span class="ss">wood_stocks</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="1246364833-21">#{</span><span class="p" data-group-id="1246364833-21">}</span><span class="p">,</span><span class="w">
-                          </span><span class="ss">wood_needs</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="1246364833-22">#{</span><span class="p" data-group-id="1246364833-22">}</span><span class="p" data-group-id="1246364833-20">}</span><span class="p">,</span><span class="w">
+              </span><span class="ss">tables</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="3551089992-20">#{</span><span class="ss">wood_stocks</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="3551089992-21">#{</span><span class="p" data-group-id="3551089992-21">}</span><span class="p">,</span><span class="w">
+                          </span><span class="ss">wood_needs</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="3551089992-22">#{</span><span class="p" data-group-id="3551089992-22">}</span><span class="p" data-group-id="3551089992-20">}</span><span class="p">,</span><span class="w">
  
               </span><span class="c1">%% Global ETS options used for tables that do not override them.</span><span class="w">
               </span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">set</span><span class="p">,</span><span class="w">
-              </span><span class="ss">read_concurrency</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="1246364833-19">}</span><span class="p">,</span><span class="w">
-  </span><span class="n">Projection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri_projection</span><span class="p">:</span><span class="nf">new</span><span class="p" data-group-id="1246364833-23">(</span><span class="n">ProjectionName</span><span class="p">,</span><span class="w"> </span><span class="n">ProjectionFun</span><span class="p">,</span><span class="w"> </span><span class="n">Options</span><span class="p" data-group-id="1246364833-23">)</span><span class="p">.</span></code></pre>
+              </span><span class="ss">read_concurrency</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="3551089992-19">}</span><span class="p">,</span><span class="w">
+  </span><span class="n">Projection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">khepri_projection</span><span class="p">:</span><span class="nf">new</span><span class="p" data-group-id="3551089992-23">(</span><span class="n">ProjectionName</span><span class="p">,</span><span class="w"> </span><span class="n">ProjectionFun</span><span class="p">,</span><span class="w"> </span><span class="n">Options</span><span class="p" data-group-id="3551089992-23">)</span><span class="p">.</span></code></pre>
     </section>
 
 </div>
@@ -339,7 +339,7 @@ khepri
       <h1 class="signature" translate="no">ets_options/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L332" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_projection.erl#L332" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -367,7 +367,7 @@ khepri
       <h1 class="signature" translate="no">extended_projection_fun/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L231" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_projection.erl#L231" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -400,7 +400,7 @@ khepri
       <h1 class="signature" translate="no">multi_table_options/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L326" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_projection.erl#L326" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -428,7 +428,7 @@ khepri
       <h1 class="signature" translate="no">name/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L207" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_projection.erl#L207" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -456,7 +456,7 @@ khepri
       <h1 class="signature" translate="no">options/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L303" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_projection.erl#L303" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -492,7 +492,7 @@ khepri
       <h1 class="signature" translate="no">overridable_ets_options/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L275" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_projection.erl#L275" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -526,7 +526,7 @@ khepri
       <h1 class="signature" translate="no">projection/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L212" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_projection.erl#L212" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -559,7 +559,7 @@ khepri
       <h1 class="signature" translate="no">projection_fun/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L252" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_projection.erl#L252" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -587,7 +587,7 @@ khepri
       <h1 class="signature" translate="no">simple_projection_fun/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L218" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_projection.erl#L218" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -629,7 +629,7 @@ khepri
       <h1 class="signature" translate="no">name(Projection)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L534" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_projection.erl#L534" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -657,7 +657,7 @@ khepri
       <h1 class="signature" translate="no">new(Name, ProjectionFun)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L359" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_projection.erl#L359" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -689,7 +689,7 @@ khepri
       <h1 class="signature" translate="no">new(Name, ProjectionFun, Options)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_projection.erl#L384" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_projection.erl#L384" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -721,9 +721,9 @@ khepri
         <p>
 
             <span class="line">
-              <a href="https://hex.pm/packages/khepri/0.19.0">Hex Package</a>
+              <a href="https://hex.pm/packages/khepri/0.19.1">Hex Package</a>
 
-              <a href="https://preview.hex.pm/preview/khepri/0.19.0">Hex Preview</a>
+              <a href="https://preview.hex.pm/preview/khepri/0.19.1">Hex Preview</a>
 
             </span>
 

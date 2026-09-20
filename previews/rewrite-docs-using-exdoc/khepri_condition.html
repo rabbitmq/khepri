@@ -5,14 +5,14 @@
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="ExDoc v0.40.3">
-    <meta name="project" content="khepri v0.19.0">
+    <meta name="project" content="khepri v0.19.1">
 
 
-    <title>khepri_condition — khepri v0.19.0</title>
+    <title>khepri_condition — khepri v0.19.1</title>
 
     <link rel="stylesheet" href="dist/html-erlang-KCHZLXSC.css" />
 
-    <script defer src="dist/sidebar_items-55A96F02.js"></script>
+    <script defer src="dist/sidebar_items-7535B109.js"></script>
     <script defer src="docs_config.js"></script>
     <script defer src="dist/html-Y2MUTVIN.js"></script>
 
@@ -37,7 +37,7 @@
 khepri
         </a>
         <div class="sidebar-projectVersion" translate="no">
-          v0.19.0
+          v0.19.1
         </div>
       </div>
     </div>
@@ -94,12 +94,12 @@ khepri
   <div class="heading-with-actions top-heading">
     <h1>
       <span translate="no">khepri_condition</span> 
-      <small class="app-vsn" translate="no">(khepri v0.19.0)</small>
+      <small class="app-vsn" translate="no">(khepri v0.19.1)</small>
 
     </h1>
 
 
-      <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L33" title="View Source" class="icon-action" rel="help nofollow">
+      <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L33" title="View Source" class="icon-action" rel="help nofollow">
         <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         <span class="sr-only">View Source</span>
       </a>
@@ -109,7 +109,7 @@ khepri
 
     <section id="moduledoc">
 <p>Condition support.</p><p>Conditions can be used in path patterns and <code>keep_while</code> conditions. They allow to point to a specific node only if conditions are met, or to match several tree nodes with a single path pattern.</p><p>A condition is an Erlang record defining a specific property. Some of them have arguments to further define the condition.</p><p>Path components (atoms and binaries) also act as conditions which check equality with the path of the tested node. This can be useful for conditions which compose other conditions: <a href="#t:if_not/0"><code>if_not()</code></a>, <a href="#t:if_all/0"><code>if_all()</code></a> and <a href="#t:if_any/0"><code>if_any()</code></a>.</p><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="c1">%% Matches `[stock, wood, &lt;&lt;&quot;birch&quot;&gt;&gt;]&#39; but not `[stock, wood, &lt;&lt;&quot;oak&quot;&gt;&gt;]&#39;</span><span class="w">
-  </span><span class="p" data-group-id="7097049734-1">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="o">#</span><span class="ss">if_not</span><span class="p" data-group-id="7097049734-2">{</span><span class="ss">condition</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="7097049734-3">&lt;&lt;</span><span class="s">&quot;oak&quot;</span><span class="p" data-group-id="7097049734-3">&gt;&gt;</span><span class="p" data-group-id="7097049734-2">}</span><span class="p" data-group-id="7097049734-1">]</span></code></pre><p>All supported conditions are described in the <a href="#types">Data Types section</a>.</p>
+  </span><span class="p" data-group-id="6897653665-1">[</span><span class="ss">stock</span><span class="p">,</span><span class="w"> </span><span class="ss">wood</span><span class="p">,</span><span class="w"> </span><span class="o">#</span><span class="ss">if_not</span><span class="p" data-group-id="6897653665-2">{</span><span class="ss">condition</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="6897653665-3">&lt;&lt;</span><span class="s">&quot;oak&quot;</span><span class="p" data-group-id="6897653665-3">&gt;&gt;</span><span class="p" data-group-id="6897653665-2">}</span><span class="p" data-group-id="6897653665-1">]</span></code></pre><p>All supported conditions are described in the <a href="#types">Data Types section</a>.</p>
     </section>
 
 </div>
@@ -344,7 +344,7 @@ khepri
       <h1 class="signature" translate="no">comparison_op/1</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L38" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L38" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -372,7 +372,7 @@ khepri
       <h1 class="signature" translate="no">condition/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L272" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L272" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -413,7 +413,7 @@ khepri
       <h1 class="signature" translate="no">if_all/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L243" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L243" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -428,8 +428,8 @@ khepri
 
       </div>
 
-<p>Condition. Evaluates to true if all inner conditions evaluate to true.</p><p>Record fields:</p><ul><li><code>conditions</code>: a list of inner conditions to evaluate.</li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_all</span><span class="p" data-group-id="4234495998-1">{</span><span class="ss">conditions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="4234495998-2">[</span><span class="o">#</span><span class="ss">if_name_matches</span><span class="p" data-group-id="4234495998-3">{</span><span class="ss">regex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;^a&quot;</span><span class="p" data-group-id="4234495998-3">}</span><span class="p">,</span><span class="w">
-                        </span><span class="o">#</span><span class="ss">if_has_data</span><span class="p" data-group-id="4234495998-4">{</span><span class="ss">has_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="4234495998-4">}</span><span class="p" data-group-id="4234495998-2">]</span><span class="p" data-group-id="4234495998-1">}</span><span class="p">.</span></code></pre>
+<p>Condition. Evaluates to true if all inner conditions evaluate to true.</p><p>Record fields:</p><ul><li><code>conditions</code>: a list of inner conditions to evaluate.</li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_all</span><span class="p" data-group-id="4066416129-1">{</span><span class="ss">conditions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="4066416129-2">[</span><span class="o">#</span><span class="ss">if_name_matches</span><span class="p" data-group-id="4066416129-3">{</span><span class="ss">regex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;^a&quot;</span><span class="p" data-group-id="4066416129-3">}</span><span class="p">,</span><span class="w">
+                        </span><span class="o">#</span><span class="ss">if_has_data</span><span class="p" data-group-id="4066416129-4">{</span><span class="ss">has_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="4066416129-4">}</span><span class="p" data-group-id="4066416129-2">]</span><span class="p" data-group-id="4066416129-1">}</span><span class="p">.</span></code></pre>
   </section>
 </section>
 <section class="detail" id="t:if_any/0">
@@ -442,7 +442,7 @@ khepri
       <h1 class="signature" translate="no">if_any/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L257" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L257" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -457,8 +457,8 @@ khepri
 
       </div>
 
-<p>Condition. Evaluates to true if any of the inner conditions evaluate to true.</p><p>Record fields:</p><ul><li><code>conditions</code>: a list of inner conditions to evaluate.</li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_any</span><span class="p" data-group-id="4449792946-1">{</span><span class="ss">conditions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="4449792946-2">[</span><span class="o">#</span><span class="ss">if_name_matches</span><span class="p" data-group-id="4449792946-3">{</span><span class="ss">regex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;^a&quot;</span><span class="p" data-group-id="4449792946-3">}</span><span class="p">,</span><span class="w">
-                        </span><span class="o">#</span><span class="ss">if_has_data</span><span class="p" data-group-id="4449792946-4">{</span><span class="ss">has_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="4449792946-4">}</span><span class="p" data-group-id="4449792946-2">]</span><span class="p" data-group-id="4449792946-1">}</span><span class="p">.</span></code></pre>
+<p>Condition. Evaluates to true if any of the inner conditions evaluate to true.</p><p>Record fields:</p><ul><li><code>conditions</code>: a list of inner conditions to evaluate.</li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_any</span><span class="p" data-group-id="4380421708-1">{</span><span class="ss">conditions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="4380421708-2">[</span><span class="o">#</span><span class="ss">if_name_matches</span><span class="p" data-group-id="4380421708-3">{</span><span class="ss">regex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;^a&quot;</span><span class="p" data-group-id="4380421708-3">}</span><span class="p">,</span><span class="w">
+                        </span><span class="o">#</span><span class="ss">if_has_data</span><span class="p" data-group-id="4380421708-4">{</span><span class="ss">has_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="4380421708-4">}</span><span class="p" data-group-id="4380421708-2">]</span><span class="p" data-group-id="4380421708-1">}</span><span class="p">.</span></code></pre>
   </section>
 </section>
 <section class="detail" id="t:if_child_list_length/0">
@@ -471,7 +471,7 @@ khepri
       <h1 class="signature" translate="no">if_child_list_length/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L214" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L214" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -489,8 +489,8 @@ khepri
 
       </div>
 
-<p>Condition. Evaluates to true if the tested node's child list size corresponds to the expected value.</p><p>Record fields:</p><ul><li><code>version</code>: integer or <code>comparison_op()</code> to compare to the actual child list child.</li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_child_list_length</span><span class="p" data-group-id="1244274484-1">{</span><span class="ss">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="1244274484-1">}</span><span class="p">.</span><span class="w">
-  </span><span class="o">#</span><span class="ss">if_child_list_length</span><span class="p" data-group-id="1244274484-2">{</span><span class="ss">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="1244274484-3">{</span><span class="ss">gt</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p" data-group-id="1244274484-3">}</span><span class="p" data-group-id="1244274484-2">}</span><span class="p">.</span></code></pre>
+<p>Condition. Evaluates to true if the tested node's child list size corresponds to the expected value.</p><p>Record fields:</p><ul><li><code>version</code>: integer or <code>comparison_op()</code> to compare to the actual child list child.</li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_child_list_length</span><span class="p" data-group-id="3515953076-1">{</span><span class="ss">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="3515953076-1">}</span><span class="p">.</span><span class="w">
+  </span><span class="o">#</span><span class="ss">if_child_list_length</span><span class="p" data-group-id="3515953076-2">{</span><span class="ss">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="3515953076-3">{</span><span class="ss">gt</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p" data-group-id="3515953076-3">}</span><span class="p" data-group-id="3515953076-2">}</span><span class="p">.</span></code></pre>
   </section>
 </section>
 <section class="detail" id="t:if_child_list_version/0">
@@ -503,7 +503,7 @@ khepri
       <h1 class="signature" translate="no">if_child_list_version/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L198" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L198" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -521,8 +521,8 @@ khepri
 
       </div>
 
-<p>Condition. Evaluates to true if the tested node's child list version corresponds to the expected value.</p><p>Record fields:</p><ul><li><code>version</code>: integer or <code>comparison_op()</code> to compare to the actual child list version.</li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_child_list_version</span><span class="p" data-group-id="7832970253-1">{</span><span class="ss">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="7832970253-1">}</span><span class="p">.</span><span class="w">
-  </span><span class="o">#</span><span class="ss">if_child_list_version</span><span class="p" data-group-id="7832970253-2">{</span><span class="ss">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="7832970253-3">{</span><span class="ss">gt</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p" data-group-id="7832970253-3">}</span><span class="p" data-group-id="7832970253-2">}</span><span class="p">.</span></code></pre>
+<p>Condition. Evaluates to true if the tested node's child list version corresponds to the expected value.</p><p>Record fields:</p><ul><li><code>version</code>: integer or <code>comparison_op()</code> to compare to the actual child list version.</li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_child_list_version</span><span class="p" data-group-id="8320168940-1">{</span><span class="ss">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="8320168940-1">}</span><span class="p">.</span><span class="w">
+  </span><span class="o">#</span><span class="ss">if_child_list_version</span><span class="p" data-group-id="8320168940-2">{</span><span class="ss">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="8320168940-3">{</span><span class="ss">gt</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p" data-group-id="8320168940-3">}</span><span class="p" data-group-id="8320168940-2">}</span><span class="p">.</span></code></pre>
   </section>
 </section>
 <section class="detail" id="t:if_data_matches/0">
@@ -535,7 +535,7 @@ khepri
       <h1 class="signature" translate="no">if_data_matches/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L136" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L136" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -555,11 +555,11 @@ khepri
 
 <p>Condition. Evaluates to true if the tested node has a data payload and the data payload term matches the given <code>pattern</code> and all <code>conditions</code> evaluates to true.</p><p>Record fields:</p><ul><li><code>pattern</code>: an ETS-like match pattern. The match pattern can define variables to be used in the <code>conditions</code> below.</li><li><code>conditions</code>: a list of guard expressions. All guard expressions must evaluate to true to consider a match. The default is an empty list of conditions which means that only the pattern matching is considered.</li></ul><p>Examples:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="c1">%% The data must be of the form `{user, _}&#39;, so a tuple of arity 2 with the</span><span class="w">
   </span><span class="c1">%% first element being the `user&#39; atom. The second element can be anything.</span><span class="w">
-  </span><span class="o">#</span><span class="ss">if_data_matches</span><span class="p" data-group-id="3759005453-1">{</span><span class="ss">pattern</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="3759005453-2">{</span><span class="ss">user</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="3759005453-2">}</span><span class="p" data-group-id="3759005453-1">}</span><span class="p">.</span></code></pre><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="c1">%% The data must be of the form `{age, Age}&#39; and `Age&#39; must be an</span><span class="w">
+  </span><span class="o">#</span><span class="ss">if_data_matches</span><span class="p" data-group-id="3524527909-1">{</span><span class="ss">pattern</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="3524527909-2">{</span><span class="ss">user</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="3524527909-2">}</span><span class="p" data-group-id="3524527909-1">}</span><span class="p">.</span></code></pre><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="c1">%% The data must be of the form `{age, Age}&#39; and `Age&#39; must be an</span><span class="w">
   </span><span class="c1">%% integer greater than or equal to 18.</span><span class="w">
-  </span><span class="o">#</span><span class="ss">if_data_matches</span><span class="p" data-group-id="7980032236-1">{</span><span class="ss">pattern</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="7980032236-2">{</span><span class="ss">age</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p" data-group-id="7980032236-2">}</span><span class="p">,</span><span class="w">
-                   </span><span class="ss">conditions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="7980032236-3">[</span><span class="p" data-group-id="7980032236-4">{</span><span class="nb">is_integer</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p" data-group-id="7980032236-4">}</span><span class="p">,</span><span class="w">
-                                 </span><span class="p" data-group-id="7980032236-5">{</span><span class="ss">&#39;&gt;=&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">18</span><span class="p" data-group-id="7980032236-5">}</span><span class="p" data-group-id="7980032236-3">]</span><span class="p" data-group-id="7980032236-1">}</span><span class="p">.</span></code></pre><p>See <a href="https://www.erlang.org/doc/apps/erts/match_spec.html">Match Specifications in Erlang</a> for a detailed documentation of how it works.</p>
+  </span><span class="o">#</span><span class="ss">if_data_matches</span><span class="p" data-group-id="6872392231-1">{</span><span class="ss">pattern</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="6872392231-2">{</span><span class="ss">age</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p" data-group-id="6872392231-2">}</span><span class="p">,</span><span class="w">
+                   </span><span class="ss">conditions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="6872392231-3">[</span><span class="p" data-group-id="6872392231-4">{</span><span class="nb">is_integer</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p" data-group-id="6872392231-4">}</span><span class="p">,</span><span class="w">
+                                 </span><span class="p" data-group-id="6872392231-5">{</span><span class="ss">&#39;&gt;=&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">18</span><span class="p" data-group-id="6872392231-5">}</span><span class="p" data-group-id="6872392231-3">]</span><span class="p" data-group-id="6872392231-1">}</span><span class="p">.</span></code></pre><p>See <a href="https://www.erlang.org/doc/apps/erts/match_spec.html">Match Specifications in Erlang</a> for a detailed documentation of how it works.</p>
   </section>
 </section>
 <section class="detail" id="t:if_has_data/0">
@@ -572,7 +572,7 @@ khepri
       <h1 class="signature" translate="no">if_has_data/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L101" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L101" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -587,7 +587,7 @@ khepri
 
       </div>
 
-<p>Condition. Evaluates to true if the tested node's data payload presence corresponds to the expected state.</p><p>Record fields:</p><ul><li><code>has_data</code>: boolean set to the expected presence of a data payload.</li></ul><p>Data absence is either no payload or a non-data type of payload.</p><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_has_data</span><span class="p" data-group-id="0875633716-1">{</span><span class="ss">has_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="0875633716-1">}</span><span class="p">.</span></code></pre>
+<p>Condition. Evaluates to true if the tested node's data payload presence corresponds to the expected state.</p><p>Record fields:</p><ul><li><code>has_data</code>: boolean set to the expected presence of a data payload.</li></ul><p>Data absence is either no payload or a non-data type of payload.</p><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_has_data</span><span class="p" data-group-id="1944266355-1">{</span><span class="ss">has_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="1944266355-1">}</span><span class="p">.</span></code></pre>
   </section>
 </section>
 <section class="detail" id="t:if_has_payload/0">
@@ -600,7 +600,7 @@ khepri
       <h1 class="signature" translate="no">if_has_payload/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L87" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L87" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -615,7 +615,7 @@ khepri
 
       </div>
 
-<p>Condition. Evaluates to true if the tested node has any kind of payload.</p><p>Record fields:</p><ul><li><code>has_payload</code>: boolean set to the expected presence of any kind of payload.</li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_has_payload</span><span class="p" data-group-id="0616300860-1">{</span><span class="ss">has_payload</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="0616300860-1">}</span><span class="p">.</span></code></pre>
+<p>Condition. Evaluates to true if the tested node has any kind of payload.</p><p>Record fields:</p><ul><li><code>has_payload</code>: boolean set to the expected presence of any kind of payload.</li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_has_payload</span><span class="p" data-group-id="0647318380-1">{</span><span class="ss">has_payload</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="0647318380-1">}</span><span class="p">.</span></code></pre>
   </section>
 </section>
 <section class="detail" id="t:if_has_sproc/0">
@@ -628,7 +628,7 @@ khepri
       <h1 class="signature" translate="no">if_has_sproc/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L118" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L118" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -643,7 +643,7 @@ khepri
 
       </div>
 
-<p>Condition. Evaluates to true if the tested node's stored procedure payload presence corresponds to the expected state.</p><p>Record fields:</p><ul><li><code>has_sproc</code>: boolean set to the expected presence of a stored procedure payload.</li></ul><p>Stored procedure absence is either no payload or a non-sproc type of payload.</p><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_has_sproc</span><span class="p" data-group-id="6790775631-1">{</span><span class="ss">has_sproc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="6790775631-1">}</span><span class="p">.</span></code></pre>
+<p>Condition. Evaluates to true if the tested node's stored procedure payload presence corresponds to the expected state.</p><p>Record fields:</p><ul><li><code>has_sproc</code>: boolean set to the expected presence of a stored procedure payload.</li></ul><p>Stored procedure absence is either no payload or a non-sproc type of payload.</p><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_has_sproc</span><span class="p" data-group-id="2516566790-1">{</span><span class="ss">has_sproc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="2516566790-1">}</span><span class="p">.</span></code></pre>
   </section>
 </section>
 <section class="detail" id="t:if_name_matches/0">
@@ -656,7 +656,7 @@ khepri
       <h1 class="signature" translate="no">if_name_matches/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L46" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L46" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -673,8 +673,8 @@ khepri
 
       </div>
 
-<p>Condition. Evaluates to true if the name of the tested node matches the condition pattern.</p><p>Record fields:</p><ul><li><code>regex</code>: defines the condition pattern. It can be either:<ul><li>a regular expression</li><li>the atom <code>any</code> to match any node names; the equivalent of the <code>&quot;.*&quot;</code> regular expression but more efficient</li></ul></li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_name_matches</span><span class="p" data-group-id="0696835503-1">{</span><span class="ss">regex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;^user_&quot;</span><span class="p" data-group-id="0696835503-1">}</span><span class="p">.</span><span class="w">
-  </span><span class="o">#</span><span class="ss">if_name_matches</span><span class="p" data-group-id="0696835503-2">{</span><span class="ss">regex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">any</span><span class="p" data-group-id="0696835503-2">}</span><span class="p">.</span></code></pre>
+<p>Condition. Evaluates to true if the name of the tested node matches the condition pattern.</p><p>Record fields:</p><ul><li><code>regex</code>: defines the condition pattern. It can be either:<ul><li>a regular expression</li><li>the atom <code>any</code> to match any node names; the equivalent of the <code>&quot;.*&quot;</code> regular expression but more efficient</li></ul></li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_name_matches</span><span class="p" data-group-id="9575861243-1">{</span><span class="ss">regex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;^user_&quot;</span><span class="p" data-group-id="9575861243-1">}</span><span class="p">.</span><span class="w">
+  </span><span class="o">#</span><span class="ss">if_name_matches</span><span class="p" data-group-id="9575861243-2">{</span><span class="ss">regex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">any</span><span class="p" data-group-id="9575861243-2">}</span><span class="p">.</span></code></pre>
   </section>
 </section>
 <section class="detail" id="t:if_node_exists/0">
@@ -687,7 +687,7 @@ khepri
       <h1 class="signature" translate="no">if_node_exists/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L168" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L168" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -702,7 +702,7 @@ khepri
 
       </div>
 
-<p>Condition. Evaluates to true if the tested node existence corresponds to the expected state.</p><p>Record fields:</p><ul><li><code>exists</code>: boolean set to the expected presence of the node.</li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_node_exists</span><span class="p" data-group-id="6463162750-1">{</span><span class="ss">exists</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="6463162750-1">}</span><span class="p">.</span></code></pre>
+<p>Condition. Evaluates to true if the tested node existence corresponds to the expected state.</p><p>Record fields:</p><ul><li><code>exists</code>: boolean set to the expected presence of the node.</li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_node_exists</span><span class="p" data-group-id="5330957236-1">{</span><span class="ss">exists</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="5330957236-1">}</span><span class="p">.</span></code></pre>
   </section>
 </section>
 <section class="detail" id="t:if_not/0">
@@ -715,7 +715,7 @@ khepri
       <h1 class="signature" translate="no">if_not/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L230" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L230" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -730,7 +730,7 @@ khepri
 
       </div>
 
-<p>Condition. Evaluates to true if the inner condition evaluates to false.</p><p>Record fields:</p><ul><li><code>condition</code>: the inner condition to evaluate.</li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_not</span><span class="p" data-group-id="9558000323-1">{</span><span class="ss">condition</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">#</span><span class="ss">if_name_matches</span><span class="p" data-group-id="9558000323-2">{</span><span class="ss">regex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;^a&quot;</span><span class="p" data-group-id="9558000323-2">}</span><span class="p" data-group-id="9558000323-1">}</span><span class="p">.</span></code></pre>
+<p>Condition. Evaluates to true if the inner condition evaluates to false.</p><p>Record fields:</p><ul><li><code>condition</code>: the inner condition to evaluate.</li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_not</span><span class="p" data-group-id="0682779786-1">{</span><span class="ss">condition</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">#</span><span class="ss">if_name_matches</span><span class="p" data-group-id="0682779786-2">{</span><span class="ss">regex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;^a&quot;</span><span class="p" data-group-id="0682779786-2">}</span><span class="p" data-group-id="0682779786-1">}</span><span class="p">.</span></code></pre>
   </section>
 </section>
 <section class="detail" id="t:if_path_matches/0">
@@ -743,7 +743,7 @@ khepri
       <h1 class="signature" translate="no">if_path_matches/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L66" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L66" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -760,8 +760,8 @@ khepri
 
       </div>
 
-<p>Condition. Evaluates to true if the name of the tested node matches the condition pattern. If it does not match, child node names are tested recursively.</p><p>Record fields:</p><ul><li><code>regex</code>: defines the condition pattern. It can be either:<ul><li>a regular expression</li><li>the atom <code>any</code> to match any node names; the equivalent of the <code>&quot;.*&quot;</code> regular expression but more efficient</li></ul></li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_path_matches</span><span class="p" data-group-id="7969818295-1">{</span><span class="ss">regex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;^user_&quot;</span><span class="p" data-group-id="7969818295-1">}</span><span class="p">.</span><span class="w">
-  </span><span class="o">#</span><span class="ss">if_path_matches</span><span class="p" data-group-id="7969818295-2">{</span><span class="ss">regex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">any</span><span class="p" data-group-id="7969818295-2">}</span><span class="p">.</span></code></pre>
+<p>Condition. Evaluates to true if the name of the tested node matches the condition pattern. If it does not match, child node names are tested recursively.</p><p>Record fields:</p><ul><li><code>regex</code>: defines the condition pattern. It can be either:<ul><li>a regular expression</li><li>the atom <code>any</code> to match any node names; the equivalent of the <code>&quot;.*&quot;</code> regular expression but more efficient</li></ul></li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_path_matches</span><span class="p" data-group-id="1599440691-1">{</span><span class="ss">regex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;^user_&quot;</span><span class="p" data-group-id="1599440691-1">}</span><span class="p">.</span><span class="w">
+  </span><span class="o">#</span><span class="ss">if_path_matches</span><span class="p" data-group-id="1599440691-2">{</span><span class="ss">regex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">any</span><span class="p" data-group-id="1599440691-2">}</span><span class="p">.</span></code></pre>
   </section>
 </section>
 <section class="detail" id="t:if_payload_version/0">
@@ -774,7 +774,7 @@ khepri
       <h1 class="signature" translate="no">if_payload_version/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L182" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L182" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -792,8 +792,8 @@ khepri
 
       </div>
 
-<p>Condition. Evaluates to true if the tested node's payload version corresponds to the expected value.</p><p>Record fields:</p><ul><li><code>version</code>: integer or <code>comparison_op()</code> to compare to the actual payload version.</li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_payload_version</span><span class="p" data-group-id="9840346739-1">{</span><span class="ss">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="9840346739-1">}</span><span class="p">.</span><span class="w">
-  </span><span class="o">#</span><span class="ss">if_payload_version</span><span class="p" data-group-id="9840346739-2">{</span><span class="ss">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="9840346739-3">{</span><span class="ss">gt</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p" data-group-id="9840346739-3">}</span><span class="p" data-group-id="9840346739-2">}</span><span class="p">.</span></code></pre>
+<p>Condition. Evaluates to true if the tested node's payload version corresponds to the expected value.</p><p>Record fields:</p><ul><li><code>version</code>: integer or <code>comparison_op()</code> to compare to the actual payload version.</li></ul><p>Example:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="o">#</span><span class="ss">if_payload_version</span><span class="p" data-group-id="5774222114-1">{</span><span class="ss">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="5774222114-1">}</span><span class="p">.</span><span class="w">
+  </span><span class="o">#</span><span class="ss">if_payload_version</span><span class="p" data-group-id="5774222114-2">{</span><span class="ss">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="5774222114-3">{</span><span class="ss">gt</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p" data-group-id="5774222114-3">}</span><span class="p" data-group-id="5774222114-2">}</span><span class="p">.</span></code></pre>
   </section>
 </section>
 <section class="detail" id="t:keep_while/0">
@@ -806,7 +806,7 @@ khepri
       <h1 class="signature" translate="no">keep_while/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L293" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L293" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -821,22 +821,22 @@ khepri
 
       </div>
 
-<p>A condition that impacts the lifetime of a tree node.</p><p>As long as the condition evaluates to true, the tree node is kept. Once the condition evaluates to false, the tree node is deleted.</p><p>There are several types of conditions:</p><ul><li><p>An association between a target path and a Khepri condition (<a href="#t:condition/0"><code>condition()</code></a>) that must be true on that target.</p>Paths in the map can be native paths or Unix-like paths. However, having two entries that resolve to the same node (one native path entry and one Unix-like path entry for instance) is undefined behaviour: one of them will overwrite the other.</li><li><p>A process PID that must be alive.</p>This can be a process running on a member of the cluster or outside of the cluster. If the node hosting the process is a member and the connection to this node is lost, Khepri will wait for the node to come back and monitor the process again, to ensure they are actually gone. If that node is removed from the cluster while it is still down, the process is considered gone. If the node is not a member of the cluster, the process is considered gone right away.</li></ul><p>If the <code>keep_while</code> conditions are false at the time of the insert, the insert fails. The only exception to that is if the <code>keep_while</code> condition is path-based and that path points to the inserted node itself.</p><p>Example with a path/condition combination:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="nc">khepri</span><span class="p">:</span><span class="nb">put</span><span class="p" data-group-id="2480686410-1">(</span><span class="w">
-    </span><span class="n">StoreId</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2480686410-2">[</span><span class="ss">foo</span><span class="p" data-group-id="2480686410-2">]</span><span class="p">,</span><span class="w"> </span><span class="n">Payload</span><span class="p">,</span><span class="w">
+<p>A condition that impacts the lifetime of a tree node.</p><p>As long as the condition evaluates to true, the tree node is kept. Once the condition evaluates to false, the tree node is deleted.</p><p>There are several types of conditions:</p><ul><li><p>An association between a target path and a Khepri condition (<a href="#t:condition/0"><code>condition()</code></a>) that must be true on that target.</p>Paths in the map can be native paths or Unix-like paths. However, having two entries that resolve to the same node (one native path entry and one Unix-like path entry for instance) is undefined behaviour: one of them will overwrite the other.</li><li><p>A process PID that must be alive.</p>This can be a process running on a member of the cluster or outside of the cluster. If the node hosting the process is a member and the connection to this node is lost, Khepri will wait for the node to come back and monitor the process again, to ensure they are actually gone. If that node is removed from the cluster while it is still down, the process is considered gone. If the node is not a member of the cluster, the process is considered gone right away.</li></ul><p>If the <code>keep_while</code> conditions are false at the time of the insert, the insert fails. The only exception to that is if the <code>keep_while</code> condition is path-based and that path points to the inserted node itself.</p><p>Example with a path/condition combination:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="nc">khepri</span><span class="p">:</span><span class="nb">put</span><span class="p" data-group-id="5144620728-1">(</span><span class="w">
+    </span><span class="n">StoreId</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5144620728-2">[</span><span class="ss">foo</span><span class="p" data-group-id="5144620728-2">]</span><span class="p">,</span><span class="w"> </span><span class="n">Payload</span><span class="p">,</span><span class="w">
  
     </span><span class="c1">%% The node `[foo]&#39; will be removed as soon as `[bar]&#39; is removed</span><span class="w">
     </span><span class="c1">%% because the condition associated with `[bar]&#39; will not be true</span><span class="w">
     </span><span class="c1">%% anymore.</span><span class="w">
-    </span><span class="p" data-group-id="2480686410-3">#{</span><span class="ss">keep_while</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="2480686410-4">#{</span><span class="w">
-      </span><span class="p" data-group-id="2480686410-5">[</span><span class="ss">bar</span><span class="p" data-group-id="2480686410-5">]</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="o">#</span><span class="ss">if_node_exists</span><span class="p" data-group-id="2480686410-6">{</span><span class="ss">exists</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="2480686410-6">}</span><span class="w">
-    </span><span class="p" data-group-id="2480686410-4">}</span><span class="p" data-group-id="2480686410-3">}</span><span class="w">
-  </span><span class="p" data-group-id="2480686410-1">)</span><span class="p">.</span></code></pre><p>Example with a PID:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="nc">khepri</span><span class="p">:</span><span class="nb">put</span><span class="p" data-group-id="5822365049-1">(</span><span class="w">
-    </span><span class="n">StoreId</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5822365049-2">[</span><span class="ss">foo</span><span class="p" data-group-id="5822365049-2">]</span><span class="p">,</span><span class="w"> </span><span class="n">Payload</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="5144620728-3">#{</span><span class="ss">keep_while</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="5144620728-4">#{</span><span class="w">
+      </span><span class="p" data-group-id="5144620728-5">[</span><span class="ss">bar</span><span class="p" data-group-id="5144620728-5">]</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="o">#</span><span class="ss">if_node_exists</span><span class="p" data-group-id="5144620728-6">{</span><span class="ss">exists</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="5144620728-6">}</span><span class="w">
+    </span><span class="p" data-group-id="5144620728-4">}</span><span class="p" data-group-id="5144620728-3">}</span><span class="w">
+  </span><span class="p" data-group-id="5144620728-1">)</span><span class="p">.</span></code></pre><p>Example with a PID:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="nc">khepri</span><span class="p">:</span><span class="nb">put</span><span class="p" data-group-id="3608396780-1">(</span><span class="w">
+    </span><span class="n">StoreId</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3608396780-2">[</span><span class="ss">foo</span><span class="p" data-group-id="3608396780-2">]</span><span class="p">,</span><span class="w"> </span><span class="n">Payload</span><span class="p">,</span><span class="w">
  
     </span><span class="c1">%% The node `[foo]&#39; will be removed as soon as the process inserting it</span><span class="w">
     </span><span class="c1">%% exits.</span><span class="w">
-    </span><span class="p" data-group-id="5822365049-3">#{</span><span class="ss">keep_while</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nb">self</span><span class="p" data-group-id="5822365049-4">(</span><span class="p" data-group-id="5822365049-4">)</span><span class="p" data-group-id="5822365049-3">}</span><span class="p">}</span><span class="w">
-  </span><span class="p" data-group-id="5822365049-1">)</span><span class="p">.</span></code></pre>
+    </span><span class="p" data-group-id="3608396780-3">#{</span><span class="ss">keep_while</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nb">self</span><span class="p" data-group-id="3608396780-4">(</span><span class="p" data-group-id="3608396780-4">)</span><span class="p" data-group-id="3608396780-3">}</span><span class="p">}</span><span class="w">
+  </span><span class="p" data-group-id="3608396780-1">)</span><span class="p">.</span></code></pre>
   </section>
 </section>
 <section class="detail" id="t:native_keep_while/0">
@@ -849,7 +849,7 @@ khepri
       <h1 class="signature" translate="no">native_keep_while/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L349" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L349" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -877,7 +877,7 @@ khepri
       <h1 class="signature" translate="no">re_compile_ret/0</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L356" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L356" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -919,7 +919,7 @@ khepri
       <h1 class="signature" translate="no">ensure_native_keep_while(KeepWhile)</h1>
 
 
-        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.0/src/khepri_condition.erl#L385" class="icon-action" rel="help nofollow" aria-label="View Source">
+        <a href="https://github.com/rabbitmq/khepri/blob/v0.19.1/src/khepri_condition.erl#L385" class="icon-action" rel="help nofollow" aria-label="View Source">
           <i class="ri-code-s-slash-line" aria-hidden="true"></i>
         </a>
 
@@ -947,9 +947,9 @@ khepri
         <p>
 
             <span class="line">
-              <a href="https://hex.pm/packages/khepri/0.19.0">Hex Package</a>
+              <a href="https://hex.pm/packages/khepri/0.19.1">Hex Package</a>
 
-              <a href="https://preview.hex.pm/preview/khepri/0.19.0">Hex Preview</a>
+              <a href="https://preview.hex.pm/preview/khepri/0.19.1">Hex Preview</a>
 
             </span>
 
