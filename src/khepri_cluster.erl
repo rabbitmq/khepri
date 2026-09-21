@@ -104,7 +104,7 @@
 -include("src/khepri_error.hrl").
 
 -export([start/0, start/1, start/2, start/3,
-         join/1, join/2,
+         join/1, join/2, join/3,
          reset/0, reset/1, reset/2,
          stop/0, stop/1,
          members/0, members/1, members/2,
