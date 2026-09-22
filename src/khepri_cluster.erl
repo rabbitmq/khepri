@@ -104,7 +104,7 @@
 -include("src/khepri_error.hrl").
 
 -export([start/0, start/1, start/2, start/3,
-         join/1, join/2,
+         join/1, join/2, join/3,
          reset/0, reset/1, reset/2,
          stop/0, stop/1,
          members/0, members/1, members/2,
@@ -411,7 +411,8 @@ ensure_server_started_locked(
 
 -spec do_start_server(RaSystem, RaServerConfig) -> Ret when
       RaSystem :: atom(),
-      RaServerConfig :: ra_server_config_with_id_and_cn(),
+      RaServerConfig :: ra_server_config_with_id_and_cn() |
+                        ra_server:config(),
       Ret :: ok | khepri:error().
 %% @private
 
@@ -431,8 +432,8 @@ do_start_server(RaSystem, RaServerConfig) ->
         {error, _} = Error ->
             ?LOG_ERROR(
                "Failed to start Ra server for store \"~s\" using the "
-               "following Ra server configuration:~n~p",
-               [StoreId, RaServerConfig1]),
+               "following Ra server configuration:~n~p~nError: ~p",
+               [StoreId, RaServerConfig1, Error]),
             Error
     end.
 
@@ -802,10 +803,58 @@ reset_locally_and_join_locked(
     case do_reset(RaSystem, StoreId, ThisMember, Timeout) of
         ok ->
             NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
-            case do_start_server(RaSystem, RaServerConfig) of
+            start_and_join_locked(
+              StoreId, ThisMember, RaSystem, RaServerConfig, RemoteNode,
+              NewTimeout);
+        Error ->
+            Error
+    end.
+
+-spec start_and_join_locked(
+  StoreId, ThisMember, RaSystem, RaServerConfig, RemoteNode, Timeout) ->
+    Ret when
+      StoreId :: khepri:store_id(),
+      ThisMember :: ra:server_id(),
+      RaSystem :: atom(),
+      RaServerConfig :: ra_server:config(),
+      RemoteNode :: node(),
+      Timeout :: timeout(),
+      Ret :: ok | khepri:error().
+%% @private
+
+start_and_join_locked(
+  StoreId, ThisMember, RaSystem, RaServerConfig, RemoteNode, Timeout) ->
+    T0 = khepri_utils:start_timeout_window(Timeout),
+    case do_start_server(RaSystem, RaServerConfig) of
+        ok ->
+            NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+            do_join_locked(StoreId, ThisMember, RemoteNode, NewTimeout);
+        {error,
+         {shutdown,
+          {failed_to_start_child, StoreId, {already_started, Pid}}}} ->
+            %% If we get an `already_started' error at this point, it means
+            %% that the Ra server supervisor retarted the Ra server after a
+            %% crash at the same time we tried to reset it in
+            %% `reset_locally_and_join_locked/6'.
+            %%
+            %% In that function, we saw the Ra server as stopped between the
+            %% crash and the restart, and we assumed it was terminated by
+            %% another cluster member.
+            %%
+            %% In this case, we stop it forcibly again (which resets it again)
+            %% and retry.
+            ?assertMatch({error, _}, get_store_prop(StoreId, ra_system)),
+            ?LOG_DEBUG(
+               "Ra server for store \"~s\" was restarted concurrently "
+               "during reset by its supervisor with PID ~0p; force it "
+               "to stop and try again",
+               [StoreId, Pid]),
+            case force_stop(RaSystem, StoreId, ThisMember) of
                 ok ->
-                    do_join_locked(
-                      StoreId, ThisMember, RemoteNode, NewTimeout);
+                    NewTimeout = khepri_utils:end_timeout_window(Timeout, T0),
+                    start_and_join_locked(
+                      StoreId, ThisMember, RaSystem, RaServerConfig,
+                      RemoteNode, NewTimeout);
                 Error ->
                     Error
             end;
@@ -1001,6 +1050,12 @@ do_reset(RaSystem, StoreId, ThisMember, Timeout) ->
         {error, _} = Error ->
             Error
     end.
+
+-spec force_stop(RaSystem, StoreId, ThisMember) -> Ret when
+      RaSystem :: atom(),
+      StoreId :: khepri:store_id(),
+      ThisMember :: ra:server_id(),
+      Ret :: ok | khepri:error().
 
 force_stop(RaSystem, StoreId, ThisMember) ->
     ?LOG_DEBUG(
