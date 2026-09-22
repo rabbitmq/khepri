@@ -115,6 +115,7 @@ ok = khepri_cluster:reset().</code></pre>
 <tr><td valign="top"><a href="#stop-1">stop/1</a></td><td>Stops a store.</td></tr>
 <tr><td valign="top"><a href="#join-1">join/1</a></td><td>Adds the local running Khepri store to a remote cluster.</td></tr>
 <tr><td valign="top"><a href="#join-2">join/2</a></td><td>Adds the local running Khepri store to a remote cluster.</td></tr>
+<tr><td valign="top"><a href="#join-3">join/3</a></td><td>Adds the local running Khepri store to a remote cluster.</td></tr>
 <tr><td valign="top"><a href="#reset-0">reset/0</a></td><td>Resets the store on this Erlang node.</td></tr>
 <tr><td valign="top"><a href="#reset-1">reset/1</a></td><td>Resets the store on this Erlang node.</td></tr>
 <tr><td valign="top"><a href="#reset-2">reset/2</a></td><td>Resets the store on this Erlang node.</td></tr>
@@ -265,6 +266,39 @@ commands and queries.</p>
   </ul>
  </p>
 <p><b>See also:</b> <a href="#join-3" docgen-rel="seemfa" docgen-href="#join/3">join/3</a>.</p>
+
+<h3 class="function"><a name="join-3">join/3</a></h3>
+<div class="spec">
+<p><code>join(StoreId, RemoteNode::RemoteMember | RemoteNode, Timeout) -&gt; Ret</code>
+<ul class="definitions"><li><code>StoreId = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a></code></li><li><code>RemoteMember = <a href="/home/runner/work/khepri/ra/doc/ra.html#type-server_id" docgen-rel="seetype" docgen-href="ra:ra#server_id/0">ra:server_id()</a></code></li><li><code>RemoteNode = node()</code></li><li><code>Timeout = timeout()</code></li><li><code>Ret = ok | <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-error" docgen-rel="seetype" docgen-href="khepri:khepri#error/0">khepri:error()</a></code></li></ul></p>
+<p><code>StoreId</code>: the ID of the local Khepri store.<br>
+<code>RemoteNode</code>: the name of remote Erlang node running Khepri to join.<br>
+<code>Timeout</code>: the timeout.
+ <br>
+</p>
+<p>returns: <code>ok</code> if it succeeds, an error tuple otherwise.</p>
+</div><p><p>Adds the local running Khepri store to a remote cluster.</p>
+ 
+  <p>The local Khepri store must have been started with <a docgen-rel="seemfa" docgen-href="#start/3" href="#start-3"><code>start/3</code></a> before  
+it can be added to a cluster. It is also expected that the remote store ID  
+is the same as the local one.</p>
+ 
+  <p><code>RemoteNode</code> is the entry point to the remote cluster. It must run for this  
+function to work. A cluster membership also requires a quorum, therefore  
+this join depends on it to succeed.</p>
+ 
+  <p>If <code>RemoteMember</code> is specified, the remote node is derived from it. At the
+  same time, the function asserts that the specified <code>StoreId</code> matches
+  the one derived from <code>RemoteMember</code>.</p>
+ 
+  <p>As part of this function, the local Khepri store will reset. It means it  
+will leave the cluster it is already part of (if any) and all its data  
+removed. This is also the case if the node is already part of the given  
+cluster (i.e. the joining node will be reset and clustered again).</p>
+ 
+  If a clustered node loses its data directory for any reason, this function
+  can be called again to make it join the cluster again and restore its data.
+ </p>
 
 <h3 class="function"><a name="reset-0">reset/0</a></h3>
 <div class="spec">
