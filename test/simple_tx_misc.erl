@@ -14,7 +14,7 @@
 
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
--include("src/khepri_payload.hrl").
+-include("src/khepri_machine.hrl").
 -include("test/helpers.hrl").
 
 -dialyzer([{no_match,
@@ -24,6 +24,7 @@
             [calling_unexported_remote_function_as_fun_term_test_/0]},
            {no_return,
             [aborted_transaction_test_/0,
+             aborted_transaction_test_with_old_behaviour_test_/0,
              exception_in_ro_transaction_test_/0,
              exception_in_rw_transaction_test_/0]},
            {nowarn_function,
@@ -80,7 +81,7 @@ is_transaction_test_() ->
       fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
       fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
       [?_assertEqual(
-          {ok, true},
+          true,
           begin
               Fun = fun() ->
                             khepri_tx:is_transaction()
@@ -88,7 +89,7 @@ is_transaction_test_() ->
               khepri:transaction(?FUNCTION_NAME, Fun, ro)
           end),
        ?_assertEqual(
-          {ok, true},
+          true,
           begin
               Fun = fun() ->
                             khepri_tx:is_transaction()
@@ -102,7 +103,7 @@ noop_in_ro_transaction_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun() ->
                            ok
@@ -115,7 +116,7 @@ noop_in_rw_transaction_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun() ->
                            ok
@@ -128,7 +129,7 @@ autodetect_ro_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {ok, value1}},
+         {ok, value1},
          begin
              _ = khepri:put(
                    ?FUNCTION_NAME, [foo], khepri_payload:data(value1)),
@@ -149,7 +150,7 @@ autodetect_rw_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {ok, value1}},
+         {ok, value1},
          begin
              _ = khepri:put(
                    ?FUNCTION_NAME, [foo], khepri_payload:data(value1)),
@@ -173,7 +174,7 @@ case_abort_jump_instruction_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {created, [foo]}},
+         {created, [foo]},
          begin
              Fun = fun() ->
                            Path = [foo],
@@ -193,7 +194,7 @@ list_comprehension_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, [bar_value, foo_value]},
+         [bar_value, foo_value],
          begin
              _ = khepri:put(
                    ?FUNCTION_NAME, [foo], khepri_payload:data(foo_value)),
@@ -214,11 +215,84 @@ aborted_transaction_test_() ->
     {setup,
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
-     [?_assertEqual(
-         {error, abort_transaction},
+     [?_assertThrow(
+         abort_transaction,
          begin
              Fun = fun() ->
                            khepri_tx:abort(abort_transaction)
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end),
+      ?_assertThrow(
+         abort_transaction,
+         begin
+             Fun = fun() ->
+                           khepri_tx:abort(abort_transaction)
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end)]}.
+
+aborted_transaction_test_with_old_behaviour_test_() ->
+    MacVer = maps:get(transparent_tx_funs, ?API_BEHAV_MACVER_MAP) - 1,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME, #{machine_version => MacVer}) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertThrow(
+         abort_transaction,
+         begin
+             Fun = fun() ->
+                           khepri_tx:abort(abort_transaction)
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end),
+      ?_assertThrow(
+         abort_transaction,
+         begin
+             Fun = fun() ->
+                           khepri_tx:abort(abort_transaction)
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end)]}.
+
+transaction_exception_test_() ->
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertThrow(
+         abort_transaction,
+         begin
+             Fun = fun() ->
+                           throw(abort_transaction)
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end),
+      ?_assertThrow(
+         abort_transaction,
+         begin
+             Fun = fun() ->
+                           throw(abort_transaction)
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, rw)
+         end)]}.
+
+transaction_exception_with_old_behaviour_test_() ->
+    MacVer = maps:get(transparent_tx_funs, ?API_BEHAV_MACVER_MAP) - 1,
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME, #{machine_version => MacVer}) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertThrow(
+         abort_transaction,
+         begin
+             Fun = fun() ->
+                           throw(abort_transaction)
+                   end,
+             khepri:transaction(?FUNCTION_NAME, Fun, ro)
+         end),
+      ?_assertThrow(
+         abort_transaction,
+         begin
+             Fun = fun() ->
+                           throw(abort_transaction)
                    end,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end)]}.
@@ -228,7 +302,7 @@ fun_taking_args_in_ro_transaction_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {ok, arg1, arg2}},
+         {ok, arg1, arg2},
          begin
              Fun = fun(Arg1, Arg2) ->
                            {ok, Arg1, Arg2}
@@ -241,7 +315,7 @@ fun_taking_args_in_rw_transaction_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {ok, arg1, arg2}},
+         {ok, arg1, arg2},
          begin
              Fun = fun(Arg1, Arg2) ->
                            {ok, Arg1, Arg2}
@@ -287,25 +361,25 @@ test_transaction_api_args_permutations_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, ok},
+         ok,
          khepri:transaction(?FUNCTION_NAME, Fun)),
       ?_assertEqual(
-         {ok, ok},
+         ok,
          khepri:transaction(?FUNCTION_NAME, Fun, [])),
       ?_assertEqual(
-         {ok, ok},
+         ok,
          khepri:transaction(?FUNCTION_NAME, Fun, rw)),
       ?_assertEqual(
-         {ok, ok},
+         ok,
          khepri:transaction(?FUNCTION_NAME, Fun, #{})),
       ?_assertEqual(
-         {ok, ok},
+         ok,
          khepri:transaction(?FUNCTION_NAME, Fun, [], rw)),
       ?_assertEqual(
-         {ok, ok},
+         ok,
          khepri:transaction(?FUNCTION_NAME, Fun, [], #{})),
       ?_assertEqual(
-         {ok, ok},
+         ok,
          khepri:transaction(?FUNCTION_NAME, Fun, rw, #{}))]}.
 
 not_a_function_as_ro_transaction_test_() ->
@@ -357,7 +431,7 @@ external_variable_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {ok, undefined}},
+         {ok, undefined},
          begin
              Path = [],
              Fun = fun() ->
@@ -376,7 +450,7 @@ calling_valid_local_function_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {ok, undefined}},
+         {ok, undefined},
          begin
              Fun = fun() ->
                            Path = get_root_path(),
@@ -415,7 +489,7 @@ calling_local_function_as_fun_term_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun noop/0,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
@@ -426,7 +500,7 @@ calling_stdlib_function_as_fun_term_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, dict:new()},
+         dict:new(),
          begin
              Fun = fun dict:new/0,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
@@ -437,7 +511,7 @@ calling_remote_function_as_fun_term_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, mod_used_for_transactions:exported()},
+         mod_used_for_transactions:exported(),
          begin
              Fun = fun mod_used_for_transactions:exported/0,
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
@@ -467,7 +541,7 @@ nested_funs_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {nested, arg1}},
+         {nested, arg1},
          begin
              Fun = fun(Arg) ->
                            erlang:list_to_tuple([nested, Arg])
@@ -654,7 +728,7 @@ tx_from_the_shell_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              _ = khepri:put(
                    ?FUNCTION_NAME, [foo], khepri_payload:data(value1)),
@@ -696,3 +770,54 @@ tx_using_erl_eval_test_() ->
                fun local_fun_using_erl_eval/0,
                rw)
          end)]}.
+
+readonly_transaction_propagates_infra_error_test_() ->
+    %% When the store is not running or the caller fails to reach the Ra
+    %% server, `process_query/3' returns an infrastructure error such as
+    %% `{error, noproc}'.
+    %%
+    %% `readonly_transaction1/3' must raise that error as an exception instead
+    %% of returning it or wrapping it as `{ok, {error, noproc}}' (like it was
+    %% before the introduction of the `transparent_tx_funs' behaviour); a
+    %% caller matching on `{ok, Value}' would otherwise mistake the error for a
+    %% successful transaction result and crash downstream.
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertError(
+         ?khepri_error(tx_submission_error, #{reason := {error, timeout}}),
+         begin
+             Fun = fun() -> timer:sleep(100) end,
+             khepri:transaction(?FUNCTION_NAME, Fun, [], ro, #{timeout => 0})
+         end),
+      ?_assertEqual(
+         {error, noproc},
+         begin
+             Fun = fun() -> {error, noproc} end,
+             khepri:transaction(?FUNCTION_NAME, Fun, [], ro)
+         end),
+      ?_assertError(
+         ?khepri_error(tx_submission_error, #{reason := {error, noproc}}),
+         khepri:transaction(stopped_store, [some_sproc], [], ro))]}.
+
+readwrite_transaction_propagates_infra_error_test_() ->
+    %% Same expectation as the read-only case above, but for a read-write
+    %% transaction going through `process_command/3'.
+    {setup,
+     fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
+     fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
+     [?_assertError(
+         ?khepri_error(tx_submission_error, #{reason := {error, timeout}}),
+         begin
+             Fun = fun() -> timer:sleep(100) end,
+             khepri:transaction(?FUNCTION_NAME, Fun, [], rw, #{timeout => 0})
+         end),
+      ?_assertEqual(
+         {error, noproc},
+         begin
+             Fun = fun() -> {error, noproc} end,
+             khepri:transaction(?FUNCTION_NAME, Fun, [], rw)
+         end),
+      ?_assertError(
+         ?khepri_error(tx_submission_error, #{reason := {error, noproc}}),
+         khepri:transaction(stopped_store, [some_sproc], [], rw))]}.
