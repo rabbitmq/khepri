@@ -134,7 +134,7 @@ dedup_expiry_test_() ->
    Path = [stock, wood, <<"oak">>],
    Command = #tx{'fun' = StoredProcPath, args = []},
    CommandRef = make_ref(),
-   Expiry = erlang:system_time(millisecond),
+   Expiry = erlang:system_time(millisecond) + TickTimeout,
    DedupCommand = #dedup{ref = CommandRef,
                          command = Command,
                          expiry = Expiry},
