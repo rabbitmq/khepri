@@ -12,6 +12,8 @@
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("common_test/include/ct.hrl").
 
+-include_lib("ra/src/ra.hrl").
+
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
 -include("src/khepri_machine.hrl").
@@ -35,6 +37,7 @@
          can_start_a_three_node_cluster/1,
          can_join_several_times_a_three_node_cluster/1,
          can_rejoin_after_a_reset_in_a_three_node_cluster/1,
+         can_repair_an_implitcly_restarted_store/1,
          can_restart_nodes_in_a_three_node_cluster/1,
          can_reset_a_cluster_member/1,
          can_query_members_with_a_three_node_cluster/1,
@@ -91,6 +94,7 @@ groups() ->
            can_start_a_three_node_cluster,
            can_join_several_times_a_three_node_cluster,
            can_rejoin_after_a_reset_in_a_three_node_cluster,
+           can_repair_an_implitcly_restarted_store,
            can_restart_nodes_in_a_three_node_cluster,
            can_reset_a_cluster_member,
            can_query_members_with_a_three_node_cluster,
@@ -899,6 +903,133 @@ can_rejoin_after_a_reset_in_a_three_node_cluster(Config) ->
        ok,
        helpers:call(
          Config, LeaderNode1, khepri, put, [StoreId, [foo], value2])),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:fence() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 helpers:call(Config, Node, khepri, fence, [StoreId])),
+              ct:pal("- khepri:get() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, value2},
+                 helpers:call(Config, Node, khepri, get, [StoreId, [foo]]))
+      end, Nodes),
+
+    ok.
+
+can_repair_an_implitcly_restarted_store(Config) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
+
+    %% We assume all nodes are using the same Ra system name & store ID.
+    RaSystem = helpers:get_ra_system_name(Config),
+    StoreId = RaSystem,
+
+    ct:pal("Start database + cluster nodes"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 helpers:call(
+                   Config, Node, khepri, start, [RaSystem, StoreId]))
+      end, Nodes),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:join() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 helpers:call(
+                   Config, Node, khepri_cluster, join, [StoreId, Node3]))
+      end, [Node1, Node2]),
+
+    ct:pal("Use database after starting it"),
+    LeaderId1 = helpers:get_leader_in_store(Config, StoreId, Nodes),
+    {StoreId, LeaderNode} = LeaderId1,
+    [FollowerNode | _] = Nodes -- [LeaderNode],
+    ct:pal("- khepri:put() from node ~s", [FollowerNode]),
+    ?assertEqual(
+       ok,
+       helpers:call(
+         Config, FollowerNode, khepri, put, [StoreId, [foo], value1])),
+    lists:foreach(
+      fun(Node) ->
+              Options = case Node of
+                            LeaderNode -> #{};
+                            FollowerNode -> #{};
+                            _            -> #{favor => consistency}
+                        end,
+              ct:pal(
+                "- khepri:get() from node ~s; options: ~0p", [Node, Options]),
+              ?assertEqual(
+                 {ok, value1},
+                 helpers:call(
+                   Config, Node, khepri, get, [StoreId, [foo], Options]))
+      end, Nodes),
+
+    {StoreId, LeaderNode1} = LeaderId1,
+    OtherNodes1 = Nodes -- [LeaderNode1],
+
+    ct:pal("Trigger a crash and restart of the Ra server during Khepri reset"),
+    _ = helpers:call(
+          Config, LeaderNode1, meck, new, [ra, [passthrough, no_link]]),
+    _ = helpers:call(
+          Config, LeaderNode1, meck, expect,
+          [ra, remove_member,
+           fun
+               (ThisMember, ThisMember, Timeout) ->
+                   %% We trigger a crash the first time
+                   %% `reset_locally_and_join_locked()' is called only.
+                   Key = ?FUNCTION_NAME,
+                   case persistent_term:get(Key, undefined) of
+                       undefined ->
+                           try
+                               %% To trigger a crash, we send an invalid
+                               %% `#append_entries_rpc{}' to the Ra server.
+                               _ = gen_statem:call(
+                                     StoreId,
+                                     #append_entries_rpc{
+                                        term = 1,
+                                        leader_id = {name, node()},
+                                        leader_commit = 1,
+                                        prev_log_index = 1,
+                                        prev_log_term = 1}),
+                               ok
+                           catch
+                               _:_:_ ->
+                                   ok
+                           end,
+                           persistent_term:put(Key, done),
+                           %% We then return an error to simulate the fact that
+                           %% the local reset happened after the crash but
+                           %% before the supervisor restarted the Ra server.
+                           {error, noproc};
+                       done ->
+                           meck:passthrough(
+                             [ThisMember, ThisMember, Timeout])
+                   end;
+               (RemoteMember, ThisMember, Timeout) ->
+                   meck:passthrough(
+                     [RemoteMember, ThisMember, Timeout])
+           end]),
+    _ = helpers:call(Config, LeaderNode1, meck, validate, [ra]),
+    try
+        ct:pal("Make leader node join the cluster again; expect success"),
+        ?assertEqual(
+           ok,
+           helpers:call(
+             Config, LeaderNode1,
+             khepri_cluster, join, [StoreId, hd(OtherNodes1), 30000]))
+    after
+        _ = helpers:call(Config, LeaderNode1, meck, unload, [ra])
+    end,
+
+    ct:pal("Use database after recreating the cluster"),
+    ?assertEqual(
+       {ok, #{[foo] => #{data => value1,
+                         payload_version => 2}}},
+       helpers:call(
+         Config, LeaderNode1, khepri_adv, put, [StoreId, [foo], value2])),
     lists:foreach(
       fun(Node) ->
               ct:pal("- khepri:fence() from node ~s", [Node]),
