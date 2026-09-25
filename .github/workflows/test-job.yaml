@@ -1,0 +1,63 @@
+name: Single test job
+
+on:
+  workflow_call:
+    inputs:
+      rebar_version:
+        required: true
+        type: string
+    secrets:
+      CODECOV_TOKEN:
+        required: true
+
+jobs:
+  test:
+    name: "Erlang/OTP ${{ matrix.otp_version }} + ${{ matrix.os }}"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        otp_version: ['26', '27', '28', '29']
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: erlef/setup-beam@v1
+        id: install-erlang
+        with:
+          otp-version: ${{ matrix.otp_version }}
+          rebar3-version: ${{ inputs.rebar_version }}
+
+      - name: Compile
+        run: rebar3 compile
+
+      - name: Xref
+        run: rebar3 xref
+      - name: EUnit (unit tests)
+        run: rebar3 eunit --verbose --cover
+      - name: PropEr (property tests)
+        run: rebar3 proper --verbose --cover
+      - name: Common test (integration tests)
+        run: rebar3 ct --verbose --cover --sname ct
+
+      - name: Upload common_test logs
+        uses: actions/upload-artifact@v7
+        if: ${{ always() }}
+        with:
+          name: common-test-logs-${{ matrix.otp_version }}-${{ matrix.os }}
+          path: _build/test/logs
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 5
+
+      - name: Generate code coverage report
+        run: rebar3 as test covertool generate
+
+      - name: Upload code coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: _build/test/covertool/khepri.covertool.xml
+          flags: erlang-${{ matrix.otp_version }},os-${{ matrix.os }}
+          name: Erlang/OTP ${{ matrix.otp_version }} on ${{ matrix.os }}
+          verbose: true # optional (default = false)
