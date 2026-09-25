@@ -1,0 +1,142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Module khepri_import_export</title>
+<link rel="stylesheet" type="text/css" href="edoc-extensions.css" title="EDoc">
+<link rel="icon" href="khepri-favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css" />
+</head>
+<body class="markdown-body language-erlang"><script src="prism.js"></script>
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module khepri_import_export</h1>
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li></ul>Wrapper around Mnesia Backup &amp; Restore callback modules.
+
+<p><b>This module defines the <code>khepri_import_export</code> behaviour.</b><br> Required callback functions: <code>open_write/1</code>, <code>write/2</code>, <code>commit_write/1</code>, <code>abort_write/1</code>, <code>open_read/1</code>, <code>read/1</code>, <code>close_read/1</code>.</p>
+
+<h2><a name="description">Description</a></h2><p>Wrapper around Mnesia Backup &amp; Restore callback modules.</p>
+ 
+  <p>Khepri uses the same callback module as Mnesia to implement its import and
+  export feature. The <a href="https://www.erlang.org/doc/apps/mnesia/mnesia_app_a">Mnesia Backup
+  &amp; Restore API is described in the Mnesia documentation</a>.</p>
+ 
+  Mnesia doesn't provide an Erlang behavior module to ease development. This
+  module can be used as the behavior instead. For example:
+  <pre><code>-module(my_export_module).
+-behavior(khepri_import_export).
+ 
+-export([open_write/1,
+         write/2,
+         commit_write/1,
+         abort_write/1,
+ 
+         open_read/1,
+         read/1,
+         close_read/1]).</code></pre>
+ 
+  <p>There are two sets of callback functions to implement: one used during  
+export (or "backup" in Mnesia terms), one used during import (or "restore"  
+in Mnesia terms).</p>
+ 
+  <h3><a name="Export_callback_API">Export callback API</a></h3>
+ 
+  <ol>
+  <li>
+  <p><code>Module:open_write(Args)</code></p>
+  <p>This function is called at the beginning of an export. It is responsible
+  for any initialization and must return an <code>{ok, ModulePriv}</code> tuple.
+  <code>ModulePriv</code> is a private state passed to the following functions.</p>
+  </li>
+  <li>
+  <p><code>Module:write(ModulePriv, BackupItems)</code></p>
+  <p>This function is called for each subset of the items to export.</p>
+  <p><code>BackupItems</code> is a list of opaque Erlang terms. The callback module
+  can't depend on the structure of these Erlang terms. Only the fact that it
+  is a list is guarantied.</p>
+  <p>An empty list of <code>BackupItems</code> means this is the last call to
+  <code>Module:write/2</code>. Otherwise, the way all items to export are split into
+  several subsets and thus several calls to <code>Module:write/2</code> is
+  undefined.</p>
+  <p>At the end of each call, the function must return <code>{ok, NewModulePriv}</code>.
+  This new private state is passed to the subsequent calls.</p>
+  </li>
+  <li>
+  <p><code>Module:commit_write(ModulePriv)</code></p>
+  <p>This function is called after successful calls to <code>Module:write/2</code>. It
+  is responsible for doing any cleanup.</p>
+  <p>This function can return <code>ok</code> or <code>{ok, Ret}</code> if it wants to return some
+  Erlang terms to the caller.</p>
+  </li>
+  <li>
+  <p><code>Module:abort_write(ModulePriv)</code></p>
+  <p>This function is called after failed call to <code>Module:write/2</code>, or if
+  reading from the Khepri store fails. It is responsible for doing any
+  cleanup.</p>
+  <p>This function can return <code>ok</code> or <code>{ok, Ret}</code> if it wants to return some
+  Erlang terms to the caller.</p>
+  </li>
+  </ol>
+ 
+  <h3><a name="Import_callback_API">Import callback API</a></h3>
+ 
+  <ol>
+  <li>
+  <p><code>Module:open_read(Args)</code></p>
+  <p>This function is called at the beginning of an import. It is responsible
+  for any initialization and must return an <code>{ok, ModulePriv}</code> tuple.
+  <code>ModulePriv</code> is a private state passed to the following functions.</p>
+  </li>
+  <li>
+  <p><code>Module:read(ModulePriv)</code></p>
+  <p>This function is one or more times until there is nothing left to
+  import.</p>
+  <p>The function must return <code>{ok, BackupItems, NewModulePriv}</code>. This new
+  private state is passed to the subsequent calls.</p>
+  <p><code>BackupItems</code> is a list of opaque Erlang terms. The callback module
+  can't depend on the structure of these Erlang terms. The backup items must
+  be returned exactly as they were at the time of the export and in the same
+  order.</p>
+  <p>An empty list of <code>BackupItems</code> means this is the last batch.
+  <code>Module:read/1</code> won't be called anymore. <code>Module:close_read/1</code> will be
+  called next instead.</p>
+  </li>
+  <li>
+  <p><code>Module:close_read(ModulePriv)</code></p>
+  <p>This function is called after the last call to <code>Module:read/1</code>,
+  successful or not, or if the actual import into the Khepri store fails. It
+  is responsible for doing any cleanup.</p>
+  <p>This function can return <code>ok</code> or <code>{ok, Ret}</code> if it wants to return some
+  Erlang terms to the caller.</p>
+  </li>
+  </ol>
+ 
+  <h3><a name="Available_callback_modules">Available callback modules</a></h3>
+ 
+  Khepri comes with <a docgen-rel="seeerl" docgen-href="khepri_export_erlang" href="khepri_export_erlang.html"><code>khepri_export_erlang</code></a>. This module offers to
+  export Khepri tree nodes in a plain text file where backup items are
+  formatted as Erlang terms.
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-backup_item">backup_item()</a></h3>
+<p><code>backup_item() = term()</code></p>
+<p><p>  An opaque term passed in a list to <code>Module:write/2</code> and returned by
+  <code>Module:read/1</code>.</p>
+ 
+  The callback module must not depend on the content of this term.</p>
+
+<h3 class="typedecl"><a name="type-module_priv">module_priv()</a></h3>
+<p><code>module_priv() = any()</code></p>
+<p><p>  Private data passed to <code>Module:open_write/1</code> or <code>Module:open_read/1</code>  
+initially.</p>
+ 
+  The actual term is specific to the callback module implementation. The
+  callback can use this term however it wants. It is returned from most
+  callback functions and passed to the next one.</p>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc</i></p>
+</body>
+</html>
