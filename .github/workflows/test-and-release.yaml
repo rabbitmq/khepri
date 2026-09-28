@@ -65,6 +65,8 @@ jobs:
           key: dialyzer-plt-cache-${{ steps.install-erlang.outputs.otp-version }}-${{ runner.os }}-${{ hashFiles('rebar.config*') }}-v1
 
       - name: Dialyzer
+        env:
+          DIAGNOSTIC: ${{ vars.REBAR_DIAGNOSTIC }}
         run: rebar3 clean && rebar3 as test dialyzer
 
   benchmark:
@@ -110,6 +112,8 @@ jobs:
           sed -E -i -e "s/^@version.*/@version $version/" doc/overview.edoc
 
       - name: Generate
+        env:
+          DIAGNOSTIC: ${{ vars.REBAR_DIAGNOSTIC }}
         run: |
           rebar3 edoc
           rm -rf doc/chunks
@@ -200,4 +204,5 @@ jobs:
       - name: Publish to Hex.pm
         env:
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
+          DIAGNOSTIC: ${{ vars.REBAR_DIAGNOSTIC }}
         run: rebar3 edoc && rebar3 hex publish -r hexpm --yes
