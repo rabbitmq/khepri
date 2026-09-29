@@ -29,15 +29,25 @@ jobs:
           rebar3-version: ${{ inputs.rebar_version }}
 
       - name: Compile
+        env:
+          DIAGNOSTIC: ${{ vars.REBAR_DIAGNOSTIC }}
         run: rebar3 compile
 
       - name: Xref
+        env:
+          DIAGNOSTIC: ${{ vars.REBAR_DIAGNOSTIC }}
         run: rebar3 xref
       - name: EUnit (unit tests)
+        env:
+          DIAGNOSTIC: ${{ vars.REBAR_DIAGNOSTIC }}
         run: rebar3 eunit --verbose --cover
       - name: PropEr (property tests)
+        env:
+          DIAGNOSTIC: ${{ vars.REBAR_DIAGNOSTIC }}
         run: rebar3 proper --verbose --cover
       - name: Common test (integration tests)
+        env:
+          DIAGNOSTIC: ${{ vars.REBAR_DIAGNOSTIC }}
         run: rebar3 ct --verbose --cover --sname ct
 
       - name: Upload common_test logs
@@ -51,6 +61,8 @@ jobs:
           retention-days: 5
 
       - name: Generate code coverage report
+        env:
+          DIAGNOSTIC: ${{ vars.REBAR_DIAGNOSTIC }}
         run: rebar3 as test covertool generate
 
       - name: Upload code coverage to Codecov
