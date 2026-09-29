@@ -1,0 +1,146 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Module khepri_event_handler</title>
+<link rel="stylesheet" type="text/css" href="edoc-extensions.css" title="EDoc">
+<link rel="icon" href="khepri-favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css" />
+</head>
+<body class="markdown-body language-erlang"><script src="prism.js"></script>
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module khepri_event_handler</h1>
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Khepri event handling server.
+
+<p><b>Behaviours:</b> <a href="gen_server.html"><code>gen_server</code></a>.</p>
+
+<h2><a name="description">Description</a></h2>Khepri event handling server.
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-trigger_action">trigger_action()</a></h3>
+<p><code>trigger_action() = {sproc, <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a>} | {apply, {module(), atom(), list()}} | {send, pid(), any()}</code></p>
+<p><p>  The type of action associated with a trigger.</p>
+ 
+  It can be the following actions:
+  <ul>
+  <li><code>sproc</code>: the stored procedure pointed to by the given path will be
+  executed</li>
+  <li><code>apply</code>, the function described by the given module/function/arguments
+  tuple will be executed</li>
+  <li><code>send</code>: a message will be sent to the specified PID with the event
+  details and the given term</li>
+  </ul>
+ 
+  The action will get a trigger desccriptor as argument to describe a specific
+  execution of that trigger. See <a docgen-rel="seemfa" docgen-href="#trigger_descriptor/0" href="#trigger_descriptor-0"><code>trigger_descriptor/0</code></a>.</p>
+
+<h3 class="typedecl"><a name="type-trigger_descriptor">trigger_descriptor()</a></h3>
+<p><code>trigger_descriptor() = #khepri_trigger{type = tree | process, store_id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-store_id" docgen-rel="seetype" docgen-href="khepri:khepri#store_id/0">khepri:store_id()</a>, trigger_id = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-trigger_id" docgen-rel="seetype" docgen-href="khepri:khepri#trigger_id/0">khepri:trigger_id()</a>, event = map(), action = map()}</code></p>
+<p><p>  Descriptor of the trigger used as an argument to the trigger action.</p>
+ 
+  <p>The descriptor contains all the properties of a specific instance of that  
+trigger.</p>
+ 
+  <p>When the action is a stored procedure or an MFA tuple, the descriptor is  
+appended to the list of arguments.</p>
+ 
+  When the action is a PID, the descriptor is send to the PID as a standalone
+  message. The <code>action</code> properties map will contain the <code>Priv</code> element of the
+  <code>send</code> tuple under the <code>priv</code> field.</p>
+
+<h3 class="typedecl"><a name="type-trigger_exec_loc">trigger_exec_loc()</a></h3>
+<p><code>trigger_exec_loc() = leader | {member, node()} | all_members</code></p>
+<p><p>  Where to execute the triggered action.</p>
+ 
+  It supports the following locations:
+  <ul>
+  <li><code>leader</code>: the action is executed on the leader node at the time the
+  action is triggered.</li>
+  <li><code>{member, Member}</code>: the action is executed on the given node if it is a
+  member of the cluster, or the leader otherwise.</li>
+  <li><code>all_members</code>: the action is executed on all members of the
+  cluster.</li>
+  </ul></p>
+
+<h3 class="typedecl"><a name="type-triggered_action">triggered_action()</a></h3>
+<p><code>triggered_action() = {sproc, <a href="/home/runner/work/khepri/horus/doc/horus.html#type-horus_fun" docgen-rel="seetype" docgen-href="horus:horus#horus_fun/0">horus:horus_fun()</a>} | {apply, {module(), atom(), list()}} | {send, pid(), any()}</code></p>
+<p><p>  The action associated with a trigger once it is triggered.</p>
+ 
+  It can be the following actions:
+  <ul>
+  <li><code>sproc</code>: the stored procedure (extracted from the path given to the
+  trigger registration) is executed</li>
+  <li><code>apply</code>: the function described by the given module/function/arguments
+  tuple is executed</li>
+  <li><code>send</code>: a message is sent to the specified PID with the event details
+  and the given term</li>
+  </ul></p>
+
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#start_link-0">start_link/0</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_triggered_actions-2">handle_triggered_actions/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#init-1">init/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_call-3">handle_call/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_cast-2">handle_cast/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_info-2">handle_info/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#terminate-2">terminate/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#code_change-3">code_change/3</a></td><td></td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="start_link-0">start_link/0</a></h3>
+<div class="spec">
+<p><code>start_link() -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="handle_triggered_actions-2">handle_triggered_actions/2</a></h3>
+<div class="spec">
+<p><code>handle_triggered_actions(StoreId, TriggeredActions) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="init-1">init/1</a></h3>
+<div class="spec">
+<p><code>init(X1) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="handle_call-3">handle_call/3</a></h3>
+<div class="spec">
+<p><code>handle_call(Request, From, State) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="handle_cast-2">handle_cast/2</a></h3>
+<div class="spec">
+<p><code>handle_cast(Request, State) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="handle_info-2">handle_info/2</a></h3>
+<div class="spec">
+<p><code>handle_info(Msg, State) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="terminate-2">terminate/2</a></h3>
+<div class="spec">
+<p><code>terminate(Reason, State) -&gt; any()</code></p>
+<p></p>
+</div>
+
+<h3 class="function"><a name="code_change-3">code_change/3</a></h3>
+<div class="spec">
+<p><code>code_change(OldVsn, State, Extra) -&gt; any()</code></p>
+<p></p>
+</div>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc</i></p>
+</body>
+</html>
