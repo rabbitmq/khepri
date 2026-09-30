@@ -103,10 +103,15 @@
 
 -type tx_abort() :: khepri:error(any()).
 %% Return value after a transaction function aborted.
+%%
+%% @deprecated
 
 -export_type([tx_fun/0,
               tx_fun_result/0,
               tx_abort/0]).
+
+-deprecated([{abort, 1, "Use any Erlang exception instead"}]).
+-deprecated_type([{tx_abort, 0, "Use any Erlang exception instead"}]).
 
 %% -------------------------------------------------------------------
 %% is_empty().
@@ -997,9 +1002,15 @@ clear_many_payloads(PathPattern, Options) ->
 %%
 %% Any changes so far are not committed to the store.
 %%
-%% {@link khepri:transaction/1} and friends will return {@link tx_abort()}.
+%% {@link khepri:transaction/1} and friends will throw `Reason' as an
+%% exception.
 %%
-%% @param Reason term to return to caller of the transaction.
+%% This API is deprecated. Any exception can be used in the transaction
+%% function to abort a transaction.
+%%
+%% @param Reason term to raise as an exception for caller of the transaction.
+%%
+%% @deprecated
 
 abort(Reason) ->
     throw(?TX_ABORT(Reason)).
