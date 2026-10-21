@@ -186,7 +186,8 @@
          compute_command_size/1,
          does_command_support_common_args/1,
          get_command_common_args/1,
-         maybe_convert_to_action/4]).
+         maybe_convert_to_action/4,
+         set_triggers/2]).
 -endif.
 
 -compile({no_auto_import, [apply/3]}).
@@ -4269,7 +4270,17 @@ trigger_v1_to_v2(#{sproc := StoredProcPath} = Trigger) ->
     Trigger1 = Trigger#{action => {sproc, StoredProcPath},
                         where => leader},
     Trigger2 = maps:remove(sproc, Trigger1),
-    Trigger2.
+    Trigger2;
+trigger_v1_to_v2(#{action := {sproc, _}, where := _} = Trigger) ->
+    %% Already in the version 4 shape. Since version 0.19.0, a trigger is
+    %% stored in this shape whatever machine version the store runs: the
+    %% legacy #register_trigger{} command is converted to its uniform
+    %% equivalent before it is applied (convert_to_uniform_command/1), and
+    %% that stores #{event_filter, action, where} in versions 2 and 3 as
+    %% well. A store written by such a release and upgraded to version 4
+    %% therefore holds triggers this function already converted - refusing
+    %% them here crashed the machine on a store that has any subscription.
+    Trigger.
 
 -spec update_projections(OldState, NewState) -> ok when
       OldState :: khepri_machine:state(),
