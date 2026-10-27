@@ -678,30 +678,13 @@ join(StoreId, {StoreId, RemoteNode} = _RemoteMember, Timeout) ->
 
 check_status_and_join_locked(StoreId, RemoteNode, Timeout) ->
     ThisMember = this_member(StoreId),
-    RaServerRunning = erlang:is_pid(erlang:whereis(StoreId)),
-    Prop1 = get_store_prop(StoreId, ra_system),
-    Prop2 = get_store_prop(StoreId, ra_server_config),
-    case {RaServerRunning, Prop1, Prop2} of
-        {true, {ok, RaSystem}, {ok, RaServerConfig}} ->
+    case recreate_ra_server_config_from_running_server(ThisMember) of
+        {ok, RaSystem, RaServerConfig} ->
             reset_remotely_and_join_locked(
               StoreId, ThisMember, RaSystem, RaServerConfig,
               RemoteNode, Timeout);
-        {false, {error, _} = Error, _} ->
-            Error;
-        {false, _, {error, _} = Error} ->
-            Error;
-        {false, _, _} ->
-            ?LOG_ERROR(
-               "Local Ra server ~0p not running for store \"~s\", "
-               "but properties are still available: ~0p and ~0p",
-               [ThisMember, StoreId, Prop1, Prop2]),
-            erlang:error(
-              ?khepri_exception(
-                 ra_server_not_running_but_props_available,
-                 #{store_id => StoreId,
-                   this_member => ThisMember,
-                   ra_system => Prop1,
-                   ra_server_config => Prop2}))
+        {error, _} = Error ->
+            Error
     end.
 
 -spec reset_remotely_and_join_locked(
@@ -1621,6 +1604,47 @@ complete_ra_server_config(#{cluster_name := StoreId,
                      log_init_args => LogInitArgs,
                      machine => Machine}.
 
+recreate_ra_server_config_from_running_server({StoreId, _} = Member) ->
+    case ra:member_overview(Member) of
+        {ok, Overview, _LeaderId} ->
+            #{
+              log_id := FriendlyName,
+              machine := MachineOverview,
+              max_pipeline_count := MaxPipelineCount,
+              membership := Membership,
+              metrics_key := MetricsKey,
+              metrics_labels := MetricsLabels,
+              min_recovery_checkpoint_interval := MinRecoveryCheckpointInterval,
+              system_config := #{name := RaSystem}
+             } = Overview,
+
+            #{store_id := StoreId,
+              metrics := MachineMetrics} = MachineOverview,
+            #{init_args := MachineConfig} = MachineMetrics,
+
+            RaServerConfig0 = #{id => Member,
+                                cluster_name => StoreId,
+                                friendly_name => FriendlyName,
+                                metrics_key => MetricsKey,
+                                metrics_labels => MetricsLabels,
+                                max_pipeline_count => MaxPipelineCount,
+                                membership => Membership,
+                                min_recovery_checkpoint_interval =>
+                                MinRecoveryCheckpointInterval,
+
+                                machine_config => MachineConfig
+                              },
+            RaServerConfig1 = complete_ra_server_config(RaServerConfig0),
+            {ok, RaSystem, RaServerConfig1};
+        {error, noproc} ->
+            Reason = ?khepri_error(
+                        not_a_khepri_store,
+                        #{store_id => StoreId}),
+            {error, Reason};
+        {error, _} = Error ->
+            Error
+    end.
+
 -define(PT_STORE_IDS, {khepri, store_ids}).
 
 -spec remember_store(RaSystem, RaServerConfig) -> ok when
@@ -1645,7 +1669,7 @@ remember_store(RaSystem, #{cluster_name := StoreId} = RaServerConfig) ->
 
 -spec get_store_prop(StoreId, PropName) -> Ret when
       StoreId :: khepri:store_id(),
-      PropName :: ra_system | ra_server_config,
+      PropName :: ra_system,
       PropValue :: any(),
       Ret :: khepri:ok(PropValue) |
              khepri:error(?khepri_error(
