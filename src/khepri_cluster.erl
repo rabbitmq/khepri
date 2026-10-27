@@ -496,7 +496,7 @@ stop(StoreId) when ?IS_KHEPRI_STORE_ID(StoreId) ->
 
 stop_locked(StoreId) ->
     ThisMember = this_member(StoreId),
-    case get_store_prop(StoreId, ra_system) of
+    case get_ra_system(ThisMember) of
         {ok, RaSystem} ->
             ?LOG_DEBUG(
                "Stopping member ~0p in store \"~s\"",
@@ -830,7 +830,6 @@ start_and_join_locked(
             %%
             %% In this case, we stop it forcibly again (which resets it again)
             %% and retry.
-            ?assertMatch({error, _}, get_store_prop(StoreId, ra_system)),
             ?LOG_DEBUG(
                "Ra server for store \"~s\" was restarted concurrently "
                "during reset by its supervisor with PID ~0p; force it "
@@ -975,7 +974,7 @@ reset(StoreId, Timeout) ->
 
 reset_locked(StoreId, Timeout) ->
     ThisMember = this_member(StoreId),
-    case get_store_prop(StoreId, ra_system) of
+    case get_ra_system(ThisMember) of
         {ok, RaSystem}     -> do_reset(RaSystem, StoreId, ThisMember, Timeout);
         {error, _} = Error -> Error
     end.
@@ -1645,6 +1644,30 @@ recreate_ra_server_config_from_running_server({StoreId, _} = Member) ->
             Error
     end.
 
+-spec get_ra_system(Member) -> Ret when
+      Member :: ra:server_id(),
+      Ret :: khepri:ok(RaSystem) |
+             khepri:error(?khepri_error(
+                             not_a_khepri_store,
+                             #{store_id := StoreId})) |
+             khepri:error(),
+      RaSystem :: atom(),
+      StoreId :: khepri:store_id().
+%% @private
+
+get_ra_system({StoreId, _} = Member) ->
+    case ra:member_overview(Member) of
+        {ok, #{system_config := #{name := RaSystem}}, _LeaderId} ->
+            {ok, RaSystem};
+        {error, noproc} ->
+            Reason = ?khepri_error(
+                        not_a_khepri_store,
+                        #{store_id => StoreId}),
+            {error, Reason};
+        {error, _} = Error ->
+            Error
+    end.
+
 -define(PT_STORE_IDS, {khepri, store_ids}).
 
 -spec remember_store(RaSystem, RaServerConfig) -> ok when
@@ -1666,27 +1689,6 @@ remember_store(RaSystem, #{cluster_name := StoreId} = RaServerConfig) ->
             global:del_lock(Lock, [node()])
     end,
     ok.
-
--spec get_store_prop(StoreId, PropName) -> Ret when
-      StoreId :: khepri:store_id(),
-      PropName :: ra_system,
-      PropValue :: any(),
-      Ret :: khepri:ok(PropValue) |
-             khepri:error(?khepri_error(
-                             not_a_khepri_store,
-                             #{store_id := StoreId})).
-%% @private
-
-get_store_prop(StoreId, PropName) ->
-    case persistent_term:get(?PT_STORE_IDS, #{}) of
-        #{StoreId := #{PropName := PropValue}} ->
-            {ok, PropValue};
-        _ ->
-            Reason = ?khepri_error(
-                        not_a_khepri_store,
-                        #{store_id => StoreId}),
-            {error, Reason}
-    end.
 
 -spec forget_store(StoreId) -> ok when
       StoreId :: khepri:store_id().
