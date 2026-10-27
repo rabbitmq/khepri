@@ -3148,12 +3148,14 @@ non_emitted_triggers_to_side_effects(State, SideEffects) ->
       Overview :: #{store_id := StoreId,
                     tree := NodeTree,
                     triggers := Triggers,
-                    keep_while_conds := KeepWhileConds},
+                    keep_while_conds := KeepWhileConds,
+                    metrics := Metrics},
       StoreId :: khepri:store_id(),
       NodeTree :: khepri_utils:display_tree(),
       Triggers :: khepri_machine:triggers_map() |
                   khepri_machine:triggers_map_v2(),
-      KeepWhileConds :: khepri_tree:keep_while_conds_map().
+      KeepWhileConds :: khepri_tree:keep_while_conds_map(),
+      Metrics :: khepri_machine:metrics().
 %% @private
 
 overview(State) ->
@@ -3161,6 +3163,7 @@ overview(State) ->
     Tree = get_tree(State),
     KeepWhileConds = get_keep_while_conds(State),
     Triggers = get_triggers(State),
+    Metrics = get_metrics(State),
     TreeOptions = #{props_to_return => ?INTERNAL_LOOKUP_PROPS_TO_RETURN,
                     include_root_props => true},
     {ok, NodePropsMap} = khepri_tree:find_matching_nodes(
@@ -3175,7 +3178,8 @@ overview(State) ->
     #{store_id => StoreId,
       tree => NodeTree,
       triggers => Triggers,
-      keep_while_conds => KeepWhileConds}.
+      keep_while_conds => KeepWhileConds,
+      metrics => Metrics}.
 
 -spec version() -> MacVer when
       MacVer :: ?LATEST_MACVER.
