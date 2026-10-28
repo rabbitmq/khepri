@@ -110,6 +110,8 @@
 %% <li>Got rid of the caching of the Ra system and Ra server configuration
 %% managed by `khepri_cluster'; the startup of the state machine in now
 %% independant.</li>
+%% <li>Added support for the `initial_members' Ra server configuration
+%% parameter.</li>
 %% </ul>
 %% </td>
 %% </tr>
