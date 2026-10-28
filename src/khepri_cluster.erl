@@ -121,7 +121,8 @@
 
 %% Internal.
 -export([node_to_member/2,
-         this_member/1]).
+         this_member/1,
+         remember_store/1]).
 
 -ifdef(TEST).
 -export([wait_for_ra_server_exit/1,
@@ -405,7 +406,6 @@ ensure_server_started_locked(
                     Error
             end;
         ok ->
-            ok = remember_store(StoreId),
             {ok, StoreId};
         {error, {already_started, _}} ->
             {ok, StoreId};
@@ -428,7 +428,6 @@ do_start_server(RaSystem, RaServerConfig) ->
        [RaServerConfig1]),
     case ra:start_server(RaSystem, RaServerConfig1) of
         ok ->
-            ok = remember_store(StoreId),
             ?LOG_DEBUG(
                "Started Ra server for store \"~s\"",
                [StoreId]),

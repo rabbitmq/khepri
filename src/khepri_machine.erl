@@ -107,6 +107,9 @@
 %% <li>Changed the transaction return value to help distinguish the transaction
 %% function return value from an error with the communication with the Ra
 %% server.</li>
+%% <li>Got rid of the caching of the Ra system and Ra server configuration
+%% managed by `khepri_cluster'; the startup of the state machine in now
+%% independant.</li>
 %% </ul>
 %% </td>
 %% </tr>
@@ -1797,6 +1800,8 @@ init(InitArgs) ->
     %% Just after the start, we record the timestamp just as if there was a
     %% snapshot. This is mostly to avoid that a snapshot is taken right away.
     State5 = record_snapshot_timestamp(State4),
+
+    mark_store_as_ready(StoreId),
     State5.
 
 -spec init_aux(StoreId :: khepri:store_id()) -> aux_state().
@@ -1909,6 +1914,14 @@ handle_aux(
     #khepri_machine_aux{store_id = StoreId} = AuxState,
     EffectiveMacVer = ra_aux:effective_machine_version(IntState),
     cache_effective_machine_version(StoreId, EffectiveMacVer),
+
+    AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+
+    {no_reply, AuxState1, IntState};
+handle_aux(
+  _RaState, cast, mark_store_as_ready, AuxState, IntState) ->
+    #khepri_machine_aux{store_id = StoreId} = AuxState,
+    mark_store_as_ready(StoreId),
 
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
 
@@ -3077,10 +3090,14 @@ state_enter(leader, State) ->
     SideEffects3;
 state_enter(recovered, _State) ->
     SideEffects = [{aux, restore_projections},
-                   {aux, cache_effective_machine_version}],
+                   {aux, cache_effective_machine_version},
+                   {aux, mark_store_as_ready}],
     SideEffects;
 state_enter(_StateName, _State) ->
     [].
+
+mark_store_as_ready(StoreId) ->
+    khepri_cluster:remember_store(StoreId).
 
 %% @private
 
