@@ -33,7 +33,6 @@
          can_query_members_with_a_single_node/1,
          can_wait_for_leader_with_a_single_node/1,
          fail_to_start_with_bad_ra_server_config/1,
-         initial_members_are_ignored/1,
          can_start_a_three_node_cluster/1,
          can_join_several_times_a_three_node_cluster/1,
          can_rejoin_after_a_reset_in_a_three_node_cluster/1,
@@ -42,6 +41,9 @@
          can_reset_a_cluster_member/1,
          can_query_members_with_a_three_node_cluster/1,
          can_wait_for_leader_with_a_three_node_cluster/1,
+         can_start_cluster_using_initial_members_1/1,
+         can_start_cluster_using_initial_members_2/1,
+         an_empty_initial_members_is_ignored/1,
          fail_to_join_if_not_started/1,
          fail_to_join_non_existing_node/1,
          fail_to_join_non_existing_store/1,
@@ -101,7 +103,7 @@ groups() ->
            can_query_members_with_a_single_node,
            can_wait_for_leader_with_a_single_node,
            fail_to_start_with_bad_ra_server_config,
-           initial_members_are_ignored,
+           an_empty_initial_members_is_ignored,
            fail_to_join_non_existing_node,
            can_wait_for_effective_behaviour,
            trigger_based_on_process_event_works
@@ -119,6 +121,8 @@ groups() ->
            can_reset_a_cluster_member,
            can_query_members_with_a_three_node_cluster,
            can_wait_for_leader_with_a_three_node_cluster,
+           can_start_cluster_using_initial_members_1,
+           can_start_cluster_using_initial_members_2,
            fail_to_join_if_not_started,
            fail_to_join_non_existing_store,
            handle_leader_down_on_three_node_cluster_command
@@ -553,31 +557,6 @@ fail_to_start_with_bad_ra_server_config(Config) ->
                ct:pal("Unexpected return value:~n~p", [Ret2]),
                false
        end),
-
-    ok.
-
-initial_members_are_ignored(Config) ->
-    RaSystem = helpers:get_ra_system_name(Config),
-    StoreId = RaSystem,
-
-    ct:pal("Start database"),
-    ?assertEqual(
-       {ok, StoreId},
-       khepri:start(RaSystem, #{cluster_name => StoreId,
-                                initial_members => [{StoreId, a},
-                                                    {StoreId, b},
-                                                    {StoreId, c}]})),
-
-    ct:pal("This member is alone in the \"cluster\""),
-    ThisMember = khepri_cluster:this_member(StoreId),
-    ?assertEqual(
-       {ok, [ThisMember]},
-       khepri_cluster:members(StoreId)),
-
-    ct:pal("Stop database"),
-    ?assertEqual(
-       ok,
-       khepri:stop(StoreId)),
 
     ok.
 
@@ -1733,6 +1712,124 @@ can_wait_for_leader_with_a_three_node_cluster(Config) ->
                  helpers:call(Config,
                    Node, khepri_cluster, wait_for_leader, [StoreId, 1000]))
       end, LeftNodes1),
+
+    ok.
+
+can_start_cluster_using_initial_members_1(Config) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    Nodes = maps:keys(PropsPerNode),
+
+    %% We assume all nodes are using the same Ra system name & store ID.
+    RaSystem = helpers:get_ra_system_name(Config),
+    StoreId = RaSystem,
+
+    InitialMembers = [{StoreId, Node} || Node <- Nodes],
+
+    ct:pal("Start a cluster"),
+    [_Node1, Node2, _Node3] = Nodes,
+    ?assertEqual(
+       {ok, StoreId},
+       helpers:call(
+         Config, Node2,
+         khepri, start, [RaSystem, #{cluster_name => StoreId,
+                                     initial_members => InitialMembers}])),
+
+    ?assertEqual(
+       ok,
+       helpers:call(
+         Config, Node2,
+         khepri_cluster, wait_for_leader, [StoreId])),
+
+    ct:pal("Verify that the cluster was correctly formed"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:members() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, InitialMembers},
+                 helpers:call(
+                   Config, Node,
+                   khepri_cluster, members, [StoreId]))
+      end, Nodes),
+
+    ok.
+
+can_start_cluster_using_initial_members_2(Config) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    [Node1 | RunningNodes] = Nodes = maps:keys(PropsPerNode),
+
+    %% We assume all nodes are using the same Ra system name & store ID.
+    RaSystem = helpers:get_ra_system_name(Config),
+    StoreId = RaSystem,
+
+    InitialMembers1 = [{StoreId, Node} || Node <- RunningNodes],
+
+    ct:pal("Start a 2-node cluster"),
+    [Node2, _Node3] = RunningNodes,
+    ?assertEqual(
+       {ok, StoreId},
+       helpers:call(
+         Config, Node2,
+         khepri, start, [RaSystem, #{cluster_name => StoreId,
+                                     initial_members => InitialMembers1}])),
+
+    ?assertEqual(
+       ok,
+       helpers:call(
+         Config, Node2,
+         khepri_cluster, wait_for_leader, [StoreId])),
+
+    ct:pal("Verify that the cluster was correctly formed"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:members() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, InitialMembers1},
+                 helpers:call(
+                   Config, Node,
+                   khepri_cluster, members, [StoreId]))
+      end, RunningNodes),
+
+    ct:pal("Start a 3-node cluster (with an existing 2-node cluster)"),
+    InitialMembers2 = [{StoreId, Node} || Node <- Nodes],
+    ?assertEqual(
+       {ok, StoreId},
+       helpers:call(
+         Config, Node1,
+         khepri, start, [RaSystem, #{cluster_name => StoreId,
+                                     initial_members => InitialMembers2}])),
+
+    ct:pal("Verify that the cluster was correctly expanded"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:members() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, InitialMembers2},
+                 helpers:call(
+                   Config, Node,
+                   khepri_cluster, members, [StoreId]))
+      end, Nodes),
+
+    ok.
+
+an_empty_initial_members_is_ignored(Config) ->
+    RaSystem = helpers:get_ra_system_name(Config),
+    StoreId = RaSystem,
+
+    ct:pal("Start with empty initial_members"),
+    ?assertEqual(
+       {ok, StoreId},
+       khepri:start(RaSystem, #{cluster_name => StoreId,
+                                initial_members => []})),
+
+    ?assertEqual(
+       ok,
+       khepri_cluster:wait_for_leader(StoreId)),
+
+    ct:pal("Verify that the store is working and unclustered"),
+    ThisMember = khepri_cluster:this_member(StoreId),
+    ?assertEqual(
+       {ok, [ThisMember]},
+       khepri_cluster:members(StoreId)),
 
     ok.
 
