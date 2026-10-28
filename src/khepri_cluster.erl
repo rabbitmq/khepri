@@ -420,7 +420,8 @@ ensure_server_started_locked(
       Ret :: ok | khepri:error().
 %% @private
 
-do_start_server(RaSystem, RaServerConfig) ->
+do_start_server(RaSystem, RaServerConfig)
+  when not is_map_key(initial_members, RaServerConfig) ->
     RaServerConfig1 = complete_ra_server_config(RaServerConfig),
     #{cluster_name := StoreId} = RaServerConfig1,
     ?LOG_DEBUG(
@@ -435,6 +436,29 @@ do_start_server(RaSystem, RaServerConfig) ->
         {error, _} = Error ->
             ?LOG_ERROR(
                "Failed to start Ra server for store \"~s\" using the "
+               "following Ra server configuration:~n~p~nError: ~p",
+               [StoreId, RaServerConfig1, Error]),
+            Error
+    end;
+do_start_server(
+  RaSystem,
+  #{initial_members := InitialMembers} = RaServerConfig) ->
+    RaServerConfig1 = complete_ra_server_config(RaServerConfig),
+    RaServerConfigs = [RaServerConfig1#{id => Member}
+                       || Member <- InitialMembers],
+    #{cluster_name := StoreId} = RaServerConfig1,
+    ?LOG_DEBUG(
+       "Starting a Ra cluster with the following configuration:~n~p",
+       [RaServerConfig1]),
+    case ra:start_cluster(RaSystem, RaServerConfigs) of
+        {ok, Started, _NotStarted} ->
+            ?LOG_DEBUG(
+               "Started Ra server for store \"~s\" on nodes:~n~p",
+               [StoreId, Started]),
+            ok;
+        {error, _} = Error ->
+            ?LOG_ERROR(
+               "Failed to start Ra cluster for store \"~s\" using the "
                "following Ra server configuration:~n~p~nError: ~p",
                [StoreId, RaServerConfig1, Error]),
             Error
@@ -1552,13 +1576,13 @@ complete_ra_server_config(#{cluster_name := StoreId,
     %% "auto-cluster start" of Ra) because we also populate a few
     %% persistent_term for Ra system & server config bookkeeping.
     RaServerConfig1 = case RaServerConfig of
-                          #{initial_members := _} ->
-                              ?LOG_WARNING(
-                                 "Initial Ra cluster members in the "
-                                 "following Ra server config "
-                                 "(`initial_members`) will be ignored: ~p",
-                                 [RaServerConfig]),
-                              maps:remove(initial_members, RaServerConfig);
+                          % #{initial_members := _} ->
+                          %     ?LOG_WARNING(
+                          %        "Initial Ra cluster members in the "
+                          %        "following Ra server config "
+                          %        "(`initial_members`) will be ignored: ~p",
+                          %        [RaServerConfig]),
+                          %     maps:remove(initial_members, RaServerConfig);
                           _ ->
                               RaServerConfig
                       end,
