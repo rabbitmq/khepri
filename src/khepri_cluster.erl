@@ -405,7 +405,7 @@ ensure_server_started_locked(
                     Error
             end;
         ok ->
-            ok = remember_store(RaSystem, RaServerConfig1),
+            ok = remember_store(StoreId),
             {ok, StoreId};
         {error, {already_started, _}} ->
             {ok, StoreId};
@@ -428,7 +428,7 @@ do_start_server(RaSystem, RaServerConfig) ->
        [RaServerConfig1]),
     case ra:start_server(RaSystem, RaServerConfig1) of
         ok ->
-            ok = remember_store(RaSystem, RaServerConfig1),
+            ok = remember_store(StoreId),
             ?LOG_DEBUG(
                "Started Ra server for store \"~s\"",
                [StoreId]),
@@ -1670,20 +1670,16 @@ get_ra_system({StoreId, _} = Member) ->
 
 -define(PT_STORE_IDS, {khepri, store_ids}).
 
--spec remember_store(RaSystem, RaServerConfig) -> ok when
-      RaSystem :: atom(),
-      RaServerConfig :: ra_server:ra_server_config().
+-spec remember_store(StoreId) -> ok when
+      StoreId :: khepri:store_id().
 %% @private
 
-remember_store(RaSystem, #{cluster_name := StoreId} = RaServerConfig) ->
-    ?assert(maps:is_key(id, RaServerConfig)),
+remember_store(StoreId) ->
     Lock = store_ids_lock(),
     global:set_lock(Lock, [node()]),
     try
         StoreIds = persistent_term:get(?PT_STORE_IDS, #{}),
-        Props = #{ra_system => RaSystem,
-                  ra_server_config => RaServerConfig},
-        StoreIds1 = StoreIds#{StoreId => Props},
+        StoreIds1 = StoreIds#{StoreId => true},
         persistent_term:put(?PT_STORE_IDS, StoreIds1)
     after
             global:del_lock(Lock, [node()])
