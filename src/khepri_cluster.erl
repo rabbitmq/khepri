@@ -420,10 +420,9 @@ ensure_server_started_locked(
       Ret :: ok | khepri:error().
 %% @private
 
-do_start_server(RaSystem, RaServerConfig)
+do_start_server(RaSystem, #{cluster_name := StoreId} = RaServerConfig)
   when not is_map_key(initial_members, RaServerConfig) ->
     RaServerConfig1 = complete_ra_server_config(RaServerConfig),
-    #{cluster_name := StoreId} = RaServerConfig1,
     ?LOG_DEBUG(
        "Starting a Ra server with the following configuration:~n~p",
        [RaServerConfig1]),
@@ -442,27 +441,73 @@ do_start_server(RaSystem, RaServerConfig)
     end;
 do_start_server(
   RaSystem,
-  #{initial_members := InitialMembers} = RaServerConfig) ->
-    RaServerConfig1 = complete_ra_server_config(RaServerConfig),
-    RaServerConfigs = [RaServerConfig1#{id => Member}
-                       || Member <- InitialMembers],
-    #{cluster_name := StoreId} = RaServerConfig1,
-    ?LOG_DEBUG(
-       "Starting a Ra cluster with the following configuration:~n~p",
-       [RaServerConfig1]),
-    case ra:start_cluster(RaSystem, RaServerConfigs) of
-        {ok, Started, _NotStarted} ->
+  #{cluster_name := StoreId,
+    initial_members := InitialMembers} = RaServerConfig) ->
+    RemoteNodesRunningStore = filter_nodes_running_store(
+                                StoreId, InitialMembers),
+    case RemoteNodesRunningStore of
+        [] ->
+            RaServerConfig1 = complete_ra_server_config(RaServerConfig),
+            RaServerConfigs = [RaServerConfig1#{id => Member}
+                               || Member <- InitialMembers],
             ?LOG_DEBUG(
-               "Started Ra server for store \"~s\" on nodes:~n~p",
-               [StoreId, Started]),
-            ok;
-        {error, _} = Error ->
-            ?LOG_ERROR(
-               "Failed to start Ra cluster for store \"~s\" using the "
-               "following Ra server configuration:~n~p~nError: ~p",
-               [StoreId, RaServerConfig1, Error]),
-            Error
+               "Starting a Ra cluster with the following configuration:~n~p",
+               [RaServerConfig1]),
+            case ra:start_cluster(RaSystem, RaServerConfigs) of
+                {ok, Started, _NotStarted} ->
+                    ?LOG_DEBUG(
+                       "Started Ra server for store \"~s\" on nodes:~n~p",
+                       [StoreId, Started]),
+                    ok;
+                {error, _} = Error ->
+                    ?LOG_ERROR(
+                       "Failed to start Ra cluster for store \"~s\" using the "
+                       "following Ra server configuration:~n~p~nError: ~p",
+                       [StoreId, RaServerConfig1, Error]),
+                    Error
+            end;
+        [RemoteNodeRunningStore | _] ->
+            RaServerConfig1 = complete_ra_server_config(RaServerConfig),
+            RaServerConfig2 = maps:remove(initial_members, RaServerConfig1),
+            ?LOG_DEBUG(
+               "Starting a Ra server with the following configuration:~n~p",
+               [RaServerConfig2]),
+            case ra:start_server(RaSystem, RaServerConfig2) of
+                ok ->
+                    ?LOG_DEBUG(
+                       "Started Ra server for store \"~s\", "
+                       "joining already running initial member `~s`",
+                       [StoreId, RemoteNodeRunningStore]),
+                    Timeout = khepri_app:get_default_timeout(),
+                    trigger_election(RaServerConfig2, Timeout),
+                    RemoteMember = {StoreId, RemoteNodeRunningStore},
+                    join(RemoteMember);
+                {error, _} = Error ->
+                    ?LOG_ERROR(
+                       "Failed to start Ra server for store \"~s\" using the "
+                       "following Ra server configuration:~n~p~nError: ~p",
+                       [StoreId, RaServerConfig2, Error]),
+                    Error
+            end
     end.
+
+filter_nodes_running_store(StoreId, Members) ->
+    RemoteNodes = [Node || {_StoreId, Node} <- Members, Node =/= node()],
+    RunningRemotely = erpc:multicall(
+                        RemoteNodes,
+                        khepri_cluster, is_store_running, [StoreId]),
+    filter_nodes_running_store1(RemoteNodes, RunningRemotely, []).
+
+filter_nodes_running_store1(
+  [RemoteNode | Rest1], [{ok, true} | Rest2], NodesRunningStore) ->
+    NodesRunningStore1 = [RemoteNode | NodesRunningStore],
+    filter_nodes_running_store1(Rest1, Rest2, NodesRunningStore1);
+filter_nodes_running_store1(
+  [_RemoteNode | Rest1], [_Ret | Rest2], NodesRunningStore) ->
+    filter_nodes_running_store1(Rest1, Rest2, NodesRunningStore);
+filter_nodes_running_store1(
+  [], [], NodesRunningStore) ->
+    lists:reverse(NodesRunningStore).
 
 -spec trigger_election(Member | RaServerConfig, Timeout) -> ok when
       Member :: ra:server_id(),
