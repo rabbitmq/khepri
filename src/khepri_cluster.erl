@@ -442,7 +442,7 @@ do_start_server(RaSystem, RaServerConfig) ->
 
 -spec trigger_election(Member | RaServerConfig, Timeout) -> ok when
       Member :: ra:server_id(),
-      RaServerConfig :: ra_server_config_with_id_and_cn(),
+      RaServerConfig :: ra_server:ra_server_config(),
       Timeout :: timeout().
 %% @private
 
