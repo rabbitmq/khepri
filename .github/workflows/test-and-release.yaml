@@ -148,6 +148,7 @@ jobs:
 
       - name: Publish preview
         uses: dumbbell/preview-pages@main
+        continue-on-error: true
         with:
           source-dir: doc
           target-dir: previews
