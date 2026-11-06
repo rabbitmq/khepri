@@ -100,7 +100,8 @@ a_trigger_stored_before_extended_trigger_fires_and_upgrades_test() ->
     PutSproc = #put{path = [sprocs, my_sproc],
                     payload = khepri_payload:sproc(StoredProc),
                     options = #{}},
-    {S1, {ok, _}, _} = khepri_machine:apply(?META_V(?OLD_MACVER), PutSproc, S0),
+    {S1, {ok, _}, _} = khepri_machine:apply(
+                         ?META_V(?OLD_MACVER), PutSproc, S0),
     {S2, ok, _} = register_legacy_trigger(S1, ?OLD_MACVER),
 
     PutFoo = #put{path = [foo],
