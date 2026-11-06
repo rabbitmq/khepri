@@ -2165,7 +2165,7 @@ apply(
                      khepri_utils:format_exception(
                        Class, Reason, Stacktrace,
                        #{column => 4})]),
-            ?LOG_ALERT(Msg, []),
+            ?LOG_ALERT(Msg, [], #{domain => [khepri, ra_machine]}),
             erlang:raise(Class, Reason, Stacktrace)
     end.
 
