@@ -186,7 +186,8 @@
          compute_command_size/1,
          does_command_support_common_args/1,
          get_command_common_args/1,
-         maybe_convert_to_action/4]).
+         maybe_convert_to_action/4,
+         set_triggers/2]).
 -endif.
 
 -compile({no_auto_import, [apply/3]}).
@@ -2164,7 +2165,7 @@ apply(
                      khepri_utils:format_exception(
                        Class, Reason, Stacktrace,
                        #{column => 4})]),
-            ?LOG_ALERT(Msg, []),
+            ?LOG_ALERT(Msg, [], #{domain => [khepri, ra_machine]}),
             erlang:raise(Class, Reason, Stacktrace)
     end.
 
@@ -2287,12 +2288,31 @@ do_apply(
                                  action = Action,
                                  options = Options}} = Command,
   State) ->
+    #{machine_version := MacVer} = Meta,
     Triggers = get_triggers(State),
     EventFilter1 = normalize_event_filter(EventFilter),
     Where = maps:get(where, Options, leader),
-    Triggers1 = Triggers#{TriggerId => #{event_filter => EventFilter1,
-                                         action => Action,
-                                         where => Where}},
+    Trigger = case does_api_comply_with(extended_trigger, MacVer) of
+                  true ->
+                      #{event_filter => EventFilter1,
+                        action => Action,
+                        where => Where};
+                  false ->
+                      %% The machine does not comply with the extended
+                      %% trigger yet: the trigger is stored in its old
+                      %% format, because the state can be sent as a snapshot
+                      %% to a Ra member that still runs the old state
+                      %% machine. The old format only expresses a stored
+                      %% procedure executed on the leader when a tree node
+                      %% changes.
+                      ?assertMatch(#evf_tree{}, EventFilter1),
+                      ?assertMatch({sproc, _}, Action),
+                      ?assertEqual(leader, Where),
+                      {sproc, StoredProcPath} = Action,
+                      #{event_filter => EventFilter1,
+                        sproc => StoredProcPath}
+              end,
+    Triggers1 = Triggers#{TriggerId => Trigger},
     State1 = set_triggers(State, Triggers1),
     SideEffects = event_filter_to_side_effect(EventFilter, []),
     Ret = {State1, ok, SideEffects},
@@ -4269,7 +4289,16 @@ trigger_v1_to_v2(#{sproc := StoredProcPath} = Trigger) ->
     Trigger1 = Trigger#{action => {sproc, StoredProcPath},
                         where => leader},
     Trigger2 = maps:remove(sproc, Trigger1),
-    Trigger2.
+    Trigger2;
+trigger_v1_to_v2(#{action := {sproc, _}, where := _} = Trigger) ->
+    %% Already in the `extended_trigger' format. A machine that does not
+    %% comply with `extended_trigger' now stores a trigger in the old format
+    %% (see `do_apply()' for `#register_trigger_v{}'), but releases 0.19.0
+    %% to 0.19.3 stored the new format before `extended_trigger' as well. A
+    %% store written by one of them holds such triggers when it is upgraded
+    %% to the `extended_trigger' version, and refusing them here would crash
+    %% the machine on every start.
+    Trigger.
 
 -spec update_projections(OldState, NewState) -> ok when
       OldState :: khepri_machine:state(),
