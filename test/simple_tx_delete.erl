@@ -19,7 +19,7 @@ delete_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun() ->
                            khepri_tx:delete([foo])
@@ -46,7 +46,7 @@ delete_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun() ->
                            khepri_tx:delete([foo])
@@ -77,7 +77,7 @@ delete_many_on_non_existing_node_with_condition_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun() ->
                            khepri_tx:delete_many(
@@ -106,7 +106,7 @@ delete_many_on_existing_node_with_condition_true_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun() ->
                            khepri_tx:delete_many(
@@ -126,7 +126,7 @@ delete_many_on_existing_node_with_condition_false_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun() ->
                            khepri_tx:delete_many(
@@ -149,7 +149,7 @@ delete_many_recursively_1_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [foo, bar, baz], baz_value)),
       ?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun() ->
                            khepri_tx:delete_many(
@@ -175,7 +175,7 @@ delete_many_recursively_2_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [foo, bar, baz], baz_value)),
       ?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun() ->
                            khepri_tx:delete_many(
@@ -192,7 +192,7 @@ clear_payload_from_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun() ->
                            khepri_tx:clear_payload([foo])
@@ -219,7 +219,7 @@ clear_payload_from_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun() ->
                            khepri_tx:clear_payload([foo])
@@ -238,7 +238,7 @@ clear_payload_with_keep_while_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun() ->
                            khepri_tx:clear_payload(
@@ -258,7 +258,7 @@ clear_payload_with_options_test_() ->
          ok,
          khepri:create(?FUNCTION_NAME, [foo], foo_value)),
       ?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun() ->
                            khepri_tx:clear_payload(
@@ -275,7 +275,7 @@ clear_many_payloads_from_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun() ->
                            khepri_tx:clear_many_payloads(
@@ -308,7 +308,7 @@ clear_many_payloads_from_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun() ->
                            khepri_tx:clear_many_payloads(
@@ -323,7 +323,7 @@ clear_many_payloads_from_existing_node_test_() ->
          khepri:get_many(
            ?FUNCTION_NAME, [?KHEPRI_WILDCARD_STAR_STAR])),
       ?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun() ->
                            khepri_tx:clear_many_payloads(
@@ -332,7 +332,7 @@ clear_many_payloads_from_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertEqual(
-         {ok, ok},
+         ok,
          begin
              Fun = fun() ->
                            khepri_tx:clear_many_payloads(

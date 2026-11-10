@@ -1358,7 +1358,7 @@ trigger_projection_via_a_transaction_test_() ->
 
          {"Trigger the projection with a transaction",
           ?_assertEqual(
-            {ok, ok},
+            ok,
             khepri:transaction(
               ?FUNCTION_NAME,
               fun() ->

@@ -71,6 +71,7 @@
 -include("include/khepri.hrl").
 -include("src/khepri_error.hrl").
 -include("src/khepri_ret.hrl").
+-include("src/khepri_tx.hrl").
 
 -export([
          %% Functions to start & stop a Khepri store; for more
@@ -496,8 +497,11 @@
 %%
 %% `undefined' is returned if a tree node has no payload attached to it.
 
--type async_ret() :: khepri_machine:write_ret() |
+-type async_ret() :: khepri:minimal_ret() |
+                     khepri_machine:write_ret() |
                      khepri_tx:tx_fun_result() |
+                     khepri:error({aborted_tx, any()}) |
+                     khepri:error({exception, atom(), any(), list()}) |
                      khepri:error({not_leader, ra:server_id()}).
 %% The value returned from of a command function which was executed
 %% asynchronously.
@@ -3496,10 +3500,14 @@ transaction(FunOrPath, Args, ReadWrite, Options)
 %% (including audetected ones). However note that both types expect different
 %% options.
 %%
-%% The result of `FunOrPath' can be any term. That result is returned in an
-%% `{ok, Result}' tuple if the transaction is synchronous. The result is sent
-%% by message if the transaction is asynchronous and a correlation ID was
-%% specified.
+%% The result of `FunOrPath' can be any term. That result is returned as is if
+%% the transaction is synchronous, like if the transaction function was
+%% executed directly outside of Khepri. Any exceptions are also raised as is.
+%% If there is an error with the communication with the store, a new exception
+%% is raised with the error.
+%%
+%% The result is sent by message if the transaction is asynchronous and a
+%% correlation ID was specified.
 %%
 %% @param StoreId the name of the Khepri store.
 %% @param FunOrPath an arbitrary anonymous function or a path pattern pointing
@@ -3508,11 +3516,10 @@ transaction(FunOrPath, Args, ReadWrite, Options)
 %% @param ReadWrite the read/write or read-only nature of the transaction.
 %% @param Options command options such as the command type.
 %%
-%% @returns in the case of a synchronous transaction, `{ok, Result}' where
-%% `Result' is the return value of `FunOrPath', or `{error, Reason}' if the
-%% anonymous function was aborted; in the case of an asynchronous transaction,
-%% always `ok' (the actual return value may be sent by a message if a
-%% correlation ID was specified).
+%% @returns in the case of a synchronous transaction, `Result' where `Result'
+%% is the return value of `FunOrPath' execution; in the case of an asynchronous
+%% transaction, always `ok' (the actual return value may be sent by a message
+%% if a correlation ID was specified).
 
 transaction(StoreId, FunOrPath, Args, ReadWrite, Options) ->
     khepri_machine:transaction(StoreId, FunOrPath, Args, ReadWrite, Options).
@@ -3658,14 +3665,19 @@ handle_async_ret(
     lists:map(
       fun({CorrelationId, Reply0}) ->
           Reply = case Reply0 of
-                      {exception, _, _, _} = Exception ->
-                          khepri_machine:handle_tx_exception(Exception);
                       ok ->
                           Reply0;
                       {ok, _} ->
                           Reply0;
+                      {txfun_ret, TxRet} ->
+                          TxRet;
                       {error, _} ->
-                          Reply0
+                          Reply0;
+                      {exception, _, ?TX_ABORT(Reason), _} ->
+                          Error = ?khepri_error(aborted_tx, #{reason => Reason}),
+                          {error, Error};
+                      {exception, _, _, _} = Exception ->
+                          {error, Exception}
                   end,
           {CorrelationId, Reply}
       end, Correlations0);

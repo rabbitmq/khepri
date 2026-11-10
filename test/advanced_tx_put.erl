@@ -28,7 +28,7 @@ create_non_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
-         {ok, {ok, #{[foo] => #{payload_version => 1}}}},
+         {ok, #{[foo] => #{payload_version => 1}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:create([foo], foo_value)
@@ -48,16 +48,15 @@ create_existing_node_test_() ->
          {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertEqual(
-         {ok,
-          {error,
-           ?khepri_error(
-              mismatching_node,
-              #{condition => #if_node_exists{exists = false},
-                node_name => foo,
-                node_path => [foo],
-                node_is_target => true,
-                node_props => #{data => foo_value1,
-                                payload_version => 1}})}},
+         {error,
+          ?khepri_error(
+             mismatching_node,
+             #{condition => #if_node_exists{exists = false},
+               node_name => foo,
+               node_path => [foo],
+               node_is_target => true,
+               node_props => #{data => foo_value1,
+                               payload_version => 1}})},
          begin
              Fun = fun() ->
                            khepri_tx_adv:create([foo], foo_value2)
@@ -65,16 +64,15 @@ create_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertEqual(
-         {ok,
-          {error,
-           ?khepri_error(
-              mismatching_node,
-              #{condition => #if_node_exists{exists = false},
-                node_name => foo,
-                node_path => [foo],
-                node_is_target => true,
-                node_props => #{data => foo_value1,
-                                payload_version => 1}})}},
+         {error,
+          ?khepri_error(
+             mismatching_node,
+             #{condition => #if_node_exists{exists = false},
+               node_name => foo,
+               node_path => [foo],
+               node_is_target => true,
+               node_props => #{data => foo_value1,
+                               payload_version => 1}})},
          begin
              Fun = fun() ->
                            khepri_tx_adv:create([foo], foo_value2, #{})
@@ -103,7 +101,7 @@ insert_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok, {ok, #{[foo] => #{payload_version => 1}}}},
+         {ok, #{[foo] => #{payload_version => 1}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:put([foo], foo_value)
@@ -131,9 +129,8 @@ insert_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo] => #{data => foo_value1,
-                            payload_version => 2}}}},
+         {ok, #{[foo] => #{data => foo_value1,
+                           payload_version => 2}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:put([foo], foo_value2)
@@ -141,9 +138,8 @@ insert_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo] => #{data => foo_value2,
-                            payload_version => 2}}}},
+         {ok, #{[foo] => #{data => foo_value2,
+                           payload_version => 2}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:put([foo], foo_value2, #{})
@@ -182,9 +178,8 @@ insert_many_non_existing_nodes_test_() ->
          {ok, #{[b] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [b], ?NO_PAYLOAD)),
       ?_assertEqual(
-         {ok,
-          {ok, #{[a, foo] => #{payload_version => 1},
-                 [b, foo] => #{payload_version => 1}}}},
+         {ok, #{[a, foo] => #{payload_version => 1},
+                [b, foo] => #{payload_version => 1}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:put_many(
@@ -219,11 +214,10 @@ insert_many_existing_nodes_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
-         {ok,
-          {ok, #{[a, foo] => #{data => foo_value_a,
-                               payload_version => 2},
-                 [b, foo] => #{data => foo_value_b,
-                               payload_version => 2}}}},
+         {ok, #{[a, foo] => #{data => foo_value_a,
+                              payload_version => 2},
+                [b, foo] => #{data => foo_value_b,
+                              payload_version => 2}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:put_many(
@@ -232,11 +226,10 @@ insert_many_existing_nodes_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertEqual(
-         {ok,
-          {ok, #{[a, foo] => #{data => foo_value_all,
-                               payload_version => 2},
-                 [b, foo] => #{data => foo_value_all,
-                               payload_version => 2}}}},
+         {ok, #{[a, foo] => #{data => foo_value_all,
+                              payload_version => 2},
+                [b, foo] => #{data => foo_value_all,
+                              payload_version => 2}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:put_many(
@@ -256,16 +249,15 @@ update_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertEqual(
-         {ok,
-          {error,
-           ?khepri_error(
-              node_not_found,
-              #{condition => #if_all{conditions =
-                                     [foo,
-                                      #if_node_exists{exists = true}]},
-                node_name => foo,
-                node_path => [foo],
-                node_is_target => true})}},
+         {error,
+          ?khepri_error(
+             node_not_found,
+             #{condition => #if_all{conditions =
+                                    [foo,
+                                     #if_node_exists{exists = true}]},
+               node_name => foo,
+               node_path => [foo],
+               node_is_target => true})},
          begin
              Fun = fun() ->
                            khepri_tx_adv:update([foo], foo_value)
@@ -273,16 +265,15 @@ update_non_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, rw)
          end),
       ?_assertEqual(
-         {ok,
-          {error,
-           ?khepri_error(
-              node_not_found,
-              #{condition => #if_all{conditions =
-                                     [foo,
-                                      #if_node_exists{exists = true}]},
-                node_name => foo,
-                node_path => [foo],
-                node_is_target => true})}},
+         {error,
+          ?khepri_error(
+             node_not_found,
+             #{condition => #if_all{conditions =
+                                    [foo,
+                                     #if_node_exists{exists = true}]},
+               node_name => foo,
+               node_path => [foo],
+               node_is_target => true})},
          begin
              Fun = fun() ->
                            khepri_tx_adv:update([foo], foo_value, #{})
@@ -306,9 +297,8 @@ update_existing_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo] => #{data => foo_value1,
-                            payload_version => 2}}}},
+         {ok, #{[foo] => #{data => foo_value1,
+                           payload_version => 2}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:update([foo], foo_value2)
@@ -341,16 +331,15 @@ compare_and_swap_non_existing_node_test_() ->
      fun() -> test_ra_server_helpers:setup(?FUNCTION_NAME) end,
      fun(Priv) -> test_ra_server_helpers:cleanup(Priv) end,
      [?_assertMatch(
-         {ok,
-          {error,
-           ?khepri_error(
-              node_not_found,
-              #{condition := #if_all{conditions =
-                                     [foo,
-                                      #if_data_matches{pattern = foo_value1}]},
-                node_name := foo,
-                node_path := [foo],
-                node_is_target := true})}},
+         {error,
+          ?khepri_error(
+             node_not_found,
+             #{condition := #if_all{conditions =
+                                    [foo,
+                                     #if_data_matches{pattern = foo_value1}]},
+               node_name := foo,
+               node_path := [foo],
+               node_is_target := true})},
          begin
              Fun = fun() ->
                            khepri_tx_adv:compare_and_swap(
@@ -376,9 +365,8 @@ compare_and_swap_matching_node_test_() ->
              khepri:transaction(?FUNCTION_NAME, Fun, ro)
          end),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo] => #{data => foo_value1,
-                            payload_version => 2}}}},
+         {ok, #{[foo] => #{data => foo_value1,
+                           payload_version => 2}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:compare_and_swap(
@@ -399,16 +387,15 @@ compare_and_swap_mismatching_node_test_() ->
          {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertMatch(
-         {ok,
-          {error,
-           ?khepri_error(
-              mismatching_node,
-              #{condition := #if_data_matches{pattern = foo_value2},
-                node_name := foo,
-                node_path := [foo],
-                node_is_target := true,
-                node_props := #{data := foo_value1,
-                                payload_version := 1}})}},
+         {error,
+          ?khepri_error(
+             mismatching_node,
+             #{condition := #if_data_matches{pattern = foo_value2},
+               node_name := foo,
+               node_path := [foo],
+               node_is_target := true,
+               node_props := #{data := foo_value1,
+                               payload_version := 1}})},
          begin
              Fun = fun() ->
                            khepri_tx_adv:compare_and_swap(
@@ -425,9 +412,8 @@ compare_and_swap_with_options_test_() ->
          {ok, #{[foo] => #{payload_version => 1}}},
          khepri_adv:create(?FUNCTION_NAME, [foo], foo_value1)),
       ?_assertEqual(
-         {ok,
-          {ok, #{[foo] => #{data => foo_value1,
-                            payload_version => 2}}}},
+         {ok, #{[foo] => #{data => foo_value1,
+                           payload_version => 2}}},
          begin
              Fun = fun() ->
                            khepri_tx_adv:compare_and_swap(
