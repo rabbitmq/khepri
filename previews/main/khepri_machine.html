@@ -108,11 +108,21 @@ never be called directly outside of Khepri.</p>
   </ul>
   </td>
   </tr>
+  <tr>
+  <td style="text-align: right; vertical-align: top;">5</td>
+  <td>
+  <ul>
+  <li>Changed the transaction return value to help distinguish the transaction
+  function return value from an error with the communication with the Ra
+  server.</li>
+  </ul>
+  </td>
+  </tr>
   </table>
 <h2><a name="types">Data Types</a></h2>
 
 <h3 class="typedecl"><a name="type-api_behaviour">api_behaviour()</a></h3>
-<p><code>api_behaviour() = dedup_protection | delete_reason_in_node_props | expire_dedups_from_tick | indirect_deletes_in_ret | uniform_write_ret | multi_table_projections | uniform_commands | request_snapshot | extended_trigger | cached_members_list | process_based_keep_while</code></p>
+<p><code>api_behaviour() = dedup_protection | delete_reason_in_node_props | expire_dedups_from_tick | indirect_deletes_in_ret | uniform_write_ret | multi_table_projections | uniform_commands | request_snapshot | extended_trigger | cached_members_list | process_based_keep_while | transparent_tx_funs</code></p>
 <p>  Name of a state machine API behaviour.</p>
 
 <h3 class="typedecl"><a name="type-async_ret">async_ret()</a></h3>
@@ -210,7 +220,7 @@ acknowledge the execution of a trigger.</p>
   into account the execution of an MFA or the send of a message to a process.</p>
 
 <h3 class="typedecl"><a name="type-tx_ret">tx_ret()</a></h3>
-<p><code>tx_ret() = <a href="/home/runner/work/khepri/khepri/doc/khepri.html#type-ok" docgen-rel="seetype" docgen-href="khepri:khepri#ok/0">khepri:ok</a>(<a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result" docgen-rel="seetype" docgen-href="khepri:khepri_tx#tx_fun_result/0">khepri_tx:tx_fun_result()</a>) | <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort" docgen-rel="seetype" docgen-href="khepri:khepri_tx#tx_abort/0">khepri_tx:tx_abort()</a> | no_return()</code></p>
+<p><code>tx_ret() = <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_fun_result" docgen-rel="seetype" docgen-href="khepri:khepri_tx#tx_fun_result/0">khepri_tx:tx_fun_result()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_tx.html#type-tx_abort" docgen-rel="seetype" docgen-href="khepri:khepri_tx#tx_abort/0">khepri_tx:tx_abort()</a> | no_return()</code></p>
 
 
 <h3 class="typedecl"><a name="type-write_ret">write_ret()</a></h3>
@@ -223,7 +233,7 @@ acknowledge the execution of a trigger.</p>
   locally.</td></tr>
 <tr><td valign="top"><a href="#delete-3">delete/3</a></td><td>Deletes all tree nodes matching the path pattern.</td></tr>
 <tr><td valign="top"><a href="#transaction-5">transaction/5</a></td><td>Runs a transaction and returns the result.</td></tr>
-<tr><td valign="top"><a href="#handle_tx_exception-1">handle_tx_exception/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#handle_exception-1">handle_exception/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#register_trigger-5">register_trigger/5</a></td><td>Registers a trigger.</td></tr>
 <tr><td valign="top"><a href="#register_projection-4">register_projection/4</a></td><td>Registers a projection.</td></tr>
 <tr><td valign="top"><a href="#unregister_projections-3">unregister_projections/3</a></td><td>Removes the given projections from the store.</td></tr>
@@ -290,17 +300,27 @@ acknowledge the execution of a trigger.</p>
 <code>Options</code>: command options such as the command type.
  <br>
 </p>
-<p>returns: in the case of a synchronous transaction, <code>{ok, Result}</code> where
-  <code>Result</code> is the return value of <code>FunOrPath</code>, or <code>{error, Reason}</code> if the
-  anonymous function was aborted; in the case of an asynchronous transaction,
-  always <code>ok</code> (the actual return value may be sent by a message if a
-  correlation ID was specified).</p>
-</div><p>Runs a transaction and returns the result.
+<p>returns: in the case of a synchronous transaction, <code>Result</code> where <code>Result</code>
+  is the return value of <code>FunOrPath</code> execution; in the case of an asynchronous
+  transaction, always <code>ok</code> (the actual return value may be sent by a message
+  if a correlation ID was specified).</p>
+</div><p><p>Runs a transaction and returns the result.</p>
+ 
+  <p>In the case of a synchronous transaction, the transaction function, whether
+  it is an anonymous function or a store procedure, is executed as if Khepri
+  was not involved: the return value of <a docgen-rel="seemfa" docgen-href="#transaction/5" href="#transaction-5"><code>transaction/5</code></a> is the return  
+value of the transaction function.</p>
+ 
+  <p>If the transaction function throws an exception, the exception is raised as  
+is. If there is an error with the communication with the store, a new  
+exception is raised with the error.</p>
+ 
+  In the case of an asynchronous transaction, <code>ok</code> is always returned.
  </p>
 
-<h3 class="function"><a name="handle_tx_exception-1">handle_tx_exception/1</a></h3>
+<h3 class="function"><a name="handle_exception-1">handle_exception/1</a></h3>
 <div class="spec">
-<p><code>handle_tx_exception(X1) -&gt; any()</code></p>
+<p><code>handle_exception(X1) -&gt; any()</code></p>
 <p></p>
 </div>
 
@@ -367,14 +387,14 @@ acknowledge the execution of a trigger.</p>
 <h3 class="function"><a name="version-0">version/0</a></h3>
 <div class="spec">
 <p><code>version() -&gt; MacVer</code>
-<ul class="definitions"><li><code>MacVer = 4</code></li></ul></p>
+<ul class="definitions"><li><code>MacVer = 5</code></li></ul></p>
 <p></p>
 </div><p>Returns the state machine version.</p>
 
 <h3 class="function"><a name="which_module-1">which_module/1</a></h3>
 <div class="spec">
 <p><code>which_module(MacVer) -&gt; Module</code>
-<ul class="definitions"><li><code>MacVer = 0..4</code></li><li><code>Module = khepri_machine</code></li></ul></p>
+<ul class="definitions"><li><code>MacVer = 0..5</code></li><li><code>Module = khepri_machine</code></li></ul></p>
 <p></p>
 </div><p>Returns the state machine module corresponding to the given version.</p>
 
