@@ -1,0 +1,404 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Module khepri_evf</title>
+<link rel="stylesheet" type="text/css" href="edoc-extensions.css" title="EDoc">
+<link rel="icon" href="khepri-favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css" />
+</head>
+<body class="markdown-body language-erlang"><script src="prism.js"></script>
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module khepri_evf</h1>
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Khepri event filters.
+
+
+<h2><a name="description">Description</a></h2><p>Khepri event filters.</p>
+ 
+  <p>Triggers allow a user to associate an event, described by an event filter,  
+to an action. When an event matches the registered event filter, the  
+associated action is evaluated.</p>
+ 
+  <h3><a name="Events_and_event_filters">Events and event filters</a></h3>
+ 
+  <h4><a name="Changes_to_the_tree">Changes to the tree</a></h4>
+ 
+  <p>When a tree node is created, modified or deleted, a <em>tree change</em> is  
+emitted.</p>
+ 
+  <p>To register a trigger that targets tree changes, you can create a  
+tree-change event filter explicitly:</p>
+ 
+  <pre><code>EventFilter = khepri_evf:tree([stock, wood, &lt;&lt;"oak"&gt;&gt;], %% Required
+                              #{on_actions =&gt; [delete], %% Optional
+                                priority =&gt; 10}),       %% Optional
+ 
+ok = khepri:register_trigger(
+       StoreId,
+       TriggerId,
+       EventFilter,
+       Action).</code></pre>
+ 
+  <p>It's possible to pass a path pattern directly as an event filter: this is  
+the same as creating an explicit tree-change event filter with default  
+options.</p>
+ 
+  <pre><code>EventFilter = "/:stock/:wood/oak",
+ 
+ok = khepri:register_trigger(
+       StoreId,
+       TriggerId,
+       EventFilter,
+       Action).</code></pre>
+ 
+  <p>The path pattern can match many paths. The monitored paths don't neew to  
+exist when the trigger is registered.</p>
+ 
+  <h4><a name="Termination_of_a_process">Termination of a process</a></h4>
+ 
+  <p>Khepri can monitor a process. When this process exits, a <em>process</em>  
+event is emitted.</p>
+ 
+  <p>To register a trigger that targets process termination, you can create a  
+process event filter explicitly:</p>
+ 
+  <pre><code>EventFilter = khepri_evf:process(self(),             %% Required
+                                 #{priority =&gt; 10}), %% Optional
+ 
+ok = khepri:register_trigger(
+       StoreId,
+       TriggerId,
+       EventFilter,
+       Action).</code></pre>
+ 
+  <p>It's possible to pass a PID directly as an event filter: this is the same  
+as creating an explicit process event filter with default options.</p>
+ 
+  <pre><code>EventFilter = self(),
+ 
+ok = khepri:register_trigger(
+       StoreId,
+       TriggerId,
+       EventFilter,
+       Action).</code></pre>
+ 
+  <p>The Khepri leader monitors the given process. When the process exits or if  
+it's not running in the first place, it will trigger the execution of the  
+trigger action.</p>
+ 
+  If the monitored process is on a different Erlang node than the Ra leader,
+  the loss of connection between the two nodes (i.e. the <code>noconnection</code> exit
+  reason) is handled in a specific way:
+  <ul>
+  <li>If the remote node is a member of the Khepri cluster, Khepri will start
+  to monitor that node after receiving the <code>noconnection</code> exit reaison. Then
+  two things can happen:
+  <ul>
+  <li>The node comes back online. In this case, processes that are supposed
+  to run on it are monitored again. If the node was restarted and the
+  processes were killed, this new monitoring will detect this situation.</li>
+  <li>The node is removed from the cluster. In this case, it is unlikely to
+  come back. Thus, the processes that were running on it are considered as
+  dead.</li>
+  </ul></li>
+  <li>If the remote node is not a member of the Khepri cluster, Khepri will
+  consider that the processes supposed to run on this node are dead, even if
+  this is network partition and the node and its processes could be reachable
+  again in the future.</li>
+  </ul>
+ 
+  <h3><a name="Actions">Actions</a></h3>
+ 
+  <h4><a name="Trigger_descriptor">Trigger descriptor</a></h4>
+ 
+  The trigger descriptor (<a docgen-rel="seetype" docgen-href="khepri_event_handler#trigger_descriptor/0" href="khepri_event_handler.html#type-trigger_descriptor"><code>khepri_event_handler:trigger_descriptor()</code></a>)
+  is a record used to encapsulate the properties of a specific triggered
+  trigger: it contains details about:
+  <ul>
+  <li>the originating store and trigger IDs</li>
+  <li>the originating event</li>
+  <li>the action properties</li>
+  </ul>
+ 
+  <p>This trigger descriptor is passed to the action and allows the action to  
+distinguish each instance of a trigger.</p>
+ 
+  <p>=== Execution of a stored procedure</p>
+ 
+  The action takes be a path to a stored procedure.
+  The action takes the form of:
+  <ul>
+  <li>a path to a stored procedure, or</li>
+  <li>a <code>{sproc, StoredProcPath}</code> tuple</li>
+  </ul>
+ 
+  <p>The stored procedure must take a single argument, the trigger descriptor.</p>
+ 
+  <p>The stored procedure does not have to exist when the trigger is registered.  
+If the trigger is triggered while the stored procedure is missing, the  
+event will be ignored.</p>
+ 
+  <p>The return value of the function is ignored.</p>
+ 
+  <p>Here is an example of a function that can be used as a stored procedure:</p>
+ 
+  <pre><code>my_stored_procedure(#khepri_trigger{...}) -&gt;
+    do_something_with_event().</code></pre>
+ 
+  <h4><a name="Execution_of_an_arbitrary_MFA">Execution of an arbitrary MFA</a></h4>
+ 
+  The action takes the form of:
+  <ul>
+  <li>a <code>{Module, Function, ArgsList}</code> tuple, or</li>
+  <li>a <code>{apply, {Module, Function, ArgsList}}</code> tuple</li>
+  </ul>
+ 
+  <p>When the action is triggered, the MFA is executed with the given arguments  
+list with the trigger descriptor appended to it.</p>
+ 
+  <p>The return value of the function is ignored.</p>
+ 
+  <p>Here is an example of a function that can be used with <code>{my_mod, my_func,
+  [ExtraArg]}</code>:</p>
+ 
+  <pre><code>-module(my_mod).
+-export([my_func/2]).
+ 
+my_func(ExtraArg, #khepri_trigger{...}) -&gt;
+    do_something_with_event(ExtraArg).</code></pre>
+ 
+  <h4><a name="Send_of_a_message">Send of a message</a></h4>
+ 
+  The action takes the form of:
+  <ul>
+  <li>a PID, or</li>
+  <li>a <code>{send, Pid, Priv}</code> tuple</li>
+  </ul>
+ 
+  <p>When the action is triggered, the trigger descriptor is sent as a message
+  to the given PID. The <code>Priv</code> term is added to the action properties. If the
+  action is the PID alone, <code>Priv</code> defaults to <code>undefined</code> and nothing is  
+added to the action properties.</p>
+ 
+  <p>The target process is not monitored. If it's not running anymore or it is  
+on a node that is unreachable at the time of the event, the event is  
+triggered.</p>
+ 
+  <p>Here is an example of a <code>receive</code> block that expects a trigger descriptor:</p>
+ 
+  <pre><code>receive
+    #khepri_trigger{...} -&gt;
+        do_something_with_event()
+end.</code></pre>
+ 
+  <h4><a name="Where_is_the_action_evaluated?">Where is the action evaluated?</a></h4>
+ 
+  <p>By default, the action is evaluated by the Khepri leader.</p>
+ 
+  <p>It's possible to indicate where to evaluate the trigger when the trigger is
+  registered, using the <code>where</code> option (see <a docgen-rel="seetype" docgen-href="khepri#trigger_options/0" href="khepri.html#type-trigger_options"><code>khepri:trigger_options()</code></a>).</p>
+ 
+  <p>Here is an example of a trigger where the action will be evaluated on all  
+members of the Khepri cluster at the time of the event.</p>
+ 
+  <pre><code>EventFilter = khepri_evf:tree([stock, wood, &lt;&lt;"oak"&gt;&gt;], %% Required
+                              #{on_actions =&gt; [delete], %% Optional
+                                priority =&gt; 10}),       %% Optional
+ 
+ok = khepri:register_trigger(
+       StoreId,
+       TriggerId,
+       EventFilter,
+       Action,
+       #{where =&gt; all_members}).</code></pre>
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-event">event()</a></h3>
+<p><code>event() = <a href="#type-tree_event" docgen-rel="seetype" docgen-href="#tree_event/0">tree_event()</a> | <a href="#type-process_event" docgen-rel="seetype" docgen-href="#process_event/0">process_event()</a></code></p>
+<p>  An record representing an event.</p>
+
+<h3 class="typedecl"><a name="type-event_filter">event_filter()</a></h3>
+<p><code>event_filter() = <a href="#type-tree_event_filter" docgen-rel="seetype" docgen-href="#tree_event_filter/0">tree_event_filter()</a> | <a href="#type-process_event_filter" docgen-rel="seetype" docgen-href="#process_event_filter/0">process_event_filter()</a></code></p>
+<p><p>  An event filter.</p>
+ 
+  The following event filters are supported:
+  <ul>
+  <li>Tree event filter (<a docgen-rel="seetype" docgen-href="#tree_event_filter/0" href="#type-tree_event_filter"><code>tree_event_filter()</code></a></li>
+  <li>Process event filter (<a docgen-rel="seetype" docgen-href="#process_event_filter/0" href="#type-process_event_filter"><code>process_event_filter()</code></a></li>
+  </ul>
+ 
+  An event filter can be explicitly constructed using the functions provided
+  in this module. However, some common types will be automatically detected
+  and converted to an event filter with default properties. See each event
+  filter type for more details.</p>
+
+<h3 class="typedecl"><a name="type-event_filter_or_compat">event_filter_or_compat()</a></h3>
+<p><code>event_filter_or_compat() = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter/0">khepri_evf:event_filter()</a> | <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a> | pid()</code></p>
+<p><p>  An event filter, or any type that can be automatically converted to an  
+event filter.</p>
+ 
+  For instance, a Khepri path or a string can be converted to a <a docgen-rel="seetype" docgen-href="#tree_event_filter/0" href="#type-tree_event_filter"><code>tree_event_filter()</code></a>.
+ </p>
+
+<h3 class="typedecl"><a name="type-priority">priority()</a></h3>
+<p><code>priority() = integer()</code></p>
+<p><p>  An event filter priority.</p>
+ 
+  <p>This is an integer to prioritize event filters: the greater the priority,  
+the more it is prioritized. Negative integers are allowed.</p>
+ 
+  The default priority is 0.</p>
+
+<h3 class="typedecl"><a name="type-process_event">process_event()</a></h3>
+<p><code>process_event() = #ev_process{pid = pid(), change = {'DOWN', any()}}</code></p>
+<p><p>  An event record representing a monitored process that exited.</p>
+ 
+  The event has the following fields:
+  <ul>
+  <li><code>pid</code>: the PID of the terminated process</li>
+  <li><code>reason</code>: the exit reason</li>
+  </ul></p>
+
+<h3 class="typedecl"><a name="type-process_event_filter">process_event_filter()</a></h3>
+<p><code>process_event_filter() = #evf_process{pid = pid(), props = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-process_event_filter_props" docgen-rel="seetype" docgen-href="khepri:khepri_evf#process_event_filter_props/0">khepri_evf:process_event_filter_props()</a>}</code></p>
+<p><p>  A process event filter.</p>
+ 
+  It takes a PID to monitor and optionally properties.</p>
+
+<h3 class="typedecl"><a name="type-process_event_filter_props">process_event_filter_props()</a></h3>
+<p><code>process_event_filter_props() = #{priority =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-priority" docgen-rel="seetype" docgen-href="khepri:khepri_evf#priority/0">khepri_evf:priority()</a>}</code></p>
+<p><p>  Tree event filter properties.</p>
+ 
+  The properties are:
+  <ul>
+  <li><code>priority</code>: a <a docgen-rel="seetype" docgen-href="#priority/0" href="#type-priority"><code>priority()</code></a></li>
+  </ul>
+ 
+  A Khepri path, whether it is a native path or a Unix-like path, can be used
+  as a tree event filter. It will be automatically converted to a tree event
+  filter with default properties.</p>
+
+<h3 class="typedecl"><a name="type-tree_event">tree_event()</a></h3>
+<p><code>tree_event() = #ev_tree{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_path" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_path/0">khepri_path:native_path()</a>, change = <a href="/home/runner/work/khepri/khepri/doc/khepri_tree.html#type-applied_change" docgen-rel="seetype" docgen-href="khepri:khepri_tree#applied_change/0">khepri_tree:applied_change()</a>}</code></p>
+<p><p>  An event record representing a change tree change.</p>
+ 
+  The event has the following fields:
+  <ul>
+  <li><code>path</code>: the path of the affected tree node</li>
+  <li><code>change</code>: the nature of the change (<code>create</code>, <code>update</code> or
+  <code>delete</code>).</li>
+  </ul></p>
+
+<h3 class="typedecl"><a name="type-tree_event_filter">tree_event_filter()</a></h3>
+<p><code>tree_event_filter() = #evf_tree{path = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-native_pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#native_pattern/0">khepri_path:native_pattern()</a>, props = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-tree_event_filter_props" docgen-rel="seetype" docgen-href="khepri:khepri_evf#tree_event_filter_props/0">khepri_evf:tree_event_filter_props()</a>}</code></p>
+<p><p>  A tree event filter.</p>
+ 
+  It takes a path pattern to monitor and optionally properties.</p>
+
+<h3 class="typedecl"><a name="type-tree_event_filter_props">tree_event_filter_props()</a></h3>
+<p><code>tree_event_filter_props() = #{on_actions =&gt; [<a href="/home/runner/work/khepri/khepri/doc/khepri_tree.html#type-change_type" docgen-rel="seetype" docgen-href="khepri:khepri_tree#change_type/0">khepri_tree:change_type()</a>], priority =&gt; <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-priority" docgen-rel="seetype" docgen-href="khepri:khepri_evf#priority/0">khepri_evf:priority()</a>}</code></p>
+<p><p>  Tree event filter properties.</p>
+ 
+  The properties are:
+  <ul>
+  <li><code>on_actions</code>: a list of actions to filter among <code>create</code>, <code>update</code> and
+  <code>delete</code>; the default is to react to all of them.</li>
+  <li><code>priority</code>: a <a docgen-rel="seetype" docgen-href="#priority/0" href="#type-priority"><code>priority()</code></a></li>
+  </ul>
+ 
+  A Khepri path, whether it is a native path or a Unix-like path, can be used
+  as a tree event filter. It will be automatically converted to a tree event
+  filter with default properties.</p>
+
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#tree-1">tree/1</a></td><td>Constructs a tree event filter.</td></tr>
+<tr><td valign="top"><a href="#tree-2">tree/2</a></td><td>Constructs a tree event filter.</td></tr>
+<tr><td valign="top"><a href="#process-1">process/1</a></td><td>Constructs a process event filter.</td></tr>
+<tr><td valign="top"><a href="#process-2">process/2</a></td><td>Constructs a process event filter.</td></tr>
+<tr><td valign="top"><a href="#wrap-1">wrap/1</a></td><td>Automatically detects the event filter type and ensures it is wrapped
+  in one of the internal types.</td></tr>
+<tr><td valign="top"><a href="#get_priority-1">get_priority/1</a></td><td>Returns the priority of the event filter.</td></tr>
+<tr><td valign="top"><a href="#set_priority-2">set_priority/2</a></td><td>Sets the priority of the event filter.</td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="tree-1">tree/1</a></h3>
+<div class="spec">
+<p><code>tree(PathPattern) -&gt; EventFilter</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-tree_event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#tree_event_filter/0">khepri_evf:tree_event_filter()</a></code></li></ul></p>
+<p></p>
+</div><p>Constructs a tree event filter.
+ </p>
+<p><b>See also:</b> <a href="#tree-2" docgen-rel="seemfa" docgen-href="#tree/2">tree/2</a>, <a href="#wrap-1" docgen-rel="seemfa" docgen-href="#wrap/1">wrap/1</a>.</p>
+
+<h3 class="function"><a name="tree-2">tree/2</a></h3>
+<div class="spec">
+<p><code>tree(PathPattern, Props) -&gt; EventFilter</code>
+<ul class="definitions"><li><code>PathPattern = <a href="/home/runner/work/khepri/khepri/doc/khepri_path.html#type-pattern" docgen-rel="seetype" docgen-href="khepri:khepri_path#pattern/0">khepri_path:pattern()</a></code></li><li><code>Props = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-tree_event_filter_props" docgen-rel="seetype" docgen-href="khepri:khepri_evf#tree_event_filter_props/0">khepri_evf:tree_event_filter_props()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-tree_event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#tree_event_filter/0">khepri_evf:tree_event_filter()</a></code></li></ul></p>
+<p></p>
+</div><p>Constructs a tree event filter.
+ </p>
+<p><b>See also:</b> <a href="#type-tree_event_filter" docgen-rel="seetype" docgen-href="#tree_event_filter/0">tree_event_filter()</a>.</p>
+
+<h3 class="function"><a name="process-1">process/1</a></h3>
+<div class="spec">
+<p><code>process(Pid) -&gt; EventFilter</code>
+<ul class="definitions"><li><code>Pid = pid()</code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-process_event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#process_event_filter/0">khepri_evf:process_event_filter()</a></code></li></ul></p>
+<p></p>
+</div><p>Constructs a process event filter.
+ </p>
+<p><b>See also:</b> <a href="#process-2" docgen-rel="seemfa" docgen-href="#process/2">process/2</a>.</p>
+
+<h3 class="function"><a name="process-2">process/2</a></h3>
+<div class="spec">
+<p><code>process(Pid, Props) -&gt; EventFilter</code>
+<ul class="definitions"><li><code>Pid = pid()</code></li><li><code>Props = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-process_event_filter_props" docgen-rel="seetype" docgen-href="khepri:khepri_evf#process_event_filter_props/0">khepri_evf:process_event_filter_props()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-process_event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#process_event_filter/0">khepri_evf:process_event_filter()</a></code></li></ul></p>
+<p></p>
+</div><p>Constructs a process event filter.
+ </p>
+<p><b>See also:</b> <a href="#type-process_event_filter" docgen-rel="seetype" docgen-href="#process_event_filter/0">process_event_filter()</a>.</p>
+
+<h3 class="function"><a name="wrap-1">wrap/1</a></h3>
+<div class="spec">
+<p><code>wrap(Input) -&gt; EventFilter</code>
+<ul class="definitions"><li><code>Input = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter_or_compat" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter_or_compat/0">khepri_evf:event_filter_or_compat()</a></code></li><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter/0">khepri_evf:event_filter()</a></code></li></ul></p>
+<p><code>Input</code>: an already created event filter, or any term which can be
+         automatically converted to an event filter.
+ <br>
+</p>
+<p>returns: the created event filter.</p>
+</div><p>Automatically detects the event filter type and ensures it is wrapped
+  in one of the internal types.
+ </p>
+
+<h3 class="function"><a name="get_priority-1">get_priority/1</a></h3>
+<div class="spec">
+<p><code>get_priority(EventFilter) -&gt; Priority</code>
+<ul class="definitions"><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter/0">khepri_evf:event_filter()</a></code></li><li><code>Priority = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-priority" docgen-rel="seetype" docgen-href="khepri:khepri_evf#priority/0">khepri_evf:priority()</a></code></li></ul></p>
+<p><code>EventFilter</code>: the event filter to update.
+ <br>
+</p>
+<p>returns: the priority.</p>
+</div><p>Returns the priority of the event filter.
+ </p>
+
+<h3 class="function"><a name="set_priority-2">set_priority/2</a></h3>
+<div class="spec">
+<p><code>set_priority(EventFilter, Priority) -&gt; EventFilter</code>
+<ul class="definitions"><li><code>EventFilter = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-event_filter" docgen-rel="seetype" docgen-href="khepri:khepri_evf#event_filter/0">khepri_evf:event_filter()</a></code></li><li><code>Priority = <a href="/home/runner/work/khepri/khepri/doc/khepri_evf.html#type-priority" docgen-rel="seetype" docgen-href="khepri:khepri_evf#priority/0">khepri_evf:priority()</a></code></li></ul></p>
+<p><code>EventFilter</code>: the event filter to update.<br>
+<code>Priority</code>: the new priority.
+ <br>
+</p>
+<p>returns: the updated event filter.</p>
+</div><p>Sets the priority of the event filter.
+ </p>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc</i></p>
+</body>
+</html>
