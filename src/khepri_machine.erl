@@ -182,12 +182,15 @@
          make_virgin_state/1,
          convert_state/3,
          set_tree/2,
+         set_metrics/2,
          reset_metrics/1,
          compute_command_size/1,
          does_command_support_common_args/1,
          get_command_common_args/1,
          maybe_convert_to_action/4,
-         set_triggers/2]).
+         set_triggers/2,
+         cache_effective_machine_version/2,
+         need_snapshot_after_some_time/1]).
 -endif.
 
 -compile({no_auto_import, [apply/3]}).
@@ -4509,6 +4512,17 @@ need_snapshot_after_some_time(State) ->
             Now = erlang:monotonic_time(second),
             TimeInterval = get_snapshot_time_interval(State),
             case Metrics of
+                #{last_snapshot_request_timestamp := Last}
+                  when Now < Last ->
+                    %% The recorded snapshot timestamp is in the future. This
+                    %% could happen if the state machine is restarted and the
+                    %% timestamp was not reset during recovery. Khepri 0.19.x
+                    %% is affected by this. Starting with Khepri 0.20.0, the
+                    %% timestamp is reset during recovery.
+                    %%
+                    %% So if this happens, we ignore that timestamp and move on
+                    %% with the next criteria.
+                    continue;
                 #{last_snapshot_request_timestamp := Last}
                   when Now - Last >= TimeInterval ->
                     %% The time since the last snapshot is long enough. We
