@@ -231,7 +231,7 @@ acknowledge the execution of a trigger.</p>
 <tr><td valign="top"><a href="#version-0">version/0</a></td><td>Returns the state machine version.</td></tr>
 <tr><td valign="top"><a href="#which_module-1">which_module/1</a></td><td>Returns the state machine module corresponding to the given version.</td></tr>
 <tr><td valign="top"><a href="#does_api_comply_with-2">does_api_comply_with/2</a></td><td>Indicates if a new behaviour of the transaction API is activated.</td></tr>
-<tr><td valign="top"><a href="#record_snapshot_timestamp-1">record_snapshot_timestamp/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#needs_snapshot_to_fix_timestamp-1">needs_snapshot_to_fix_timestamp/1</a></td><td></td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -398,9 +398,9 @@ the transaction API may differ.</p>
   to adapt.
  </p>
 
-<h3 class="function"><a name="record_snapshot_timestamp-1">record_snapshot_timestamp/1</a></h3>
+<h3 class="function"><a name="needs_snapshot_to_fix_timestamp-1">needs_snapshot_to_fix_timestamp/1</a></h3>
 <div class="spec">
-<p><code>record_snapshot_timestamp(State) -&gt; any()</code></p>
+<p><code>needs_snapshot_to_fix_timestamp(State) -&gt; any()</code></p>
 <p></p>
 </div>
 <hr>
