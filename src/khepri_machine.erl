@@ -4499,13 +4499,13 @@ maybe_request_snapshot(State, SideEffects, #{index := RaftIndex}) ->
 
 should_request_snapshot(State) ->
     maybe
-        continue ?= need_snapshot_after_some_time(State),
+        continue ?= needs_snapshot_after_some_time(State),
         continue ?= request_snapshot_based_on_unreleased_command_footprint(
                       State),
         request_snapshot_based_on_applied_command_count(State)
     end.
 
-need_snapshot_after_some_time(State) ->
+needs_snapshot_after_some_time(State) ->
     StoreId = get_store_id(State),
     case does_api_comply_with(request_snapshot, StoreId) of
         true ->
