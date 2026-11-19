@@ -158,7 +158,8 @@
          does_api_comply_with/2,
          wait_for_effective_machine_version/3,
          wait_for_effective_behaviour/3,
-         convert_to_uniform_command/1]).
+         convert_to_uniform_command/1,
+         needs_snapshot_to_fix_timestamp/1]).
 
 %% Internal functions to access the opaque #khepri_machine{} state.
 -export([is_state/1,
@@ -182,12 +183,16 @@
          make_virgin_state/1,
          convert_state/3,
          set_tree/2,
+         set_metrics/2,
          reset_metrics/1,
          compute_command_size/1,
          does_command_support_common_args/1,
          get_command_common_args/1,
          maybe_convert_to_action/4,
-         set_triggers/2]).
+         set_triggers/2,
+         should_request_snapshot/1,
+         needs_snapshot_after_some_time/1,
+         request_snapshot_based_on_unreleased_command_footprint/1]).
 -endif.
 
 -compile({no_auto_import, [apply/3]}).
@@ -1776,20 +1781,20 @@ init_aux(StoreId) ->
 
 handle_aux(leader, cast, eval, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+    State = ra_aux:machine_state(IntState),
 
     EffectiveMacVer = ra_aux:effective_machine_version(IntState),
     CachesMembersList = does_api_comply_with(
                           cached_members_list, EffectiveMacVer),
     SideEffects1 = case CachesMembersList of
                        true ->
-                           State = ra_aux:machine_state(IntState),
                            Cluster = ra_aux:members_info(IntState),
                            Members1 = maps:fold(
                                         fun({_StoreId, Node}, _, Acc) ->
                                                 [Node | Acc]
                                         end, [], Cluster),
                            Members2 = lists:sort(Members1),
-                           case khepri_machine:get_cached_members(State) of
+                           case get_cached_members(State) of
                                Members2 ->
                                    [];
                                _ ->
@@ -1804,7 +1809,19 @@ handle_aux(leader, cast, eval, AuxState, IntState) ->
                        false ->
                            []
                    end,
-    {no_reply, AuxState1, IntState, SideEffects1};
+
+    %% We specify the module in this call because a testcase uses `meck' to
+    %% override the code of `needs_snapshot_to_fix_timestamp/1'.
+    NeedsTimestampFix = khepri_machine:needs_snapshot_to_fix_timestamp(State),
+    SideEffects2 = case NeedsTimestampFix of
+                       true ->
+                           request_snapshot_to_fix_timestamp(
+                             State, SideEffects1);
+                       false ->
+                           SideEffects1
+                   end,
+
+    {no_reply, AuxState1, IntState, SideEffects2};
 handle_aux(
   _RaState, {call, From},
   {query, _QueryFun, Options} = AuxQuery,
@@ -3116,12 +3133,14 @@ non_emitted_triggers_to_side_effects(State, SideEffects) ->
       Overview :: #{store_id := StoreId,
                     tree := NodeTree,
                     triggers := Triggers,
-                    keep_while_conds := KeepWhileConds},
+                    keep_while_conds := KeepWhileConds,
+                    metrics := Metrics},
       StoreId :: khepri:store_id(),
       NodeTree :: khepri_utils:display_tree(),
       Triggers :: khepri_machine:triggers_map() |
                   khepri_machine:triggers_map_v2(),
-      KeepWhileConds :: khepri_tree:keep_while_conds_map().
+      KeepWhileConds :: khepri_tree:keep_while_conds_map(),
+      Metrics :: khepri_machine:metrics().
 %% @private
 
 overview(State) ->
@@ -3129,6 +3148,7 @@ overview(State) ->
     Tree = get_tree(State),
     KeepWhileConds = get_keep_while_conds(State),
     Triggers = get_triggers(State),
+    Metrics = get_metrics(State),
     TreeOptions = #{props_to_return => ?INTERNAL_LOOKUP_PROPS_TO_RETURN,
                     include_root_props => true},
     {ok, NodePropsMap} = khepri_tree:find_matching_nodes(
@@ -3143,7 +3163,8 @@ overview(State) ->
     #{store_id => StoreId,
       tree => NodeTree,
       triggers => Triggers,
-      keep_while_conds => KeepWhileConds}.
+      keep_while_conds => KeepWhileConds,
+      metrics => Metrics}.
 
 -spec version() -> MacVer when
       MacVer :: ?LATEST_MACVER.
@@ -4495,13 +4516,13 @@ maybe_request_snapshot(State, SideEffects, #{index := RaftIndex}) ->
 
 should_request_snapshot(State) ->
     maybe
-        continue ?= need_snapshot_after_some_time(State),
+        continue ?= needs_snapshot_after_some_time(State),
         continue ?= request_snapshot_based_on_unreleased_command_footprint(
                       State),
         request_snapshot_based_on_applied_command_count(State)
     end.
 
-need_snapshot_after_some_time(State) ->
+needs_snapshot_after_some_time(State) ->
     StoreId = get_store_id(State),
     case does_api_comply_with(request_snapshot, StoreId) of
         true ->
@@ -4580,3 +4601,38 @@ record_snapshot_timestamp(State) ->
     Metrics1 = Metrics#{last_snapshot_request_timestamp => Now},
     State1 = set_metrics(State, Metrics1),
     State1.
+
+needs_snapshot_to_fix_timestamp(State) ->
+    %% When the snapshot decision was updated to use the unreleased command
+    %% footprint, we used used a timestamp to avoid requesting snapshot too
+    %% often. Unfortunatly, the timestamp is based on the monotonic clock which
+    %% is basically the Erlang VM uptime. Therefore on VM restart, the clock
+    %% would go back to zero, meaning that a previous timestamp would be in the
+    %% future.
+    %%
+    %% Here, we detect if the timestamp is in the future and request a snapshot
+    %% if that's the case to fix the timestamp.
+    Metrics = get_metrics(State),
+    Now = erlang:monotonic_time(second),
+    case Metrics of
+        #{last_snapshot_request_timestamp := Last}
+          when Last > Now ->
+            %% The timestamp is in the future, we need a snapshot to
+            %% record a new timestamp.
+            true;
+        _ ->
+            false
+    end.
+
+request_snapshot_to_fix_timestamp(State, SideEffects) ->
+    StoreId = get_store_id(State),
+    ?LOG_DEBUG(
+       "Last `~s` store snapshot timestamp in the future, requesting a new "
+       "snapshot to fix it~n~p",
+       [StoreId, erlang:process_info(self(), current_stacktrace)],
+       #{domain => [khepri, ra_machine]}),
+    Reason = "snapshot timestamp in the future; fixing it",
+    CommandArgs = #request_snapshot_v1{reason = Reason},
+    Command = #request_snapshot{args = CommandArgs},
+    SideEffect = {append, Command, noreply},
+    SideEffects ++ [SideEffect].
