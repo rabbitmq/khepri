@@ -115,6 +115,11 @@ never be called directly outside of Khepri.</p>
   <li>Changed the transaction return value to help distinguish the transaction
   function return value from an error with the communication with the Ra
   server.</li>
+  <li>Got rid of the caching of the Ra system and Ra server configuration
+  managed by <code>khepri_cluster</code>; the startup of the state machine in now
+  independant.</li>
+  <li>Added support for the <code>initial_members</code> Ra server configuration
+  parameter.</li>
   </ul>
   </td>
   </tr>
