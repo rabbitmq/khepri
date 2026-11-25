@@ -336,9 +336,6 @@
 -type cached_members_list() :: [node() | node()].
 %% Non-empty list of cluster member nodenames.
 
--type aux_state() :: #khepri_machine_aux{}.
-%% Auxiliary state of this Ra state machine.
-
 -type aux_query() :: {query, query_fun(), khepri:query_options()}.
 %% Query executed through the Ra aux mechanism.
 
@@ -1799,22 +1796,20 @@ init(InitArgs) ->
     State5 = record_snapshot_timestamp(State4),
     State5.
 
--spec init_aux(StoreId :: khepri:store_id()) -> aux_state().
-%% @private
-
-init_aux(StoreId) ->
-    #khepri_machine_aux{store_id = StoreId}.
+init_aux(StoreId) when ?IS_KHEPRI_STORE_ID(StoreId) ->
+    AuxState = khepri_machine_aux:init(StoreId),
+    AuxState.
 
 -spec handle_aux(RaState, Type, Command, AuxState, IntState) ->
     Ret when
       RaState :: ra_server:ra_state(),
       Type :: {call, ra:from()} | cast,
       Command :: any(),
-      AuxState :: aux_state(),
+      AuxState :: khepri_machine_aux:state(),
       IntState :: ra_aux:internal_state(),
       Ret :: {no_reply, NewAuxState, IntState} |
              {no_reply, NewAuxState, IntState, Effects},
-      NewAuxState :: aux_state(),
+      NewAuxState :: khepri_machine_aux:state(),
       Effects :: ra_machine:effects().
 %% @private
 
@@ -1864,13 +1859,13 @@ handle_aux(RaState, cast, eval, AuxState, IntState) ->
 handle_aux(
   _RaState, {call, From},
   {query, _QueryFun, Options} = AuxQuery,
-  #khepri_machine_aux{delayed_aux_queries = DelayedAuxQueries} = AuxState,
-  IntState) ->
+  AuxState, IntState) ->
+    DelayedAuxQueries = khepri_machine_aux:get_delayed_aux_queries(AuxState),
     Condition = maps:get(condition, Options, none),
     DelayedAuxQuery = {AuxQuery, From, Condition},
     DelayedAuxQueries1 = DelayedAuxQueries ++ [DelayedAuxQuery],
-    AuxState1 = AuxState#khepri_machine_aux{
-                  delayed_aux_queries = DelayedAuxQueries1},
+    AuxState1 = khepri_machine_aux:set_delayed_aux_queries(
+                  AuxState, DelayedAuxQueries1),
     AuxState2 = handle_delayed_aux_queries(AuxState1, IntState),
     {no_reply, AuxState2, IntState};
 handle_aux(
@@ -1900,7 +1895,7 @@ handle_aux(
     {no_reply, AuxState1, IntState};
 handle_aux(
   _RaState, cast, cache_effective_machine_version, AuxState, IntState) ->
-    #khepri_machine_aux{store_id = StoreId} = AuxState,
+    StoreId = khepri_machine_aux:get_store_id(AuxState),
     EffectiveMacVer = ra_aux:effective_machine_version(IntState),
     cache_effective_machine_version(StoreId, EffectiveMacVer),
 
@@ -1930,10 +1925,10 @@ handle_aux(leader, cast, tick, AuxState, IntState) ->
 handle_aux(
   RaState, cast,
   {handle_triggered_actions, TriggeredActions},
-  #khepri_machine_aux{store_id = StoreId} = AuxState,
-  IntState) ->
+  AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
 
+    StoreId = khepri_machine_aux:get_store_id(AuxState1),
     Cluster = ra_aux:members_info(IntState),
     TriggeredActions1 = lists:filter(
                           fun
@@ -1958,53 +1953,53 @@ handle_aux(
 handle_aux(
   _RaState, cast,
   {down, Pid, Reason},
-  #khepri_machine_aux{store_id = StoreId,
-                      maybe_down_procs = MaybeDownProcs} = AuxState,
-  IntState)
-  when not is_map_key(Pid, MaybeDownProcs) ->
+  AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
 
-    Node = node(Pid),
-    PossibleMember = {StoreId, Node},
-    Cluster = ra_aux:members_info(IntState),
-    IsMember = maps:is_key(PossibleMember, Cluster),
-    case IsMember of
-        true ->
-            MaybeDownProcs1 = MaybeDownProcs#{Pid => Reason},
-            AuxState2 = AuxState1#khepri_machine_aux{
-                          maybe_down_procs = MaybeDownProcs1},
-            SideEffect = [{monitor, node, Node}],
-            {no_reply, AuxState2, IntState, [SideEffect]};
-        false ->
+    MaybeDownProcs = khepri_machine_aux:get_maybe_down_procs(AuxState1),
+    case MaybeDownProcs of
+        #{Pid := _} ->
+            MaybeDownProcs1 = maps:remove(Pid, MaybeDownProcs),
+            AuxState2 = khepri_machine_aux:set_maybe_down_procs(
+                          AuxState1, MaybeDownProcs1),
             Command = {really_down, Pid, Reason},
             SideEffect = [{append, Command}],
-            {no_reply, AuxState1, IntState, [SideEffect]}
+            {no_reply, AuxState2, IntState, [SideEffect]};
+        _ ->
+            StoreId = khepri_machine_aux:get_store_id(AuxState1),
+            Node = node(Pid),
+            PossibleMember = {StoreId, Node},
+            Cluster = ra_aux:members_info(IntState),
+            IsMember = maps:is_key(PossibleMember, Cluster),
+            case IsMember of
+                true ->
+                    MaybeDownProcs1 = MaybeDownProcs#{Pid => Reason},
+                    AuxState2 = khepri_machine_aux:set_maybe_down_procs(
+                                  AuxState1, MaybeDownProcs1),
+                    SideEffect = [{monitor, node, Node}],
+                    {no_reply, AuxState2, IntState, [SideEffect]};
+                false ->
+                    Command = {really_down, Pid, Reason},
+                    SideEffect = [{append, Command}],
+                    {no_reply, AuxState1, IntState, [SideEffect]}
+            end
     end;
-handle_aux(
-  _RaState, cast,
-  {down, Pid, Reason},
-  #khepri_machine_aux{maybe_down_procs = MaybeDownProcs} = AuxState,
-  IntState)
-  when is_map_key(Pid, MaybeDownProcs) ->
-    AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
-
-    MaybeDownProcs1 = maps:remove(Pid, MaybeDownProcs),
-    AuxState2 = AuxState1#khepri_machine_aux{
-                  maybe_down_procs = MaybeDownProcs1},
-    Command = {really_down, Pid, Reason},
-    SideEffect = [{append, Command}],
-    {no_reply, AuxState2, IntState, [SideEffect]};
 handle_aux(_RaState, _Type, _Command, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
     {no_reply, AuxState1, IntState}.
 
-handle_delayed_aux_queries(
-  #khepri_machine_aux{delayed_aux_queries = []} = AuxState,
-  _IntState) ->
+-spec handle_delayed_aux_queries(AuxState, IntState) -> NewAuxState when
+      AuxState :: khepri_machine_aux:state(),
+      IntState :: ra_aux:internal_state(),
+      NewAuxState :: khepri_machine_aux:state().
+
+handle_delayed_aux_queries(AuxState, IntState) ->
+    DelayedAuxQueries = khepri_machine_aux:get_delayed_aux_queries(AuxState),
+    handle_delayed_aux_queries1(DelayedAuxQueries, AuxState, IntState).
+
+handle_delayed_aux_queries1([], AuxState, _IntState) ->
     AuxState;
-handle_delayed_aux_queries(
-  #khepri_machine_aux{delayed_aux_queries = DelayedAuxQueries} = AuxState,
-  IntState) ->
+handle_delayed_aux_queries1(DelayedAuxQueries, AuxState, IntState) ->
     Index = ra_aux:last_applied(IntState),
     Term = ra_aux:current_term(IntState),
     MacVer = ra_aux:effective_machine_version(IntState),
@@ -2015,8 +2010,8 @@ handle_delayed_aux_queries(
     State = ra_aux:machine_state(IntState),
     DelayedAuxQueries2 = eval_delayed_aux_queries_condition(
                            Meta, DelayedAuxQueries, State, []),
-    AuxState1 = AuxState#khepri_machine_aux{
-                  delayed_aux_queries = DelayedAuxQueries2},
+    AuxState1 = khepri_machine_aux:set_delayed_aux_queries(
+                  AuxState, DelayedAuxQueries2),
     AuxState1.
 
 eval_delayed_aux_queries_condition(
@@ -2064,7 +2059,7 @@ handle_expired_dedups(AuxState, IntState, SideEffects) ->
     case ra_aux:effective_machine_version(IntState) of
         EffectiveMacVer
           when EffectiveMacVer >= ?API_BEHAV_MACVER(expire_dedups_from_tick) ->
-            #khepri_machine_aux{store_id = StoreId} = AuxState,
+            StoreId = khepri_machine_aux:get_store_id(AuxState),
             State = ra_aux:machine_state(IntState),
             Timestamp = erlang:system_time(millisecond),
             Dedups = get_dedups(State),
@@ -2106,7 +2101,7 @@ handle_irrelevant_triggers(AuxState, IntState, SideEffects) ->
     %% are still in the cluster at the time of execution. If they are not in
     %% the cluster anymore, we can remove the non-acked emitted triggers from
     %% the machine state because they won't be acked.
-    #khepri_machine_aux{store_id = StoreId} = AuxState,
+    StoreId = khepri_machine_aux:get_store_id(AuxState),
     Cluster = ra_aux:members_info(IntState),
     State = ra_aux:machine_state(IntState),
     EmittedTriggers = get_emitted_triggers(State),
@@ -2129,10 +2124,7 @@ handle_irrelevant_triggers(AuxState, IntState, SideEffects) ->
             [SideEffect | SideEffects]
     end.
 
-handle_down_procs(
-  #khepri_machine_aux{store_id = StoreId,
-                      maybe_down_procs = MaybeDownProcs} = AuxState,
-  IntState, SideEffects) ->
+handle_down_procs(AuxState, IntState, SideEffects) ->
     %% In `maybe_down_procs', we have processes that run on a member of the
     %% cluster and we are waiting for that node to come back up to monitor
     %% these processes again (they are referenced by triggers and/or
@@ -2143,6 +2135,8 @@ handle_down_procs(
     %% node is still part of the cluster. If that's not the case anymore, we
     %% can consider these processes as dead, because it's unlikely that the
     %% node will come back up.
+    StoreId = khepri_machine_aux:get_store_id(AuxState),
+    MaybeDownProcs = khepri_machine_aux:get_maybe_down_procs(AuxState),
     Cluster = ra_aux:members_info(IntState),
     {MaybeDownProcs1,
      SideEffects1} = maps:fold(
@@ -2163,8 +2157,8 @@ handle_down_procs(
                                        {MD1, SE1}
                                end
                        end, {MaybeDownProcs, SideEffects}, MaybeDownProcs),
-    AuxState1 = AuxState#khepri_machine_aux{
-                  maybe_down_procs = MaybeDownProcs1},
+    AuxState1 = khepri_machine_aux:set_maybe_down_procs(
+                  AuxState, MaybeDownProcs1),
     {AuxState1, SideEffects1}.
 
 restore_projection(Projection, Tree, PathPattern) ->
