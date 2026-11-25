@@ -376,7 +376,8 @@
                          extended_trigger |
                          cached_members_list |
                          process_based_keep_while |
-                         transparent_tx_funs.
+                         transparent_tx_funs |
+                         aux_state_v1.
 %% Name of a state machine API behaviour.
 
 -export_type([write_ret/0,
@@ -1813,7 +1814,12 @@ init_aux(StoreId) when ?IS_KHEPRI_STORE_ID(StoreId) ->
       Effects :: ra_machine:effects().
 %% @private
 
-handle_aux(RaState, cast, eval, AuxState, IntState) ->
+handle_aux(RaState, Type, Command, AuxState, IntState) ->
+    EffectiveMacVer = ra_aux:effective_machine_version(IntState),
+    AuxState1 = khepri_machine_aux:convert(AuxState, EffectiveMacVer),
+    do_handle_aux(RaState, Type, Command, AuxState1, IntState).
+
+do_handle_aux(RaState, cast, eval, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
     State = ra_aux:machine_state(IntState),
 
@@ -1856,7 +1862,7 @@ handle_aux(RaState, cast, eval, AuxState, IntState) ->
                    end,
 
     {no_reply, AuxState1, IntState, SideEffects2};
-handle_aux(
+do_handle_aux(
   _RaState, {call, From},
   {query, _QueryFun, Options} = AuxQuery,
   AuxState, IntState) ->
@@ -1868,7 +1874,7 @@ handle_aux(
                   AuxState, DelayedAuxQueries1),
     AuxState2 = handle_delayed_aux_queries(AuxState1, IntState),
     {no_reply, AuxState2, IntState};
-handle_aux(
+do_handle_aux(
   _RaState, cast,
   #trigger_projection{path = Path,
                       old_props = OldProps,
@@ -1879,7 +1885,7 @@ handle_aux(
 
     khepri_projection:trigger(Projection, Path, OldProps, NewProps),
     {no_reply, AuxState1, IntState};
-handle_aux(
+do_handle_aux(
   _RaState, cast, restore_projections, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
 
@@ -1893,7 +1899,7 @@ handle_aux(
                Projection <- Projections]
       end),
     {no_reply, AuxState1, IntState};
-handle_aux(
+do_handle_aux(
   _RaState, cast, cache_effective_machine_version, AuxState, IntState) ->
     StoreId = khepri_machine_aux:get_store_id(AuxState),
     EffectiveMacVer = ra_aux:effective_machine_version(IntState),
@@ -1902,7 +1908,7 @@ handle_aux(
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
 
     {no_reply, AuxState1, IntState};
-handle_aux(
+do_handle_aux(
   _RaState, cast,
   #restore_projection{projection = Projection, pattern = PathPattern},
   AuxState, IntState) ->
@@ -1912,7 +1918,7 @@ handle_aux(
     Tree = get_tree(State),
     ok = restore_projection(Projection, Tree, PathPattern),
     {no_reply, AuxState1, IntState};
-handle_aux(leader, cast, tick, AuxState, IntState) ->
+do_handle_aux(leader, cast, tick, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
     SideEffects0 = [],
     SideEffects1 = handle_irrelevant_triggers(
@@ -1922,7 +1928,7 @@ handle_aux(leader, cast, tick, AuxState, IntState) ->
     SideEffects3 = handle_expired_dedups(AuxState2, IntState, SideEffects2),
 
     {no_reply, AuxState2, IntState, SideEffects3};
-handle_aux(
+do_handle_aux(
   RaState, cast,
   {handle_triggered_actions, TriggeredActions},
   AuxState, IntState) ->
@@ -1950,7 +1956,7 @@ handle_aux(
                           end, TriggeredActions),
     khepri_event_handler:handle_triggered_actions(StoreId, TriggeredActions1),
     {no_reply, AuxState1, IntState};
-handle_aux(
+do_handle_aux(
   _RaState, cast,
   {down, Pid, Reason},
   AuxState, IntState) ->
@@ -1984,7 +1990,7 @@ handle_aux(
                     {no_reply, AuxState1, IntState, [SideEffect]}
             end
     end;
-handle_aux(_RaState, _Type, _Command, AuxState, IntState) ->
+do_handle_aux(_RaState, _Type, _Command, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
     {no_reply, AuxState1, IntState}.
 
