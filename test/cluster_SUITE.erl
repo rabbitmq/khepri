@@ -52,6 +52,9 @@
          requesting_snapshot_on_old_machine_does_not_crash/1,
          can_set_snapshot_interval/1,
          can_use_snapshot_strategy_from_macver4/1,
+         can_repair_invalid_snapshot_timestamp/1,
+         can_repair_invalid_snapshot_timestamp_from_leader/1,
+         can_repair_invalid_snapshot_timestamp_from_follower/1,
          projections_are_consistent_on_three_node_cluster/1,
          projections_are_updated_when_a_snapshot_is_installed/1,
          async_command_leader_change_in_three_node_cluster/1,
@@ -90,6 +93,7 @@ groups() ->
            requesting_snapshot_on_old_machine_does_not_crash,
            can_set_snapshot_interval,
            can_use_snapshot_strategy_from_macver4,
+           can_repair_invalid_snapshot_timestamp,
            trigger_options_rejected_before_v3,
            process_based_keep_while_rejected_before_v3
           ]},
@@ -131,7 +135,9 @@ groups() ->
            async_command_leader_change_in_three_node_cluster,
            spam_txs_during_election,
            spam_changes_during_unregister_projections,
-           can_wait_for_effective_behaviour
+           can_wait_for_effective_behaviour,
+           can_repair_invalid_snapshot_timestamp_from_leader,
+           can_repair_invalid_snapshot_timestamp_from_follower
           ]},
          {set3, [parallel],
           [
@@ -2324,6 +2330,332 @@ await_snapshot_index(RaServer, ExpectedIndex, Retries) ->
                     await_snapshot_index(RaServer, ExpectedIndex, Retries - 1)
             end
     end.
+
+can_repair_invalid_snapshot_timestamp(Config) ->
+    Node = node(),
+    RaSystem = helpers:get_ra_system_name(Config),
+    StoreId = RaSystem,
+    RaServer = khepri_cluster:node_to_member(StoreId, Node),
+
+    Threshold = 100,
+    TimeInterval = 2,
+    Value = string:pad("", Threshold, trailing, $1),
+
+    %% Simulate that the last snapshot has a timestamp in the future. Before
+    %% the bug fix, this happened when the state machine was restarted because
+    %% the timestamp was based on the monotonic clock which is kind of the
+    %% Erlang VM uptime.
+    meck:new(khepri_machine, [passthrough, no_link]),
+    meck:expect(
+      khepri_machine, init,
+      fun(InitArgs) ->
+              State = meck:passthrough([InitArgs]),
+              Metrics = khepri_machine:get_metrics(State),
+
+              Now = erlang:monotonic_time(second),
+              Future = Now + 10_000_000,
+              Metrics1 = Metrics#{last_snapshot_request_timestamp => Future},
+              logger:debug(
+                "For the ~s testcase:~n"
+                "- Set snapshot timestamp in the future: ~b -> ~b",
+                [?FUNCTION_NAME, Now, Future]),
+              State1 = khepri_machine:set_metrics(State, Metrics1),
+              State1
+      end),
+
+    %% Disable the workaround by overloading the check function. This ensures
+    %% that without it and with the invalid timestamp recorded above, snapshots
+    %% are not requested when they should be.
+    meck:expect(
+      khepri_machine, needs_snapshot_to_fix_timestamp,
+      fun(_State) -> false end),
+
+    try
+        ct:pal("Start database"),
+        RaServerConfig = #{cluster_name => StoreId,
+                           machine_config =>
+                           #{unreleased_command_footprint_threshold => Threshold,
+                             snapshot_time_interval => TimeInterval}},
+        ?assertEqual(
+           {ok, StoreId},
+           khepri:start(RaSystem, RaServerConfig)),
+        ?assertEqual(
+           ok,
+           khepri_cluster:wait_for_effective_behaviour(StoreId, request_snapshot)),
+
+        ct:pal("Verify the timestamp is problematic"),
+        Now1 = erlang:monotonic_time(second),
+        ?assertMatch(
+           Metrics
+             when is_map_key(last_snapshot_request_timestamp, Metrics) andalso
+                  map_get(last_snapshot_request_timestamp, Metrics) > Now1,
+                  khepri_machine:process_query(
+                    StoreId,
+                    fun khepri_machine:get_metrics/1,
+                    #{})),
+
+        ct:pal("Submit large command"),
+        ?assertEqual(ok, khepri:put(StoreId, [foo], Value)),
+
+        {ok, #{log := Log1}, RaServer} = ra:member_overview(RaServer),
+        #{last_index := Index1} = Log1,
+
+        ct:pal(
+          "Verify conditions for a snapshot are in a bad state with "
+          "the workaround disabled"),
+        State1 = khepri_machine:process_query(
+                   StoreId,
+                   fun(State) -> State end,
+                   #{}),
+        ?assertNot(khepri_machine:should_request_snapshot(State1)),
+        ?assertNot(khepri_machine:needs_snapshot_after_some_time(State1)),
+        ?assertMatch(
+           {true, _},
+           khepri_machine:request_snapshot_based_on_unreleased_command_footprint(
+             State1)),
+
+        ct:pal(
+          "Wait for a snapshot that will never be taken; this times out"),
+        ?assertError(
+           {await_snapshot_index, [{expected, Index1}, {value, undefined}]},
+           await_snapshot_index(RaServer, Index1))
+    after
+        ct:pal("Revert `khepri_machine' overloaded functions"),
+        meck:unload(khepri_machine)
+    end,
+
+    ct:pal("Submit large command"),
+    ?assertEqual(ok, khepri:put(StoreId, [bar], Value)),
+
+    ct:pal("Wait for a snapshot; it is effectively taken"),
+    {ok, #{log := Log2}, RaServer} = ra:member_overview(RaServer),
+    #{last_index := Index2} = Log2,
+
+    await_snapshot_index(RaServer, Index2),
+
+    ct:pal("Verify the timestamp is correct"),
+    Now2 = erlang:monotonic_time(second),
+    ?assertMatch(
+       Metrics
+         when is_map_key(last_snapshot_request_timestamp, Metrics) andalso
+              map_get(last_snapshot_request_timestamp, Metrics) =< Now2,
+              khepri_machine:process_query(
+                StoreId,
+                fun khepri_machine:get_metrics/1,
+                #{})),
+
+    ct:pal("Stop database"),
+    ?assertEqual(
+       ok,
+       khepri:stop(StoreId)),
+    ok.
+
+can_repair_invalid_snapshot_timestamp_from_leader(Config) ->
+    can_repair_invalid_snapshot_timestamp_from_member(Config, leader).
+
+can_repair_invalid_snapshot_timestamp_from_follower(Config) ->
+    can_repair_invalid_snapshot_timestamp_from_member(Config, follower).
+
+can_repair_invalid_snapshot_timestamp_from_member(Config, RaState) ->
+    PropsPerNode = ?config(ra_system_props, Config),
+    [Node1, Node2, Node3] = Nodes = maps:keys(PropsPerNode),
+
+    %% We assume all nodes are using the same Ra system name & store ID.
+    RaSystem = helpers:get_ra_system_name(Config),
+    StoreId = RaSystem,
+
+    Threshold = 100,
+    TimeInterval = 2,
+    Value = string:pad("", Threshold, trailing, $1),
+
+    %% Simulate that the last snapshot has a timestamp in the future. Before
+    %% the bug fix, this happened when the state machine was restarted because
+    %% the timestamp was based on the monotonic clock which is kind of the
+    %% Erlang VM uptime.
+    lists:foreach(
+      fun(Node) ->
+              _ = helpers:call(
+                    Config, Node,
+                    meck, new, [khepri_machine, [passthrough, no_link]]),
+              _ = helpers:call(
+                    Config, Node,
+                    meck, expect,
+                    [khepri_machine, init,
+                     fun(InitArgs) ->
+                             State = meck:passthrough([InitArgs]),
+                             Metrics = khepri_machine:get_metrics(State),
+
+                             Now = erlang:monotonic_time(second),
+                             Future = Now + 100_000_000,
+                             Metrics1 = Metrics#{last_snapshot_request_timestamp => Future},
+                             logger:debug(
+                               "For the ~s testcase:~n"
+                               "- Set snapshot timestamp in the future on node ~s: ~b -> ~b",
+                               [?FUNCTION_NAME, Node, Now, Future]),
+                             State1 = khepri_machine:set_metrics(State, Metrics1),
+                             State1
+                     end]),
+
+              %% Disable the workaround by overloading the check function. This ensures
+              %% that without it and with the invalid timestamp recorded above, snapshots
+              %% are not requested when they should be.
+              _ = helpers:call(
+                    Config, Node,
+                    meck, expect,
+                    [khepri_machine, needs_snapshot_to_fix_timestamp,
+                     fun(_State) -> false end])
+      end, Nodes),
+
+    ct:pal("Start database"),
+    RaServerConfig = #{cluster_name => StoreId,
+                       machine_config =>
+                       #{unreleased_command_footprint_threshold => Threshold,
+                         snapshot_time_interval => TimeInterval}},
+
+    ct:pal("Start database + cluster nodes"),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri:start() from node ~s", [Node]),
+              ?assertEqual(
+                 {ok, StoreId},
+                 helpers:call(
+                   Config, Node, khepri, start, [RaSystem, RaServerConfig]))
+      end, Nodes),
+    %% This (gratuitous) restart of Khepri stores is to ensure the remembered
+    %% `RaServerConfig' contains everything we need in `join()' later. Indeed,
+    %% `join()' calls `do_start_server()' which assumes the presence of some
+    %% keys in `RaServerConfig'.
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- Restart Khepri store on node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 helpers:call(Config, Node, khepri, stop, [StoreId])),
+              ?assertEqual(
+                 {ok, StoreId},
+                 helpers:call(
+                   Config, Node, khepri, start, [RaSystem, RaServerConfig]))
+      end, Nodes),
+    lists:foreach(
+      fun(Node) ->
+              ct:pal("- khepri_cluster:join() from node ~s", [Node]),
+              ?assertEqual(
+                 ok,
+                 helpers:call(
+                   Config, Node, khepri_cluster, join, [StoreId, Node3]))
+      end, [Node1, Node2]),
+
+    LeaderId = helpers:get_leader_in_store(Config, StoreId, Nodes),
+    {StoreId, LeaderNode} = LeaderId,
+    {TestedNode,
+     TestedServer} = case RaState of
+                         leader ->
+                             {LeaderNode, LeaderId};
+                         follower ->
+                             [FollowerNode | _] = Nodes -- [LeaderNode],
+                             FollowerId = khepri_cluster:node_to_member(
+                                            StoreId, FollowerNode),
+                             {FollowerNode, FollowerId}
+                     end,
+    ct:pal("Leader node = ~p~nTested node = ~p", [LeaderNode, TestedNode]),
+
+    ?assertEqual(
+       {ok, Nodes},
+       helpers:call(
+         Config, TestedNode,
+         khepri_cluster, nodes, [StoreId])),
+
+    ?assertEqual(
+       ok,
+       helpers:call(
+         Config, TestedNode,
+         khepri_cluster, wait_for_effective_behaviour,
+         [StoreId, request_snapshot])),
+
+    ct:pal("Verify the timestamp is problematic"),
+    Now1 = erlang:monotonic_time(second),
+    ?assertMatch(
+       Metrics
+         when is_map_key(last_snapshot_request_timestamp, Metrics) andalso
+              map_get(last_snapshot_request_timestamp, Metrics) > Now1,
+              helpers:call(
+                Config, TestedNode,
+                khepri_machine, process_query,
+                [StoreId, fun khepri_machine:get_metrics/1, #{}])),
+
+    ct:pal("Submit large command"),
+    ?assertEqual(
+       ok,
+       helpers:call(
+         Config, TestedNode,
+         khepri, put, [StoreId, [foo], Value])),
+
+    {ok, #{log := Log1}, _} = ra:member_overview(TestedServer),
+    #{last_index := Index1} = Log1,
+
+    ct:pal(
+      "Verify conditions for a snapshot are in a bad state with "
+      "the workaround disabled"),
+    State = helpers:call(
+              Config, TestedNode,
+              khepri_machine, process_query,
+              [StoreId, fun(State) -> State end, #{}]),
+    ?assertNot(
+       helpers:call(
+         Config, TestedNode,
+         khepri_machine, should_request_snapshot, [State])),
+    ?assertEqual(
+       false,
+       helpers:call(
+         Config, TestedNode,
+         khepri_machine, needs_snapshot_after_some_time, [State])),
+    ?assertMatch(
+       {true, _},
+       helpers:call(
+         Config, TestedNode,
+         khepri_machine,
+         request_snapshot_based_on_unreleased_command_footprint,
+         [State])),
+
+    ct:pal(
+      "Wait for a snapshot that will never be taken; this times out"),
+    ?assertError(
+       {await_snapshot_index, [{expected, Index1}, {value, undefined}]},
+       await_snapshot_index(TestedServer, Index1)),
+
+    _ = helpers:call(
+          Config, TestedNode,
+          meck, unload, [khepri_machine]),
+
+    ct:pal("Submit large command"),
+    ?assertEqual(
+       ok,
+       helpers:call(
+         Config, TestedNode,
+         khepri,put, [StoreId, [bar], Value])),
+
+    ct:pal("Wait for a snapshot; it is effectively taken"),
+    {ok, #{log := Log2}, _} = ra:member_overview(TestedServer),
+    #{last_index := Index2} = Log2,
+
+    await_snapshot_index(TestedServer, Index2),
+
+    ct:pal("Verify the timestamp is correct"),
+    Now2 = erlang:monotonic_time(second),
+    ?assertMatch(
+       Metrics
+         when is_map_key(last_snapshot_request_timestamp, Metrics) andalso
+              map_get(last_snapshot_request_timestamp, Metrics) =< Now2,
+              helpers:call(
+                Config, TestedNode,
+                khepri_machine, process_query,
+                [StoreId, fun khepri_machine:get_metrics/1, #{}])),
+
+    ct:pal("Stop database"),
+    ?assertEqual(
+       ok,
+       khepri:stop(StoreId)),
+    ok.
 
 projections_are_consistent_on_three_node_cluster(Config) ->
     ProjectionName = ?MODULE,
