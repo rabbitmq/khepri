@@ -246,6 +246,7 @@ acknowledge the execution of a trigger.</p>
 <tr><td valign="top"><a href="#version-0">version/0</a></td><td>Returns the state machine version.</td></tr>
 <tr><td valign="top"><a href="#which_module-1">which_module/1</a></td><td>Returns the state machine module corresponding to the given version.</td></tr>
 <tr><td valign="top"><a href="#does_api_comply_with-2">does_api_comply_with/2</a></td><td>Indicates if a new behaviour of the transaction API is activated.</td></tr>
+<tr><td valign="top"><a href="#needs_snapshot_to_fix_timestamp-1">needs_snapshot_to_fix_timestamp/1</a></td><td></td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -421,6 +422,12 @@ the transaction API may differ.</p>
   both versions of the API to work correctly. Thus it can use this function
   to adapt.
  </p>
+
+<h3 class="function"><a name="needs_snapshot_to_fix_timestamp-1">needs_snapshot_to_fix_timestamp/1</a></h3>
+<div class="spec">
+<p><code>needs_snapshot_to_fix_timestamp(State) -&gt; any()</code></p>
+<p></p>
+</div>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
