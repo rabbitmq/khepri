@@ -121,7 +121,8 @@
 
 %% Internal.
 -export([node_to_member/2,
-         this_member/1]).
+         this_member/1,
+         remember_store/1]).
 
 -ifdef(TEST).
 -export([wait_for_ra_server_exit/1,
@@ -405,7 +406,6 @@ ensure_server_started_locked(
                     Error
             end;
         ok ->
-            ok = remember_store(RaSystem, RaServerConfig1),
             {ok, StoreId};
         {error, {already_started, _}} ->
             {ok, StoreId};
@@ -420,15 +420,16 @@ ensure_server_started_locked(
       Ret :: ok | khepri:error().
 %% @private
 
-do_start_server(RaSystem, RaServerConfig) ->
+do_start_server(RaSystem, #{cluster_name := StoreId} = RaServerConfig)
+  when not is_map_key(initial_members, RaServerConfig) orelse
+       (is_map_key(initial_members, RaServerConfig) andalso
+        map_get(initial_members, RaServerConfig) =:= [])->
     RaServerConfig1 = complete_ra_server_config(RaServerConfig),
-    #{cluster_name := StoreId} = RaServerConfig1,
     ?LOG_DEBUG(
        "Starting a Ra server with the following configuration:~n~p",
        [RaServerConfig1]),
     case ra:start_server(RaSystem, RaServerConfig1) of
         ok ->
-            ok = remember_store(RaSystem, RaServerConfig1),
             ?LOG_DEBUG(
                "Started Ra server for store \"~s\"",
                [StoreId]),
@@ -439,11 +440,80 @@ do_start_server(RaSystem, RaServerConfig) ->
                "following Ra server configuration:~n~p~nError: ~p",
                [StoreId, RaServerConfig1, Error]),
             Error
+    end;
+do_start_server(
+  RaSystem,
+  #{cluster_name := StoreId,
+    initial_members := InitialMembers} = RaServerConfig) ->
+    RemoteNodesRunningStore = filter_nodes_running_store(
+                                StoreId, InitialMembers),
+    case RemoteNodesRunningStore of
+        [] ->
+            RaServerConfig1 = complete_ra_server_config(RaServerConfig),
+            RaServerConfigs = [RaServerConfig1#{id => Member}
+                               || Member <- InitialMembers],
+            ?LOG_DEBUG(
+               "Starting a Ra cluster with the following configuration:~n~p",
+               [RaServerConfig1]),
+            case ra:start_cluster(RaSystem, RaServerConfigs) of
+                {ok, Started, _NotStarted} ->
+                    ?LOG_DEBUG(
+                       "Started Ra server for store \"~s\" on nodes:~n~p",
+                       [StoreId, Started]),
+                    ok;
+                {error, _} = Error ->
+                    ?LOG_ERROR(
+                       "Failed to start Ra cluster for store \"~s\" using the "
+                       "following Ra server configuration:~n~p~nError: ~p",
+                       [StoreId, RaServerConfig1, Error]),
+                    Error
+            end;
+        [RemoteNodeRunningStore | _] ->
+            RaServerConfig1 = complete_ra_server_config(RaServerConfig),
+            RaServerConfig2 = maps:remove(initial_members, RaServerConfig1),
+            ?LOG_DEBUG(
+               "Starting a Ra server with the following configuration:~n~p",
+               [RaServerConfig2]),
+            case ra:start_server(RaSystem, RaServerConfig2) of
+                ok ->
+                    ?LOG_DEBUG(
+                       "Started Ra server for store \"~s\", "
+                       "joining already running initial member `~s`",
+                       [StoreId, RemoteNodeRunningStore]),
+                    Timeout = khepri_app:get_default_timeout(),
+                    _ = trigger_election(RaServerConfig2, Timeout),
+                    RemoteMember = {StoreId, RemoteNodeRunningStore},
+                    join(RemoteMember);
+                {error, _} = Error ->
+                    ?LOG_ERROR(
+                       "Failed to start Ra server for store \"~s\" using the "
+                       "following Ra server configuration:~n~p~nError: ~p",
+                       [StoreId, RaServerConfig2, Error]),
+                    Error
+            end
     end.
+
+filter_nodes_running_store(StoreId, Members) ->
+    RemoteNodes = [Node || {_StoreId, Node} <- Members, Node =/= node()],
+    RunningRemotely = erpc:multicall(
+                        RemoteNodes,
+                        khepri_cluster, is_store_running, [StoreId]),
+    filter_nodes_running_store1(RemoteNodes, RunningRemotely, []).
+
+filter_nodes_running_store1(
+  [RemoteNode | Rest1], [{ok, true} | Rest2], NodesRunningStore) ->
+    NodesRunningStore1 = [RemoteNode | NodesRunningStore],
+    filter_nodes_running_store1(Rest1, Rest2, NodesRunningStore1);
+filter_nodes_running_store1(
+  [_RemoteNode | Rest1], [_Ret | Rest2], NodesRunningStore) ->
+    filter_nodes_running_store1(Rest1, Rest2, NodesRunningStore);
+filter_nodes_running_store1(
+  [], [], NodesRunningStore) ->
+    lists:reverse(NodesRunningStore).
 
 -spec trigger_election(Member | RaServerConfig, Timeout) -> ok when
       Member :: ra:server_id(),
-      RaServerConfig :: ra_server_config_with_id_and_cn(),
+      RaServerConfig :: ra_server:ra_server_config(),
       Timeout :: timeout().
 %% @private
 
@@ -496,7 +566,7 @@ stop(StoreId) when ?IS_KHEPRI_STORE_ID(StoreId) ->
 
 stop_locked(StoreId) ->
     ThisMember = this_member(StoreId),
-    case get_store_prop(StoreId, ra_system) of
+    case get_ra_system(ThisMember) of
         {ok, RaSystem} ->
             ?LOG_DEBUG(
                "Stopping member ~0p in store \"~s\"",
@@ -678,30 +748,13 @@ join(StoreId, {StoreId, RemoteNode} = _RemoteMember, Timeout) ->
 
 check_status_and_join_locked(StoreId, RemoteNode, Timeout) ->
     ThisMember = this_member(StoreId),
-    RaServerRunning = erlang:is_pid(erlang:whereis(StoreId)),
-    Prop1 = get_store_prop(StoreId, ra_system),
-    Prop2 = get_store_prop(StoreId, ra_server_config),
-    case {RaServerRunning, Prop1, Prop2} of
-        {true, {ok, RaSystem}, {ok, RaServerConfig}} ->
+    case recreate_ra_server_config_from_running_server(ThisMember) of
+        {ok, RaSystem, RaServerConfig} ->
             reset_remotely_and_join_locked(
               StoreId, ThisMember, RaSystem, RaServerConfig,
               RemoteNode, Timeout);
-        {false, {error, _} = Error, _} ->
-            Error;
-        {false, _, {error, _} = Error} ->
-            Error;
-        {false, _, _} ->
-            ?LOG_ERROR(
-               "Local Ra server ~0p not running for store \"~s\", "
-               "but properties are still available: ~0p and ~0p",
-               [ThisMember, StoreId, Prop1, Prop2]),
-            erlang:error(
-              ?khepri_exception(
-                 ra_server_not_running_but_props_available,
-                 #{store_id => StoreId,
-                   this_member => ThisMember,
-                   ra_system => Prop1,
-                   ra_server_config => Prop2}))
+        {error, _} = Error ->
+            Error
     end.
 
 -spec reset_remotely_and_join_locked(
@@ -847,7 +900,6 @@ start_and_join_locked(
             %%
             %% In this case, we stop it forcibly again (which resets it again)
             %% and retry.
-            ?assertMatch({error, _}, get_store_prop(StoreId, ra_system)),
             ?LOG_DEBUG(
                "Ra server for store \"~s\" was restarted concurrently "
                "during reset by its supervisor with PID ~0p; force it "
@@ -992,7 +1044,7 @@ reset(StoreId, Timeout) ->
 
 reset_locked(StoreId, Timeout) ->
     ThisMember = this_member(StoreId),
-    case get_store_prop(StoreId, ra_system) of
+    case get_ra_system(ThisMember) of
         {ok, RaSystem}     -> do_reset(RaSystem, StoreId, ThisMember, Timeout);
         {error, _} = Error -> Error
     end.
@@ -1565,38 +1617,21 @@ server_start_lock(StoreId) ->
 
 complete_ra_server_config(#{cluster_name := StoreId,
                             id := Member} = RaServerConfig) ->
-    %% We warn the caller if he sets `initial_members' that the setting will
-    %% be ignored. The reason is we mandate the use of
-    %% `khepri_cluster:start()' to start the local node (and can't use on the
-    %% "auto-cluster start" of Ra) because we also populate a few
-    %% persistent_term for Ra system & server config bookkeeping.
-    RaServerConfig1 = case RaServerConfig of
-                          #{initial_members := _} ->
-                              ?LOG_WARNING(
-                                 "Initial Ra cluster members in the "
-                                 "following Ra server config "
-                                 "(`initial_members`) will be ignored: ~p",
-                                 [RaServerConfig]),
-                              maps:remove(initial_members, RaServerConfig);
-                          _ ->
-                              RaServerConfig
-                      end,
-
     %% We set a default friendly name for this Ra server if the caller didn't
     %% set any.
-    RaServerConfig2 = case RaServerConfig1 of
+    RaServerConfig1 = case RaServerConfig of
                           #{friendly_name := _} ->
-                              RaServerConfig1;
+                              RaServerConfig;
                           _ ->
                               FriendlyName = lists:flatten(
                                                io_lib:format(
                                                  "Khepri store \"~s\"",
                                                  [StoreId])),
-                              RaServerConfig1#{friendly_name => FriendlyName}
+                              RaServerConfig#{friendly_name => FriendlyName}
                       end,
 
     UId = ra:new_uid(ra_lib:to_binary(StoreId)),
-    MachineConfig0 = case RaServerConfig of
+    MachineConfig0 = case RaServerConfig1 of
                          #{machine_config := MachineConfig00} ->
                              MachineConfig00;
                          _ ->
@@ -1617,52 +1652,92 @@ complete_ra_server_config(#{cluster_name := StoreId,
                     %% a snapshot even if it is very early in a testcase.
                     min_snapshot_interval => 0},
 
-    RaServerConfig2#{uid => UId,
+    RaServerConfig1#{uid => UId,
                      log_init_args => LogInitArgs,
                      machine => Machine}.
 
--define(PT_STORE_IDS, {khepri, store_ids}).
+recreate_ra_server_config_from_running_server({StoreId, _} = Member) ->
+    case ra:member_overview(Member) of
+        {ok, Overview, _LeaderId} ->
+            #{
+              log_id := FriendlyName,
+              machine := MachineOverview,
+              max_pipeline_count := MaxPipelineCount,
+              membership := Membership,
+              metrics_key := MetricsKey,
+              metrics_labels := MetricsLabels,
+              min_recovery_checkpoint_interval := MinRecoveryCheckpointInterval,
+              system_config := #{name := RaSystem}
+             } = Overview,
 
--spec remember_store(RaSystem, RaServerConfig) -> ok when
+            #{store_id := StoreId,
+              metrics := MachineMetrics} = MachineOverview,
+            #{init_args := MachineConfig} = MachineMetrics,
+
+            RaServerConfig0 = #{id => Member,
+                                cluster_name => StoreId,
+                                friendly_name => FriendlyName,
+                                metrics_key => MetricsKey,
+                                metrics_labels => MetricsLabels,
+                                max_pipeline_count => MaxPipelineCount,
+                                membership => Membership,
+                                min_recovery_checkpoint_interval =>
+                                MinRecoveryCheckpointInterval,
+
+                                machine_config => MachineConfig
+                              },
+            RaServerConfig1 = complete_ra_server_config(RaServerConfig0),
+            {ok, RaSystem, RaServerConfig1};
+        {error, noproc} ->
+            Reason = ?khepri_error(
+                        not_a_khepri_store,
+                        #{store_id => StoreId}),
+            {error, Reason};
+        {error, _} = Error ->
+            Error
+    end.
+
+-spec get_ra_system(Member) -> Ret when
+      Member :: ra:server_id(),
+      Ret :: khepri:ok(RaSystem) |
+             khepri:error(?khepri_error(
+                             not_a_khepri_store,
+                             #{store_id := StoreId})) |
+             khepri:error(),
       RaSystem :: atom(),
-      RaServerConfig :: ra_server:ra_server_config().
+      StoreId :: khepri:store_id().
 %% @private
 
-remember_store(RaSystem, #{cluster_name := StoreId} = RaServerConfig) ->
-    ?assert(maps:is_key(id, RaServerConfig)),
+get_ra_system({StoreId, _} = Member) ->
+    case ra:member_overview(Member) of
+        {ok, #{system_config := #{name := RaSystem}}, _LeaderId} ->
+            {ok, RaSystem};
+        {error, noproc} ->
+            Reason = ?khepri_error(
+                        not_a_khepri_store,
+                        #{store_id => StoreId}),
+            {error, Reason};
+        {error, _} = Error ->
+            Error
+    end.
+
+-define(PT_STORE_IDS, {khepri, store_ids}).
+
+-spec remember_store(StoreId) -> ok when
+      StoreId :: khepri:store_id().
+%% @private
+
+remember_store(StoreId) ->
     Lock = store_ids_lock(),
     global:set_lock(Lock, [node()]),
     try
         StoreIds = persistent_term:get(?PT_STORE_IDS, #{}),
-        Props = #{ra_system => RaSystem,
-                  ra_server_config => RaServerConfig},
-        StoreIds1 = StoreIds#{StoreId => Props},
+        StoreIds1 = StoreIds#{StoreId => true},
         persistent_term:put(?PT_STORE_IDS, StoreIds1)
     after
             global:del_lock(Lock, [node()])
     end,
     ok.
-
--spec get_store_prop(StoreId, PropName) -> Ret when
-      StoreId :: khepri:store_id(),
-      PropName :: ra_system | ra_server_config,
-      PropValue :: any(),
-      Ret :: khepri:ok(PropValue) |
-             khepri:error(?khepri_error(
-                             not_a_khepri_store,
-                             #{store_id := StoreId})).
-%% @private
-
-get_store_prop(StoreId, PropName) ->
-    case persistent_term:get(?PT_STORE_IDS, #{}) of
-        #{StoreId := #{PropName := PropValue}} ->
-            {ok, PropValue};
-        _ ->
-            Reason = ?khepri_error(
-                        not_a_khepri_store,
-                        #{store_id => StoreId}),
-            {error, Reason}
-    end.
 
 -spec forget_store(StoreId) -> ok when
       StoreId :: khepri:store_id().
