@@ -1875,12 +1875,6 @@ handle_aux(
     {no_reply, AuxState2, IntState};
 handle_aux(
   _RaState, cast,
-  trigger_delayed_aux_queries_eval,
-  AuxState, IntState) ->
-    AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
-    {no_reply, AuxState1, IntState};
-handle_aux(
-  _RaState, cast,
   #trigger_projection{path = Path,
                       old_props = OldProps,
                       new_props = NewProps,
@@ -2764,11 +2758,9 @@ post_apply({State, Result, SideEffects}, Meta, Command) ->
                                State1, SideEffects, Meta),
     {State3, SideEffects3} = drop_expired_dedups(
                                State2, SideEffects2, Meta),
-    {State4, SideEffects4} = trigger_delayed_aux_queries_eval(
+    {State4, SideEffects4} = maybe_request_snapshot(
                                State3, SideEffects3, Meta),
-    {State5, SideEffects5} = maybe_request_snapshot(
-                               State4, SideEffects4, Meta),
-    {State5, Result, lists:reverse(SideEffects5)}.
+    {State4, Result, lists:reverse(SideEffects4)}.
 
 -spec bump_applied_command_count(State, SideEffects, Meta) ->
     {NewState, NewSideEffects} when
@@ -2860,21 +2852,6 @@ drop_expired_dedups(
 drop_expired_dedups(State, SideEffects, _Meta) ->
     %% No-op on versions 2 and higher.
     {State, SideEffects}.
-
--spec trigger_delayed_aux_queries_eval(State, SideEffects, Meta) ->
-    {NewState, NewSideEffects} when
-      State :: state(),
-      SideEffects :: ra_machine:effects(),
-      Meta :: ra_machine:command_meta_data(),
-      NewState :: state(),
-      NewSideEffects :: ra_machine:effects().
-%% @doc Add an `aux' side effect to retrigger the eval of delayed aux queries.
-%%
-%% @private
-
-trigger_delayed_aux_queries_eval(State, SideEffects, _Meta) ->
-    SideEffects1 = [{aux, trigger_delayed_aux_queries_eval} | SideEffects],
-    {State, SideEffects1}.
 
 %% In `does_command_support_common_args/1', `get_command_common_args/1' and
 %% `set_command_common_args/2', we list supported commands exhaustively on

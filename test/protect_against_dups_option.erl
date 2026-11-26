@@ -32,7 +32,7 @@ multiple_dedup_commands_test() ->
     DedupCommand = #dedup{ref = CommandRef,
                           expiry = Expiry,
                           command = Command},
-    {S1, Ret1, SE1} = khepri_machine:apply(?META, DedupCommand, S0),
+    {S1, Ret1, _SE1} = khepri_machine:apply(?META, DedupCommand, S0),
     ExpectedRet = {ok, #{[foo] => #{payload_version => 1}}},
 
     Dedups1 = khepri_machine:get_dedups(S1),
@@ -51,7 +51,6 @@ multiple_dedup_commands_test() ->
                payload = khepri_payload:data(value)}}},
        Root1),
     ?assertEqual(ExpectedRet, Ret1),
-    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE1),
 
     %% The put command is idempotent, so not really ideal to test
     %% deduplication. Instead, we mess up with the state and silently restore
@@ -59,7 +58,7 @@ multiple_dedup_commands_test() ->
     %% state shouldn't have the `foo' node either because it didn't process
     %% the command.
     PatchedS1 = khepri_machine:set_tree(S1, khepri_machine:get_tree(S0)),
-    {S2, Ret2, SE2} = khepri_machine:apply(?META, DedupCommand, PatchedS1),
+    {S2, Ret2, _SE2} = khepri_machine:apply(?META, DedupCommand, PatchedS1),
 
     Dedups2 = khepri_machine:get_dedups(S2),
     ?assertEqual(#{CommandRef => {ExpectedRet, Expiry}}, Dedups2),
@@ -68,8 +67,7 @@ multiple_dedup_commands_test() ->
     Root2 = khepri_machine:get_root(S2),
     ?assertEqual(Root0, Root2),
 
-    ?assertEqual(ExpectedRet, Ret2),
-    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE2).
+    ?assertEqual(ExpectedRet, Ret2).
 
 dedup_and_dedup_ack_test() ->
     S00 = khepri_machine:init(?MACH_PARAMS()),
@@ -85,7 +83,7 @@ dedup_and_dedup_ack_test() ->
     DedupCommand = #dedup{ref = CommandRef,
                           expiry = Expiry,
                           command = Command},
-    {S1, Ret1, SE1} = khepri_machine:apply(?META, DedupCommand, S0),
+    {S1, Ret1, _SE1} = khepri_machine:apply(?META, DedupCommand, S0),
     ExpectedRet = {ok, #{[foo] => #{payload_version => 1}}},
 
     Dedups1 = khepri_machine:get_dedups(S1),
@@ -104,10 +102,9 @@ dedup_and_dedup_ack_test() ->
                payload = khepri_payload:data(value)}}},
        Root1),
     ?assertEqual(ExpectedRet, Ret1),
-    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE1),
 
     DedupAck = #dedup_ack{ref = CommandRef},
-    {S2, Ret2, SE2} = khepri_machine:apply(?META, DedupAck, S1),
+    {S2, Ret2, _SE2} = khepri_machine:apply(?META, DedupAck, S1),
 
     Dedups2 = khepri_machine:get_dedups(S2),
     ?assertEqual(#{}, Dedups2),
@@ -124,8 +121,7 @@ dedup_and_dedup_ack_test() ->
                props = ?INIT_NODE_PROPS,
                payload = khepri_payload:data(value)}}},
        Root2),
-    ?assertEqual(ok, Ret2),
-    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE2).
+    ?assertEqual(ok, Ret2).
 
 dedup_expiry_test_() ->
    TickTimeout = 200,
@@ -207,7 +203,7 @@ dedup_ack_after_no_dedup_test() ->
 
     CommandRef = make_ref(),
     DedupAck = #dedup_ack{ref = CommandRef},
-    {S1, Ret1, SE1} = khepri_machine:apply(?META, DedupAck, S0),
+    {S1, Ret1, _SE1} = khepri_machine:apply(?META, DedupAck, S0),
 
     Dedups1 = khepri_machine:get_dedups(S1),
     ?assertEqual(#{}, Dedups1),
@@ -220,8 +216,7 @@ dedup_ack_after_no_dedup_test() ->
             child_list_version => 1},
           child_nodes = #{}},
        Root1),
-    ?assertEqual(ok, Ret1),
-    ?assertEqual([{aux, trigger_delayed_aux_queries_eval}], SE1).
+    ?assertEqual(ok, Ret1).
 
 dedup_on_old_machine_test() ->
     S00 = khepri_machine:init(?MACH_PARAMS()),
