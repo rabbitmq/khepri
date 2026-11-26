@@ -732,5 +732,8 @@ put_command_bumps_applied_command_count_test() ->
          when not is_map_key(applied_command_count, Metrics2) andalso
               not is_map_key(unreleased_command_footprint, Metrics2),
        khepri_machine:get_metrics(S3)),
-    ?assertEqual([{release_cursor, maps:get(index, Meta),
-                   khepri_machine:reset_metrics(S3)}], SE3).
+    ?assert(
+       lists:member(
+         {release_cursor, maps:get(index, Meta),
+          khepri_machine:reset_metrics(S3)},
+         SE3)).

@@ -31,7 +31,8 @@
           process_based_keep_while    => 4,
 
           transparent_tx_funs         => 5,
-          aux_state_v1                => 5}).
+          aux_state_v1                => 5,
+          snapshot_from_aux_handler   => 5}).
 
 %% Get the state machine version the given API behaviour was introduced in.
 %% This is similar to `khepri_machine:api_behaviour_to_machine_version/1' but

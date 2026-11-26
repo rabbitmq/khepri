@@ -2250,64 +2250,72 @@ can_use_snapshot_strategy_from_macver4(Config) ->
     RaSystem = helpers:get_ra_system_name(Config),
     StoreId = RaSystem,
 
-    ct:pal("Start database"),
-    Threshold = 100,
-    TimeInterval = 2,
-    RaServerConfig = #{cluster_name => StoreId,
-                       machine_config =>
-                       #{unreleased_command_footprint_threshold => Threshold,
-                         snapshot_time_interval => TimeInterval}},
-    ?assertEqual(
-       {ok, StoreId},
-       khepri:start(RaSystem, RaServerConfig)),
+    meck:new(khepri_machine, [passthrough]),
+    meck:expect(khepri_machine, version, fun() -> 4 end),
+    meck:validate(khepri_machine),
 
-    RaServer = khepri_cluster:node_to_member(StoreId, Node),
-    ?assertMatch(
-       {ok, #{log := #{snapshot_index := undefined}}, RaServer},
-       ra:member_overview(RaServer)),
+    try
+        ct:pal("Start database"),
+        Threshold = 100,
+        TimeInterval = 2,
+        RaServerConfig = #{cluster_name => StoreId,
+                           machine_config =>
+                           #{unreleased_command_footprint_threshold => Threshold,
+                             snapshot_time_interval => TimeInterval}},
+        ?assertEqual(
+           {ok, StoreId},
+           khepri:start(RaSystem, RaServerConfig)),
 
-    ?assertEqual(ok, khepri:fence(StoreId)),
+        RaServer = khepri_cluster:node_to_member(StoreId, Node),
+        ?assertMatch(
+           {ok, #{log := #{snapshot_index := undefined}}, RaServer},
+           ra:member_overview(RaServer)),
 
-    ct:pal("Submit large command"),
-    Value = string:pad("", Threshold, trailing, $1),
-    ?assertEqual(ok, khepri:put(StoreId, [foo], Value)),
+        ?assertEqual(ok, khepri:fence(StoreId)),
 
-    ct:pal("Verify unreleased command footprint is above threshold"),
-    ?assertMatch(
-       #{unreleased_command_footprint := Footprint2}
-         when Footprint2 >= Threshold,
-       khepri_machine:process_query(
-         StoreId,
-         fun khepri_machine:get_metrics/1,
-         #{})),
+        ct:pal("Submit large command"),
+        Value = string:pad("", Threshold, trailing, $1),
+        ?assertEqual(ok, khepri:put(StoreId, [foo], Value)),
 
-    ct:pal("Still no snapshot taken"),
-    ?assertMatch(
-       {ok, #{log := #{snapshot_index := undefined}}, RaServer},
-       ra:member_overview(RaServer)),
+        ct:pal("Verify unreleased command footprint is above threshold"),
+        ?assertMatch(
+           #{unreleased_command_footprint := Footprint2}
+             when Footprint2 >= Threshold,
+           khepri_machine:process_query(
+             StoreId,
+             fun khepri_machine:get_metrics/1,
+             #{})),
 
-    ct:pal("Wait that the time interval has elapsed"),
-    timer:sleep(TimeInterval * 1000 + 200),
+        ct:pal("Still no snapshot taken"),
+        ?assertMatch(
+           {ok, #{log := #{snapshot_index := undefined}}, RaServer},
+           ra:member_overview(RaServer)),
 
-    ct:pal("Submit command after snapshot time interval elapsed"),
-    ?assertEqual(ok, khepri:put(StoreId, [foo], value)),
+        ct:pal("Wait that the time interval has elapsed"),
+        timer:sleep(TimeInterval * 1000 + 200),
 
-    await_snapshot_index(RaServer, 3),
+        ct:pal("Submit command after snapshot time interval elapsed"),
+        ?assertEqual(ok, khepri:put(StoreId, [foo], value)),
 
-    ct:pal("Verify metrics are reset"),
-    ?assertMatch(
-       Metrics
-         when not is_map_key(applied_command_count, Metrics) andalso
-              not is_map_key(unreleased_command_footprint, Metrics),
-       khepri_machine:process_query(
-         StoreId,
-         fun khepri_machine:get_metrics/1,
-         #{})),
+        await_snapshot_index(RaServer, 3),
 
-    ct:pal("Stop database"),
-    ?assertEqual(
-       ok,
-       khepri:stop(StoreId)),
+        ct:pal("Verify metrics are reset"),
+        ?assertMatch(
+           Metrics
+             when not is_map_key(applied_command_count, Metrics) andalso
+                  not is_map_key(unreleased_command_footprint, Metrics),
+           khepri_machine:process_query(
+             StoreId,
+             fun khepri_machine:get_metrics/1,
+             #{})),
+
+        ct:pal("Stop database"),
+        ?assertEqual(
+           ok,
+           khepri:stop(StoreId))
+    after
+        meck:unload(khepri_machine)
+    end,
     ok.
 
 await_snapshot_index(RaServer, ExpectedIndex) ->
@@ -2346,6 +2354,7 @@ can_repair_invalid_snapshot_timestamp(Config) ->
     %% the timestamp was based on the monotonic clock which is kind of the
     %% Erlang VM uptime.
     meck:new(khepri_machine, [passthrough, no_link]),
+    meck:expect(khepri_machine, version, fun() -> 4 end),
     meck:expect(
       khepri_machine, init,
       fun(InitArgs) ->
@@ -2407,8 +2416,10 @@ can_repair_invalid_snapshot_timestamp(Config) ->
                    StoreId,
                    fun(State) -> State end,
                    #{}),
-        ?assertNot(khepri_machine:should_request_snapshot(State1)),
-        ?assertNot(khepri_machine:needs_snapshot_after_some_time(State1)),
+        ?assertNot(
+           khepri_machine:should_request_snapshot_from_machine(State1)),
+        ?assertNot(
+           khepri_machine:needs_snapshot_after_some_time(State1)),
         ?assertMatch(
            {true, _},
            khepri_machine:request_snapshot_based_on_unreleased_command_footprint(
@@ -2418,36 +2429,39 @@ can_repair_invalid_snapshot_timestamp(Config) ->
           "Wait for a snapshot that will never be taken; this times out"),
         ?assertError(
            {await_snapshot_index, [{expected, Index1}, {value, undefined}]},
-           await_snapshot_index(RaServer, Index1))
+           await_snapshot_index(RaServer, Index1)),
+
+        meck:delete(khepri_machine, init, 1),
+        meck:delete(khepri_machine, needs_snapshot_to_fix_timestamp, 1),
+
+        ct:pal("Submit large command"),
+        ?assertEqual(ok, khepri:put(StoreId, [bar], Value)),
+
+        ct:pal("Wait for a snapshot; it is effectively taken"),
+        {ok, #{log := Log2}, RaServer} = ra:member_overview(RaServer),
+        #{last_index := Index2} = Log2,
+
+        await_snapshot_index(RaServer, Index2),
+
+        ct:pal("Verify the timestamp is correct"),
+        Now2 = erlang:monotonic_time(second),
+        ?assertMatch(
+           Metrics
+             when is_map_key(last_snapshot_request_timestamp, Metrics) andalso
+                  map_get(last_snapshot_request_timestamp, Metrics) =< Now2,
+                  khepri_machine:process_query(
+                    StoreId,
+                    fun khepri_machine:get_metrics/1,
+                    #{})),
+
+        ct:pal("Stop database"),
+        ?assertEqual(
+           ok,
+           khepri:stop(StoreId))
     after
         ct:pal("Revert `khepri_machine' overloaded functions"),
         meck:unload(khepri_machine)
     end,
-
-    ct:pal("Submit large command"),
-    ?assertEqual(ok, khepri:put(StoreId, [bar], Value)),
-
-    ct:pal("Wait for a snapshot; it is effectively taken"),
-    {ok, #{log := Log2}, RaServer} = ra:member_overview(RaServer),
-    #{last_index := Index2} = Log2,
-
-    await_snapshot_index(RaServer, Index2),
-
-    ct:pal("Verify the timestamp is correct"),
-    Now2 = erlang:monotonic_time(second),
-    ?assertMatch(
-       Metrics
-         when is_map_key(last_snapshot_request_timestamp, Metrics) andalso
-              map_get(last_snapshot_request_timestamp, Metrics) =< Now2,
-              khepri_machine:process_query(
-                StoreId,
-                fun khepri_machine:get_metrics/1,
-                #{})),
-
-    ct:pal("Stop database"),
-    ?assertEqual(
-       ok,
-       khepri:stop(StoreId)),
     ok.
 
 can_repair_invalid_snapshot_timestamp_from_leader(Config) ->
@@ -2477,6 +2491,9 @@ can_repair_invalid_snapshot_timestamp_from_member(Config, RaState) ->
               _ = helpers:call(
                     Config, Node,
                     meck, new, [khepri_machine, [passthrough, no_link]]),
+              _ = helpers:call(
+                    Config, Node,
+                    meck, expect, [khepri_machine, version, fun() -> 4 end]),
               _ = helpers:call(
                     Config, Node,
                     meck, expect,
@@ -2603,7 +2620,7 @@ can_repair_invalid_snapshot_timestamp_from_member(Config, RaState) ->
     ?assertNot(
        helpers:call(
          Config, TestedNode,
-         khepri_machine, should_request_snapshot, [State])),
+         khepri_machine, should_request_snapshot_from_machine, [State])),
     ?assertEqual(
        false,
        helpers:call(
@@ -2625,7 +2642,10 @@ can_repair_invalid_snapshot_timestamp_from_member(Config, RaState) ->
 
     _ = helpers:call(
           Config, TestedNode,
-          meck, unload, [khepri_machine]),
+          meck, delete, [khepri_machine, init, 1]),
+    _ = helpers:call(
+          Config, TestedNode,
+          meck, delete, [khepri_machine, needs_snapshot_to_fix_timestamp, 1]),
 
     ct:pal("Submit large command"),
     ?assertEqual(

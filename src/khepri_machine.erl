@@ -200,7 +200,7 @@
          get_command_common_args/1,
          maybe_convert_to_action/4,
          set_triggers/2,
-         should_request_snapshot/1,
+         should_request_snapshot_from_machine/1,
          needs_snapshot_after_some_time/1,
          request_snapshot_based_on_unreleased_command_footprint/1]).
 -endif.
@@ -377,7 +377,8 @@
                          cached_members_list |
                          process_based_keep_while |
                          transparent_tx_funs |
-                         aux_state_v1.
+                         aux_state_v1 |
+                         snapshot_from_aux_handler.
 %% Name of a state machine API behaviour.
 
 -export_type([write_ret/0,
@@ -1852,7 +1853,14 @@ do_handle_aux(RaState, cast, eval, AuxState, IntState) ->
 
     %% We specify the module in this call because a testcase uses `meck' to
     %% override the code of `needs_snapshot_to_fix_timestamp/1'.
-    NeedsTimestampFix = khepri_machine:needs_snapshot_to_fix_timestamp(State),
+    NeedsTimestampFix = (
+      %% If the state machine version reached `snapshot_from_aux_handler', we
+      %% don't need to worry about the old snapshot timestamp issue.
+      not does_api_comply_with(
+            snapshot_from_aux_handler,
+            EffectiveMacVer)
+      andalso
+      khepri_machine:needs_snapshot_to_fix_timestamp(State)),
     SideEffects2 = case NeedsTimestampFix of
                        true ->
                            request_snapshot_to_fix_timestamp(
@@ -1990,6 +1998,16 @@ do_handle_aux(
                     {no_reply, AuxState1, IntState, [SideEffect]}
             end
     end;
+do_handle_aux(
+  leader, cast,
+  {bump_unreleased_command_footprint, CommandSize},
+  AuxState, IntState) ->
+    AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
+    AuxState2 = khepri_machine_aux:bump_unreleased_command_footprint(
+                  AuxState1, CommandSize),
+    {AuxState3, SideEffects} = maybe_request_snapshot_from_aux(
+                                 AuxState2, IntState, []),
+    {no_reply, AuxState3, IntState, SideEffects};
 do_handle_aux(_RaState, _Type, _Command, AuxState, IntState) ->
     AuxState1 = handle_delayed_aux_queries(AuxState, IntState),
     {no_reply, AuxState1, IntState}.
@@ -2480,7 +2498,8 @@ do_apply(
     index := RaftIndex} = Meta,
   #request_snapshot{args = #request_snapshot_v1{reason = Reason}} = Command,
   State) when MacVer >= ?API_BEHAV_MACVER(request_snapshot) ->
-    {State1, SideEffects} = release_cursor(State, RaftIndex, Reason, []),
+    {State1, SideEffects} = release_cursor_from_machine(
+                              State, RaftIndex, Reason, []),
     Ret = {State1, ok, SideEffects},
     post_apply(Ret, Meta, Command);
 do_apply(
@@ -2753,12 +2772,13 @@ normalize_event_filter(#evf_process{} = EventFilter) ->
 post_apply({State, Result}, Meta, Command) ->
     post_apply({State, Result, []}, Meta, Command);
 post_apply({State, Result, SideEffects}, Meta, Command) ->
-    State1 = bump_unreleased_command_footprint(State, Command),
+    {State1, SideEffects1} = bump_unreleased_command_footprint(
+                               State, SideEffects, Command, Meta),
     {State2, SideEffects2} = bump_applied_command_count(
-                               State1, SideEffects, Meta),
+                               State1, SideEffects1, Meta),
     {State3, SideEffects3} = drop_expired_dedups(
                                State2, SideEffects2, Meta),
-    {State4, SideEffects4} = maybe_request_snapshot(
+    {State4, SideEffects4} = maybe_request_snapshot_from_machine(
                                State3, SideEffects3, Meta),
     {State4, Result, lists:reverse(SideEffects4)}.
 
@@ -2779,31 +2799,47 @@ bump_applied_command_count(State, SideEffects, _Meta) ->
     State1 = set_metrics(State, Metrics1),
     {State1, SideEffects}.
 
--spec bump_unreleased_command_footprint(State, Command) -> NewState when
+-spec bump_unreleased_command_footprint(State, SideEffects, Command, Meta) ->
+    {NewState, NewSideEffects} when
       State :: khepri_machine:state(),
+      SideEffects :: ra_machine:effects(),
       Command :: khepri_machine:command() |
                  khepri_machine:old_command() |
                  ra_machine:builtin_command(),
-      NewState :: khepri_machine:state().
+      Meta :: ra_machine:command_meta_data(),
+      NewState :: khepri_machine:state(),
+      NewSideEffects :: ra_machine:effects().
 %% @doc Bump the unreleased command footprint from the command size, present in
 %% the command common arguments.
 %%
 %% @private.
 
-bump_unreleased_command_footprint(State, Command) ->
+bump_unreleased_command_footprint(State, SideEffects, Command, Meta) ->
     case get_command_common_args(Command) of
         #common_v1{command_size = CommandSize}
           when is_integer(CommandSize) andalso CommandSize >= 0 ->
+            bump_unreleased_command_footprint1(
+              State, SideEffects, CommandSize, Meta);
+        none ->
+            {State, SideEffects};
+        undefined ->
+            {State, SideEffects}
+    end.
+
+bump_unreleased_command_footprint1(
+  State, SideEffects, CommandSize, #{machine_version := MacVer}) ->
+    case does_api_comply_with(snapshot_from_aux_handler, MacVer) of
+        true ->
+            SideEffect = {bump_unreleased_command_footprint, CommandSize},
+            SideEffects1 = [SideEffect | SideEffects],
+            {State, SideEffects1};
+        false ->
             Metrics = get_metrics(State),
             Footprint = maps:get(unreleased_command_footprint, Metrics, 0),
             Footprint1 = Footprint + CommandSize,
             Metrics1 = Metrics#{unreleased_command_footprint => Footprint1},
             State1 = set_metrics(State, Metrics1),
-            State1;
-        none ->
-            State;
-        undefined ->
-            State
+            {State1, SideEffects}
     end.
 
 reset_metrics(State) ->
@@ -4534,18 +4570,20 @@ trigger_projection(Projection, new, Path, NewProps, OldProps) ->
     khepri_projection:trigger(Projection, Path, OldProps, NewProps).
 
 %% -------------------------------------------------------------------
-%% Snapshot management.
+%% Snapshot management
+%% (from state machine; unused with machine version >= 5).
 %% -------------------------------------------------------------------
 
-maybe_request_snapshot(State, SideEffects, #{index := RaftIndex}) ->
-    case should_request_snapshot(State) of
+maybe_request_snapshot_from_machine(
+  State, SideEffects, #{index := RaftIndex}) ->
+    case should_request_snapshot_from_machine(State) of
         false ->
             {State, SideEffects};
         {true, Reason} ->
-            release_cursor(State, RaftIndex, Reason, SideEffects)
+            release_cursor_from_machine(State, RaftIndex, Reason, SideEffects)
     end.
 
-should_request_snapshot(State) ->
+should_request_snapshot_from_machine(State) ->
     maybe
         continue ?= needs_snapshot_after_some_time(State),
         continue ?= request_snapshot_based_on_unreleased_command_footprint(
@@ -4615,9 +4653,9 @@ request_snapshot_based_on_applied_command_count(State) ->
             {true, Reason}
     end.
 
-release_cursor(State, RaftIndex, Reason, SideEffects) ->
+release_cursor_from_machine(State, RaftIndex, Reason, SideEffects) ->
     ?LOG_DEBUG(
-       "Move release cursor, reason: ~ts",
+       "Move release cursor from state machine, reason: ~ts",
        [Reason],
        #{domain => [khepri, ra_machine]}),
     State1 = reset_metrics(State),
@@ -4701,3 +4739,89 @@ do_request_snapshot_to_fix_timestamp_locked(StoreId) ->
         false ->
             ok
     end.
+
+%% -------------------------------------------------------------------
+%% Snapshot management
+%% (from aux handler; used with machine version >= 5).
+%% -------------------------------------------------------------------
+
+maybe_request_snapshot_from_aux(AuxState, IntState, SideEffects) ->
+    Now = take_snaspshot_timestamp(),
+    case should_request_snapshot_from_aux(AuxState, IntState, Now) of
+        false ->
+            {AuxState, SideEffects};
+        {true, Reason} ->
+            release_cursor_from_aux(
+              AuxState, IntState, SideEffects, Now, Reason)
+    end.
+
+should_request_snapshot_from_aux(AuxState, IntState, Now) ->
+    maybe
+        continue ?= permits_snapshot_after_some_time(AuxState, IntState, Now),
+        continue ?= wants_snapshot_based_on_unreleased_command_footprint(
+                      AuxState, IntState),
+        false
+    end.
+
+take_snaspshot_timestamp() ->
+    erlang:system_time(second).
+
+permits_snapshot_after_some_time(AuxState, IntState, Now) ->
+    StoreId = khepri_machine_aux:get_store_id(AuxState),
+    ?assert(does_api_comply_with(snapshot_from_aux_handler, StoreId)),
+
+    Last = khepri_machine_aux:get_last_snapshot_request_timestamp(AuxState),
+    if
+        is_integer(Last) ->
+            ?assert(Now >= Last),
+
+            State = ra_aux:machine_state(IntState),
+            TimeInterval = get_snapshot_time_interval(State),
+            case Now - Last < TimeInterval of
+                true ->
+                    false;
+                false ->
+                    %% The time since the last snapshot is long enough. We
+                    %% still defer the decision to the functions that follows,
+                    %% to not just take a snapshot every `TimeInterval' just
+                    %% for the sake of it.
+                    continue
+            end;
+        true ->
+            ?assertEqual(undefined, Last),
+            continue
+    end.
+
+wants_snapshot_based_on_unreleased_command_footprint(AuxState, IntState) ->
+    StoreId = khepri_machine_aux:get_store_id(AuxState),
+    ?assert(does_api_comply_with(snapshot_from_aux_handler, StoreId)),
+
+    State = ra_aux:machine_state(IntState),
+    Threshold = get_unreleased_command_footprint_threshold(State),
+    Footprint = khepri_machine_aux:get_unreleased_command_footprint(AuxState),
+    ?assert(is_integer(Footprint)),
+    case Footprint < Threshold of
+        true ->
+            continue;
+        false ->
+            Reason = io_lib:format(
+                       "unreleased command footprint (~b bytes) >= "
+                       "threshold (~b bytes)",
+                       [Footprint, Threshold]),
+            {true, Reason}
+    end.
+
+release_cursor_from_aux(AuxState, IntState, SideEffects, Now, Reason) ->
+    ?LOG_DEBUG(
+       "Move release cursor from aux handler, reason: ~ts",
+       [Reason],
+       #{domain => [khepri, ra_machine]}),
+    AuxState1 = khepri_machine_aux:set_last_snapshot_request_timestamp(
+                  AuxState, Now),
+
+    RaftIndex = ra_aux:last_applied(IntState),
+    State = ra_aux:machine_state(IntState),
+    ReleaseCursor = {release_cursor, RaftIndex, State},
+    SideEffects1 = [ReleaseCursor | SideEffects],
+
+    {AuxState1, SideEffects1}.

@@ -24,6 +24,11 @@
          set_delayed_aux_queries/2,
          get_maybe_down_procs/1,
          set_maybe_down_procs/2,
+         get_unreleased_command_footprint/1,
+         bump_unreleased_command_footprint/2,
+         reset_unreleased_command_footprint/1,
+         get_last_snapshot_request_timestamp/1,
+         set_last_snapshot_request_timestamp/2,
          convert/2]).
 
 -record(khepri_machine_aux,
@@ -32,7 +37,9 @@
          maybe_down_procs = #{} :: #{pid() => any()},
 
          %% Added in aux state v1.
-         reserved = undefined}).
+         unreleased_command_footprint = 0 :: non_neg_integer(),
+         last_snapshot_request_timestamp = undefined :: integer() | undefined}
+       ).
 
 -opaque state_v1() :: #khepri_machine_aux{}.
 
@@ -113,6 +120,57 @@ set_maybe_down_procs(#khepri_machine_aux{} = AuxState, MaybeDownProcs) ->
 set_maybe_down_procs(AuxState, MaybeDownProcs) ->
     khepri_machine_aux_v0:set_maybe_down_procs(AuxState, MaybeDownProcs).
 
+-spec get_unreleased_command_footprint(AuxState) -> Footprint when
+      AuxState :: khepri_machine_aux:state_v1(),
+      Footprint :: non_neg_integer().
+
+get_unreleased_command_footprint(
+  #khepri_machine_aux{unreleased_command_footprint = Footprint}) ->
+    Footprint.
+
+-spec bump_unreleased_command_footprint(AuxState, CommandSize) ->
+    NewAuxState when
+      AuxState :: khepri_machine_aux:state_v1(),
+      CommandSize :: non_neg_integer(),
+      NewAuxState :: khepri_machine_aux:state_v1().
+
+bump_unreleased_command_footprint(
+  #khepri_machine_aux{unreleased_command_footprint = Footprint} = AuxState,
+  CommandSize) when is_integer(CommandSize) andalso CommandSize >= 0 ->
+    Footprint1 = Footprint + CommandSize,
+    AuxState1 = AuxState#khepri_machine_aux{
+                  unreleased_command_footprint = Footprint1},
+    AuxState1.
+
+-spec reset_unreleased_command_footprint(AuxState) ->
+    NewAuxState when
+      AuxState :: khepri_machine_aux:state_v1(),
+      NewAuxState :: khepri_machine_aux:state_v1().
+
+reset_unreleased_command_footprint(#khepri_machine_aux{} = AuxState) ->
+    AuxState1 = AuxState#khepri_machine_aux{unreleased_command_footprint = 0},
+    AuxState1.
+
+-spec get_last_snapshot_request_timestamp(AuxState) -> Timestamp when
+      AuxState :: khepri_machine_aux:state_v1(),
+      Timestamp :: non_neg_integer() | undefined.
+
+get_last_snapshot_request_timestamp(
+  #khepri_machine_aux{last_snapshot_request_timestamp = Timestamp}) ->
+    Timestamp.
+
+-spec set_last_snapshot_request_timestamp(AuxState, Timestamp) ->
+    NewAuxState when
+      AuxState :: khepri_machine_aux:state_v1(),
+      Timestamp :: non_neg_integer(),
+      NewAuxState :: khepri_machine_aux:state_v1().
+
+set_last_snapshot_request_timestamp(
+  #khepri_machine_aux{} = AuxState, Timestamp) ->
+    AuxState1 = AuxState#khepri_machine_aux{
+                  last_snapshot_request_timestamp = Timestamp},
+    AuxState1.
+
 %% -------------------------------------------------------------------
 %% State record upgrade.
 %% -------------------------------------------------------------------
@@ -129,7 +187,9 @@ convert(OldAuxState, EffectiveMacVer) ->
         true ->
             ?assert(khepri_machine_aux_v0:is_state(OldAuxState)),
             Fields0 = khepri_machine_aux_v0:state_to_list(OldAuxState),
-            Fields1 = Fields0 ++ [undefined],
+            %% XXX Take footprint from machine state.
+            %% XXX Convert monotonic timestamp to system time?
+            Fields1 = Fields0 ++ [0, undefined],
             NewAuxState = list_to_tuple(Fields1),
             ?assert(is_state(NewAuxState)),
             NewAuxState;
